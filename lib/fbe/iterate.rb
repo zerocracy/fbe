@@ -26,16 +26,10 @@ require_relative 'unmask_repos'
 require_relative 'octo'
 require_relative 'fb'
 
-# Iterate.
-# Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2024 Zerocracy
-# License:: MIT
-module Fbe
-  # Create a conclude code block.
-  def self.iterate(fbx = fb, loog = $loog, &)
-    c = Iterate.new(fbx, loog)
-    c.instance_eval(&)
-  end
+# Create a conclude code block.
+def Fbe.iterate(fbx = Fbe.fb, loog = $loog, &)
+  c = Fbe::Iterate.new(fbx, loog)
+  c.instance_eval(&)
 end
 
 # Iterate.
@@ -85,13 +79,13 @@ class Fbe::Iterate
         seen[repo] = 0 if seen[repo].nil?
         next if seen[repo] > @limit
         rid = oct.repo_id_by_name(repo)
-        before = fb.query("(agg (and (eq what '#{@label}') (eq repository #{rid})) (first latest))").one
-        fb.query("(and (eq what '#{@label}') (eq repository #{rid}))").delete!
+        before = Fbe.fb.query("(agg (and (eq what '#{@label}') (eq repository #{rid})) (first latest))").one
+        Fbe.fb.query("(and (eq what '#{@label}') (eq repository #{rid}))").delete!
         before = before.nil? ? @since : before[0]
-        nxt = fb.query(@query).one(before:, repository: rid)
+        nxt = Fbe.fb.query(@query).one(before:, repository: rid)
         after = nxt.nil? ? @since : yield(rid, nxt)
         raise "Iterator must return an Integer, while #{after.class} returned" unless after.is_a?(Integer)
-        f = fb.insert
+        f = Fbe.fb.insert
         f.repository = rid
         f.latest = after.nil? ? nxt : after
         f.what = @label

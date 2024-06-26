@@ -25,8 +25,8 @@
 require_relative 'octo'
 
 # Create a conclude code block.
-def conclude(fbx = fb, judge = $judge, loog = $loog, &)
-  c = Conclude.new(fbx, judge, loog)
+def Fbe.conclude(fbx = fb, judge = $judge, loog = $loog, &)
+  c = Fbe::Conclude.new(fbx, judge, loog)
   c.instance_eval(&)
 end
 
@@ -34,7 +34,7 @@ end
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
-class Conclude
+class Fbe::Conclude
   def initialize(fb, judge, loog)
     @fb = fb
     @judge = judge
@@ -72,7 +72,7 @@ class Conclude
 
   def maybe(&)
     roll do |fbt, a|
-      if_absent(fbt) do |n|
+      Fbe.if_absent(fbt) do |n|
         fill(n, a, &)
       end
     end

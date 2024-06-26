@@ -39,7 +39,7 @@ class TestConclude < Minitest::Test
     fb = Factbase.new
     fb.insert.foo = 1
     fb.insert.bar = 2
-    conclude(fb, 'judge-one', Loog::VERBOSE) do
+    Fbe.conclude(fb, 'judge-one', Loog::VERBOSE) do
       on '(exists foo)'
       draw do |n, prev|
         n.sum = prev.foo + 1
@@ -56,8 +56,8 @@ class TestConclude < Minitest::Test
     $fb = Factbase.new
     $options = Judges::Options.new
     $loog = Loog::NULL
-    fb.insert.foo = 1
-    conclude(fb, 'issue-was-opened', Loog::VERBOSE) do
+    Fbe.fb.insert.foo = 1
+    Fbe.conclude(Fbe.fb, 'issue-was-opened', Loog::VERBOSE) do
       on '(exists foo)'
       maybe do |n, prev|
         n.repository = 111
@@ -67,7 +67,7 @@ class TestConclude < Minitest::Test
         "it's a test." * 20
       end
     end
-    f = fb.query('(exists issue)').each.to_a[0]
+    f = Fbe.fb.query('(exists issue)').each.to_a[0]
     assert_equal(1, f.issue)
     assert(f._id.positive?)
   end
@@ -76,14 +76,14 @@ class TestConclude < Minitest::Test
     $fb = Factbase.new
     $options = Judges::Options.new
     $loog = Loog::NULL
-    fb.insert.foo = 1
-    conclude(fb, 'issue-was-closed', Loog::VERBOSE) do
+    Fbe.fb.insert.foo = 1
+    Fbe.conclude(Fbe.fb, 'issue-was-closed', Loog::VERBOSE) do
       on '(exists foo)'
       consider do |_prev|
-        fb.insert.bar = 42
+        Fbe.fb.insert.bar = 42
       end
     end
-    f = fb.query('(exists bar)').each.to_a[0]
+    f = Fbe.fb.query('(exists bar)').each.to_a[0]
     assert_equal(42, f.bar)
   end
 end

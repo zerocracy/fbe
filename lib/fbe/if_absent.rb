@@ -26,7 +26,7 @@ require 'time'
 require 'others'
 
 # Injects a fact if it's absent in the factbase.
-def if_absent(fb)
+def Fbe.if_absent(fb)
   attrs = {}
   f = others(map: attrs) do |*args|
     k = args[0]
