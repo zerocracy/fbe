@@ -100,17 +100,17 @@ def Fbe.octo(options: $options, global: $global, loog: Loog::NULL)
   end
 end
 
-def random_time
-  Time.now - rand(10_000)
-end
-
-def name_to_number(name)
-  return name unless name.is_a?(String)
-  name.chars.map(&:ord).inject(0, :+)
-end
-
 # Fake GitHub client, for tests.
 class Fbe::FakeOctokit
+  def random_time
+    Time.now - rand(10_000)
+  end
+
+  def name_to_number(name)
+    return name unless name.is_a?(String)
+    name.chars.map(&:ord).inject(0, :+)
+  end
+
   def rate_limit
     o = Object.new
     def o.remaining
