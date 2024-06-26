@@ -48,7 +48,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'judges', '~>0.0'
   s.add_runtime_dependency 'loog', '~>0.2'
   s.add_runtime_dependency 'obk', '~>0.0'
-  s.add_runtime_dependency 'octokit', '~>9.1.0'
+  s.add_runtime_dependency 'octokit', '~>9.1'
   s.add_runtime_dependency 'others', '~>0.0'
   s.add_runtime_dependency 'verbose', '~>0.0'
   s.metadata['rubygems_mfa_required'] = 'true'

@@ -12,7 +12,7 @@ PATH
       judges (~> 0.0)
       loog (~> 0.2)
       obk (~> 0.0)
-      octokit (~> 9.1.0)
+      octokit (~> 9.1)
       others (~> 0.0)
       verbose (~> 0.0)
 
