@@ -23,7 +23,9 @@
 # SOFTWARE.
 
 require_relative '../fbe'
+require_relative 'fb'
 require_relative 'octo'
+require_relative 'if_absent'
 
 # Create a conclude code block.
 def Fbe.conclude(fbx = Fbe.fb, judge = $judge, loog = $loog, &)

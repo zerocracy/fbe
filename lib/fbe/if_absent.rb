@@ -25,7 +25,7 @@
 require 'time'
 require 'others'
 require_relative '../fbe'
-require_relative '../fbe/fb'
+require_relative 'fb'
 
 # Injects a fact if it's absent in the factbase.
 def Fbe.if_absent(fb = Fbe.fb)

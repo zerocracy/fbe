@@ -23,6 +23,7 @@
 # SOFTWARE.
 
 require 'judges'
+require 'factbase'
 require 'factbase/looged'
 require 'factbase/pre'
 require 'factbase/rules'

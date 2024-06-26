@@ -36,6 +36,9 @@ require_relative '../../lib/fbe/fb'
 # License:: MIT
 class TestConclude < Minitest::Test
   def test_with_defaults
+    $fb = Factbase.new
+    $options = Judges::Options.new
+    $loog = Loog::NULL
     Fbe.conclude do
       # nothing
     end
