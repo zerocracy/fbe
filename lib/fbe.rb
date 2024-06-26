@@ -27,5 +27,5 @@
 # License:: MIT
 module Fbe
   # Current version of the gem (changed by .rultor.yml on every release)
-  VERSION = '0.0.0'
+  VERSION = '0.0.3'
 end
