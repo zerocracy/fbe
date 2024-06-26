@@ -29,9 +29,10 @@ Gem::Specification.new do |s|
   s.name = 'fbe'
   s.version = '0.0.0'
   s.license = 'MIT'
-  s.summary = 'FactBase Extended (FBE)'
+  s.summary = 'FactBase Extended (FBE), a collection of utility classes for Zerocracy judges'
   s.description =
-    'A collection of extensions for a factbase'
+    'A collection of extensions for a factbase, helping the judges of Zerocracy ' \
+    'manipulate the facts and create new ones'
   s.authors = ['Yegor Bugayenko']
   s.email = 'yegor256@gmail.com'
   s.homepage = 'http://github.com/yegor256/fbe.rb'
