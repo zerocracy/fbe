@@ -22,9 +22,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require 'judges'
 require 'factbase/looged'
 require 'factbase/pre'
 require 'factbase/rules'
+require_relative '../fbe'
 
 def Fbe.fb
   rules = Dir.glob(File.join('rules', '*.fe')).map { |f| File.read(f) }

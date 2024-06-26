@@ -22,34 +22,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'time'
-require 'others'
-require_relative '../fbe'
+require 'minitest/autorun'
+require 'factbase'
+require 'judges/options'
+require_relative '../../lib/fbe'
+require_relative '../../lib/fbe/fb'
 
-# Injects a fact if it's absent in the factbase.
-def Fbe.if_absent(fb)
-  attrs = {}
-  f = others(map: attrs) do |*args|
-    k = args[0]
-    if k.end_with?('=')
-      @map[k[0..-2].to_sym] = args[1]
-    else
-      @map[k.to_sym]
-    end
+# Test.
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2024 Zerocracy
+# License:: MIT
+class TestFb < Minitest::Test
+  def test_simple
+    $fb = Factbase.new
+    $options = Judges::Options.new
+    Fbe.fb.insert.foo = 1
+    Fbe.fb.insert.bar = 2
+    assert_equal(1, Fbe.fb.query('(exists bar)').each.to_a.size)
   end
-  yield f
-  q = attrs.except('_id', '_time', '_version').map do |k, v|
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
-    "(eq #{k} #{vv})"
-  end.join(' ')
-  q = "(and #{q})"
-  return unless fb.query(q).each.to_a.empty?
-  n = fb.insert
-  attrs.each { |k, v| n.send("#{k}=", v) }
-  n
 end
