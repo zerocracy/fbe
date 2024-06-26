@@ -41,5 +41,5 @@ def Fbe.fb
     f._time = Time.now
     f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{$options.judges_action_version}"
   end
-  Factbase::Looged.new(fb, Loog::VERBOSE)
+  Factbase::Looged.new(fb, Loog::NULL)
 end
