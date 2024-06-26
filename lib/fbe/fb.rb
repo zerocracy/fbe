@@ -26,24 +26,18 @@ require 'factbase/looged'
 require 'factbase/pre'
 require 'factbase/rules'
 
-def Fbe.fb_rules(fb)
+def Fbe.fb
   rules = Dir.glob(File.join('rules', '*.fe')).map { |f| File.read(f) }
-  Factbase::Rules.new(
-    fb,
+  fb = Factbase::Rules.new(
+    $fb,
     "(and \n#{rules.join("\n")}\n)",
     uid: '_id'
   )
-end
-
-def Fbe.fb_pre(fb)
-  Factbase::Pre.new(fb) do |f|
+  fb = Factbase::Pre.new(fb) do |f|
     max = $fb.query('(eq _id (max _id))').each.to_a[0]
     f._id = (max.nil? ? 0 : max._id) + 1
     f._time = Time.now
     f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{$options.judges_action_version}"
   end
-end
-
-def Fbe.fb
-  Factbase::Looged.new(fb_pre(fb_rules($fb)), Loog::VERBOSE)
+  Factbase::Looged.new(fb, Loog::VERBOSE)
 end
