@@ -20,14 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'English'
 require_relative 'lib/fbe'
 
 Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new('>= 0') if s.respond_to? :required_rubygems_version=
   s.required_ruby_version = '>=3.0'
   s.name = 'fbe'
-  s.version = '0.0.0'
+  s.version = Fbe.VERSION
   s.license = 'MIT'
   s.summary = 'FactBase Extended (FBE), a collection of utility classes for Zerocracy judges'
   s.description =
