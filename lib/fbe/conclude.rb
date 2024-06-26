@@ -26,7 +26,7 @@ require_relative '../fbe'
 require_relative 'octo'
 
 # Create a conclude code block.
-def Fbe.conclude(fbx = fb, judge = $judge, loog = $loog, &)
+def Fbe.conclude(fbx = Fbe.fb, judge = $judge, loog = $loog, &)
   c = Fbe::Conclude.new(fbx, judge, loog)
   c.instance_eval(&)
 end

@@ -35,6 +35,12 @@ require_relative '../../lib/fbe/fb'
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
 class TestConclude < Minitest::Test
+  def test_with_defaults
+    Fbe.conclude do
+      # nothing
+    end
+  end
+
   def test_draw
     fb = Factbase.new
     fb.insert.foo = 1
