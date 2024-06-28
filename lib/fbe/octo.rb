@@ -42,6 +42,8 @@ def Fbe.octo(options: $options, global: $global, loog: Loog::NULL)
       loog.debug("The 'GITHUB_TOKEN' environment variable is not set") if token.nil?
       if token.nil?
         loog.warn('Accessing GitHub API without a token!')
+      elsif token.empty?
+        loog.warn('The GitHub API token is an empty string, won\'t use it')
       else
         o = Octokit::Client.new(access_token: token)
         loog.info("Accessing GitHub API with a token (#{token.length} chars)")
