@@ -31,32 +31,13 @@
 
 (explain (when
   (exists what)
-  (or
-    (eq what 'events-were-scanned')
-    (eq what 'labels-were-scanned')
-    (eq what 'bug-was-accepted')
-    (eq what 'bug-was-resolved')
-    (eq what 'comment-was-posted')
-    (eq what 'git-was-pushed')
-    (eq what 'events-were-scanned')
-    (eq what 'issue-was-closed')
-    (eq what 'issue-was-opened')
-    (eq what 'issue-was-assigned')
-    (eq what 'label-was-attached')
-    (eq what 'release-published')
-    (eq what 'reward-for-bug-reported')
-    (eq what 'reward-for-resolved-bug')
-    (eq what 'tag-was-created'))))
-
-(explain (when
-  (exists what)
   (matches what "^[a-z]+(-[a-z]+)*$")))
 
 (explain (when
   (exists details)
   (and
     (not (matches details "  "))
-    (not (matches details "^.{,120}$"))
+    (not (matches details "^.{,80}$"))
     (not (matches details "[^.]$")))))
 
 (explain (when
@@ -69,19 +50,23 @@
   (exists _version)
   (eq "String" (type _version))))
 (explain (when
+  (exists why)
+  (eq "String" (type why))))
+(explain (when
   (exists issue)
   (and
     (eq "Integer" (type issue))
     (gt issue 0))))
 (explain (when
   (exists repository)
-  (eq "Integer" (type repository))))
+  (and
+    (eq "Integer" (type repository))
+    (gt repository 0))))
 (explain (when
   (exists who)
-  (eq "Integer" (type who))))
-(explain (when
-  (exists award)
-  (eq "Integer" (type award))))
+  (and
+    (eq "Integer" (type who))
+    (gt who 0))))
 
 (explain (when
   (exists when)
@@ -94,9 +79,10 @@
 (explain (when
   (exists award)
   (and
+    (eq "Integer" (type award))
     (exists when)
     (exists who)
-    (exists reason))))
+    (exists why))))
 
 (explain (when
   (eq what 'events-were-scanned')
@@ -104,55 +90,3 @@
     (exists repository)
     (exists latest)
     (eq "Integer" (type latest)))))
-
-(explain (when
-  (eq what 'label-was-attached')
-  (and
-    (exists issue)
-    (exists label)
-    (eq "String" (type label)))))
-
-(explain (when
-  (eq what 'issue-was-opened')
-  (and
-    (exists issue)
-    (exists when)
-    (exists who))))
-
-(explain (when
-  (eq what 'issue-was-closed')
-  (and
-    (exists issue)
-    (exists when)
-    (exists who))))
-
-(explain (when
-  (eq what 'bug-was-resolved')
-  (and
-    (exists cause)
-    (exists when)
-    (exists issue)
-    (exists details)
-    (exists who))))
-
-(explain (when
-  (eq what 'bug-was-accepted')
-  (and
-    (exists cause)
-    (exists when)
-    (exists issue)
-    (exists details)
-    (exists reporter)
-    (eq "Integer" (type reporter))
-    (exists who))))
-
-(explain (when
-  (eq what 'bug-report-was-rewarded')
-  (and
-    (exists cause)
-    (exists award)
-    (eq "Integer" (type award))
-    (exists when)
-    (exists issue)
-    (exists repository))))
-
