@@ -39,6 +39,13 @@ class TestOcto < Minitest::Test
     assert(!o.off_quota)
   end
 
+  def test_post_comment
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    o = Fbe.octo(loog: Loog::NULL, global:, options:)
+    assert_equal(42, o.add_comment('foo/foo', 4, 'hello!')[:id])
+  end
+
   def test_rate_limit
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)

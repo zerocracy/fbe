@@ -147,7 +147,9 @@ class Fbe::FakeOctokit
   end
 
   def add_comment(_repo, _issue, _text)
-    42
+    {
+      id: 42
+    }
   end
 
   def search_issues(_query, _options = {})
