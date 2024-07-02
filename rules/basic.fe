@@ -41,6 +41,12 @@
     (not (matches details "[^.]$")))))
 
 (explain (when
+  (exists where)
+  (and
+    (eq "String" (type _id))
+    (eq "github" where))))
+
+(explain (when
   (exists _id)
   (eq "Integer" (type _id))))
 (explain (when
