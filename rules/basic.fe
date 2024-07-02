@@ -49,25 +49,31 @@
 (explain (when
   (exists _id)
   (eq "Integer" (type _id))))
+
 (explain (when
   (exists _time)
   (eq "Time" (type _time))))
+
 (explain (when
   (exists _version)
   (eq "String" (type _version))))
+
 (explain (when
   (exists why)
   (eq "String" (type why))))
+
 (explain (when
   (exists issue)
   (and
     (eq "Integer" (type issue))
     (gt issue 0))))
+
 (explain (when
   (exists repository)
   (and
     (eq "Integer" (type repository))
     (gt repository 0))))
+
 (explain (when
   (exists who)
   (and
@@ -93,10 +99,3 @@
     (exists when)
     (exists who)
     (exists why))))
-
-(explain (when
-  (eq what 'events-were-scanned')
-  (and
-    (exists repository)
-    (exists latest)
-    (eq "Integer" (type latest)))))
