@@ -30,12 +30,22 @@
   ')
 
 (explain (when
+  (exists _id)
+  (and
+    (unique _id)
+    (eq "Integer" (type _id))
+    (one _id))))
+
+(explain (when
   (exists what)
-  (matches what "^[a-z]+(-[a-z]+)*$")))
+  (and
+    (matches what "^[a-z]+(-[a-z]+)*$")
+    (one what))))
 
 (explain (when
   (exists details)
   (and
+    (one details)
     (not (matches details "  "))
     (not (matches details "^.{,80}$"))
     (not (matches details "[^.]$")))))
@@ -43,46 +53,54 @@
 (explain (when
   (exists where)
   (and
+    (one where)
     (eq "String" (type where))
     (eq "github" where))))
 
 (explain (when
-  (exists _id)
-  (eq "Integer" (type _id))))
-
-(explain (when
   (exists _time)
-  (eq "Time" (type _time))))
+  (and
+    (one _time)
+    (eq "Time" (type _time)))))
 
 (explain (when
   (exists _version)
-  (eq "String" (type _version))))
+  (and
+    (one _version)
+    (eq "String" (type _version)))))
 
 (explain (when
   (exists why)
-  (eq "String" (type why))))
+  (and
+    (one why)
+    (eq "String" (type why)))))
 
 (explain (when
   (exists issue)
   (and
+    (one issue)
     (eq "Integer" (type issue))
     (gt issue 0))))
 
 (explain (when
   (exists repository)
   (and
+    (one repository)
     (eq "Integer" (type repository))
     (gt repository 0))))
 
 (explain (when
   (exists who)
   (and
+    (one who)
     (eq "Integer" (type who))
     (gt who 0))))
 
 (explain (when
   (exists when)
-  (eq "Time" (type when))))
+  (and
+    (one when)
+    (eq "Time" (type when)))))
 
 (explain (when
   (exists issue)
@@ -95,6 +113,7 @@
 (explain (when
   (exists award)
   (and
+    (one award)
     (eq "Integer" (type award))
     (exists when)
     (exists who)
