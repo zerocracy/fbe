@@ -80,13 +80,16 @@ class Fbe::Iterate
         seen[repo] = 0 if seen[repo].nil?
         next if seen[repo] > @limit
         rid = oct.repo_id_by_name(repo)
-        before = Fbe.fb.query("(agg (and (eq what '#{@label}') (eq repository #{rid})) (first latest))").one
-        Fbe.fb.query("(and (eq what '#{@label}') (eq repository #{rid}))").delete!
+        before = Fbe.fb.query(
+          "(agg (and (eq what '#{@label}') (eq where 'github') (eq repository #{rid})) (first latest))"
+        ).one
+        Fbe.fb.query("(and (eq what '#{@label}') (eq where 'github') (eq repository #{rid}))").delete!
         before = before.nil? ? @since : before[0]
         nxt = Fbe.fb.query(@query).one(before:, repository: rid)
         after = nxt.nil? ? @since : yield(rid, nxt)
         raise "Iterator must return an Integer, while #{after.class} returned" unless after.is_a?(Integer)
         f = Fbe.fb.insert
+        f.where = 'github'
         f.repository = rid
         f.latest = after.nil? ? nxt : after
         f.what = @label

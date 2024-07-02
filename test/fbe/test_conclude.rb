@@ -70,6 +70,7 @@ class TestConclude < Minitest::Test
       on '(exists foo)'
       maybe do |n, prev|
         n.repository = 111
+        n.where = 'github'
         n.issue = prev.foo
         n.who = 777
         n.when = Time.now
