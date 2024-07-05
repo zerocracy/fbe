@@ -44,7 +44,6 @@ class Fbe::Conclude
     @loog = loog
     @query = nil
     @follows = []
-    @threshold = 9999
     @quota_aware = false
   end
 
@@ -55,10 +54,6 @@ class Fbe::Conclude
   def on(query)
     raise 'Query is already set' unless @query.nil?
     @query = query
-  end
-
-  def threshold(max)
-    @threshold = max
   end
 
   def follow(props)
@@ -96,7 +91,6 @@ class Fbe::Conclude
       @fb.txn do |fbt|
         fbt.query(@query).each do |a|
           throw :stop if @quota_aware && Fbe.octo(loog: @loog).off_quota
-          throw :stop if passed >= @threshold
           n = yield fbt, a
           @loog.info("#{n.what}: #{n.details}") unless n.nil?
           passed += 1
