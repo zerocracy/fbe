@@ -78,7 +78,10 @@ class Fbe::Iterate
     loop do
       repos.each do |repo|
         seen[repo] = 0 if seen[repo].nil?
-        next if seen[repo] > @limit
+        if seen[repo] > @limit
+          @loog.debug("We've seen too many in the #{repo} repo, time to move to the next one")
+          next
+        end
         rid = oct.repo_id_by_name(repo)
         before = Fbe.fb.query(
           "(agg (and (eq what '#{@label}') (eq where 'github') (eq repository #{rid})) (first latest))"
@@ -94,9 +97,15 @@ class Fbe::Iterate
         f.latest = after.nil? ? nxt : after
         f.what = @label
         seen[repo] += 1
-        break if oct.off_quota
+        if oct.off_quota
+          @loog.debug('We are off GitHub quota, time to stop')
+          break
+        end
       end
-      break if oct.off_quota
+      if oct.off_quota
+        @loog.debug('We are off GitHub quota, time to stop')
+        break
+      end
       unless seen.values.any? { |v| v < @limit }
         @loog.debug("Finished scanning #{repos.size} repos: #{seen.map { |k, v| "#{k}:#{v}" }.join(', ')}")
         break

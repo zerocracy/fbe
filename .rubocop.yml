@@ -40,10 +40,10 @@ Style/ClassAndModuleChildren:
   Enabled: false
 Layout/MultilineMethodCallIndentation:
   Enabled: false
+Metrics/BlockLength:
+  Enabled: false
 Metrics/AbcSize:
   Enabled: false
-Metrics/BlockLength:
-  Max: 30
 Metrics/CyclomaticComplexity:
   Max: 25
 Metrics/PerceivedComplexity:
