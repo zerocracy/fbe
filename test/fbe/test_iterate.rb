@@ -41,7 +41,7 @@ class TestIterate < Minitest::Test
     Fbe.iterate($fb, Loog::NULL) do
       as 'labels-were-scanned'
       by '(agg (always) (max foo))'
-      limit 2
+      repeats 2
       over do |_repository, foo|
         f = $fb.insert
         f.foo = foo + 1

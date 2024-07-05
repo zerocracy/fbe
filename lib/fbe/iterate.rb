@@ -44,7 +44,7 @@ class Fbe::Iterate
     @label = nil
     @since = 0
     @query = nil
-    @limit = 100
+    @repeats = 1
     @quota_aware = false
   end
 
@@ -52,9 +52,9 @@ class Fbe::Iterate
     @quota_aware = true
   end
 
-  def limit(limit)
-    raise 'Cannot set "limit" to nil' if limit.nil?
-    @limit = limit
+  def repeats(repeats)
+    raise 'Cannot set "repeats" to nil' if repeats.nil?
+    @repeats = repeats
   end
 
   def by(query)
@@ -78,7 +78,7 @@ class Fbe::Iterate
     loop do
       repos.each do |repo|
         seen[repo] = 0 if seen[repo].nil?
-        if seen[repo] > @limit
+        if seen[repo] > @repeats
           @loog.debug("We've seen too many in the #{repo} repo, time to move to the next one")
           next
         end
@@ -103,10 +103,10 @@ class Fbe::Iterate
         f.repository = rid
         f.latest =
           if after.nil?
-            @loog.debug("After is nil, setting the `latest` to nxt: #{nxt}")
+            @loog.debug("After is nil at #{repo}, setting the `latest` to nxt: #{nxt}")
             nxt
           else
-            @loog.debug("After is #{after}, setting the `latest` to it")
+            @loog.debug("After is #{after} at #{repo}, setting the `latest` to it")
             after
           end
         f.what = @label
@@ -120,7 +120,7 @@ class Fbe::Iterate
         @loog.debug('We are off GitHub quota, time to stop')
         break
       end
-      unless seen.values.any? { |v| v < @limit }
+      unless seen.values.any? { |v| v < @repeats }
         @loog.debug('No more repos to scan, quitting')
         break
       end
