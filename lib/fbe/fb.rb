@@ -29,18 +29,20 @@ require 'factbase/pre'
 require 'factbase/rules'
 require_relative '../fbe'
 
-def Fbe.fb
-  rules = Dir.glob(File.join('rules', '*.fe')).map { |f| File.read(f) }
-  fb = Factbase::Rules.new(
-    $fb,
-    "(and \n#{rules.join("\n")}\n)",
-    uid: '_id'
-  )
-  fb = Factbase::Pre.new(fb) do |f|
-    max = $fb.query('(eq _id (max _id))').each.to_a.first
-    f._id = (max.nil? ? 0 : max._id) + 1
-    f._time = Time.now
-    f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{$options.judges_action_version}"
+def Fbe.fb(global: $global)
+  global[:fb] ||= begin
+    rules = Dir.glob(File.join('rules', '*.fe')).map { |f| File.read(f) }
+    fb = Factbase::Rules.new(
+      $fb,
+      "(and \n#{rules.join("\n")}\n)",
+      uid: '_id'
+    )
+    fb = Factbase::Pre.new(fb) do |f|
+      max = $fb.query('(eq _id (max _id))').each.to_a.first
+      f._id = (max.nil? ? 0 : max._id) + 1
+      f._time = Time.now
+      f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{$options.judges_action_version}"
+    end
+    Factbase::Looged.new(fb, Loog::NULL)
   end
-  Factbase::Looged.new(fb, Loog::NULL)
 end

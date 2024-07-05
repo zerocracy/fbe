@@ -35,6 +35,7 @@ require_relative '../../lib/fbe/fb'
 class TestFb < Minitest::Test
   def test_simple
     $fb = Factbase.new
+    $global = {}
     $options = Judges::Options.new
     Fbe.fb.insert.foo = 1
     Fbe.fb.insert.bar = 2

@@ -37,6 +37,7 @@ require_relative '../../lib/fbe/fb'
 class TestConclude < Minitest::Test
   def test_with_defaults
     $fb = Factbase.new
+    $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
     Fbe.conclude do
@@ -63,6 +64,7 @@ class TestConclude < Minitest::Test
 
   def test_maybe
     $fb = Factbase.new
+    $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
     Fbe.fb.insert.foo = 1
@@ -84,6 +86,7 @@ class TestConclude < Minitest::Test
 
   def test_consider
     $fb = Factbase.new
+    $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
     Fbe.fb.insert.foo = 1
