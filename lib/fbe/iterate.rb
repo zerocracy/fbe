@@ -55,7 +55,6 @@ class Fbe::Iterate
   def repeats(repeats)
     raise 'Cannot set "repeats" to nil' if repeats.nil?
     raise 'The "repeats" must be a positive integer' unless repeats.positive?
-    raise 'Cannot set "repeats" to larger than 8' if repeats > 8
     @repeats = repeats
   end
 
