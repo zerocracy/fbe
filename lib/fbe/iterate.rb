@@ -121,9 +121,10 @@ class Fbe::Iterate
         break
       end
       unless seen.values.any? { |v| v < @limit }
-        @loog.debug("Finished scanning #{repos.size} repos: #{seen.map { |k, v| "#{k}:#{v}" }.join(', ')}")
+        @loog.debug('No more repos to scan, quitting')
         break
       end
     end
+    @loog.debug("Finished scanning #{repos.size} repos: #{seen.map { |k, v| "#{k}:#{v}" }.join(', ')}")
   end
 end
