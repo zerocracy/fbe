@@ -70,16 +70,23 @@ class Fbe::Iterate
     @label = label
   end
 
+  # It makes a number of repeats of going through all repositories
+  # provided by the "repositories" configuration option. In each "repeat"
+  # it yields the repository ID and a number that is retrieved by the
+  # "query". The query is supplied with two parameter:
+  # "$before" (the value from the previous repeat and "$rid" (the repo ID).
   def over(&)
     raise 'Use "as" first' if @label.nil?
     raise 'Use "by" first' if @query.nil?
     seen = {}
     oct = Fbe.octo(loog: @loog)
     repos = Fbe.unmask_repos(loog: @loog)
+    restarted = []
     loop do
       repos.each do |repo|
+        next if restarted.include?(repo)
         seen[repo] = 0 if seen[repo].nil?
-        if seen[repo] > @repeats
+        if seen[repo] >= @repeats
           @loog.debug("We've seen too many in the #{repo} repo, time to move to the next one")
           next
         end
@@ -88,11 +95,12 @@ class Fbe::Iterate
           "(agg (and (eq what '#{@label}') (eq where 'github') (eq repository #{rid})) (first latest))"
         ).one
         Fbe.fb.query("(and (eq what '#{@label}') (eq where 'github') (eq repository #{rid}))").delete!
-        before = before.nil? ? @since : before[0]
+        before = before.nil? ? @since : before.first
         nxt = Fbe.fb.query(@query).one(before:, repository: rid)
         after =
           if nxt.nil?
             @loog.debug("Next is nil, starting from the beginning at #{@since}")
+            restarted << repo
             @since
           else
             @loog.debug("Next is #{nxt}, starting from it...")
