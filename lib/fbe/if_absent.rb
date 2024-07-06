@@ -28,7 +28,7 @@ require_relative '../fbe'
 require_relative 'fb'
 
 # Injects a fact if it's absent in the factbase.
-def Fbe.if_absent(fb = Fbe.fb)
+def Fbe.if_absent(fb: Fbe.fb)
   attrs = {}
   f = others(map: attrs) do |*args|
     k = args[0]

@@ -28,8 +28,8 @@ require_relative 'octo'
 require_relative 'fb'
 
 # Create a conclude code block.
-def Fbe.iterate(fbx = Fbe.fb, loog = $loog, &)
-  c = Fbe::Iterate.new(fbx, loog)
+def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
+  c = Fbe::Iterate.new(fb:, loog:, options:, global:)
   c.instance_eval(&)
 end
 
@@ -38,9 +38,11 @@ end
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
 class Fbe::Iterate
-  def initialize(fb, loog)
+  def initialize(fb: Fbe.fb, loog: $loog, options: $options, global: $global)
     @fb = fb
     @loog = loog
+    @options = options
+    @global = global
     @label = nil
     @since = 0
     @query = nil
@@ -79,8 +81,8 @@ class Fbe::Iterate
     raise 'Use "as" first' if @label.nil?
     raise 'Use "by" first' if @query.nil?
     seen = {}
-    oct = Fbe.octo(loog: @loog)
-    repos = Fbe.unmask_repos(loog: @loog)
+    oct = Fbe.octo(loog: @loog, options: @options, global: @global)
+    repos = Fbe.unmask_repos(loog: @loog, options: @options, global: @global)
     restarted = []
     loop do
       repos.each do |repo|

@@ -28,8 +28,8 @@ require_relative 'octo'
 require_relative 'if_absent'
 
 # Create a conclude code block.
-def Fbe.conclude(fbx = Fbe.fb, judge = $judge, loog = $loog, &)
-  c = Fbe::Conclude.new(fbx, judge, loog)
+def Fbe.conclude(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global, &)
+  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:)
   c.instance_eval(&)
 end
 
@@ -38,10 +38,12 @@ end
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
 class Fbe::Conclude
-  def initialize(fb, judge, loog)
+  def initialize(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global)
     @fb = fb
     @judge = judge
     @loog = loog
+    @options = options
+    @global = global
     @query = nil
     @follows = []
     @quota_aware = false
@@ -70,7 +72,7 @@ class Fbe::Conclude
 
   def maybe(&)
     roll do |fbt, a|
-      Fbe.if_absent(fbt) do |n|
+      Fbe.if_absent(fb: fbt) do |n|
         fill(n, a, &)
       end
     end
@@ -90,7 +92,7 @@ class Fbe::Conclude
       passed = 0
       @fb.txn do |fbt|
         fbt.query(@query).each do |a|
-          throw :stop if @quota_aware && Fbe.octo(loog: @loog).off_quota
+          throw :stop if @quota_aware && Fbe.octo(loog: @loog, options: @options, global: @global).off_quota
           n = yield fbt, a
           @loog.info("#{n.what}: #{n.details}") unless n.nil?
           passed += 1

@@ -49,7 +49,7 @@ class TestConclude < Minitest::Test
     fb = Factbase.new
     fb.insert.foo = 1
     fb.insert.bar = 2
-    Fbe.conclude(fb, 'judge-one', Loog::NULL) do
+    Fbe.conclude(fb:, judge: 'judge-one', loog: Loog::NULL) do
       on '(exists foo)'
       draw do |n, prev|
         n.sum = prev.foo + 1
@@ -68,7 +68,7 @@ class TestConclude < Minitest::Test
     $options = Judges::Options.new
     $loog = Loog::NULL
     Fbe.fb.insert.foo = 1
-    Fbe.conclude(Fbe.fb, 'issue-was-opened', Loog::NULL) do
+    Fbe.conclude(judge: 'issue-was-opened', loog: Loog::NULL) do
       on '(exists foo)'
       maybe do |n, prev|
         n.repository = 111
@@ -90,7 +90,7 @@ class TestConclude < Minitest::Test
     $options = Judges::Options.new
     $loog = Loog::NULL
     Fbe.fb.insert.foo = 1
-    Fbe.conclude(Fbe.fb, 'issue-was-closed', Loog::NULL) do
+    Fbe.conclude(judge: 'issue-was-closed', loog: Loog::NULL) do
       on '(exists foo)'
       consider do |_prev|
         Fbe.fb.insert.bar = 42

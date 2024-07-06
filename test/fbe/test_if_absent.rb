@@ -37,7 +37,7 @@ class TestIfAbsent < Minitest::Test
   def test_ignores
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
-    n = Fbe.if_absent(fb) do |f|
+    n = Fbe.if_absent(fb:) do |f|
       f.foo = 'hello dude'
     end
     assert(n.nil?)
@@ -47,7 +47,7 @@ class TestIfAbsent < Minitest::Test
     fb = Factbase.new
     t = Time.now
     fb.insert.foo = t
-    n = Fbe.if_absent(fb) do |f|
+    n = Fbe.if_absent(fb:) do |f|
       f.foo = t
     end
     assert(n.nil?)
@@ -55,14 +55,14 @@ class TestIfAbsent < Minitest::Test
 
   def test_injects
     fb = Factbase.new
-    n = Fbe.if_absent(fb) do |f|
+    n = Fbe.if_absent(fb:) do |f|
       f.foo = 42
     end
     assert_equal(42, n.foo)
   end
 
   def test_injects_and_reads
-    Fbe.if_absent(Factbase.new) do |f|
+    Fbe.if_absent(fb: Factbase.new) do |f|
       f.foo = 42
       assert_equal(42, f.foo)
     end
@@ -76,7 +76,7 @@ class TestIfAbsent < Minitest::Test
     t = Time.now
     f1.z = t
     f1.bar = 3.14
-    n = Fbe.if_absent(fb) do |f|
+    n = Fbe.if_absent(fb:) do |f|
       f.foo = 'hello, "dude"!'
       f.abc = 42
       f.z = t
@@ -93,7 +93,7 @@ class TestIfAbsent < Minitest::Test
     t = Time.now
     f1.z = t
     f1.bar = 3.14
-    n = Fbe.if_absent(fb) do |f|
+    n = Fbe.if_absent(fb:) do |f|
       f.foo = "hello, \\\"dude\\\" \\' \\' ( \n\n ) (!   '"
       f.abc = 42
       f.z = t + 1

@@ -38,7 +38,7 @@ class TestIterate < Minitest::Test
     $global = {}
     $fb = Factbase.new
     $fb.insert.foo = 42
-    Fbe.iterate($fb, Loog::NULL) do
+    Fbe.iterate(loog: Loog::NULL) do
       as 'labels-were-scanned'
       by '(agg (always) (max foo))'
       repeats 2
