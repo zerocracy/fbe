@@ -40,6 +40,7 @@ class TestConclude < Minitest::Test
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
+    $judge = ''
     Fbe.conclude do
       # nothing
     end

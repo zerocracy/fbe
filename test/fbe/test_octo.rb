@@ -50,4 +50,11 @@ class TestOcto < Minitest::Test
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)
   end
+
+  def test_with_broken_token
+    global = {}
+    options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
+    o = Fbe.octo(loog: Loog::NULL, global:, options:)
+    assert_raises { o.repository('zerocracy/fbe') }
+  end
 end

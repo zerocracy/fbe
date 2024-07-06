@@ -36,8 +36,8 @@ def Fbe.octo(options: $options, global: $global, loog: Loog::NULL)
   global[:octo] ||= begin
     if options.testing.nil?
       o = Octokit::Client.new
-      token = options.token
-      loog.debug("The 'token' option is not provided") if token.nil?
+      token = options.github_token
+      loog.debug("The 'github_token' option is not provided") if token.nil?
       token = ENV.fetch('GITHUB_TOKEN', nil) if token.nil?
       loog.debug("The 'GITHUB_TOKEN' environment variable is not set") if token.nil?
       if token.nil?
