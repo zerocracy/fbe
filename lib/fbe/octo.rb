@@ -49,6 +49,7 @@ def Fbe.octo(options: $options, global: $global, loog: Loog::NULL)
         loog.info("Accessing GitHub API with a token (#{token.length} chars)")
       end
       o.auto_paginate = true
+      o.per_page = 100
       o.connection_options = {
         request: {
           open_timeout: 15,
