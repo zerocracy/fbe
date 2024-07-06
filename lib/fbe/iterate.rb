@@ -103,7 +103,7 @@ class Fbe::Iterate
             restarted << repo
             @since
           else
-            @loog.debug("Next is #{nxt}, starting from it...")
+            @loog.debug("Next is ##{nxt}, starting from it...")
             yield(rid, nxt)
           end
         raise "Iterator must return an Integer, while #{after.class} returned" unless after.is_a?(Integer)
@@ -112,10 +112,10 @@ class Fbe::Iterate
         f.repository = rid
         f.latest =
           if after.nil?
-            @loog.debug("After is nil at #{repo}, setting the `latest` to nxt: #{nxt}")
+            @loog.debug("After is nil at #{repo}, setting the `latest` to nxt: ##{nxt}")
             nxt
           else
-            @loog.debug("After is #{after} at #{repo}, setting the `latest` to it")
+            @loog.debug("After is ##{after} at #{repo}, setting the `latest` to it")
             after
           end
         f.what = @label
