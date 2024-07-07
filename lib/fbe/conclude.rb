@@ -88,8 +88,8 @@ class Fbe::Conclude
   private
 
   def roll(&)
+    passed = 0
     catch :stop do
-      passed = 0
       @fb.txn do |fbt|
         fbt.query(@query).each do |a|
           throw :stop if @quota_aware && Fbe.octo(loog: @loog, options: @options, global: @global).off_quota
@@ -99,6 +99,7 @@ class Fbe::Conclude
         end
       end
     end
+    @loog.debug("Found and processed #{passed} facts by: #{@query}")
   end
 
   def fill(fact, prev)
