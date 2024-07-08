@@ -84,6 +84,7 @@ class Fbe::Iterate
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     repos = Fbe.unmask_repos(loog: @loog, options: @options, global: @global)
     restarted = []
+    fb = Fbe.fb(fb: @fb, global: @global, options: @options)
     loop do
       repos.each do |repo|
         next if restarted.include?(repo)
@@ -93,12 +94,12 @@ class Fbe::Iterate
           next
         end
         rid = oct.repo_id_by_name(repo)
-        before = Fbe.fb.query(
+        before = fb.query(
           "(agg (and (eq what '#{@label}') (eq where 'github') (eq repository #{rid})) (first latest))"
         ).one
-        Fbe.fb.query("(and (eq what '#{@label}') (eq where 'github') (eq repository #{rid}))").delete!
+        fb.query("(and (eq what '#{@label}') (eq where 'github') (eq repository #{rid}))").delete!
         before = before.nil? ? @since : before.first
-        nxt = Fbe.fb.query(@query).one(before:, repository: rid)
+        nxt = fb.query(@query).one(before:, repository: rid)
         after =
           if nxt.nil?
             @loog.debug("Next element after ##{before} not suggested, re-starting from ##{@since}: #{@query}")
@@ -109,7 +110,7 @@ class Fbe::Iterate
             yield(rid, nxt)
           end
         raise "Iterator must return an Integer, while #{after.class} returned" unless after.is_a?(Integer)
-        f = Fbe.fb.insert
+        f = fb.insert
         f.where = 'github'
         f.repository = rid
         f.latest =

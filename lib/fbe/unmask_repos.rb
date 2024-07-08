@@ -52,6 +52,7 @@ module Fbe
       re = Fbe.mask_to_regex(mask[1..])
       repos.reject! { |r| re.match?(r) }
     end
+    raise "No repos found matching: #{options.repositories}" if repos.empty?
     loog.debug("Scanning #{repos.size} repositories: #{repos.join(', ')}...")
     repos
   end
