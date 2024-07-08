@@ -88,7 +88,7 @@ class Fbe::Iterate
     loop do
       repos.each do |repo|
         if restarted.include?(repo)
-          @loog.debug("Already restared #{repo}, won't iterate it anymore")
+          @loog.debug("Already restarted #{repo}, won't iterate it anymore")
           next
         end
         seen[repo] = 0 if seen[repo].nil?
