@@ -101,7 +101,7 @@ class Fbe::Iterate
         nxt = Fbe.fb.query(@query).one(before:, repository: rid)
         after =
           if nxt.nil?
-            @loog.debug("Next element is not suggested by the query, re-starting from ##{@since}: #{@query}")
+            @loog.debug("Next element after ##{before} not suggested, re-starting from ##{@since}: #{@query}")
             restarted << repo
             @since
           else
@@ -114,10 +114,10 @@ class Fbe::Iterate
         f.repository = rid
         f.latest =
           if after.nil?
-            @loog.debug("After is nil at #{repo}, setting the `latest` to nxt: ##{nxt}")
+            @loog.debug("After is nil at #{repo}, setting the 'latest' to ##{nxt}")
             nxt
           else
-            @loog.debug("After is ##{after} at #{repo}, setting the `latest` to it")
+            @loog.debug("After is ##{after} at #{repo}, setting the 'latest' to it")
             after
           end
         f.what = @label
