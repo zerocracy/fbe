@@ -11,7 +11,8 @@
 [![Hits-of-Code](https://hitsofcode.com/github/zerocracy/fbe)](https://hitsofcode.com/view/github/zerocracy/fbe)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/zerocracy/fbe/blob/master/LICENSE.txt)
 
-It's a collection of tools.
+It's a collection of tools for
+[zerocracy/judges-action](https://github.com/zerocracy/judges-action).
 
 ## How to contribute
 
