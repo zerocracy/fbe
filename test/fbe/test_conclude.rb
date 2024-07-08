@@ -50,7 +50,7 @@ class TestConclude < Minitest::Test
     fb = Factbase.new
     fb.insert.foo = 1
     fb.insert.bar = 2
-    Fbe.conclude(fb:, judge: 'judge-one', loog: Loog::NULL) do
+    Fbe.conclude(fb:, judge: 'judge-one', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
       on '(exists foo)'
       draw do |n, prev|
         n.sum = prev.foo + 1
@@ -64,12 +64,10 @@ class TestConclude < Minitest::Test
   end
 
   def test_maybe
-    $fb = Factbase.new
-    $global = {}
-    $options = Judges::Options.new
-    $loog = Loog::NULL
-    Fbe.fb.insert.foo = 1
-    Fbe.conclude(judge: 'issue-was-opened', loog: Loog::NULL) do
+    fb = Fbe.fb
+    fb.insert.foo = 1
+    options = Judges::Options.new
+    Fbe.conclude(fb:, judge: 'issue-was-opened', loog: Loog::NULL, options:, global: {}) do
       on '(exists foo)'
       maybe do |n, prev|
         n.repository = 111
@@ -80,24 +78,22 @@ class TestConclude < Minitest::Test
         "it's a test." * 20
       end
     end
-    f = Fbe.fb.query('(exists issue)').each.to_a[0]
+    f = fb.query('(exists issue)').each.to_a[0]
     assert_equal(1, f.issue)
     assert(f._id.positive?)
   end
 
   def test_consider
-    $fb = Factbase.new
-    $global = {}
-    $options = Judges::Options.new
-    $loog = Loog::NULL
-    Fbe.fb.insert.foo = 1
-    Fbe.conclude(judge: 'issue-was-closed', loog: Loog::NULL) do
+    fb = Factbase.new
+    fb.insert.foo = 1
+    options = Judges::Options.new
+    Fbe.conclude(fb:, judge: 'issue-was-closed', loog: Loog::NULL, options:, global: {}) do
       on '(exists foo)'
       consider do |_prev|
-        Fbe.fb.insert.bar = 42
+        fb.insert.bar = 42
       end
     end
-    f = Fbe.fb.query('(exists bar)').each.to_a[0]
+    f = fb.query('(exists bar)').each.to_a[0]
     assert_equal(42, f.bar)
   end
 end
