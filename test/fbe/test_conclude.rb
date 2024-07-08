@@ -64,9 +64,9 @@ class TestConclude < Minitest::Test
   end
 
   def test_maybe
-    fb = Fbe.fb
-    fb.insert.foo = 1
     options = Judges::Options.new
+    fb = Fbe.fb(global: {}, options:)
+    fb.insert.foo = 1
     Fbe.conclude(fb:, judge: 'issue-was-opened', loog: Loog::NULL, options:, global: {}) do
       on '(exists foo)'
       maybe do |n, prev|

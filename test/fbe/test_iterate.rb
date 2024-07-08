@@ -51,18 +51,19 @@ class TestIterate < Minitest::Test
   end
 
   def test_many_repeats
-    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    opts = Judges::Options.new(['repositories=foo/bar,foo/second', 'testing=true'])
     cycles = 0
+    reps = 5
     Fbe.iterate(fb: Factbase.new, loog: Loog::NULL, global: {}, options: opts) do
       as 'labels-were-scanned'
       by '(plus 1 1)'
-      repeats 5
+      repeats reps
       over do |_, nxt|
         cycles += 1
         nxt
       end
     end
-    assert_equal(5, cycles)
+    assert_equal(reps * 2, cycles)
   end
 
   def test_with_restart

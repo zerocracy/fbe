@@ -87,13 +87,10 @@ class Fbe::Iterate
     fb = Fbe.fb(fb: @fb, global: @global, options: @options)
     loop do
       repos.each do |repo|
-        if restarted.include?(repo)
-          @loog.debug("Already restarted #{repo}, won't iterate it anymore")
-          next
-        end
+        next if restarted.include?(repo)
         seen[repo] = 0 if seen[repo].nil?
         if seen[repo] >= @repeats
-          @loog.debug("We've seen too many in the #{repo} repo, time to move to the next one")
+          @loog.debug("We've seen too many (#{seen[repo]}) in #{repo}, let's see next one")
           next
         end
         rid = oct.repo_id_by_name(repo)
@@ -135,8 +132,8 @@ class Fbe::Iterate
         @loog.debug('We are off GitHub quota, time to stop')
         break
       end
-      unless seen.values.any? { |v| v < @repeats }
-        @loog.debug('No more repos to scan, quitting')
+      unless seen.any? { |r, v| v < @repeats && !restarted.include?(r) }
+        @loog.debug("No more repos to scan (out of #{repos.size}), quitting")
         break
       end
       if restarted.size == repos.size
