@@ -101,7 +101,7 @@ class Fbe::Iterate
         nxt = Fbe.fb.query(@query).one(before:, repository: rid)
         after =
           if nxt.nil?
-            @loog.debug("Next is nil, starting from the beginning at #{@since}")
+            @loog.debug("Next element is not suggested by the query, re-starting from ##{@since}: #{@query}")
             restarted << repo
             @since
           else
