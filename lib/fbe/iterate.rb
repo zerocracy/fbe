@@ -38,7 +38,7 @@ end
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
 class Fbe::Iterate
-  def initialize(fb: Fbe.fb, loog: $loog, options: $options, global: $global)
+  def initialize(fb:, loog:, options:, global:)
     @fb = fb
     @loog = loog
     @options = options

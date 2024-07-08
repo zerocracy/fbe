@@ -38,7 +38,7 @@ end
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
 class Fbe::Conclude
-  def initialize(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global)
+  def initialize(fb:, judge:, loog:, options:, global:)
     @fb = fb
     @judge = judge
     @loog = loog
