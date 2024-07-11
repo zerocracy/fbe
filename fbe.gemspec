@@ -39,18 +39,18 @@ Gem::Specification.new do |s|
   s.files = `git ls-files`.split($RS)
   s.rdoc_options = ['--charset=UTF-8']
   s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
-  s.add_runtime_dependency 'backtrace', '~>0.3'
-  s.add_runtime_dependency 'decoor', '~>0.0'
-  s.add_runtime_dependency 'factbase', '~>0.0'
+  s.add_runtime_dependency 'backtrace'
+  s.add_runtime_dependency 'decoor'
+  s.add_runtime_dependency 'factbase'
   s.add_runtime_dependency 'faraday'
   s.add_runtime_dependency 'faraday-http-cache'
   s.add_runtime_dependency 'faraday-multipart'
   s.add_runtime_dependency 'faraday-retry'
-  s.add_runtime_dependency 'judges', '~>0.0'
-  s.add_runtime_dependency 'loog', '~>0.2'
-  s.add_runtime_dependency 'obk', '~>0.0'
-  s.add_runtime_dependency 'octokit', '~>9.1'
-  s.add_runtime_dependency 'others', '~>0.0'
-  s.add_runtime_dependency 'verbose', '~>0.0'
+  s.add_runtime_dependency 'judges'
+  s.add_runtime_dependency 'loog'
+  s.add_runtime_dependency 'obk'
+  s.add_runtime_dependency 'octokit'
+  s.add_runtime_dependency 'others'
+  s.add_runtime_dependency 'verbose'
   s.metadata['rubygems_mfa_required'] = 'true'
 end
