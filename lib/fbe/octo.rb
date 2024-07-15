@@ -31,7 +31,7 @@ require 'faraday/http_cache'
 require 'faraday/retry'
 require_relative '../fbe'
 
-def Fbe.octo(options: $options, global: $global, loog: Loog::NULL)
+def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $global is not set' if global.nil?
   global[:octo] ||= begin
     if options.testing.nil?

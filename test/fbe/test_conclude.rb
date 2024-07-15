@@ -65,7 +65,7 @@ class TestConclude < Minitest::Test
 
   def test_maybe
     options = Judges::Options.new
-    fb = Fbe.fb(fb: Factbase.new, global: {}, options:)
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options:, loog: Loog::NULL)
     fb.insert.foo = 1
     Fbe.conclude(fb:, judge: 'issue-was-opened', loog: Loog::NULL, options:, global: {}) do
       on '(exists foo)'

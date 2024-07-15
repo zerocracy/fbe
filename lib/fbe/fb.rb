@@ -30,7 +30,7 @@ require 'factbase/pre'
 require 'factbase/rules'
 require_relative '../fbe'
 
-def Fbe.fb(fb: $fb, global: $global, options: $options)
+def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
   global[:fb] ||= begin
     rules = Dir.glob(File.join('rules', '*.fe')).map { |f| File.read(f) }
     fbe = Factbase::Rules.new(
@@ -44,6 +44,6 @@ def Fbe.fb(fb: $fb, global: $global, options: $options)
       f._time = Time.now
       f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{options.judges_action_version}"
     end
-    Factbase::Looged.new(fbe, Loog::NULL)
+    Factbase::Looged.new(fbe, loog)
   end
 end

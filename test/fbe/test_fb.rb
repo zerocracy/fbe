@@ -24,6 +24,7 @@
 
 require 'minitest/autorun'
 require 'factbase'
+require 'loog'
 require 'judges/options'
 require_relative '../../lib/fbe'
 require_relative '../../lib/fbe/fb'
@@ -37,6 +38,7 @@ class TestFb < Minitest::Test
     $fb = Factbase.new
     $global = {}
     $options = Judges::Options.new
+    $loog = Loog::NULL
     Fbe.fb.insert.foo = 1
     Fbe.fb.insert.bar = 2
     assert_equal(1, Fbe.fb.query('(exists bar)').each.to_a.size)
