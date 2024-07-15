@@ -96,4 +96,21 @@ class TestConclude < Minitest::Test
     f = fb.query('(exists bar)').each.to_a[0]
     assert_equal(42, f.bar)
   end
+
+  def test_ignores_globals
+    $fb = nil
+    $loog = nil
+    $options = nil
+    $global = nil
+    fb = Factbase.new
+    fb.insert.foo = 1
+    Fbe.conclude(fb:, judge: 'judge-xxx', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
+      on '(exists foo)'
+      draw do |n, prev|
+        n.sum = prev.foo + 1
+        'something funny'
+      end
+    end
+    assert_equal(2, fb.size)
+  end
 end
