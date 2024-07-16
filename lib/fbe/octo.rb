@@ -143,7 +143,38 @@ class Fbe::FakeOctokit
   def repository(name)
     {
       id: name_to_number(name),
-      full_name: name.is_a?(Integer) ? 'yegor256/test' : name
+      full_name: name.is_a?(Integer) ? 'yegor256/test' : name,
+      default_branch: 'master',
+      private: false,
+      owner: { login: name.to_s.split('/')[0], id: 526_301, site_admin: false },
+      html_url: "https://github.com/#{name}",
+      description: 'something',
+      fork: false,
+      url: "https://github.com/#{name}",
+      created_at: random_time,
+      updated_at: random_time,
+      pushed_at: random_time,
+      size: 470,
+      stargazers_count: 1,
+      watchers_count: 1,
+      language: 'Ruby',
+      has_issues: true,
+      has_projects: true,
+      has_downloads: true,
+      has_wiki: true,
+      has_pages: false,
+      has_discussions: false,
+      forks_count: 0,
+      archived: false,
+      disabled: false,
+      open_issues_count: 6,
+      license: { key: 'mit', name: 'MIT License' },
+      allow_forking: true,
+      is_template: false,
+      visibility: 'public',
+      forks: 0,
+      open_issues: 6,
+      watchers: 1
     }
   end
 
@@ -171,6 +202,7 @@ class Fbe::FakeOctokit
   def issue_timeline(_repo, _issue, _options = {})
     [
       {
+        event: 'renamed',
         actor: {
           id: 888,
           login: 'torvalds'
@@ -179,7 +211,6 @@ class Fbe::FakeOctokit
           id: name_to_number('yegor256/judges'),
           full_name: 'yegor256/judges'
         },
-        event: 'renamed',
         rename: {
           from: 'before',
           to: 'after'
@@ -187,6 +218,7 @@ class Fbe::FakeOctokit
         created_at: random_time
       },
       {
+        event: 'labeled',
         actor: {
           id: 888,
           login: 'torvalds'
@@ -195,7 +227,6 @@ class Fbe::FakeOctokit
           id: name_to_number('yegor256/judges'),
           full_name: 'yegor256/judges'
         },
-        event: 'labeled',
         label: {
           name: 'bug'
         },
