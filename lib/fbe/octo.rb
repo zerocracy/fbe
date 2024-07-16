@@ -124,11 +124,8 @@ class Fbe::FakeOctokit
 
   def repositories(_user = nil)
     [
-      {
-        name: 'judges',
-        full_name: 'yegor256/judges',
-        id: 444
-      }
+      repository('yegor256/judges'),
+      repository('yegor256/factbase')
     ]
   end
 
