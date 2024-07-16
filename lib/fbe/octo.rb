@@ -208,27 +208,36 @@ class Fbe::FakeOctokit
     [
       {
         id: '123',
+        type: 'PushEvent',
         repo: {
           id: name_to_number(repo),
-          name: repo
+          name: repo,
+          url: "https://api.github.com/repos/#{repo}"
         },
-        type: 'PushEvent',
         payload: {
-          push_id: 42
+          push_id: 42,
+          ref: 'refs/heads/master',
+          size: 1,
+          distinct_size: 0,
+          head: 'b7089c51cc2526a0d2619d35379f921d53c72731',
+          before: '12d3bff1a55bad50ee2e8f29ade7f1c1e07bb025'
         },
         actor: {
           id: 888,
-          login: 'torvalds'
+          login: 'torvalds',
+          display_login: 'torvalds'
         },
-        created_at: random_time
+        created_at: random_time,
+        public: true
       },
       {
         id: '124',
+        type: 'IssuesEvent',
         repo: {
           id: name_to_number(repo),
-          name: repo
+          name: repo,
+          url: "https://api.github.com/repos/#{repo}"
         },
-        type: 'IssuesEvent',
         payload: {
           action: 'closed',
           issue: {
@@ -237,17 +246,20 @@ class Fbe::FakeOctokit
         },
         actor: {
           id: 888,
-          login: 'torvalds'
+          login: 'torvalds',
+          display_login: 'torvalds'
         },
-        created_at: random_time
+        created_at: random_time,
+        public: true
       },
       {
         id: '125',
+        type: 'IssuesEvent',
         repo: {
           id: name_to_number(repo),
-          name: repo
+          name: repo,
+          url: "https://api.github.com/repos/#{repo}"
         },
-        type: 'IssuesEvent',
         payload: {
           action: 'opened',
           issue: {
@@ -256,9 +268,11 @@ class Fbe::FakeOctokit
         },
         actor: {
           id: 888,
-          login: 'torvalds'
+          login: 'torvalds',
+          display_login: 'torvalds'
         },
-        created_at: random_time
+        created_at: random_time,
+        public: true
       }
     ]
   end

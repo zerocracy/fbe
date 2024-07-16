@@ -52,6 +52,7 @@ class TestOcto < Minitest::Test
   end
 
   def test_with_broken_token
+    skip # it's a "live" test, run it manually if you need it
     global = {}
     options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
     o = Fbe.octo(loog: Loog::NULL, global:, options:)
