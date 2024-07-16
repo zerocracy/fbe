@@ -181,9 +181,14 @@ class Fbe::FakeOctokit
     }
   end
 
-  def create_commit_comment(_repo, _sha, _text)
+  def create_commit_comment(_repo, sha, text)
     {
-      id: 42
+      commit_id: sha,
+      id: 42,
+      body: text,
+      path: 'something.txt',
+      line: 1,
+      position: 1
     }
   end
 
