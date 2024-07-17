@@ -73,6 +73,10 @@ class Fbe::Award
         text = @operands[1]
         text = '' if text.nil?
         bill.line(to_val(@operands[0], bill), text)
+      when :explain, :in
+        # nothing, just ignore
+      else
+        raise "Unknown term '#{@op}'"
       end
     end
 
@@ -116,6 +120,8 @@ class Fbe::Award
         [to_val(@operands[0], bill), to_val(@operands[1], bill)].max
       when :min
         [to_val(@operands[0], bill), to_val(@operands[1], bill)].min
+      else
+        raise "Unknown term '#{@op}'"
       end
     end
   end
@@ -155,6 +161,8 @@ class Fbe::Award
         "maximum of #{to_str(@operands[0])} and #{to_str(@operands[1])}"
       when :min
         "minimum of #{to_str(@operands[0])} and #{to_str(@operands[1])}"
+      else
+        raise "Unknown term '#{@op}'"
       end
     end
 
@@ -166,6 +174,8 @@ class Fbe::Award
         rescue StandardError => e
           raise "Failure in #{o}: #{e.message}"
         end
+      when :explain
+        policy.intro(to_str(@operands[0]))
       when :in
         policy.line("assume that #{to_str(@operands[0])} is #{to_str(@operands[1])}")
       when :let
@@ -174,6 +184,8 @@ class Fbe::Award
         policy.line("set #{to_str(@operands[0])} to #{to_str(@operands[1])}")
       when :give
         policy.line("award #{to_str(@operands[0])}")
+      else
+        raise "Unknown term '#{@op}'"
       end
     end
 
@@ -223,6 +235,11 @@ class Fbe::Award
 
     def initialize
       @lines = []
+      @intro = ''
+    end
+
+    def intro(text)
+      @intro = text
     end
 
     def line(line)
@@ -230,7 +247,7 @@ class Fbe::Award
     end
 
     def markdown
-      "First, #{@lines.join('. Then, ')}."
+      "#{@intro}. Here it how it's calculated: First, #{@lines.join('. Then, ')}."
     end
   end
 end
