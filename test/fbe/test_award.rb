@@ -48,15 +48,16 @@ class TestAward < Minitest::Test
         (set b2 (max b2 worst))
         (let at_least -5)
         (set b2 (if (lt b2 at_least) b2 0))
+        (set b2 (between b2 3 120))
         (give b2 "for holding the bug open for too long (${days} days)"))
       '
     )
     b = a.bill(hours: 10)
     assert(b.points <= 100)
     assert(b.points >= 5)
-    assert_equal(40, b.points)
+    assert_equal(43, b.points)
     g = b.greeting
-    assert(g.include?('You\'ve earned +40 points for this'), g)
+    assert(g.include?('You\'ve earned +43 points for this'), g)
     assert(g.include?('+10 for resolving the bug in 10'), g)
     md = a.policy.markdown
     assert(md.include?('First, assume that _hours_ is hours'), md)
