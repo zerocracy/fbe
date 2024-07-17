@@ -35,7 +35,7 @@ class TestAward < Minitest::Test
     a = Fbe::Award.new(
       '
       (award
-        (explain "When a bug is resolved by the person who was assigned to it, a reward is granted to this person.")
+        (explain "When a bug is resolved by the person who was assigned to it, a reward is granted to this person")
         (in hours "hours passed between bug reported and closed")
         (let max 36)
         (let basis 30)
@@ -59,6 +59,7 @@ class TestAward < Minitest::Test
     g = b.greeting
     assert(g.include?('You\'ve earned +43 points for this'), g)
     assert(g.include?('+10 for resolving the bug in 10'), g)
+    assert(g.include?('too long (0 days)'), g)
     md = a.policy.markdown
     assert(md.include?('First, assume that _hours_ is hours'), md)
   end
