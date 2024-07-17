@@ -63,13 +63,10 @@ class TestAward < Minitest::Test
     assert(md.include?('First, assume that _hours_ is hours'), md)
   end
 
-  def test_very_short
-    a = Fbe::Award.new('(award (give 25 "for being a good boy"))')
-    assert_equal(25, a.bill.points)
-  end
-
   def test_some_terms
     {
+      '(let x 25)' => 0,
+      '(award (give 25 "for being a good boy"))' => 25,
       '(award (give (between 42 -10 -50) "empty"))' => -10,
       '(award (give (between -3 -10 -50) "empty"))' => -10,
       '(award (give (between -100 -50 -10) "empty"))' => -50
@@ -77,10 +74,5 @@ class TestAward < Minitest::Test
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.points, q)
     end
-  end
-
-  def test_broken
-    a = Fbe::Award.new('(let x 25)')
-    assert_equal(0, a.bill.points)
   end
 end
