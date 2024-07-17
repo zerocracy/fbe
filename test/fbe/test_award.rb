@@ -61,4 +61,14 @@ class TestAward < Minitest::Test
     md = a.policy.markdown
     assert(md.include?('First, assume that _hours_ is hours'), md)
   end
+
+  def test_very_short
+    a = Fbe::Award.new('(award (give 25 "for being a good boy"))')
+    assert_equal(25, a.bill.points)
+  end
+
+  def test_broken
+    a = Fbe::Award.new('(let x 25)')
+    assert_equal(0, a.bill.points)
+  end
 end
