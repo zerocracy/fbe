@@ -151,15 +151,15 @@ class Fbe::Award
       when :lt
         "#{to_str(@operands[0])} < #{to_str(@operands[1])}"
       when :lte
-        "#{to_str(@operands[0])} <= #{to_str(@operands[1])}"
+        "#{to_str(@operands[0])} ≤ #{to_str(@operands[1])}"
       when :gt
         "#{to_str(@operands[0])} > #{to_str(@operands[1])}"
       when :gte
-        "#{to_str(@operands[0])} >= #{to_str(@operands[1])}"
+        "#{to_str(@operands[0])} ≥ #{to_str(@operands[1])}"
       when :div
-        "#{to_str(@operands[0])} / #{to_str(@operands[1])}"
+        "#{to_str(@operands[0])} ÷ #{to_str(@operands[1])}"
       when :times
-        "#{to_str(@operands[0])} * #{to_str(@operands[1])}"
+        "#{to_str(@operands[0])} × #{to_str(@operands[1])}"
       when :plus
         "#{to_str(@operands[0])} + #{to_str(@operands[1])}"
       when :minus

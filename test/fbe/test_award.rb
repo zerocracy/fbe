@@ -57,11 +57,18 @@ class TestAward < Minitest::Test
     assert(b.points >= 5)
     assert_equal(43, b.points)
     g = b.greeting
-    assert(g.include?('You\'ve earned +43 points for this'), g)
-    assert(g.include?('+10 for resolving the bug in 10'), g)
-    assert(g.include?('too long (0 days)'), g)
+    [
+      'You\'ve earned +43 points for this',
+      '+10 for resolving the bug in 10',
+      'too long (0 days)',
+      'bug in 10 (<36) hours',
+      '+30 as a basis'
+    ].each { |t| assert(g.include?(t), g) }
     md = a.policy.markdown
-    assert(md.include?('First, assume that _hours_ is hours'), md)
+    [
+      'First, assume that _hours_ is hours',
+      'Then, award _b2_'
+    ].each { |t| assert(md.include?(t), md) }
   end
 
   def test_some_terms
