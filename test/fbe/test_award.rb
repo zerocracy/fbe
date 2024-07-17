@@ -68,6 +68,17 @@ class TestAward < Minitest::Test
     assert_equal(25, a.bill.points)
   end
 
+  def test_some_terms
+    {
+      '(award (give (between 42 -10 -50) "empty"))' => -10,
+      '(award (give (between -3 -10 -50) "empty"))' => -10,
+      '(award (give (between -100 -50 -10) "empty"))' => -50
+    }.each do |q, v|
+      a = Fbe::Award.new(q)
+      assert_equal(v, a.bill.points, q)
+    end
+  end
+
   def test_broken
     a = Fbe::Award.new('(let x 25)')
     assert_equal(0, a.bill.points)
