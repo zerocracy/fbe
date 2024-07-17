@@ -26,6 +26,7 @@ require 'minitest/autorun'
 require 'loog'
 require 'factbase'
 require 'judges/options'
+require_relative '../test__helper'
 require_relative '../../lib/fbe/iterate'
 
 # Test.

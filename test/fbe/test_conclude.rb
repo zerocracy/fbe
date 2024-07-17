@@ -27,6 +27,7 @@ require 'loog'
 require 'factbase'
 require 'factbase/syntax'
 require 'judges/options'
+require_relative '../test__helper'
 require_relative '../../lib/fbe/conclude'
 require_relative '../../lib/fbe/fb'
 

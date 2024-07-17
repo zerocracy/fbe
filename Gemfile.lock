@@ -2,19 +2,19 @@ PATH
   remote: .
   specs:
     fbe (0.0.0)
-      backtrace
-      decoor
-      factbase
-      faraday
-      faraday-http-cache
-      faraday-multipart
-      faraday-retry
-      judges
-      loog
-      obk
-      octokit
-      others
-      verbose
+      backtrace (> 0)
+      decoor (> 0)
+      factbase (> 0)
+      faraday (> 0)
+      faraday-http-cache (> 0)
+      faraday-multipart (> 0)
+      faraday-retry (> 0)
+      judges (> 0)
+      loog (> 0)
+      obk (> 0)
+      octokit (> 0)
+      others (> 0)
+      verbose (> 0)
 
 GEM
   remote: https://rubygems.org/
@@ -63,7 +63,7 @@ GEM
     erubi (1.13.0)
     ethon (0.16.0)
       ffi (>= 1.15.0)
-    factbase (0.0.60)
+    factbase (0.1.1)
       backtrace (~> 0.3)
       decoor (~> 0.0)
       json (~> 2.7)
@@ -87,7 +87,7 @@ GEM
     ffi (1.17.0-x64-mingw-ucrt)
     ffi (1.17.0-x86_64-darwin)
     ffi (1.17.0-x86_64-linux-gnu)
-    gli (2.21.1)
+    gli (2.21.3)
     i18n (1.14.5)
       concurrent-ruby (~> 1.0)
     io-console (0.7.2)
@@ -96,7 +96,7 @@ GEM
       reline (>= 0.4.2)
     iri (0.8.0)
     json (2.7.2)
-    judges (0.17.0)
+    judges (0.18.1)
       backtrace (~> 0)
       concurrent-ruby (~> 1.2)
       factbase (~> 0)
@@ -178,7 +178,7 @@ GEM
     reline (0.5.9)
       io-console (~> 0.5)
     retries (0.0.5)
-    rexml (3.3.1)
+    rexml (3.3.2)
       strscan
     rspec-core (3.13.0)
       rspec-support (~> 3.13.0)

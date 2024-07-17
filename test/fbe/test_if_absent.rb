@@ -27,6 +27,7 @@ require 'tmpdir'
 require 'factbase'
 require 'factbase/looged'
 require 'loog'
+require_relative '../test__helper'
 require_relative '../../lib/fbe/if_absent'
 
 # Test.

@@ -23,40 +23,42 @@
 # SOFTWARE.
 
 require 'minitest/autorun'
-require 'judges/options'
-require 'loog'
 require_relative '../test__helper'
-require_relative '../../lib/fbe/octo'
+require_relative '../../lib/fbe/award'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2024 Zerocracy
+# Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
-class TestOcto < Minitest::Test
-  def test_simple_use
-    global = {}
-    options = Judges::Options.new({ 'testing' => true })
-    o = Fbe.octo(loog: Loog::NULL, global:, options:)
-    assert(!o.off_quota)
-  end
-
-  def test_post_comment
-    global = {}
-    options = Judges::Options.new({ 'testing' => true })
-    o = Fbe.octo(loog: Loog::NULL, global:, options:)
-    assert_equal(42, o.add_comment('foo/foo', 4, 'hello!')[:id])
-  end
-
-  def test_rate_limit
-    o = Fbe::FakeOctokit.new
-    assert_equal(100, o.rate_limit.remaining)
-  end
-
-  def test_with_broken_token
-    skip # it's a "live" test, run it manually if you need it
-    global = {}
-    options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
-    o = Fbe.octo(loog: Loog::NULL, global:, options:)
-    assert_raises { o.repository('zerocracy/fbe') }
+class TestAward < Minitest::Test
+  def test_simple
+    a = Fbe::Award.new(
+      '
+      (award
+        (explain "When a bug is resolved by the person who was assigned to it, a reward is granted to this person.")
+        (in hours "hours passed between bug reported and closed")
+        (let max 36)
+        (let basis 30)
+        (give basis "as a basis")
+        (set b1 (if (lt hours max) 10 0))
+        (give b1 "for resolving the bug in ${hours} (<${max}) hours")
+        (set days (div hours 24))
+        (set b2 (times days -1))
+        (let worst -20)
+        (set b2 (max b2 worst))
+        (let at_least -5)
+        (set b2 (if (lt b2 at_least) b2 0))
+        (give b2 "for holding the bug open for too long (${days} days)"))
+      '
+    )
+    b = a.bill(hours: 10)
+    assert(b.points <= 100)
+    assert(b.points >= 5)
+    assert_equal(40, b.points)
+    g = b.greeting
+    assert(g.include?('You\'ve earned +40 points for this'), g)
+    assert(g.include?('+10 for resolving the bug in 10'), g)
+    md = a.policy.markdown
+    assert(md.include?('First, assume that _hours_ is hours'), md)
   end
 end

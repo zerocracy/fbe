@@ -25,6 +25,7 @@
 require 'minitest/autorun'
 require 'judges/options'
 require 'loog'
+require_relative '../test__helper'
 require_relative '../../lib/fbe/unmask_repos'
 
 # Test.

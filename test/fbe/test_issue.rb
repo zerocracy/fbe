@@ -24,6 +24,7 @@
 
 require 'minitest/autorun'
 require 'loog'
+require_relative '../test__helper'
 require_relative '../../lib/fbe/issue'
 
 # Test.
