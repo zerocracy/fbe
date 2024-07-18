@@ -68,7 +68,7 @@ class Fbe::Award
           raise "Failure in #{o}: #{e.message}"
         end
       when :aka
-        @operands.drop(1).each do |o|
+        @operands[0..-2].each do |o|
           o.bill_to(bill)
         rescue StandardError => e
           raise "Failure in #{o}: #{e.message}"
@@ -189,10 +189,16 @@ class Fbe::Award
         rescue StandardError => e
           raise "Failure in #{o}: #{e.message}"
         end
+      when :aka
+        @operands[0..-2].each do |o|
+          o.publish_to(policy)
+        rescue StandardError => e
+          raise "Failure in #{o}: #{e.message}"
+        end
+        policy.revert(@operands.size - 1)
+        policy.line(to_p(@operands[@operands.size - 1]))
       when :explain
         policy.intro(to_p(@operands[0]))
-      when :aka
-        policy.line(to_p(@operands[0]))
       when :in
         policy.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
       when :let
@@ -274,6 +280,10 @@ class Fbe::Award
       @lets = {}
     end
 
+    def revert(num)
+      @lines.slice!(-num, num)
+    end
+
     def intro(text)
       @intro = text
     end
@@ -291,7 +301,11 @@ class Fbe::Award
       pars = []
       pars << "#{@intro}." unless @intro.empty?
       pars << 'Here is how it\'s calculated:'
-      pars += @lines.each_with_index.map { |t, i| "#{i.zero? ? 'First' : 'Then'}, #{t}." }
+      if @lines.size == 1
+        pars << "Just #{@lines.first}."
+      else
+        pars += @lines.each_with_index.map { |t, i| "#{i.zero? ? 'First' : 'Then'}, #{t}." }
+      end
       pars.join(' ').gsub('. Then, award ', ', and award ')
     end
   end
