@@ -39,9 +39,11 @@ class TestFb < Minitest::Test
     $fb = Factbase.new
     $global = {}
     $options = Judges::Options.new
-    $loog = Loog::NULL
+    $loog = Loog::Buffer.new
     Fbe.fb.insert.foo = 1
     Fbe.fb.insert.bar = 2
     assert_equal(1, Fbe.fb.query('(exists bar)').each.to_a.size)
+    stdout = $loog.to_s
+    assert(stdout.include?('Inserted new fact #1'), stdout)
   end
 end
