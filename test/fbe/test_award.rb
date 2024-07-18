@@ -67,7 +67,7 @@ class TestAward < Minitest::Test
     md = a.policy.markdown
     [
       'First, assume that _hours_ is hours',
-      ', and award _b2_'
+      ', and award _b₂_'
     ].each { |t| assert(md.include?(t), md) }
   end
 
@@ -81,6 +81,20 @@ class TestAward < Minitest::Test
     }.each do |q, v|
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.points, q)
+    end
+  end
+
+  def test_some_policies
+    {
+      '(award (let x 25) (set z (plus x 1)) (give z "..."))' =>
+        'First, let _x_ be equal to **25**. Then, set _z_ to _x_ + **1**, and award _z_.'
+      # '(award (let x 25) (give x "..."))' =>
+      #   'The amount is **25**.',
+      # '(award (let x -5) (give x "..."))' =>
+      #   'The amount is **-5**.',
+    }.each do |q, t|
+      md = Fbe::Award.new(q).policy.markdown
+      assert(md.include?(t), md)
     end
   end
 end

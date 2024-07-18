@@ -145,31 +145,31 @@ class Fbe::Award
       when :total
         'total'
       when :if
-        "if #{to_str(@operands[0])} then #{to_str(@operands[1])} else #{to_str(@operands[2])}"
+        "if #{to_p(@operands[0])} then #{to_p(@operands[1])} else #{to_p(@operands[2])}"
       when :eq
-        "#{to_str(@operands[0])} == #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} == #{to_p(@operands[1])}"
       when :lt
-        "#{to_str(@operands[0])} < #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} < #{to_p(@operands[1])}"
       when :lte
-        "#{to_str(@operands[0])} ≤ #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} ≤ #{to_p(@operands[1])}"
       when :gt
-        "#{to_str(@operands[0])} > #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} > #{to_p(@operands[1])}"
       when :gte
-        "#{to_str(@operands[0])} ≥ #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} ≥ #{to_p(@operands[1])}"
       when :div
-        "#{to_str(@operands[0])} ÷ #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} ÷ #{to_p(@operands[1])}"
       when :times
-        "#{to_str(@operands[0])} × #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} × #{to_p(@operands[1])}"
       when :plus
-        "#{to_str(@operands[0])} + #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} + #{to_p(@operands[1])}"
       when :minus
-        "#{to_str(@operands[0])} - #{to_str(@operands[1])}"
+        "#{to_p(@operands[0])} - #{to_p(@operands[1])}"
       when :max
-        "maximum of #{to_str(@operands[0])} and #{to_str(@operands[1])}"
+        "maximum of #{to_p(@operands[0])} and #{to_p(@operands[1])}"
       when :min
-        "minimum of #{to_str(@operands[0])} and #{to_str(@operands[1])}"
+        "minimum of #{to_p(@operands[0])} and #{to_p(@operands[1])}"
       when :between
-        "at least #{to_str(@operands[0])} and at most #{to_str(@operands[1])}"
+        "at least #{to_p(@operands[0])} and at most #{to_p(@operands[1])}"
       else
         raise "Unknown term '#{@op}'"
       end
@@ -184,25 +184,42 @@ class Fbe::Award
           raise "Failure in #{o}: #{e.message}"
         end
       when :explain
-        policy.intro(to_str(@operands[0]))
+        policy.intro(to_p(@operands[0]))
       when :in
-        policy.line("assume that #{to_str(@operands[0])} is #{to_str(@operands[1])}")
+        policy.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
       when :let
-        policy.line("let #{to_str(@operands[0])} be equal to #{to_str(@operands[1])}")
+        policy.line("let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}")
       when :set
-        policy.line("set #{to_str(@operands[0])} to #{to_str(@operands[1])}")
+        policy.line("set #{to_p(@operands[0])} to #{to_p(@operands[1])}")
       when :give
-        policy.line("award #{to_str(@operands[0])}")
+        policy.line("award #{to_p(@operands[0])}")
       else
         raise "Unknown term '#{@op}'"
       end
     end
 
-    def to_str(any)
-      if any.is_a?(PTerm)
+    def to_p(any)
+      case any
+      when PTerm
         any.to_s
-      elsif any.is_a?(Symbol)
-        "_#{any.to_s.gsub('_', '\\_')}_"
+      when Symbol
+        s = any.to_s
+        subs = {
+          0 => '₀',
+          1 => '₁',
+          2 => '₂',
+          3 => '₃',
+          4 => '₄',
+          5 => '₅',
+          6 => '₆',
+          7 => '₇',
+          8 => '₈',
+          9 => '₉'
+        }
+        s.gsub!(/([a-z]+)([0-9])/) { |_| "#{Regexp.last_match[1]}#{subs[Regexp.last_match[2].to_i]}" }
+        "_#{s.gsub('_', '\\_')}_"
+      when Integer, Float
+        "**#{any}**"
       else
         any
       end
@@ -256,9 +273,11 @@ class Fbe::Award
     end
 
     def markdown
-      md = "#{@intro}. Here is how it's calculated: First, #{@lines.join('. Then, ')}."
-      md.gsub!('. Then, award ', ', and award ')
-      md
+      pars = []
+      pars << "#{@intro}." unless @intro.empty?
+      pars << 'Here is how it\'s calculated:'
+      pars += @lines.each_with_index.map { |t, i| "#{i.zero? ? 'First' : 'Then'}, #{t}." }
+      pars.join(' ').gsub('. Then, award ', ', and award ')
     end
   end
 end
