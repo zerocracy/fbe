@@ -147,7 +147,7 @@ class Fbe::Award
       when :if
         "if #{to_p(@operands[0])} then #{to_p(@operands[1])} else #{to_p(@operands[2])}"
       when :eq
-        "#{to_p(@operands[0])} == #{to_p(@operands[1])}"
+        "#{to_p(@operands[0])} = #{to_p(@operands[1])}"
       when :lt
         "#{to_p(@operands[0])} < #{to_p(@operands[1])}"
       when :lte
