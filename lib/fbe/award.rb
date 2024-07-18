@@ -217,7 +217,7 @@ class Fbe::Award
           9 => '₉'
         }
         s.gsub!(/([a-z]+)([0-9])/) { |_| "#{Regexp.last_match[1]}#{subs[Regexp.last_match[2].to_i]}" }
-        "_#{s.gsub('_', '\\_')}_"
+        "_#{s.gsub('_', '-')}_"
       when Integer, Float
         "**#{any}**"
       else
