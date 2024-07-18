@@ -40,8 +40,11 @@ class TestAward < Minitest::Test
         (let max 36)
         (let basis 30)
         (give basis "as a basis")
-        (set b1 (if (lt hours max) 10 0))
-        (give b1 "for resolving the bug in ${hours} (<${max}) hours")
+        (let fee 10)
+        (aka
+          "add ${+fee} if it was resolved in less than ${max} hours"
+          (set b1 (if (lt hours max) fee 0))
+          (give b1 "for resolving the bug in ${hours} (<${max}) hours"))
         (set days (div hours 24))
         (set b2 (times days -1))
         (let worst -20)
@@ -87,11 +90,9 @@ class TestAward < Minitest::Test
   def test_some_policies
     {
       '(award (let x_a 25) (set z (plus x_a 1)) (give z "..."))' =>
-        'First, let _x-a_ be equal to **25**. Then, set _z_ to _x-a_ + **1**, and award _z_.'
-      # '(award (let x 25) (give x "..."))' =>
-      #   'The amount is **25**.',
-      # '(award (let x -5) (give x "..."))' =>
-      #   'The amount is **-5**.',
+        'First, let _x-a_ be equal to **25**. Then, set _z_ to _x-a_ + **1**, and award _z_.',
+      '(award (let x 25) (aka "add ${x} when necessary" (give x "hey")))' =>
+        'Then, add 25 when necessary'
     }.each do |q, t|
       md = Fbe::Award.new(q).policy.markdown
       assert(md.include?(t), md)

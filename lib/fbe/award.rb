@@ -67,6 +67,12 @@ class Fbe::Award
         rescue StandardError => e
           raise "Failure in #{o}: #{e.message}"
         end
+      when :aka
+        @operands.drop(1).each do |o|
+          o.bill_to(bill)
+        rescue StandardError => e
+          raise "Failure in #{o}: #{e.message}"
+        end
       when :let, :set
         bill.set(@operands[0], to_val(@operands[1], bill))
       when :give
@@ -185,10 +191,13 @@ class Fbe::Award
         end
       when :explain
         policy.intro(to_p(@operands[0]))
+      when :aka
+        policy.line(to_p(@operands[0]))
       when :in
         policy.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
       when :let
         policy.line("let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}")
+        policy.let(@operands[0], @operands[1])
       when :set
         policy.line("set #{to_p(@operands[0])} to #{to_p(@operands[1])}")
       when :give
@@ -262,6 +271,7 @@ class Fbe::Award
     def initialize
       @lines = []
       @intro = ''
+      @lets = {}
     end
 
     def intro(text)
@@ -269,7 +279,12 @@ class Fbe::Award
     end
 
     def line(line)
+      line = line.gsub(/\$\{([a-z_0-9]+)\}/) { |_x| @lets[Regexp.last_match[1].to_sym] }
       @lines << line
+    end
+
+    def let(key, value)
+      @lets[key] = value
     end
 
     def markdown
