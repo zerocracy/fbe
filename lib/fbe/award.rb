@@ -202,7 +202,7 @@ class Fbe::Award
       if any.is_a?(PTerm)
         any.to_s
       elsif any.is_a?(Symbol)
-        "_#{any}_"
+        "_#{any.to_s.gsub('_', '\\_')}_"
       else
         any
       end
