@@ -67,7 +67,7 @@ class TestAward < Minitest::Test
     md = a.policy.markdown
     [
       'First, assume that _hours_ is hours',
-      'Then, award _b2_'
+      ', and award _b2_'
     ].each { |t| assert(md.include?(t), md) }
   end
 

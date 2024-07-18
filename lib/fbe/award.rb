@@ -256,7 +256,9 @@ class Fbe::Award
     end
 
     def markdown
-      "#{@intro}. Here it how it's calculated: First, #{@lines.join('. Then, ')}."
+      md = "#{@intro}. Here is how it's calculated: First, #{@lines.join('. Then, ')}."
+      md.gsub!('. Then, award ', ', and award ')
+      md
     end
   end
 end
