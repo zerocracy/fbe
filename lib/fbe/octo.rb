@@ -175,6 +175,22 @@ class Fbe::FakeOctokit
     }
   end
 
+  def commit_pulls(repo, _sha)
+    [
+      pull_request(repo, 42)
+    ]
+  end
+
+  def pull_request(repo, number)
+    {
+      id: 42,
+      number:,
+      repo: {
+        full_name: repo
+      }
+    }
+  end
+
   def add_comment(_repo, _issue, _text)
     {
       id: 42
