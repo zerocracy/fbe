@@ -289,7 +289,7 @@ class Fbe::Award
     end
 
     def line(line)
-      line = line.gsub(/\$\{([a-z_0-9]+)\}/) { |_x| @lets[Regexp.last_match[1].to_sym] }
+      line = line.gsub(/\$\{([a-z_0-9]+)\}/) { |_x| "**#{@lets[Regexp.last_match[1].to_sym]}**" }
       @lines << line
     end
 
