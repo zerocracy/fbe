@@ -60,7 +60,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         builder.use(
           Faraday::Retry::Middleware,
           exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [Octokit::TooManyRequests],
-          max: 5, interval: 1, methods: [:get]
+          max: 5, interval: 1, methods: [:get], backoff_factor: 2
         )
         builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
         builder.use(Octokit::Response::RaiseError)
