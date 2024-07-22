@@ -103,4 +103,9 @@ class TestAward < Minitest::Test
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
     assert_equal('You\'ve earned +23 for love. ', g, g)
   end
+
+  def test_shorten_when_nothing
+    g = Fbe::Award.new('(award (give 0 "for none"))').bill.greeting
+    assert_equal('You\'ve earned nothing. ', g, g)
+  end
 end
