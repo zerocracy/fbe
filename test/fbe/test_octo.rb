@@ -24,6 +24,7 @@
 
 require 'minitest/autorun'
 require 'judges/options'
+require 'webmock/minitest'
 require 'loog'
 require_relative '../test__helper'
 require_relative '../../lib/fbe/octo'
@@ -54,8 +55,22 @@ class TestOcto < Minitest::Test
     assert_equal(100, o.rate_limit.remaining)
   end
 
+  def test_caching
+    WebMock.disable_net_connect!
+    global = {}
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/users/yegor256')
+      .to_return(status: 200, body: '{}', headers: { 'Cache-Control' => 'public, max-age=60', 'etag' => 'abc' })
+      .times(1)
+      .then
+      .to_raise('second request should be cached, not passed to GitHub API!')
+    o.user('yegor256')
+    o.user('yegor256')
+  end
+
   def test_with_broken_token
     skip # it's a "live" test, run it manually if you need it
+    WebMock.enable_net_connect!
     global = {}
     options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
     o = Fbe.octo(loog: Loog::NULL, global:, options:)
@@ -64,6 +79,7 @@ class TestOcto < Minitest::Test
 
   def test_commit_pulls
     skip # it's a "live" test, run it manually if you need it
+    WebMock.enable_net_connect!
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     assert_equal(1, o.commit_pulls('zerocracy/fbe', '0b7d0699bd744b62c0731064c2adaad0c58e1416').size)
     assert_equal(0, o.commit_pulls('zerocracy/fbe', '16b3ea6b71c6e932ba7666c40ca846ecaa6d6f0d').size)
