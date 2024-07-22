@@ -59,7 +59,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
       stack = Faraday::RackBuilder.new do |builder|
         builder.use(
           Faraday::Retry::Middleware,
-          exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [Octokit::TooManyRequests],
+          exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [Octokit::Error],
           max: 5,
           interval: ENV['RACK_ENV'] == 'test' ? 0.1 : 10,
           methods: [:get],

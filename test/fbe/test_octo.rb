@@ -80,6 +80,18 @@ class TestOcto < Minitest::Test
     o.user('yegor256')
   end
 
+  def test_retrying_on_error_response
+    WebMock.disable_net_connect!
+    global = {}
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/users/yegor256')
+      .to_return(status: 503)
+      .times(1)
+      .then
+      .to_return(status: 200, body: '{}')
+    o.user('yegor256')
+  end
+
   def test_with_broken_token
     skip # it's a "live" test, run it manually if you need it
     WebMock.enable_net_connect!
