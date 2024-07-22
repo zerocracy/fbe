@@ -270,7 +270,7 @@ class Fbe::Award
       when 0
         "You've earned nothing. "
       when 1
-        "You've earned #{items.first}. "
+        "You've earned #{format('%+d', points)} points. "
       else
         "You've earned #{format('%+d', points)} points for this: #{items.join('; ')}. "
       end
