@@ -142,7 +142,7 @@ class Fbe::FakeOctokit
     }
   end
 
-  def repository_workflow_runs(repo)
+  def repository_workflow_runs(repo, _opts = {})
     {
       total_count: 2,
       workflow_runs: [
@@ -167,7 +167,7 @@ class Fbe::FakeOctokit
     }
   end
 
-  def releases(_repo)
+  def releases(_repo, _opts = {})
     [
       release('https://github...'),
       release('https://gith')
