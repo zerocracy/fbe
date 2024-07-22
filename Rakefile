@@ -32,6 +32,8 @@ def version
   Gem::Specification.load(Dir['*.gemspec'].first).version
 end
 
+ENV['RACK_ENV'] = 'test'
+
 task default: %i[clean test rubocop yard copyright]
 
 require 'rake/testtask'
