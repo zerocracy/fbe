@@ -266,7 +266,14 @@ class Fbe::Award
 
     def greeting
       items = @lines.map { |l| "#{format('%+d', l[:v])} #{l[:t]}" }
-      "You've earned #{format('%+d', points)} points for this: #{items.join('; ')}. "
+      case items.size
+      when 0
+        "You've earned nothing. "
+      when 1
+        "You've earned #{items.first}. "
+      else
+        "You've earned #{format('%+d', points)} points for this: #{items.join('; ')}. "
+      end
     end
   end
 

@@ -98,4 +98,9 @@ class TestAward < Minitest::Test
       assert(md.include?(t), md)
     end
   end
+
+  def test_shorten_when_one_number
+    g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
+    assert_equal('You\'ve earned +23 for love. ', g, g)
+  end
 end
