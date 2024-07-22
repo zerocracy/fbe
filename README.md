@@ -1,4 +1,4 @@
-# FactBase Extended
+# FactBase Extended (FBE)
 
 [![DevOps By Rultor.com](http://www.rultor.com/b/zerocracy/fbe)](http://www.rultor.com/p/zerocracy/fbe)
 [![We recommend RubyMine](https://www.elegantobjects.org/rubymine.svg)](https://www.jetbrains.com/ruby/)
@@ -13,6 +13,8 @@
 
 It's a collection of tools for
 [zerocracy/judges-action](https://github.com/zerocracy/judges-action).
+You are not supposed to use it directly, but only in a combination
+with other tools of Zerocracy.
 
 ## How to contribute
 
