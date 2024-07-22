@@ -154,7 +154,7 @@ class Fbe::FakeOctokit
 
   def workflow_run(repo, id)
     {
-      id: id,
+      id:,
       name: 'copyrights',
       head_branch: 'master',
       head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
@@ -167,14 +167,14 @@ class Fbe::FakeOctokit
     }
   end
 
-  def releases(repo)
+  def releases(_repo)
     [
       release('https://github...'),
       release('https://gith')
     ]
   end
 
-  def release(url)
+  def release(_url)
     {
       node_id: 'RE_kwDOL6GCO84J7Cen',
       tag_name: '0.19.0',
