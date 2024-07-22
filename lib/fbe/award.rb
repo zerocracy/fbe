@@ -24,7 +24,25 @@
 
 require 'factbase/syntax'
 
-# Award generator.
+# A generator of awards.
+#
+# First, you should create a policy, using the same Lisp-ish syntax as
+# we use in queries to a Factbase, for example:
+#
+#  require 'fbe/award'
+#  a = Fbe::Award.new('(award (in loc "lines") (give (times loc 5) "for LoC"))')
+#
+# Then, you can either get a bill from it:
+#
+#  b = a.bill(loc: 345)
+#  puts b.points  # how many points to reward, a number
+#  puts b.greeting  # how to explain the reward, a text
+#
+# Or else, you can get a policy text:
+#
+#  p = a.policy
+#  puts p.markdown  # Markdown of the policy
+#
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
