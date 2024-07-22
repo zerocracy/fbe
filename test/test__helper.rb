@@ -22,6 +22,9 @@
 
 $stdout.sync = true
 
+require 'minitest/reporters'
+Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
+
 require 'simplecov'
 SimpleCov.start
 
@@ -29,6 +32,3 @@ require 'simplecov-cobertura'
 SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
 
 require 'minitest/autorun'
-
-require 'minitest/reporters'
-Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
