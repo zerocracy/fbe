@@ -142,6 +142,52 @@ class Fbe::FakeOctokit
     }
   end
 
+  def repository_workflow_runs(repo)
+    {
+      total_count: 2,
+      workflow_runs: [
+        workflow_run(repo, 42),
+        workflow_run(repo, 7)
+      ]
+    }
+  end
+
+  def workflow_run(repo, id)
+    {
+      id: id,
+      name: 'copyrights',
+      head_branch: 'master',
+      head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
+      event: 'push',
+      status: 'completed',
+      conclusion: 'success',
+      workflow_id: id,
+      created_at: random_time,
+      repository: repository(repo)
+    }
+  end
+
+  def releases(repo)
+    [
+      release('https://github...'),
+      release('https://gith')
+    ]
+  end
+
+  def release(url)
+    {
+      node_id: 'RE_kwDOL6GCO84J7Cen',
+      tag_name: '0.19.0',
+      target_commitish: 'master',
+      name: 'just a fake name',
+      draft: false,
+      prerelease: false,
+      created_at: random_time,
+      published_at: random_time,
+      assets: []
+    }
+  end
+
   def repository(name)
     {
       id: name_to_number(name),
