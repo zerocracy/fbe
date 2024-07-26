@@ -37,9 +37,17 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
     if options.testing.nil?
       o = Octokit::Client.new
       token = options.github_token
-      loog.debug("The 'github_token' option is not provided") if token.nil?
-      token = ENV.fetch('GITHUB_TOKEN', nil) if token.nil?
-      loog.debug("The 'GITHUB_TOKEN' environment variable is not set") if token.nil?
+      if token.nil?
+        loog.debug("The 'github_token' option is not provided")
+        token = ENV.fetch('GITHUB_TOKEN', nil)
+        if token.nil?
+          loog.debug("The 'GITHUB_TOKEN' environment variable is not set")
+        else
+          loog.debug("The 'GITHUB_TOKEN' environment was provided")
+        end
+      else
+        loog.debug("The 'github_token' option was provided")
+      end
       if token.nil?
         loog.warn('Accessing GitHub API without a token!')
       elsif token.empty?
