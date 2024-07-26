@@ -79,8 +79,22 @@ class TestAward < Minitest::Test
       '(let x 25)' => 0,
       '(award (give 25 "for being a good boy"))' => 25,
       '(award (give (between 42 -10 -50) "empty"))' => -10,
-      '(award (give (between -3 -10 -50) "empty"))' => -10,
+      '(award (give (between -3 -10 -50) "empty"))' => 0,
       '(award (give (between -100 -50 -10) "empty"))' => -50
+    }.each do |q, v|
+      a = Fbe::Award.new(q)
+      assert_equal(v, a.bill.points, q)
+    end
+  end
+
+  def test_must_not_give_anything_when_too_small_value
+    {
+      '(award (give (between 13 5 20)))' => 13,
+      '(award (give (between 3 5 20)))' => 0,
+      '(award (give (between 25 5 20)))' => 20,
+      '(award (give (between -2 -10 -30)))' => 0,
+      '(award (give (between -15 -10 -30)))' => -15,
+      '(award (give (between -50 -10 -30)))' => -30
     }.each do |q, v|
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.points, q)
