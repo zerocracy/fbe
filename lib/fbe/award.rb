@@ -148,8 +148,19 @@ class Fbe::Award
         v = to_val(@operands[0], bill)
         a = to_val(@operands[1], bill)
         b = to_val(@operands[2], bill)
-        v = b if v > b
-        v = a if v < a
+        return 0 if (v.positive? && v < a && v < b) || (v.negative? && v > a && v > b)
+        if a > b
+          min = b
+          max = a
+        else
+          min = a
+          max = b
+        end
+        if v < min
+          v = min
+        elsif v > max
+          v = max
+        end
         v
       else
         raise "Unknown term '#{@op}'"
