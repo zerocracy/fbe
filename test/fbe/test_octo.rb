@@ -112,7 +112,7 @@ class TestOcto < Minitest::Test
   def test_out_of_limit
     WebMock.disable_net_connect!
     global = {}
-    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'pause' => 0 }))
     stub_request(:get, 'https://api.github.com/users/yegor256')
       .to_raise(Octokit::TooManyRequests.new)
       .times(1)
