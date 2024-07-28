@@ -70,8 +70,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [
             Octokit::TooManyRequests, Octokit::ServiceUnavailable
           ],
-          max: 5,
-          interval: ENV['RACK_ENV'] == 'test' ? 0.1 : 10,
+          max: 4,
+          interval: ENV['RACK_ENV'] == 'test' ? 0.01 : 4,
           methods: [:get],
           backoff_factor: 2
         )
