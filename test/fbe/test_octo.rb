@@ -108,4 +108,41 @@ class TestOcto < Minitest::Test
     assert_equal(1, o.commit_pulls('zerocracy/fbe', '0b7d0699bd744b62c0731064c2adaad0c58e1416').size)
     assert_equal(0, o.commit_pulls('zerocracy/fbe', '16b3ea6b71c6e932ba7666c40ca846ecaa6d6f0d').size)
   end
+
+  def test_out_of_limit
+    WebMock.disable_net_connect!
+    global = {}
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/users/yegor256')
+      .to_raise(Octokit::TooManyRequests.new)
+      .times(1)
+      .then
+      .to_return(
+        status: 200, body: '{}',
+        headers: {
+          'x-ratelimit-remaining' => '0',
+          'retry-after' => '60'
+        }
+      )
+    stub_request(:get, 'https://api.github.com/users/test')
+      .to_raise(Octokit::TooManyRequests.new)
+      .times(1)
+      .then
+      .to_return(
+        status: 200, body: '{}',
+        headers: {
+          'x-ratelimit-remaining' => '100',
+          'retry-after' => '60'
+        }
+      )
+    105.times do |n|
+      if n > 100
+        o.user('test')
+        assert !o.off_quota
+      else
+        o.user('yegor256')
+        assert o.off_quota
+      end
+    end
+  end
 end
