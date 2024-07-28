@@ -148,9 +148,10 @@ class Fbe::FakeOctokit
   end
 
   def user(name)
+    name = name == 526_301 ? 'yegor256' : 'torvalds' if name.is_a?(Integer)
     {
       id: 444,
-      login: 'yegor256',
+      login: name,
       type: name == 29_139_614 ? 'Bot' : 'User'
     }
   end

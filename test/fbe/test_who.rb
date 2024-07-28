@@ -38,6 +38,6 @@ class TestWho < Minitest::Test
     f.who = 444
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    assert_equal('@yegor256', Fbe.who(f, global:, options:, loog: Loog::NULL))
+    assert_equal('@torvalds', Fbe.who(f, global:, options:, loog: Loog::NULL))
   end
 end
