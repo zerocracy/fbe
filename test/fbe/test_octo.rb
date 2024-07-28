@@ -50,6 +50,15 @@ class TestOcto < Minitest::Test
     assert_equal(42, o.add_comment('foo/foo', 4, 'hello!')[:id])
   end
 
+  def test_detect_bot
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    o = Fbe.octo(loog: Loog::NULL, global:, options:)
+    assert_equal('Bot', o.user(29_139_614)[:type])
+    assert_equal('User', o.user('yegor256')[:type])
+    assert_equal('User', o.user(42)[:type])
+  end
+
   def test_rate_limit
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)
