@@ -27,7 +27,7 @@ require 'faraday'
 require 'logger'
 require_relative '../../../lib/fbe/faraday_middleware/quota'
 
-class QuotTest < Minitest::Test
+class QuotaTest < Minitest::Test
   class FakeApp
     def initialize
       @call_count = 0
