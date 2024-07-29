@@ -26,8 +26,7 @@ require 'faraday'
 
 module Fbe
   module FaradayMiddleware
-    # Faraday Middleware that checks the GitHub API quota.
-    # If we are getting close to zero, we simply make a pause.
+    # Faraday Middleware that monitors GitHub API rate limits.
     class Quota < Faraday::Middleware
       def initialize(app, options = {})
         super(app)
@@ -41,6 +40,7 @@ module Fbe
       def call(env)
         @request_count += 1
 
+        response = @app.call(env)
         if out_of_limit?(env)
           @logger.info(
             "Too much GitHub API quota consumed, pausing for #{@pause_duration} seconds"
@@ -48,15 +48,13 @@ module Fbe
           sleep(@pause_duration)
           @request_count = 0
         end
-
-        @app.call(env)
+        response
       end
 
       private
 
       def out_of_limit?(env)
-        response = @app.call(env)
-        remaining = response.env.response_headers['x-ratelimit-remaining'].to_i
+        remaining = env.response_headers['x-ratelimit-remaining'].to_i
         (@request_count % @request_limit).zero? && remaining < 5
       end
     end
