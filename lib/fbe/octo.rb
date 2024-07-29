@@ -30,7 +30,7 @@ require 'verbose'
 require 'faraday/http_cache'
 require 'faraday/retry'
 require_relative '../fbe'
-require_relative 'faraday_middleware/quota'
+require_relative 'middleware/quota'
 
 def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $global is not set' if global.nil?
@@ -77,9 +77,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           backoff_factor: 2
         )
         builder.use(
-          Fbe::FaradayMiddleware::Quota,
+          Fbe::Middleware::Quota,
           logger: loog,
-          github_api_pause: options.github_api_pause || 60
+          pause: options.github_api_pause || 60
         )
         builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
         builder.use(Octokit::Response::RaiseError)

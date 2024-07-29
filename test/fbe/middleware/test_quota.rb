@@ -25,7 +25,7 @@
 require 'minitest/autorun'
 require 'faraday'
 require 'logger'
-require_relative '../../../lib/fbe/faraday_middleware'
+require_relative '../../../lib/fbe/middleware'
 
 class QuotaTest < Minitest::Test
   class FakeApp
@@ -47,16 +47,14 @@ class QuotaTest < Minitest::Test
     loog = Loog::NULL
     pause = 0
     app = FakeApp.new
-    middleware = Fbe::FaradayMiddleware::Quota.new(app, logger: loog, github_api_pause: pause)
+    middleware = Fbe::Middleware::Quota.new(app, logger: loog, pause:)
     start_time = Time.now
     105.times do
       env = Judges::Options.new(
-        {
-          'method' => :get,
-          'url' => 'http://example.com',
-          'request_headers' => {},
-          'response_headers' => {}
-        }
+        'method' => :get,
+        'url' => 'http://example.com',
+        'request_headers' => {},
+        'response_headers' => {}
       )
       middleware.call(env)
     end
@@ -68,15 +66,13 @@ class QuotaTest < Minitest::Test
     log_output = StringIO.new
     loog = Logger.new(log_output)
     app = FakeApp.new
-    middleware = Fbe::FaradayMiddleware::Quota.new(app, logger: loog, github_api_pause: pause)
+    middleware = Fbe::Middleware::Quota.new(app, logger: loog, pause:)
     105.times do
       env = Judges::Options.new(
-        {
-          'method' => :get,
-          'url' => 'http://example.com',
-          'request_headers' => {},
-          'response_headers' => {}
-        }
+        'method' => :get,
+        'url' => 'http://example.com',
+        'request_headers' => {},
+        'response_headers' => {}
       )
       middleware.call(env)
     end
