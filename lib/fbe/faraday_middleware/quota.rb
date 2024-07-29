@@ -30,23 +30,22 @@ module Fbe
     class Quota < Faraday::Middleware
       def initialize(app, options = {})
         super(app)
-        @request_limit = 100
-        @request_count = 0
+        @limit = 100
+        @requests = 0
         @app = app
         @logger = options[:logger]
-        @pause_duration = options[:pause]
+        @delay = options[:pause]
       end
 
       def call(env)
-        @request_count += 1
-
+        @requests += 1
         response = @app.call(env)
         if out_of_limit?(env)
           @logger.info(
-            "Too much GitHub API quota consumed, pausing for #{@pause_duration} seconds"
+            "Too much GitHub API quota consumed, pausing for #{@delay} seconds"
           )
-          sleep(@pause_duration)
-          @request_count = 0
+          sleep(@delay)
+          @requests = 0
         end
         response
       end
@@ -55,7 +54,7 @@ module Fbe
 
       def out_of_limit?(env)
         remaining = env.response_headers['x-ratelimit-remaining'].to_i
-        (@request_count % @request_limit).zero? && remaining < 5
+        (@requests % @limit).zero? && remaining < 5
       end
     end
   end

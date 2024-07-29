@@ -30,13 +30,13 @@ require_relative '../../../lib/fbe/faraday_middleware/quota'
 class QuotaTest < Minitest::Test
   class FakeApp
     def initialize
-      @call_count = 0
+      @calls = 0
     end
 
     def call(env)
-      @call_count += 1
+      @calls += 1
       response_headers = {
-        'x-ratelimit-remaining' => (100 - @call_count).to_s
+        'x-ratelimit-remaining' => (100 - @calls).to_s
       }
       env[:response_headers] = response_headers
       env
@@ -48,19 +48,18 @@ class QuotaTest < Minitest::Test
     pause_duration = 0
     app = FakeApp.new
     middleware = Fbe::FaradayMiddleware::Quota.new(app, logger: loog, pause: pause_duration)
-
     start_time = Time.now
-
     105.times do
-      env = Judges::Options.new({
-                                  'method' => :get,
-                                  'url' => 'http://example.com',
-                                  'request_headers' => {},
-                                  'response_headers' => {}
-                                })
+      env = Judges::Options.new(
+        {
+          'method' => :get,
+          'url' => 'http://example.com',
+          'request_headers' => {},
+          'response_headers' => {}
+        }
+      )
       middleware.call(env)
     end
-
     assert_in_delta pause_duration, Time.now - start_time, 0.4
   end
 
@@ -70,17 +69,17 @@ class QuotaTest < Minitest::Test
     loog = Logger.new(log_output)
     app = FakeApp.new
     middleware = Fbe::FaradayMiddleware::Quota.new(app, logger: loog, pause: pause_duration)
-
     105.times do
-      env = Judges::Options.new({
-                                  'method' => :get,
-                                  'url' => 'http://example.com',
-                                  'request_headers' => {},
-                                  'response_headers' => {}
-                                })
+      env = Judges::Options.new(
+        {
+          'method' => :get,
+          'url' => 'http://example.com',
+          'request_headers' => {},
+          'response_headers' => {}
+        }
+      )
       middleware.call(env)
     end
-
     assert_match(/Too much GitHub API quota/, log_output.string)
   end
 end

@@ -130,13 +130,13 @@ class TestOcto < Minitest::Test
       user = "test#{n}"
       limit = 100 if n > 100
       stub_request(:get, "https://api.github.com/users/#{user}")
-      .then
-      .to_return(
-        status: 200, body: '{}',
-        headers: {
-          'x-ratelimit-remaining' => limit.to_s
-        }
-      )
+        .then
+        .to_return(
+          status: 200, body: '{}',
+          headers: {
+            'x-ratelimit-remaining' => limit.to_s
+          }
+        )
         .times(1)
       o.user(user)
       assert(!o.off_quota) if n > 100
