@@ -289,6 +289,22 @@ class Fbe::FakeOctokit
     }
   end
 
+  def commits_since(_repo, _since)
+    [
+      commit('a1b2c3d4e5f6a1b2c3d4e5f6'),
+      commit('a1b2c3d4e5fff1b2c3d4e5f6')
+    ]
+  end
+
+  def commit(_repo, sha)
+    {
+      sha:,
+      stats: {
+        total: 123
+      }
+    }
+  end
+
   def issue_timeline(_repo, _issue, _options = {})
     [
       {
