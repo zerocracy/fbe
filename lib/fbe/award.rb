@@ -149,7 +149,7 @@ class Fbe::Award
         a = to_val(@operands[1], bill)
         b = to_val(@operands[2], bill)
         min, max = [a, b].minmax
-        return 0 if (v.positive? && v < min) || (v.negative? && v > max)
+        return 0 if (!v.negative? && v < min) || (!v.positive? && v > max)
 
         v.clamp(min, max)
       else

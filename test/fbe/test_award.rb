@@ -58,12 +58,11 @@ class TestAward < Minitest::Test
     b = a.bill(hours: 10)
     assert(b.points <= 100)
     assert(b.points >= 5)
-    assert_equal(43, b.points)
+    assert_equal(40, b.points)
     g = b.greeting
     [
-      'You\'ve earned +43 points for this',
+      'You\'ve earned +40 points for this',
       '+10 for resolving the bug in 10',
-      'too long (0 days)',
       'bug in 10 (<36) hours',
       '+30 as a basis'
     ].each { |t| assert(g.include?(t), g) }
@@ -89,9 +88,11 @@ class TestAward < Minitest::Test
 
   def test_must_not_give_anything_when_too_small_value
     {
+      '(award (give (between 0 5 20)))' => 0,
       '(award (give (between 13 5 20)))' => 13,
       '(award (give (between 3 5 20)))' => 0,
       '(award (give (between 25 5 20)))' => 20,
+      '(award (give (between 0 -10 -30)))' => 0,
       '(award (give (between -2 -10 -30)))' => 0,
       '(award (give (between -15 -10 -30)))' => -15,
       '(award (give (between -50 -10 -30)))' => -30
