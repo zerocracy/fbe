@@ -22,36 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'faraday'
-
-# Faraday Middleware that monitors GitHub API rate limits.
-class Fbe::FaradayMiddleware::Quota < Faraday::Middleware
-  def initialize(app, options = {})
-    super(app)
-    @limit = 100
-    @requests = 0
-    @app = app
-    @logger = options[:logger]
-    @pause = options[:github_api_pause]
-  end
-
-  def call(env)
-    @requests += 1
-    response = @app.call(env)
-    if out_of_limit?(env)
-      @logger.info(
-        "Too much GitHub API quota consumed, pausing for #{@pause} seconds"
-      )
-      sleep(@pause)
-      @requests = 0
-    end
-    response
-  end
-
-  private
-
-  def out_of_limit?(env)
-    remaining = env.response_headers['x-ratelimit-remaining'].to_i
-    (@requests % @limit).zero? && remaining < 5
-  end
+# The module.
+module Fbe::FaradayMiddleware
+  # empty
 end

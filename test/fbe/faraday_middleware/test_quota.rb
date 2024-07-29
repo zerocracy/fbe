@@ -25,7 +25,7 @@
 require 'minitest/autorun'
 require 'faraday'
 require 'logger'
-require_relative '../../../lib/fbe/faraday_middleware/quota'
+require_relative '../../../lib/fbe/faraday_middleware'
 
 class QuotaTest < Minitest::Test
   class FakeApp
