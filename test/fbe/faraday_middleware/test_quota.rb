@@ -45,9 +45,9 @@ class QuotaTest < Minitest::Test
 
   def test_quota_middleware_pauses_when_quota_low
     loog = Loog::NULL
-    pause_duration = 0
+    pause = 0
     app = FakeApp.new
-    middleware = Fbe::FaradayMiddleware::Quota.new(app, logger: loog, pause: pause_duration)
+    middleware = Fbe::FaradayMiddleware::Quota.new(app, logger: loog, github_api_pause: pause)
     start_time = Time.now
     105.times do
       env = Judges::Options.new(
@@ -60,15 +60,15 @@ class QuotaTest < Minitest::Test
       )
       middleware.call(env)
     end
-    assert_in_delta pause_duration, Time.now - start_time, 0.4
+    assert_in_delta pause, Time.now - start_time, 0.4
   end
 
   def test_quota_middleware_logs_when_quota_low
-    pause_duration = 1
+    pause = 1
     log_output = StringIO.new
     loog = Logger.new(log_output)
     app = FakeApp.new
-    middleware = Fbe::FaradayMiddleware::Quota.new(app, logger: loog, pause: pause_duration)
+    middleware = Fbe::FaradayMiddleware::Quota.new(app, logger: loog, github_api_pause: pause)
     105.times do
       env = Judges::Options.new(
         {

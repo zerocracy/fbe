@@ -34,7 +34,7 @@ module Fbe
         @requests = 0
         @app = app
         @logger = options[:logger]
-        @delay = options[:pause]
+        @pause = options[:github_api_pause]
       end
 
       def call(env)
@@ -42,9 +42,9 @@ module Fbe
         response = @app.call(env)
         if out_of_limit?(env)
           @logger.info(
-            "Too much GitHub API quota consumed, pausing for #{@delay} seconds"
+            "Too much GitHub API quota consumed, pausing for #{@pause} seconds"
           )
-          sleep(@delay)
+          sleep(@pause)
           @requests = 0
         end
         response

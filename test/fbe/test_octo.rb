@@ -121,8 +121,8 @@ class TestOcto < Minitest::Test
   def test_pauses_when_quota_is_exceeded
     WebMock.disable_net_connect!
     global = {}
-    pause_duration = 1
-    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'pause' => pause_duration }))
+    pause = 1
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'github_api_pause' => pause }))
     limit = 100
     start_time = Time.now
     105.times do |i|
@@ -142,6 +142,6 @@ class TestOcto < Minitest::Test
       assert(!o.off_quota) if n > 100
       limit -= 1
     end
-    assert_in_delta(pause_duration, Time.now - start_time, 0.4)
+    assert_in_delta(pause, Time.now - start_time, 0.4)
   end
 end
