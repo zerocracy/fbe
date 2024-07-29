@@ -109,40 +109,30 @@ class TestOcto < Minitest::Test
     assert_equal(0, o.commit_pulls('zerocracy/fbe', '16b3ea6b71c6e932ba7666c40ca846ecaa6d6f0d').size)
   end
 
-  def test_out_of_limit
+  def test_pauses_when_quota_is_exceeded
     WebMock.disable_net_connect!
     global = {}
-    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'pause' => 0 }))
-    stub_request(:get, 'https://api.github.com/users/yegor256')
-      .to_raise(Octokit::TooManyRequests.new)
-      .times(1)
+    pause_duration = 1
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'pause' => pause_duration }))
+    limit = 100
+    start_time = Time.now
+    105.times do |i|
+      n = i + 1
+      user = "test#{n}"
+      limit = 100 if n > 100
+      stub_request(:get, "https://api.github.com/users/#{user}")
       .then
       .to_return(
         status: 200, body: '{}',
         headers: {
-          'x-ratelimit-remaining' => '0',
-          'retry-after' => '60'
+          'x-ratelimit-remaining' => limit.to_s
         }
       )
-    stub_request(:get, 'https://api.github.com/users/test')
-      .to_raise(Octokit::TooManyRequests.new)
-      .times(1)
-      .then
-      .to_return(
-        status: 200, body: '{}',
-        headers: {
-          'x-ratelimit-remaining' => '100',
-          'retry-after' => '60'
-        }
-      )
-    105.times do |n|
-      if n > 100
-        o.user('test')
-        assert !o.off_quota
-      else
-        o.user('yegor256')
-        assert o.off_quota
-      end
+        .times(1)
+      o.user(user)
+      assert(!o.off_quota) if n > 100
+      limit -= 1
     end
+    assert_in_delta(pause_duration, Time.now - start_time, 0.4)
   end
 end
