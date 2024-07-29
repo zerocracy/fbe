@@ -30,6 +30,7 @@ require 'verbose'
 require 'faraday/http_cache'
 require 'faraday/retry'
 require_relative '../fbe'
+require_relative 'middleware'
 require_relative 'middleware/quota'
 
 def Fbe.octo(options: $options, global: $global, loog: $loog)
