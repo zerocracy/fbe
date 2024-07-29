@@ -1,7 +1,6 @@
 # FactBase Extended (FBE)
 
 [![DevOps By Rultor.com](http://www.rultor.com/b/zerocracy/fbe)](http://www.rultor.com/p/zerocracy/fbe)
-[![We recommend RubyMine](https://www.elegantobjects.org/rubymine.svg)](https://www.jetbrains.com/ruby/)
 
 [![rake](https://github.com/zerocracy/fbe/actions/workflows/rake.yml/badge.svg)](https://github.com/zerocracy/fbe/actions/workflows/rake.yml)
 [![PDD status](http://www.0pdd.com/svg?name=zerocracy/fbe)](http://www.0pdd.com/p?name=zerocracy/fbe)
