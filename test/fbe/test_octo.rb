@@ -117,4 +117,31 @@ class TestOcto < Minitest::Test
     assert_equal(1, o.commit_pulls('zerocracy/fbe', '0b7d0699bd744b62c0731064c2adaad0c58e1416').size)
     assert_equal(0, o.commit_pulls('zerocracy/fbe', '16b3ea6b71c6e932ba7666c40ca846ecaa6d6f0d').size)
   end
+
+  def test_pauses_when_quota_is_exceeded
+    WebMock.disable_net_connect!
+    global = {}
+    pause = 1
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'github_api_pause' => pause }))
+    limit = 100
+    start_time = Time.now
+    105.times do |i|
+      n = i + 1
+      user = "test#{n}"
+      limit = 100 if n > 100
+      stub_request(:get, "https://api.github.com/users/#{user}")
+        .then
+        .to_return(
+          status: 200, body: '{}',
+          headers: {
+            'x-ratelimit-remaining' => limit.to_s
+          }
+        )
+        .times(1)
+      o.user(user)
+      assert(!o.off_quota) if n > 100
+      limit -= 1
+    end
+    assert_in_delta(pause, Time.now - start_time, 0.4)
+  end
 end
