@@ -247,6 +247,26 @@ class Fbe::FakeOctokit
     ]
   end
 
+  def list_issues(repo, _options = {})
+    [
+      issue(repo, 42),
+      issue(repo, 43)
+    ]
+  end
+
+  def issue(repo, number)
+    {
+      id: 42,
+      number:,
+      repo: {
+        full_name: repo
+      },
+      pull_request: {
+        merged_at: nil
+      }
+    }
+  end
+
   def pull_request(repo, number)
     {
       id: 42,
@@ -289,10 +309,10 @@ class Fbe::FakeOctokit
     }
   end
 
-  def commits_since(_repo, _since)
+  def commits_since(repo, _since)
     [
-      commit('a1b2c3d4e5f6a1b2c3d4e5f6'),
-      commit('a1b2c3d4e5fff1b2c3d4e5f6')
+      commit(repo, 'a1b2c3d4e5f6a1b2c3d4e5f6'),
+      commit(repo, 'a1b2c3d4e5fff1b2c3d4e5f6')
     ]
   end
 
