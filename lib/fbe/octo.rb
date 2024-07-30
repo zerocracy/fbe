@@ -301,19 +301,50 @@ class Fbe::FakeOctokit
     }
   end
 
-  def search_issues(_query, _options = {})
-    {
-      items: [
-        {
-          number: 42,
-          labels: [
-            {
-              name: 'bug'
-            }
-          ]
-        }
-      ]
-    }
+  def search_issues(query, _options = {})
+    if query.include?('type:pr') && query.include?('is:unmerged')
+      {
+        total_count: 1,
+        incomplete_results: false,
+        items: [
+          {
+            id: 42,
+            number: 10,
+            title: 'Awesome PR 10'
+          }
+        ]
+      }
+    elsif query.include?('type:pr')
+      {
+        total_count: 2,
+        incomplete_results: false,
+        items: [
+          {
+            id: 42,
+            number: 10,
+            title: 'Awesome PR 10'
+          },
+          {
+            id: 43,
+            number: 11,
+            title: 'Awesome PR 11'
+          }
+        ]
+      }
+    else
+      {
+        items: [
+          {
+            number: 42,
+            labels: [
+              {
+                name: 'bug'
+              }
+            ]
+          }
+        ]
+      }
+    end
   end
 
   def commits_since(repo, _since)
