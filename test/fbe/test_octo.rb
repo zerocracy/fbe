@@ -118,6 +118,18 @@ class TestOcto < Minitest::Test
     assert_equal(0, o.commit_pulls('zerocracy/fbe', '16b3ea6b71c6e932ba7666c40ca846ecaa6d6f0d').size)
   end
 
+  def test_search_issues
+    WebMock.disable_net_connect!
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(42, o.search_issues('repo:zerocracy/fbe type:issue').dig(:items, 0, :number))
+    total_pr_count = 2
+    assert_equal(total_pr_count, o.search_issues('repo:zerocracy/fbe type:pr')[:total_count])
+    assert_equal(total_pr_count, o.search_issues('repo:zerocracy/fbe type:pr')[:items].count)
+    unmereged_pr_count = 1
+    assert_equal(unmereged_pr_count, o.search_issues('repo:zerocracy/fbe type:pr is:unmerged')[:total_count])
+    assert_equal(unmereged_pr_count, o.search_issues('repo:zerocracy/fbe type:pr is:unmerged')[:items].count)
+  end
+
   def test_pauses_when_quota_is_exceeded
     WebMock.disable_net_connect!
     global = {}
