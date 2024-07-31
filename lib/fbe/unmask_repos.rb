@@ -37,6 +37,7 @@ module Fbe
 
   def self.unmask_repos(options: $options, global: $global, loog: $loog)
     repos = []
+    octo = Fbe.octo(loog:, global:, options:)
     masks = (options.repositories || '').split(',')
     masks.reject { |m| m.start_with?('-') }.each do |mask|
       unless mask.include?('*')
@@ -44,7 +45,7 @@ module Fbe
         next
       end
       re = Fbe.mask_to_regex(mask)
-      Fbe.octo(loog:, global:, options:).repositories(mask.split('/')[0]).each do |r|
+      octo.repositories(mask.split('/')[0]).each do |r|
         repos << r[:full_name] if re.match?(r[:full_name])
       end
     end
@@ -52,6 +53,7 @@ module Fbe
       re = Fbe.mask_to_regex(mask[1..])
       repos.reject! { |r| re.match?(r) }
     end
+    repos.reject! { |repo| octo.repository(repo)[:archived] }
     raise "No repos found matching: #{options.repositories}" if repos.empty?
     loog.debug("Scanning #{repos.size} repositories: #{repos.join(', ')}...")
     repos

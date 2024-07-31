@@ -235,7 +235,7 @@ class Fbe::FakeOctokit
       has_pages: false,
       has_discussions: false,
       forks_count: 0,
-      archived: false,
+      archived: name == 'zerocracy/datum',
       disabled: false,
       open_issues_count: 6,
       license: { key: 'mit', name: 'MIT License' },
