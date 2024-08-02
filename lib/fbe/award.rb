@@ -122,6 +122,12 @@ class Fbe::Award
         bill.points
       when :if
         to_val(@operands[0], bill) ? to_val(@operands[1], bill) : to_val(@operands[2], bill)
+      when :and
+        @operands.all? { |o| to_val(o, bill) }
+      when :or
+        @operands.any? { |o| to_val(o, bill) }
+      when :not
+        !to_val(@operands[0], bill)
       when :eq
         to_val(@operands[0], bill) == to_val(@operands[1], bill)
       when :lt
@@ -150,7 +156,6 @@ class Fbe::Award
         b = to_val(@operands[2], bill)
         min, max = [a, b].minmax
         return 0 if (!v.negative? && v < min) || (!v.positive? && v > max)
-
         v.clamp(min, max)
       else
         raise "Unknown term '#{@op}'"
@@ -171,6 +176,12 @@ class Fbe::Award
         'total'
       when :if
         "if #{to_p(@operands[0])} then #{to_p(@operands[1])} else #{to_p(@operands[2])}"
+      when :and
+        @operands.map(&:to_s).join(' and ')
+      when :or
+        @operands.map(&:to_s).join(' or ')
+      when :not
+        "not #{@operands[0]}"
       when :eq
         "#{to_p(@operands[0])} = #{to_p(@operands[1])}"
       when :lt

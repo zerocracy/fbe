@@ -42,7 +42,12 @@ class TestAward < Minitest::Test
         (give basis "as a basis")
         (let fee 10)
         (aka
-          (set b1 (if (lt hours max) fee 0))
+          (set b1
+            (if
+              (and
+                (lt hours max)
+                (not (eq hours 0)))
+              fee 0))
           (give b1 "for resolving the bug in ${hours} (<${max}) hours")
           "add ${+fee} if it was resolved in less than ${max} hours")
         (set days (div hours 24))
