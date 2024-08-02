@@ -50,8 +50,8 @@ class Fbe::Award
   # Ctor.
   # @param [String] query The query with the policy
   # @param [String] judge The name of the judge
-  def initialize(query = nil, judge: $judge, fb: Fbe.fb, global: $global, options: $options, loog: $loog)
-    @query = Fbe.pmp(fb:, global:, options:, loog:).hr.send(judge.gsub('-', '_')) if query.nil?
+  def initialize(query = nil, judge: $judge, global: $global, options: $options, loog: $loog)
+    query = Fbe.pmp(fb: Fbe.fb, global:, options:, loog:).hr.send(judge.gsub('-', '_')) if query.nil?
     @query = query
   end
 
