@@ -47,10 +47,17 @@ require 'factbase/syntax'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class Fbe::Award
-  def initialize(query = J.pmp.hr.send($judge.gsub('-', '_')))
+  # Ctor.
+  # @param [String] query The query with the policy
+  # @param [String] judge The name of the judge
+  def initialize(query = nil, judge: $judge, fb: Fbe.fb, global: $global, options: $options, loog: $loog)
+    @query = Fbe.pmp(fb:, global:, options:, loog:).hr.send(judge.gsub('-', '_')) if query.nil?
     @query = query
   end
 
+  # Build a bill object from this award query.
+  # @param [Hash] vars Hash of variables
+  # @return [Fbe::Award::Bill] The bill
   def bill(vars = {})
     term = Factbase::Syntax.new(@query, term: Fbe::Award::BTerm).to_term
     bill = Bill.new
@@ -59,6 +66,8 @@ class Fbe::Award
     bill
   end
 
+  # Build a policy object from this award query.
+  # @return [Fbe::Award::Policy] The policy
   def policy
     term = Factbase::Syntax.new(@query, term: Fbe::Award::PTerm).to_term
     policy = Policy.new
