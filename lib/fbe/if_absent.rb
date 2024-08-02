@@ -30,14 +30,15 @@ require_relative 'fb'
 # Injects a fact if it's absent in the factbase.
 def Fbe.if_absent(fb: Fbe.fb)
   attrs = {}
-  f = others(map: attrs) do |*args|
-    k = args[0]
-    if k.end_with?('=')
-      @map[k[0..-2].to_sym] = args[1]
-    else
-      @map[k.to_sym]
+  f =
+    others(map: attrs) do |*args|
+      k = args[0]
+      if k.end_with?('=')
+        @map[k[0..-2].to_sym] = args[1]
+      else
+        @map[k.to_sym]
+      end
     end
-  end
   yield f
   q = attrs.except('_id', '_time', '_version').map do |k, v|
     vv = v.to_s

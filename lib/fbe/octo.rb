@@ -35,97 +35,99 @@ require_relative 'middleware/quota'
 
 def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $global is not set' if global.nil?
-  global[:octo] ||= begin
-    if options.testing.nil?
-      o = Octokit::Client.new
-      token = options.github_token
-      if token.nil?
-        loog.debug("The 'github_token' option is not provided")
-        token = ENV.fetch('GITHUB_TOKEN', nil)
+  global[:octo] ||=
+    begin
+      if options.testing.nil?
+        o = Octokit::Client.new
+        token = options.github_token
         if token.nil?
-          loog.debug("The 'GITHUB_TOKEN' environment variable is not set")
+          loog.debug("The 'github_token' option is not provided")
+          token = ENV.fetch('GITHUB_TOKEN', nil)
+          if token.nil?
+            loog.debug("The 'GITHUB_TOKEN' environment variable is not set")
+          else
+            loog.debug("The 'GITHUB_TOKEN' environment was provided")
+          end
         else
-          loog.debug("The 'GITHUB_TOKEN' environment was provided")
+          loog.debug("The 'github_token' option was provided")
         end
-      else
-        loog.debug("The 'github_token' option was provided")
-      end
-      if token.nil?
-        loog.warn('Accessing GitHub API without a token!')
-      elsif token.empty?
-        loog.warn('The GitHub API token is an empty string, won\'t use it')
-      else
-        o = Octokit::Client.new(access_token: token)
-        loog.info("Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..]})")
-      end
-      o.auto_paginate = true
-      o.per_page = 100
-      o.connection_options = {
-        request: {
-          open_timeout: 15,
-          timeout: 15
+        if token.nil?
+          loog.warn('Accessing GitHub API without a token!')
+        elsif token.empty?
+          loog.warn('The GitHub API token is an empty string, won\'t use it')
+        else
+          o = Octokit::Client.new(access_token: token)
+          loog.info("Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..]})")
+        end
+        o.auto_paginate = true
+        o.per_page = 100
+        o.connection_options = {
+          request: {
+            open_timeout: 15,
+            timeout: 15
+          }
         }
-      }
-      stack = Faraday::RackBuilder.new do |builder|
-        builder.use(
-          Faraday::Retry::Middleware,
-          exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [
-            Octokit::TooManyRequests, Octokit::ServiceUnavailable
-          ],
-          max: 4,
-          interval: ENV['RACK_ENV'] == 'test' ? 0.01 : 4,
-          methods: [:get],
-          backoff_factor: 2
-        )
-        builder.use(
-          Fbe::Middleware::Quota,
-          logger: loog,
-          pause: options.github_api_pause
-        )
-        builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
-        builder.use(Octokit::Response::RaiseError)
-        builder.use(Faraday::Response::Logger, Loog::NULL)
-        builder.adapter(Faraday.default_adapter)
+        stack =
+          Faraday::RackBuilder.new do |builder|
+            builder.use(
+              Faraday::Retry::Middleware,
+              exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [
+                Octokit::TooManyRequests, Octokit::ServiceUnavailable
+              ],
+              max: 4,
+              interval: ENV['RACK_ENV'] == 'test' ? 0.01 : 4,
+              methods: [:get],
+              backoff_factor: 2
+            )
+            builder.use(
+              Fbe::Middleware::Quota,
+              logger: loog,
+              pause: options.github_api_pause
+            )
+            builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
+            builder.use(Octokit::Response::RaiseError)
+            builder.use(Faraday::Response::Logger, Loog::NULL)
+            builder.adapter(Faraday.default_adapter)
+          end
+        o.middleware = stack
+        o = Verbose.new(o, log: loog)
+      else
+        loog.debug('The connection to GitHub API is mocked')
+        o = Fbe::FakeOctokit.new
       end
-      o.middleware = stack
-      o = Verbose.new(o, log: loog)
-    else
-      loog.debug('The connection to GitHub API is mocked')
-      o = Fbe::FakeOctokit.new
-    end
-    decoor(o, loog:) do
-      def off_quota
-        left = @origin.rate_limit.remaining
-        if left < 5
-          @loog.info("To much GitHub API quota consumed already (remaining=#{left}), stopping")
-          true
-        else
-          false
+      decoor(o, loog:) do
+        def off_quota
+          left = @origin.rate_limit.remaining
+          if left < 5
+            @loog.info("To much GitHub API quota consumed already (remaining=#{left}), stopping")
+            true
+          else
+            false
+          end
+        end
+
+        def user_name_by_id(id)
+          json = @origin.user(id)
+          name = json[:login]
+          @loog.debug("GitHub user ##{id} has a name: @#{name}")
+          name
+        end
+
+        def repo_id_by_name(name)
+          json = @origin.repository(name)
+          id = json[:id]
+          @loog.debug("GitHub repository #{name} has an ID: ##{id}")
+          id
+        end
+
+        def repo_name_by_id(id)
+          json = @origin.repository(id)
+          name = json[:full_name]
+          @loog.debug("GitHub repository ##{id} has a name: #{name}")
+          name
         end
       end
-
-      def user_name_by_id(id)
-        json = @origin.user(id)
-        name = json[:login]
-        @loog.debug("GitHub user ##{id} has a name: @#{name}")
-        name
-      end
-
-      def repo_id_by_name(name)
-        json = @origin.repository(name)
-        id = json[:id]
-        @loog.debug("GitHub repository #{name} has an ID: ##{id}")
-        id
-      end
-
-      def repo_name_by_id(id)
-        json = @origin.repository(id)
-        name = json[:full_name]
-        @loog.debug("GitHub repository ##{id} has a name: #{name}")
-        name
-      end
     end
-  end
 end
 
 # Fake GitHub client, for tests.
