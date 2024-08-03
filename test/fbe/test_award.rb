@@ -95,7 +95,8 @@ class TestAward < Minitest::Test
   def test_some_greetings
     {
       '(award (give (times 5 0.25 "fun")))' => 'You\'ve earned +1 points. ',
-      '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points. '
+      '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points. ',
+      '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 points. '
     }.each do |q, v|
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.greeting, q)
