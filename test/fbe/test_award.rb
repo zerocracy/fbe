@@ -81,6 +81,7 @@ class TestAward < Minitest::Test
   def test_some_terms
     {
       '(let x 25)' => 0,
+      '(award (give (times 5 0.25 "fun")))' => 1,
       '(award (give 25 "for being a good boy"))' => 25,
       '(award (give (between 42 -10 -50) "empty"))' => -10,
       '(award (give (between -3 -10 -50) "empty"))' => 0,
@@ -88,6 +89,16 @@ class TestAward < Minitest::Test
     }.each do |q, v|
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.points, q)
+    end
+  end
+
+  def test_some_greetings
+    {
+      '(award (give (times 5 0.25 "fun")))' => 'You\'ve earned +1 points. ',
+      '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points. '
+    }.each do |q, v|
+      a = Fbe::Award.new(q)
+      assert_equal(v, a.bill.greeting, q)
     end
   end
 
