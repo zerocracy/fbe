@@ -110,6 +110,12 @@ class TestOcto < Minitest::Test
     assert_raises { o.repository('zerocracy/fbe') }
   end
 
+  def test_workflow_run_usage
+    WebMock.disable_net_connect!
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(53_000, o.workflow_run_usage('zerocracy/fbe', 1)[:run_duration_ms])
+  end
+
   def test_commit_pulls
     skip # it's a "live" test, run it manually if you need it
     WebMock.enable_net_connect!

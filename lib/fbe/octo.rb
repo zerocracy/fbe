@@ -191,6 +191,24 @@ class Fbe::FakeOctokit
     }
   end
 
+  def workflow_run_usage(_repo, _id)
+    {
+      billable: {
+        UBUNTU: {
+          total_ms: 0,
+          jobs: 1,
+          job_runs: [
+            {
+              job_id: 1,
+              duration_ms: 0
+            }
+          ]
+        }
+      },
+      run_duration_ms: 53_000
+    }
+  end
+
   def releases(_repo, _opts = {})
     [
       release('https://github...'),
