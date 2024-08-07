@@ -56,10 +56,14 @@ class TestOverwrite < Minitest::Test
 
   def test_safe_insert
     fb = Factbase.new
-    fb.insert.bar = 'x'
-    f = fb.insert
-    f._id = 1
-    Fbe.overwrite(f, :foo, 42, fb:)
-    assert_equal(2, fb.size)
+    f1 = fb.insert
+    f1.bar = 'a'
+    f2 = fb.insert
+    f2.bar = 'b'
+    f2._id = 2
+    f3 = fb.insert
+    f3._id = 1
+    Fbe.overwrite(f3, :foo, 42, fb:)
+    assert_equal(3, fb.size)
   end
 end
