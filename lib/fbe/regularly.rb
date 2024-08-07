@@ -25,11 +25,9 @@
 require_relative '../fbe'
 require_relative 'fb'
 
-def Fbe.regularly(area, days, interval, fb: Fbe.fb, judge: $judge, loog: $loog, &)
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{days}))").each.to_a.first
-  days = pmp.nil? ? 28 : pmp[days].first
-  since = Time.now - (days * 24 * 60 * 60)
-  interval = pmp.nil? ? 7 : pmp[interval].first
+def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_days}))").each.to_a.first
+  interval = pmp.nil? ? 7 : pmp[p_every_days].first
   unless fb.query(
     "(and
       (eq what '#{judge}')
@@ -41,6 +39,10 @@ def Fbe.regularly(area, days, interval, fb: Fbe.fb, judge: $judge, loog: $loog, 
   f = fb.insert
   f.what = judge
   f.when = Time.now
-  f.since = since
+  unless p_since_days.nil?
+    days = pmp.nil? ? 28 : pmp[p_since_days].first
+    since = Time.now - (days * 24 * 60 * 60)
+    f.since = since
+  end
   yield f
 end

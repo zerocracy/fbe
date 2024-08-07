@@ -38,7 +38,7 @@ class TestRegularly < Minitest::Test
     loog = Loog::NULL
     judge = 'test'
     2.times do
-      Fbe.regularly('pmp', 'days', 'interval', fb:, loog:, judge:) do |f|
+      Fbe.regularly('pmp', 'interval', 'days', fb:, loog:, judge:) do |f|
         f.foo = 42
       end
     end

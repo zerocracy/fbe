@@ -23,6 +23,7 @@
 # SOFTWARE.
 
 require 'minitest/autorun'
+require 'loog'
 require_relative '../test__helper'
 require_relative '../../lib/fbe/award'
 
@@ -58,7 +59,8 @@ class TestAward < Minitest::Test
         (set b2 (if (lt b2 at_least) b2 0))
         (set b2 (between b2 3 120))
         (give b2 "for holding the bug open for too long (${days} days)"))
-      '
+      ',
+      judge: '', global: {}, loog: Loog::NULL, options: nil
     )
     b = a.bill(hours: 10)
     assert(b.points <= 100)
