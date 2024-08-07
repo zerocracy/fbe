@@ -35,20 +35,31 @@ class TestOverwrite < Minitest::Test
   def test_simple_overwrite
     fb = Factbase.new
     f = fb.insert
+    f._id = 1
     f.foo = 42
-    f.bar = 'hey'
+    f.bar = 'hey you друг'
     f.many = 3
     f.many = 3.14
     Fbe.overwrite(f, :foo, 55, fb:)
     assert_equal(55, fb.query('(always)').each.to_a.first['foo'].first)
-    assert_equal('hey', fb.query('(always)').each.to_a.first['bar'].first)
+    assert_equal('hey you друг', fb.query('(always)').each.to_a.first['bar'].first)
     assert_equal(2, fb.query('(always)').each.to_a.first['many'].size)
   end
 
   def test_simple_insert
     fb = Factbase.new
     f = fb.insert
+    f._id = 1
     Fbe.overwrite(f, :foo, 42, fb:)
     assert_equal(42, fb.query('(always)').each.to_a.first['foo'].first)
+  end
+
+  def test_safe_insert
+    fb = Factbase.new
+    fb.insert.bar = 'x'
+    f = fb.insert
+    f._id = 1
+    Fbe.overwrite(f, :foo, 42, fb:)
+    assert_equal(2, fb.size)
   end
 end

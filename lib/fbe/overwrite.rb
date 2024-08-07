@@ -31,6 +31,9 @@ require_relative 'fb'
 # exist, it will be removed (the entire fact will be destroyed, new fact
 # created, and property set).
 #
+# It is important that the fact has +_id+ property. If it doesn't, an exception
+# will be raised.
+#
 # @param [Factbase::Fact] fact The fact to modify
 # @param [String] property The name of the property to set
 # @param [Any] vqlue The value to set
@@ -39,12 +42,13 @@ def Fbe.overwrite(fact, property, value, fb: Fbe.fb)
   fact.all_properties.each do |prop|
     before[prop.to_s] = fact[prop]
   end
-  fb.query("(and #{before.map { |k, vv| vv.is_a?(Array) ? '' : " (eq #{k} #{vv})" }.join})").delete!
+  id = fact['_id'].first
+  raise 'There is no _id in the fact, cannot use Fbe.overwrite' if id.nil?
+  raise "No facts by _id = #{id}" if fb.query("(eq _id #{id})").delete!.zero?
   n = fb.insert
-  before[property.to_s] = value
+  before[property.to_s] = [value]
   before.each do |k, vv|
-    next if k.start_with?('_')
-    vv = [vv] unless vv.is_a?(Array)
+    next unless n[k].nil?
     vv.each do |v|
       n.send("#{k}=", v)
     end
