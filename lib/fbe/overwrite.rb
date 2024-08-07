@@ -42,7 +42,7 @@ def Fbe.overwrite(fact, property, value, fb: Fbe.fb)
   fact.all_properties.each do |prop|
     before[prop.to_s] = fact[prop]
   end
-  id = fact['_id'].first
+  id = fact['_id']&.first
   raise 'There is no _id in the fact, cannot use Fbe.overwrite' if id.nil?
   raise "No facts by _id = #{id}" if fb.query("(eq _id #{id})").delete!.zero?
   n = fb.insert

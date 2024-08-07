@@ -54,6 +54,14 @@ class TestOverwrite < Minitest::Test
     assert_equal(42, fb.query('(always)').each.to_a.first['foo'].first)
   end
 
+  def test_without_id
+    fb = Factbase.new
+    f = fb.insert
+    assert_raises do
+      Fbe.overwrite(f, :foo, 42, fb:)
+    end
+  end
+
   def test_safe_insert
     fb = Factbase.new
     f1 = fb.insert
