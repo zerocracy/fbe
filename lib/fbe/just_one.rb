@@ -28,8 +28,8 @@ require_relative '../fbe'
 require_relative 'fb'
 
 # Injects a fact if it's absent in the factbase, otherwise (it is already
-# there) returns NIL.
-def Fbe.if_absent(fb: Fbe.fb)
+# there) returns the existing one.
+def Fbe.just_one(fb: Fbe.fb)
   attrs = {}
   f =
     others(map: attrs) do |*args|
@@ -51,7 +51,8 @@ def Fbe.if_absent(fb: Fbe.fb)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  return nil unless fb.query(q).each.to_a.empty?
+  before = fb.query(q).each.to_a.first
+  return before unless before.nil?
   n = fb.insert
   attrs.each { |k, v| n.send("#{k}=", v) }
   n

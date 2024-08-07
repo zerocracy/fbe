@@ -22,37 +22,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'time'
-require 'others'
-require_relative '../fbe'
-require_relative 'fb'
+require 'minitest/autorun'
+require 'factbase'
+require_relative '../test__helper'
+require_relative '../../lib/fbe/just_one'
 
-# Injects a fact if it's absent in the factbase, otherwise (it is already
-# there) returns NIL.
-def Fbe.if_absent(fb: Fbe.fb)
-  attrs = {}
-  f =
-    others(map: attrs) do |*args|
-      k = args[0]
-      if k.end_with?('=')
-        @map[k[0..-2].to_sym] = args[1]
-      else
-        @map[k.to_sym]
+# Test.
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2024 Zerocracy
+# License:: MIT
+class TestJustOne < Minitest::Test
+  def test_ignores
+    fb = Factbase.new
+    fb.insert.foo = 'hello dude'
+    n =
+      Fbe.just_one(fb:) do |f|
+        f.foo = 'hello dude'
       end
-    end
-  yield f
-  q = attrs.except('_id', '_time', '_version').map do |k, v|
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
-    "(eq #{k} #{vv})"
-  end.join(' ')
-  q = "(and #{q})"
-  return nil unless fb.query(q).each.to_a.empty?
-  n = fb.insert
-  attrs.each { |k, v| n.send("#{k}=", v) }
-  n
+    assert(!n.nil?)
+  end
+
+  def test_injects
+    fb = Factbase.new
+    n =
+      Fbe.just_one(fb:) do |f|
+        f.foo = 42
+      end
+    assert_equal(42, n.foo)
+  end
 end
