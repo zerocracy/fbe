@@ -38,6 +38,7 @@ require_relative 'fb'
 # @param [String] property The name of the property to set
 # @param [Any] vqlue The value to set
 def Fbe.overwrite(fact, property, value, fb: Fbe.fb)
+  raise 'The fact is nil' if fact.nil?
   before = {}
   fact.all_properties.each do |prop|
     before[prop.to_s] = fact[prop]
