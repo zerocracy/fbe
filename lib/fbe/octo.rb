@@ -33,6 +33,15 @@ require_relative '../fbe'
 require_relative 'middleware'
 require_relative 'middleware/quota'
 
+# Interface to GitHub API.
+#
+# It is supposed to be used instead of Octokit client, because it
+# is pre-configured and enables additional fearues, such as retrying,
+# logging, and caching.
+#
+# @param [Judges::Options] options The options available globally
+# @param [Hash] global Hash of global options
+# @param [Loog] loog Logging facility
 def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $global is not set' if global.nil?
   global[:octo] ||=
