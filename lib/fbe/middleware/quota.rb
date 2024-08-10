@@ -30,12 +30,16 @@ class Fbe::Middleware::Quota < Faraday::Middleware
     super(app)
     @requests = 0
     @app = app
+    raise 'The "loog" cannot be nil' if loog.nil?
     @loog = loog
     raise 'The "pause" cannot be nil' if pause.nil?
+    raise 'The "pause" must be a positive integer' unless pause.positive?
     @pause = pause
     raise 'The "limit" cannot be nil' if limit.nil?
+    raise 'The "limit" must be a positive integer' unless limit.positive?
     @limit = limit
     raise 'The "rate" cannot be nil' if rate.nil?
+    raise 'The "rate" must be a positive integer' unless rate.positive?
     @rate = rate
   end
 
