@@ -26,13 +26,16 @@ require 'faraday'
 
 # Faraday Middleware that monitors GitHub API rate limits.
 class Fbe::Middleware::Quota < Faraday::Middleware
-  def initialize(app, logger: Loog::NULL, pause: 60, limit: 100, rate: 5)
+  def initialize(app, loog: Loog::NULL, pause: 60, limit: 100, rate: 5)
     super(app)
-    @limit = limit
     @requests = 0
     @app = app
-    @logger = logger
+    @loog = loog
+    raise 'The "pause" cannot be nil' if pause.nil?
     @pause = pause
+    raise 'The "limit" cannot be nil' if limit.nil?
+    @limit = limit
+    raise 'The "rate" cannot be nil' if rate.nil?
     @rate = rate
   end
 
@@ -40,7 +43,7 @@ class Fbe::Middleware::Quota < Faraday::Middleware
     @requests += 1
     response = @app.call(env)
     if out_of_limit?(env)
-      @logger.info(
+      @loog.info(
         "Too much GitHub API quota consumed, pausing for #{@pause} seconds"
       )
       sleep(@pause)

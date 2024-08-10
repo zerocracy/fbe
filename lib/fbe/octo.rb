@@ -79,11 +79,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               methods: [:get],
               backoff_factor: 2
             )
-            builder.use(
-              Fbe::Middleware::Quota,
-              logger: loog,
-              pause: options.github_api_pause
-            )
+            builder.use(Fbe::Middleware::Quota, loog:, pause: options.github_api_pause || 60)
             builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, Loog::NULL)

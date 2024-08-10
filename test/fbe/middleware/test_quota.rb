@@ -47,7 +47,7 @@ class QuotaTest < Minitest::Test
     loog = Loog::NULL
     pause = 0
     app = FakeApp.new
-    middleware = Fbe::Middleware::Quota.new(app, logger: loog, pause:)
+    middleware = Fbe::Middleware::Quota.new(app, loog:, pause:)
     start_time = Time.now
     105.times do
       env = Judges::Options.new(
@@ -66,7 +66,7 @@ class QuotaTest < Minitest::Test
     log_output = StringIO.new
     loog = Logger.new(log_output)
     app = FakeApp.new
-    middleware = Fbe::Middleware::Quota.new(app, logger: loog, pause:)
+    middleware = Fbe::Middleware::Quota.new(app, loog:, pause:)
     105.times do
       env = Judges::Options.new(
         'method' => :get,
