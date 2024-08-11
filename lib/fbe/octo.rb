@@ -358,6 +358,8 @@ class Fbe::FakeOctokit
       }
     else
       {
+        total_count: 1,
+        incomplete_results: false,
         items: [
           {
             number: 42,
