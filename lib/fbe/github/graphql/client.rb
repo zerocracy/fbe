@@ -23,7 +23,6 @@
 # SOFTWARE.
 
 require 'graphql/client'
-# require_relative 'http'
 
 # The GitHub GraphQL client
 class Fbe::GitHub::GraphQL::Client
