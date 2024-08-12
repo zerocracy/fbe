@@ -37,13 +37,17 @@ require_relative 'github'
 # @param [Loog] loog Logging facility
 def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
   global[:gh_graphql] ||=
-  if options.testing.nil?
-    g = Fbe::GitHub::GraphQL::Client.new(token: options.github_token || ENV['GITHUB_TOKEN'])
-  else
-    g = Fbe::FakeGitHubGraphQLClient.new
-  end
-  g
+    if options.testing.nil?
+      Fbe::GitHub::GraphQL::Client.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
+    else
+      loog.debug('The connection to GitHub GraphQL API is mocked')
+      Fbe::FakeGitHubGraphQLClient.new
+    end
 end
 
+# Fake GitHub GraphQL client, for tests.
 class Fbe::FakeGitHubGraphQLClient
+  def query(_query)
+    {}
+  end
 end

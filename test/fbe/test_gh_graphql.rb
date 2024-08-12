@@ -37,7 +37,8 @@ class TestGHGraphQL < Minitest::Test
     WebMock.disable_net_connect!
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
+    g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
+    assert_equal(Fbe::FakeGitHubGraphQLClient, g.class)
   end
 
   def test_use_with_global_variables
@@ -46,5 +47,6 @@ class TestGHGraphQL < Minitest::Test
     $options = Judges::Options.new({ 'testing' => true })
     $loog = Loog::NULL
     g = Fbe.gh_graphql
+    assert_equal(Fbe::FakeGitHubGraphQLClient, g.class)
   end
 end
