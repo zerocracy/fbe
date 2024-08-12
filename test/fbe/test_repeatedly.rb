@@ -23,65 +23,26 @@
 # SOFTWARE.
 
 require 'minitest/autorun'
+require 'loog'
 require 'factbase'
 require_relative '../test__helper'
-require_relative '../../lib/fbe/overwrite'
+require_relative '../../lib/fbe/repeatedly'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
-class TestOverwrite < Minitest::Test
-  def test_simple_overwrite
-    fb = Factbase.new
-    f = fb.insert
-    f._id = 1
-    f.foo = 42
-    f.bar = 'hey you друг'
-    f.many = 3
-    f.many = 3.14
-    Fbe.overwrite(f, 'foo', 55, fb:)
-    assert_equal(55, fb.query('(always)').each.to_a.first['foo'].first)
-    assert_equal('hey you друг', fb.query('(always)').each.to_a.first['bar'].first)
-    assert_equal(2, fb.query('(always)').each.to_a.first['many'].size)
-  end
-
-  def test_no_need_to_overwrite
-    fb = Factbase.new
-    f = fb.insert
-    f._id = 1
-    f.foo = 42
-    fb.insert._id = 2
-    Fbe.overwrite(f, 'foo', 42, fb:)
-    assert_equal(1, fb.query('(always)').each.to_a.first._id)
-  end
-
-  def test_simple_insert
-    fb = Factbase.new
-    f = fb.insert
-    f._id = 1
-    Fbe.overwrite(f, 'foo', 42, fb:)
-    assert_equal(42, fb.query('(always)').each.to_a.first['foo'].first)
-  end
-
-  def test_without_id
-    fb = Factbase.new
-    f = fb.insert
-    assert_raises do
-      Fbe.overwrite(f, 'foo', 42, fb:)
+class TestRepeatedly < Minitest::Test
+  def test_simple
+    $fb = Factbase.new
+    loog = Loog::NULL
+    judge = 'test'
+    $global = {}
+    3.times do
+      Fbe.repeatedly('pmp', 'every_x_hours', loog:, judge:) do |f|
+        f.foo = 42
+      end
     end
-  end
-
-  def test_safe_insert
-    fb = Factbase.new
-    f1 = fb.insert
-    f1.bar = 'a'
-    f2 = fb.insert
-    f2.bar = 'b'
-    f2._id = 2
-    f3 = fb.insert
-    f3._id = 1
-    Fbe.overwrite(f3, 'foo', 42, fb:)
-    assert_equal(3, fb.size)
+    assert_equal(1, $fb.size)
   end
 end

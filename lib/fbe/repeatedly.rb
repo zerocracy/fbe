@@ -25,35 +25,26 @@
 require_relative '../fbe'
 require_relative 'fb'
 
-# Overwrite a property in the fact.
+# Run the block provided every X hours.
 #
-# If the property doesn't exist in the fact, it will be added. If it does
-# exist, it will be removed (the entire fact will be destroyed, new fact
-# created, and property set).
-#
-# It is important that the fact has +_id+ property. If it doesn't, an exception
-# will be raised.
-#
-# @param [Factbase::Fact] fact The fact to modify
-# @param [String] property The name of the property to set
-# @param [Any] vqlue The value to set
-def Fbe.overwrite(fact, property, value, fb: Fbe.fb)
-  raise 'The fact is nil' if fact.nil?
-  raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
-  return if !fact[property].nil? && fact[property].size == 1 && fact[property].first == value
-  before = {}
-  fact.all_properties.each do |prop|
-    before[prop.to_s] = fact[prop]
+# @param [String] area The name of the PMP area
+# @param [Integer] p_every_hours How frequently to run, every X hours
+def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_hours}))").each.to_a.first
+  hours = pmp.nil? ? 24 : pmp[p_every_hours].first
+  unless fb.query(
+    "(and
+      (eq what '#{judge}')
+      (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
+  ).each.to_a.empty?
+    loog.debug("#{$judge} have recently been executed, skipping now")
+    return
   end
-  id = fact['_id']&.first
-  raise 'There is no _id in the fact, cannot use Fbe.overwrite' if id.nil?
-  raise "No facts by _id = #{id}" if fb.query("(eq _id #{id})").delete!.zero?
-  n = fb.insert
-  before[property.to_s] = [value]
-  before.each do |k, vv|
-    next unless n[k].nil?
-    vv.each do |v|
-      n.send("#{k}=", v)
-    end
+  f = fb.query("(and (eq what '#{judge}'))").each.to_a.first
+  if f.nil?
+    f = fb.insert
+    f.what = judge
   end
+  Fbe.overwrite(f, 'when', Time.now)
+  yield f
 end
