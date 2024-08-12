@@ -46,4 +46,31 @@ class TestFb < Minitest::Test
     stdout = $loog.to_s
     assert(stdout.include?('Inserted new fact #1'), stdout)
   end
+
+  def test_increment_id_in_transaction
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::Buffer.new
+    Fbe.fb.txn do |fbt|
+      fbt.insert
+      fbt.insert
+    end
+    arr = Fbe.fb.query('(always)').each.to_a
+    assert_equal(1, arr[0]._id)
+    assert_equal(2, arr[1]._id)
+  end
+
+  def test_adds_meta_properties
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new('JOB_ID' => 42)
+    $loog = Loog::Buffer.new
+    Fbe.fb.insert
+    f = Fbe.fb.query('(always)').each.to_a.first
+    assert(!f._id.nil?)
+    assert(!f._time.nil?)
+    assert(!f._version.nil?)
+    assert(!f._job.nil?)
+  end
 end
