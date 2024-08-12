@@ -38,11 +38,42 @@ require_relative 'github'
 def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
   global[:gh_graphql] ||=
     if options.testing.nil?
-      Fbe::GitHub::GraphQL::Client.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
+      g = Fbe::GitHub::GraphQL::Client.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
     else
       loog.debug('The connection to GitHub GraphQL API is mocked')
-      Fbe::FakeGitHubGraphQLClient.new
+      g = Fbe::FakeGitHubGraphQLClient.new
     end
+  decoor(g, loog:) do
+    def resolved_converstations(owner, name, number)
+      result = @origin.query(
+        <<-GRAPHQL
+            {
+              repository(owner: "#{owner}", name: "#{name}") {
+                pullRequest(number: #{number}) {
+                  reviewThreads(first: 100) {
+                    nodes {
+                      id
+                      isResolved
+                      comments(first: 100) {
+                        nodes {
+                          id
+                          body
+                          author {
+                            login
+                          }
+                          createdAt
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        GRAPHQL
+      )
+      result.repository.pull_request.to_h['reviewThreads']['nodes']
+    end
+  end
 end
 
 # Fake GitHub GraphQL client, for tests.
