@@ -46,6 +46,16 @@ class TestOverwrite < Minitest::Test
     assert_equal(2, fb.query('(always)').each.to_a.first['many'].size)
   end
 
+  def test_no_need_to_overwrite
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    fb.insert._id = 2
+    Fbe.overwrite(f, :foo, 42, fb:)
+    assert_equal(1, fb.query('(always)').each.to_a.first._id)
+  end
+
   def test_simple_insert
     fb = Factbase.new
     f = fb.insert
