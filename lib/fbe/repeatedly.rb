@@ -24,6 +24,7 @@
 
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'overwrite'
 
 # Run the block provided every X hours.
 #
