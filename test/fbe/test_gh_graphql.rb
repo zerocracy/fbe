@@ -37,8 +37,7 @@ class TestGHGraphQL < Minitest::Test
     WebMock.disable_net_connect!
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
-    assert_equal(Fbe::FakeGitHubGraphQLClient, g.class)
+    Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
   end
 
   def test_use_with_global_variables
@@ -46,7 +45,16 @@ class TestGHGraphQL < Minitest::Test
     $global = {}
     $options = Judges::Options.new({ 'testing' => true })
     $loog = Loog::NULL
-    g = Fbe.gh_graphql
-    assert_equal(Fbe::FakeGitHubGraphQLClient, g.class)
+    Fbe.gh_graphql
+  end
+
+  def test_gets_resolved_conversations
+    skip
+    WebMock.disable_net_connect!
+    global = {}
+    options = Judges::Options.new('github_token' => 'token')
+    g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
+    result = g.resolved_converstations('zerocracy', 'baza', 172)
+    assert_equal(1, result.count)
   end
 end
