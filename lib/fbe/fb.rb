@@ -44,7 +44,7 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
           max = fb.query('(eq _id (max _id))').each.to_a.first
           f._id = (max.nil? ? 0 : max._id) + 1
           f._time = Time.now
-          f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{options.judges_action_version}"
+          f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{options.action_version}"
         end
       Factbase::Looged.new(fbe, loog)
     end
