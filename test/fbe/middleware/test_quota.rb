@@ -45,7 +45,7 @@ class QuotaTest < Minitest::Test
 
   def test_quota_middleware_pauses_when_quota_low
     loog = Loog::NULL
-    pause = 1
+    pause = 0.1
     app = FakeApp.new
     middleware = Fbe::Middleware::Quota.new(app, loog:, pause:)
     start_time = Time.now
@@ -62,7 +62,7 @@ class QuotaTest < Minitest::Test
   end
 
   def test_quota_middleware_logs_when_quota_low
-    pause = 1
+    pause = 0.1
     log_output = StringIO.new
     loog = Logger.new(log_output)
     app = FakeApp.new
