@@ -37,16 +37,17 @@ require_relative 'github'
 # @param [Loog] loog Logging facility
 def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
   global[:gh_graphql] ||=
-    if options.testing.nil?
-      g = Fbe::GitHub::GraphQL::Client.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
-    else
-      loog.debug('The connection to GitHub GraphQL API is mocked')
-      g = Fbe::FakeGitHubGraphQLClient.new
-    end
-  decoor(g, loog:) do
-    def resolved_converstations(owner, name, number)
-      result = @origin.query(
-        <<-GRAPHQL
+    begin
+      if options.testing.nil?
+        g = Fbe::GitHub::GraphQL::Client.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
+      else
+        loog.debug('The connection to GitHub GraphQL API is mocked')
+        g = Fbe::FakeGitHubGraphQLClient.new
+      end
+      decoor(g, loog:) do
+        def resolved_converstations(owner, name, number)
+          result = @origin.query(
+            <<-GRAPHQL
             {
               repository(owner: "#{owner}", name: "#{name}") {
                 pullRequest(number: #{number}) {
@@ -69,11 +70,33 @@ def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
                 }
               }
             }
-        GRAPHQL
-      )
-      result.repository.pull_request.to_h['reviewThreads']['nodes']
+          GRAPHQL
+          )
+          result.repository.pull_request.review_threads.to_h['nodes']
+        end
+
+        def total_commits(owner, name, branch)
+          result = @origin.query(
+            <<-GRAPHQL
+          {
+            repository(owner: "#{owner}", name: "#{name}") {
+              ref(qualifiedName: "#{branch}") {
+                target {
+                  ... on Commit {
+                    history {
+                      totalCount
+                    }
+                  }
+                }
+              }
+            }
+          }
+          GRAPHQL
+          )
+          result.repository.ref.target.history.total_count
+        end
+      end
     end
-  end
 end
 
 # Fake GitHub GraphQL client, for tests.
