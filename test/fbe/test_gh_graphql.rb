@@ -57,4 +57,14 @@ class TestGHGraphQL < Minitest::Test
     result = g.resolved_converstations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
   end
+
+  def test_gets_total_commits_of_repo
+    skip
+    WebMock.disable_net_connect!
+    global = {}
+    options = Judges::Options.new('github_token' => 'token')
+    g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
+    result = g.total_commits('zerocracy', 'baza', 'master')
+    assert_equal(870, result)
+  end
 end
