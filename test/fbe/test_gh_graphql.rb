@@ -73,6 +73,6 @@ class TestGHGraphQL < Minitest::Test
     options = Judges::Options.new
     g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
     result = g.total_commits('zerocracy', 'baza', 'master')
-    assert(result > 0)
+    assert(result.positive?)
   end
 end
