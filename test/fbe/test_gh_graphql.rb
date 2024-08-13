@@ -62,7 +62,7 @@ class TestGHGraphQL < Minitest::Test
     global = {}
     options = Judges::Options.new
     g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
-    result = g.resolved_converstations('zerocracy', 'baza', 172)
+    result = g.resolved_conversations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
   end
 

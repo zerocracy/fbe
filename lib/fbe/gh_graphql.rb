@@ -45,7 +45,7 @@ def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
         g = Fbe::FakeGitHubGraphQLClient.new
       end
       decoor(g, loog:) do
-        def resolved_converstations(owner, name, number)
+        def resolved_conversations(owner, name, number)
           result = @origin.query(
             <<-GRAPHQL
               {
