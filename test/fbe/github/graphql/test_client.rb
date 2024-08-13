@@ -38,7 +38,7 @@ class TestGitHubGraphQL < Minitest::Test
     WebMock.allow_net_connect!
     client = Fbe::GitHub::GraphQL::Client.new(token: ENV.fetch('GITHUB_TOKEN', nil))
     result = client.query(
-      <<-GRAPHQL
+      <<~GRAPHQL
         query {
           viewer {
               login
@@ -46,6 +46,6 @@ class TestGitHubGraphQL < Minitest::Test
         }
       GRAPHQL
     )
-    assert(!result.viewer.login.empty?)
+    refute(result.viewer.login.empty?)
   end
 end
