@@ -28,14 +28,12 @@ require 'graphql/client'
 class Fbe::GitHub::GraphQL::Client
   def initialize(token:)
     http = Fbe::GitHub::GraphQL::HTTP.new(token)
-    schema = GraphQL::Client.load_schema(http)
-    @client = GraphQL::Client.new(schema:, execute: http)
+    @client = GraphQL::Client.new(schema: GraphQL::Client.load_schema(http), execute: http)
     @client.allow_dynamic_queries = true
   end
 
   def query(query_string)
-    query  = @client.parse(query_string)
-    result = @client.query(query)
+    result = @client.query(@client.parse(query_string))
     result.data
   end
 end
