@@ -78,20 +78,20 @@ def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
         def total_commits(owner, name, branch)
           result = @origin.query(
             <<-GRAPHQL
-          {
-            repository(owner: "#{owner}", name: "#{name}") {
-              ref(qualifiedName: "#{branch}") {
-                target {
-                  ... on Commit {
-                    history {
-                      totalCount
+            {
+              repository(owner: "#{owner}", name: "#{name}") {
+                ref(qualifiedName: "#{branch}") {
+                  target {
+                    ... on Commit {
+                      history {
+                        totalCount
+                      }
                     }
                   }
                 }
               }
             }
-          }
-          GRAPHQL
+            GRAPHQL
           )
           result.repository.ref.target.history.total_count
         end
