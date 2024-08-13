@@ -48,29 +48,29 @@ def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
         def resolved_converstations(owner, name, number)
           result = @origin.query(
             <<-GRAPHQL
-            {
-              repository(owner: "#{owner}", name: "#{name}") {
-                pullRequest(number: #{number}) {
-                  reviewThreads(first: 100) {
-                    nodes {
-                      id
-                      isResolved
-                      comments(first: 100) {
-                        nodes {
-                          id
-                          body
-                          author {
-                            login
+              {
+                repository(owner: "#{owner}", name: "#{name}") {
+                  pullRequest(number: #{number}) {
+                    reviewThreads(first: 100) {
+                      nodes {
+                        id
+                        isResolved
+                        comments(first: 100) {
+                          nodes {
+                            id
+                            body
+                            author {
+                              login
+                            }
+                            createdAt
                           }
-                          createdAt
                         }
                       }
                     }
                   }
                 }
               }
-            }
-          GRAPHQL
+            GRAPHQL
           )
           result.repository.pull_request.review_threads.to_h['nodes']
         end
@@ -78,19 +78,19 @@ def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
         def total_commits(owner, name, branch)
           result = @origin.query(
             <<-GRAPHQL
-            {
-              repository(owner: "#{owner}", name: "#{name}") {
-                ref(qualifiedName: "#{branch}") {
-                  target {
-                    ... on Commit {
-                      history {
-                        totalCount
+              {
+                repository(owner: "#{owner}", name: "#{name}") {
+                  ref(qualifiedName: "#{branch}") {
+                    target {
+                      ... on Commit {
+                        history {
+                          totalCount
+                        }
                       }
                     }
                   }
                 }
               }
-            }
             GRAPHQL
           )
           result.repository.ref.target.history.total_count
