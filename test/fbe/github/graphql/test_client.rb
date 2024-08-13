@@ -34,7 +34,7 @@ require_relative '../../../../lib/fbe/github'
 # License:: MIT
 class TestGitHubGraphQL < Minitest::Test
   def test_simple_query
-    skip
+    skip # it's a "live" test, run it manually if you need it
     WebMock.allow_net_connect!
     client = Fbe::GitHub::GraphQL::Client.new(token: ENV.fetch('GITHUB_TOKEN', nil))
     result = client.query(

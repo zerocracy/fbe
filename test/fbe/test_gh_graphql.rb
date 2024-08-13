@@ -48,23 +48,31 @@ class TestGHGraphQL < Minitest::Test
     Fbe.gh_graphql
   end
 
-  def test_gets_resolved_conversations
-    skip
-    WebMock.disable_net_connect!
+  def test_with_broken_token
+    skip # it's a "live" test, run it manually if you need it
+    WebMock.allow_net_connect!
     global = {}
-    options = Judges::Options.new('github_token' => 'token')
+    options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
+    assert_raises { Fbe.gh_graphql(loog: Loog::NULL, global:, options:) }
+  end
+
+  def test_gets_resolved_conversations
+    skip # it's a "live" test, run it manually if you need it
+    WebMock.allow_net_connect!
+    global = {}
+    options = Judges::Options.new
     g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
     result = g.resolved_converstations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
   end
 
   def test_gets_total_commits_of_repo
-    skip
-    WebMock.disable_net_connect!
+    skip # it's a "live" test, run it manually if you need it
+    WebMock.allow_net_connect!
     global = {}
-    options = Judges::Options.new('github_token' => 'token')
+    options = Judges::Options.new
     g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
     result = g.total_commits('zerocracy', 'baza', 'master')
-    assert_equal(870, result)
+    assert(result > 0)
   end
 end
