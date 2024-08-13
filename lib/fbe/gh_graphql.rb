@@ -47,7 +47,7 @@ def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
       decoor(g, loog:) do
         def resolved_conversations(owner, name, number)
           result = @origin.query(
-            <<-GRAPHQL
+            <<~GRAPHQL
               {
                 repository(owner: "#{owner}", name: "#{name}") {
                   pullRequest(number: #{number}) {
@@ -77,7 +77,7 @@ def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
 
         def total_commits(owner, name, branch)
           result = @origin.query(
-            <<-GRAPHQL
+            <<~GRAPHQL
               {
                 repository(owner: "#{owner}", name: "#{name}") {
                   ref(qualifiedName: "#{branch}") {
