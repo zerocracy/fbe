@@ -23,7 +23,6 @@
 # SOFTWARE.
 
 require 'loog'
-require 'decoor'
 require 'graphql/client'
 require 'graphql/client/http'
 
