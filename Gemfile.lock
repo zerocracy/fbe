@@ -9,6 +9,7 @@ PATH
       faraday-http-cache (> 0)
       faraday-multipart (> 0)
       faraday-retry (> 0)
+      graphql-client (> 0)
       judges (> 0)
       loog (> 0)
       obk (> 0)
