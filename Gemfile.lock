@@ -53,7 +53,7 @@ GEM
     ast (2.4.2)
     backtrace (0.4.0)
     base64 (0.2.0)
-    baza.rb (0.0.4)
+    baza.rb (0.0.6)
       backtrace (> 0)
       faraday (> 0)
       faraday-http-cache (> 0)
@@ -105,7 +105,7 @@ GEM
     ffi (1.17.0-x86_64-linux-gnu)
     fiber-storage (1.0.0)
     gli (2.21.5)
-    graphql (2.3.13)
+    graphql (2.3.14)
       base64
       fiber-storage
     graphql-client (0.23.0)
@@ -120,7 +120,7 @@ GEM
       reline (>= 0.4.2)
     iri (0.8.0)
     json (2.7.2)
-    judges (0.25.0)
+    judges (0.25.2)
       backtrace (~> 0)
       baza.rb (~> 0)
       concurrent-ruby (~> 1.2)
@@ -140,7 +140,7 @@ GEM
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
     loog (0.6.0)
-    minitest (5.24.1)
+    minitest (5.25.0)
     minitest-reporters (1.7.1)
       ansi
       builder
@@ -286,7 +286,7 @@ PLATFORMS
 DEPENDENCIES
   fbe!
   graphql-client
-  minitest (= 5.24.1)
+  minitest (= 5.25.0)
   minitest-reporters (= 1.7.1)
   rake (= 13.2.1)
   rspec-rails (= 6.1.3)
