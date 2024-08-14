@@ -22,30 +22,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'minitest/autorun'
-require 'judges/options'
-require 'webmock/minitest'
-require 'loog'
-require_relative '../../../../lib/fbe/github'
+require 'graphql/client'
+require_relative 'github_graphql_http'
 
-# Test.
-# Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2024 Zerocracy
-# License:: MIT
-class TestGitHubGraphQL < Minitest::Test
-  def test_simple_query
-    skip # it's a "live" test, run it manually if you need it
-    WebMock.allow_net_connect!
-    client = Fbe::GitHub::GraphQL::Client.new(token: ENV.fetch('GITHUB_TOKEN', nil))
-    result = client.query(
-      <<~GRAPHQL
-        query {
-          viewer {
-              login
-          }
-        }
-      GRAPHQL
-    )
-    refute(result.viewer.login.empty?)
+# The GitHub GraphQL client
+class Fbe::GitHubGraphQLClient
+  def initialize(token:)
+    http = Fbe::GitHubGraphQLHTTP.new(token)
+    @client = GraphQL::Client.new(schema: GraphQL::Client.load_schema(http), execute: http)
+    @client.allow_dynamic_queries = true
+  end
+
+  def query(query_string)
+    result = @client.query(@client.parse(query_string))
+    result.data
   end
 end

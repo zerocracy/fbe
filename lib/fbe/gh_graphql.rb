@@ -24,7 +24,7 @@
 
 require 'loog'
 require 'decoor'
-require_relative 'github'
+require_relative 'github_graphql_client'
 
 # Interface to GitHub GraphQL API.
 #
@@ -39,7 +39,7 @@ def Fbe.gh_graphql(options: $options, global: $global, loog: $loog)
   global[:gh_graphql] ||=
     begin
       if options.testing.nil?
-        g = Fbe::GitHub::GraphQL::Client.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
+        g = Fbe::GitHubGraphQLClient.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
       else
         loog.debug('The connection to GitHub GraphQL API is mocked')
         g = Fbe::FakeGitHubGraphQLClient.new

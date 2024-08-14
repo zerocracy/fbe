@@ -25,7 +25,7 @@
 require 'graphql/client/http'
 
 # The HTTP class
-class Fbe::GitHub::GraphQL::HTTP < GraphQL::Client::HTTP
+class Fbe::GitHubGraphQLHTTP < GraphQL::Client::HTTP
   def initialize(token)
     @token = token
     super('https://api.github.com/graphql')

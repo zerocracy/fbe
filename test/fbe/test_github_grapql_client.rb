@@ -22,9 +22,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# The module.
-module Fbe::GitHub
-  # empty
-end
+require 'minitest/autorun'
+require 'judges/options'
+require 'webmock/minitest'
+require 'loog'
+require_relative '../../lib/fbe/github_graphql_client'
 
-require_relative 'github/graphql'
+# Test.
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2024 Zerocracy
+# License:: MIT
+class TestGitHubGraphQL < Minitest::Test
+  def test_simple_query
+    skip # it's a "live" test, run it manually if you need it
+    WebMock.allow_net_connect!
+    client = Fbe::GitHubGraphQLClient.new(token: ENV.fetch('GITHUB_TOKEN', nil))
+    result = client.query(
+      <<~GRAPHQL
+        query {
+          viewer {
+              login
+          }
+        }
+      GRAPHQL
+    )
+    refute(result.viewer.login.empty?)
+  end
+end
