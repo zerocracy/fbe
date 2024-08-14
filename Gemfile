@@ -23,6 +23,7 @@
 source 'https://rubygems.org'
 gemspec
 
+gem 'graphql-client'
 gem 'minitest', '5.24.1', require: false
 gem 'minitest-reporters', '1.7.1', require: false
 gem 'rake', '13.2.1', require: false
