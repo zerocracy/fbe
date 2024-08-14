@@ -46,6 +46,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'faraday-http-cache', '>0'
   s.add_dependency 'faraday-multipart', '>0'
   s.add_dependency 'faraday-retry', '>0'
+  s.add_dependency 'graphql-client', '>0',
   s.add_dependency 'judges', '>0'
   s.add_dependency 'loog', '>0'
   s.add_dependency 'obk', '>0'
