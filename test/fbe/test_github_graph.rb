@@ -26,18 +26,34 @@ require 'minitest/autorun'
 require 'judges/options'
 require 'webmock/minitest'
 require 'loog'
-require_relative '../../lib/fbe/gh_graphql'
+require_relative '../../lib/fbe/github_graph'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
-class TestGHGraphQL < Minitest::Test
+class TestGitHubGraph < Minitest::Test
   def test_simple_use
     WebMock.disable_net_connect!
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
+    Fbe.github_graph(options:, loog: Loog::NULL, global:)
+  end
+
+  def test_simple_use_graph
+    skip # it's a "live" test, run it manually if you need it
+    WebMock.allow_net_connect!
+    client = Fbe::Graph.new(token: ENV.fetch('GITHUB_TOKEN', nil))
+    result = client.query(
+      <<~GRAPHQL
+        query {
+          viewer {
+              login
+          }
+        }
+      GRAPHQL
+    )
+    refute(result.viewer.login.empty?)
   end
 
   def test_use_with_global_variables
@@ -45,7 +61,7 @@ class TestGHGraphQL < Minitest::Test
     $global = {}
     $options = Judges::Options.new({ 'testing' => true })
     $loog = Loog::NULL
-    Fbe.gh_graphql
+    Fbe.github_graph
   end
 
   def test_with_broken_token
@@ -53,7 +69,7 @@ class TestGHGraphQL < Minitest::Test
     WebMock.allow_net_connect!
     global = {}
     options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
-    assert_raises { Fbe.gh_graphql(loog: Loog::NULL, global:, options:) }
+    assert_raises { Fbe.github_graph(loog: Loog::NULL, global:, options:) }
   end
 
   def test_gets_resolved_conversations
@@ -61,7 +77,7 @@ class TestGHGraphQL < Minitest::Test
     WebMock.allow_net_connect!
     global = {}
     options = Judges::Options.new
-    g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
+    g = Fbe.github_graph(options:, loog: Loog::NULL, global:)
     result = g.resolved_conversations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
   end
@@ -71,7 +87,7 @@ class TestGHGraphQL < Minitest::Test
     WebMock.allow_net_connect!
     global = {}
     options = Judges::Options.new
-    g = Fbe.gh_graphql(options:, loog: Loog::NULL, global:)
+    g = Fbe.github_graph(options:, loog: Loog::NULL, global:)
     result = g.total_commits('zerocracy', 'baza', 'master')
     assert(result.positive?)
   end
