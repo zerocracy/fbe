@@ -32,7 +32,7 @@ require_relative '../../lib/fbe/github_graphql_client'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
-class TestGitHubGraphQL < Minitest::Test
+class TestGitHubGraphQLClient < Minitest::Test
   def test_simple_query
     skip # it's a "live" test, run it manually if you need it
     WebMock.allow_net_connect!
