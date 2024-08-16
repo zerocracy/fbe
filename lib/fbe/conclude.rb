@@ -106,7 +106,6 @@ class Fbe::Conclude
     @follows.each do |follow|
       v = prev.send(follow)
       fact.send("#{follow}=", v)
-      fact.cause = prev._id
     end
     r = yield fact, prev
     return unless r.is_a?(String)
