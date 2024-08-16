@@ -305,7 +305,10 @@ class Fbe::FakeOctokit
       number:,
       repo: {
         full_name: repo
-      }
+      },
+      additions: 12,
+      deletions: 5,
+      changed_files: 3
     }
   end
 
