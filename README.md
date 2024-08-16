@@ -15,6 +15,33 @@ It's a collection of tools for
 You are not supposed to use it directly, but only in a combination
 with other tools of Zerocracy.
 
+The following tools runs a block:
+
+* `Fbe.regularly` runs a block of code every X days.
+* `Fbe.conclude` runs a block on every fact from a query.
+* `Fbe.iterate` runs a block on each repository, until it's time to stop.
+* `Fbe.repeatedly` runs a block of code every X hours, leaving
+a fact-marker in the factbase.
+
+These tools help manage facts:
+
+* `Fbe.fb` makes an entry point to the factbase.
+* `Fbe.overwrite` changes a property in a fact to another value by deleting
+the fact first, and then creating a new similar fact with all previous
+properties but one changed.
+* `Fbe.pmp` takes a PMP-related property by the area.
+
+They help with formatting:
+
+* `Fbe.who` formats user name.
+* `Fbe.issue` formats issue number.
+* `Fbe.award` calculates award by the policy.
+* `Fbe.sec` formats seconds.
+
+They help with external connections:
+
+* `Fbe.octo` connects to GitHub API.
+
 ## How to contribute
 
 Read

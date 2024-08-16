@@ -22,9 +22,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require_relative '../fbe'
+require 'minitest/autorun'
+require 'factbase'
+require_relative '../test__helper'
+require_relative '../../lib/fbe/copy'
 
-# The module.
-module Fbe::Middleware
-  # empty
+# Test.
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2024 Zerocracy
+# License:: MIT
+class TestCopy < Minitest::Test
+  def test_simple_copy
+    fb = Factbase.new
+    f1 = fb.insert
+    f1._id = 1
+    f1.foo = 42
+    f2 = fb.insert
+    f2._id = 2
+    Fbe.copy(f1, f2)
+    assert_equal(2, f2._id)
+    assert_equal(42, f2.foo)
+  end
 end

@@ -23,8 +23,19 @@
 # SOFTWARE.
 
 require_relative '../fbe'
+require_relative 'fb'
 
-# The module.
-module Fbe::Middleware
-  # empty
+# Make a copy of a fact, moving all properties to a new fact.
+#
+# @param [Factbase::Fact] source The source
+# @param [Factbase::Fact] target The targer
+def Fbe.copy(source, target)
+  raise 'The source is nil' if source.nil?
+  raise 'The target is nil' if target.nil?
+  source.all_properties.each do |k|
+    next unless target[k].nil?
+    source[k].each do |v|
+      target.send(:"#{k}=", v)
+    end
+  end
 end
