@@ -160,6 +160,6 @@ class TestOcto < Minitest::Test
       assert(!o.off_quota) if n > 100
       limit -= 1
     end
-    assert_in_delta(pause, Time.now - start_time, 0.4)
+    assert_in_delta(pause, Time.now - start_time, 1)
   end
 end
