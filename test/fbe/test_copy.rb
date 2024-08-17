@@ -43,4 +43,15 @@ class TestCopy < Minitest::Test
     assert_equal(2, f2._id)
     assert_equal(42, f2.foo)
   end
+
+  def test_with_except
+    fb = Factbase.new
+    f1 = fb.insert
+    f1._id = 1
+    f1.foo = 42
+    f2 = fb.insert
+    f2._id = 2
+    Fbe.copy(f1, f2, except: ['foo'])
+    assert(f2['foo'].nil?)
+  end
 end
