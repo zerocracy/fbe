@@ -24,10 +24,14 @@
 
 require 'others'
 require_relative 'fb'
+require_relative '../fbe'
 
-# Project management functions.
-module Fbe; end
-
+# Get configuration parameter from the "PMP" fact.
+#
+# @param [Factbase] fb The factbase
+# @param [Hash] global The hash for global caching
+# @param [Judges::Options] options The options coming from the +judges+ tool
+# @param [Loog] logg The logging facility
 def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
   others do |*args1|
     area = args1.first
