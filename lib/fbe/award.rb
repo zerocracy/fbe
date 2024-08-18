@@ -300,7 +300,7 @@ class Fbe::Award
     end
 
     def points
-      @lines.map { |l| l[:v] }.inject(&:+).to_i
+      @lines.map { |l| l[:v] }.inject(&:+).to_f.round.to_i
     end
 
     def greeting
