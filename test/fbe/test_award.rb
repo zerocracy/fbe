@@ -40,7 +40,7 @@ class TestAward < Minitest::Test
         (in hours "hours passed between bug reported and closed")
         (let max 36)
         (let basis 30)
-        (give (frame basis 10 50) "as a basis")
+        (give basis "as a basis")
         (let fee 10)
         (aka
           (set b1
@@ -84,9 +84,6 @@ class TestAward < Minitest::Test
     {
       '(let x 25)' => 0,
       '(award (give (times 5 0.25 "fun")))' => 1,
-      '(award (give (frame 5 1 15)))' => 5,
-      '(award (give (frame 5 10 15)))' => 10,
-      '(award (give (frame 5 1 3)))' => 3,
       '(award (give 25 "for being a good boy"))' => 25,
       '(award (give (between 42 -10 -50) "empty"))' => -10,
       '(award (give (between -3 -10 -50) "empty"))' => 0,
@@ -130,9 +127,7 @@ class TestAward < Minitest::Test
       '(award (let x_a 25) (set z (plus x_a 1)) (give z "..."))' =>
         'First, let _x-a_ be equal to **25**. Then, set _z_ to _x-a_ + **1**, and award _z_.',
       '(award (aka (let x 17) (give x "hey") "add ${x} when necessary"))' =>
-        'Just add **17** when necessary',
-      '(award (let x 10) (give (frame x 4 16) "for fun"))' =>
-        'First, let _x_ be equal to **10**, and award _x_.'
+        'Just add **17** when necessary'
     }.each do |q, t|
       md = Fbe::Award.new(q).policy.markdown
       assert(md.include?(t), md)
