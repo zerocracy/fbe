@@ -29,7 +29,7 @@ require_relative '../fbe'
 # @param [Factbase::Fact] fact The fact, where to get the ID of GitHub issue
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Hash] global The hash for global caching
-# @param [Loog] logg The logging facility
+# @param [Loog] loog The logging facility
 def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
   rid = fact['repository']
   raise "There is no 'repository' property" if rid.nil?

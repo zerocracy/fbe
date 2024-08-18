@@ -35,7 +35,7 @@ require_relative '../fbe'
 # @param [Factbase] fb The global factbase provided by the +judges+ tool
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options The options coming from the +judges+ tool
-# @param [Loog] logg The logging facility
+# @param [Loog] loog The logging facility
 def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
   global[:fb] ||=
     begin

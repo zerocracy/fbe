@@ -36,7 +36,7 @@ require_relative 'fb'
 #
 # @param [Factbase::Fact] fact The fact to modify
 # @param [String] property The name of the property to set
-# @param [Any] vqlue The value to set
+# @param [Any] value The value to set
 def Fbe.overwrite(fact, property, value, fb: Fbe.fb)
   raise 'The fact is nil' if fact.nil?
   raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)

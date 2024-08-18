@@ -5,13 +5,13 @@
   (in reviews "the number of reviews provided")
 
   (aka
-    (let basis 16)
+    (let basis {{ 8 * love }})
     (give basis "as a basis")
     "award ${basis} points")
 
   (aka
+    (let hoc_k {{ 0.05 * love }})
     (let hoc_threshold 200)
-    (let hoc_k 0.1)
     (let hoc_max 16)
     (let hoc_min 5)
     (set bonus_for_hoc (if (lt hoc hoc_threshold) (times hoc hoc_k) 0))
@@ -22,28 +22,28 @@
       but not more than ${hoc_max} points")
 
   (aka
-    (let many_hoc_fee 8)
+    (let many_hoc_fee {{ 4 * anger }})
     (set penalty_for_hoc (if (gte hoc hoc_threshold) (times -1 many_hoc_fee) 0))
     (give penalty_for_hoc "for too many hits-of-code (${hoc} >= ${hoc_threshold})")
     "deduct ${many_hoc_fee} points if more than ${hoc_threshold}
       [hits-of-code](https://www.yegor256.com/2014/11/14/hits-of-code.html)")
 
   (aka
+    (let many_hoc_fee2 {{ 8 * anger }})
     (let hoc_threshold2 800)
-    (let man_hoc_fee2 16)
-    (set penalty_for_hoc2 (if (gte hoc hoc_threshold2) (times -1 man_hoc_fee2) 0))
+    (set penalty_for_hoc2 (if (gte hoc hoc_threshold2) (times -1 many_hoc_fee2) 0))
     (give penalty_for_hoc2 "for way too many hits-of-code (${hoc} >= ${hoc_threshold2})")
-    "deduct ${man_hoc_fee2} points if more than ${hoc_threshold2}
+    "deduct ${many_hoc_fee2} points if more than ${hoc_threshold2}
       [hits-of-code](https://www.yegor256.com/2014/11/14/hits-of-code.html)")
 
   (aka
-    (let no_review_fee 16)
+    (let no_review_fee {{ 8 * anger }})
     (set penalty_for_no_review (if (eq reviews 0) (times -1 no_review_fee) 0))
     (give penalty_for_no_review "for the lack of code review")
     "deduct ${no_review_fee} points if there were no code review")
 
   (aka
-    (let comments_k 0.25)
+    (let comments_k {{ 0.1 * anger }})
     (let comments_max -16)
     (let comments_min -4)
     (set bonus_for_comments (times comments (times -1 comments_k)))
@@ -52,20 +52,20 @@
     "deduct ${comments_k} points for every comment made during review, but not more than ${comments_max} points")
 
   (aka
-    (let few_comments_fee 4)
+    (let few_comments_fee {{ 2 * anger }})
     (let comments_needed 5)
     (set penalty_for_few_comments (if (and (lt comments comments_needed) (not (eq comments 0))) (times -1 few_comments_fee) 0))
     (give penalty_for_few_comments "for very few (${comments}) comments")
     "deduct ${few_comments_fee} points if there were less than ${comments_needed} comments made during review")
 
   (aka
-    (let silence_fee 16)
+    (let silence_fee {{ 8 * anger }})
     (set penalty_for_silence (if (eq comments 0) (times -1 silence_fee) 0))
     (give penalty_for_silence "for absolutely no comments posted by reviewers")
     "deduct ${silence_fee} points if there were absolutely no comments made by reviewers during the review")
 
   (aka
-    (let few_hoc_fee 8)
+    (let few_hoc_fee {{ 4 * anger }})
     (let hoc_needed 20)
     (set penalty_for_few_hoc (if (lt hoc hoc_needed) (times -1 few_hoc_fee) 0))
     (give penalty_for_few_hoc "for too few (${hoc}) hits-of-code")

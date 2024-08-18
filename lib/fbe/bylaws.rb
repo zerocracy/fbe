@@ -30,13 +30,15 @@ require_relative '../fbe'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
-def Fbe.bylaws(inputs = {})
+def Fbe.bylaws(anger: 2, love: 2)
   home = File.join(__dir__, '../../assets/bylaws')
   raise "The directory with templates is absent '#{home}'" unless File.exist?(home)
   Dir[File.join(home, '*.liquid')].to_h do |f|
     [
       File.basename(f).gsub(/\.liquid$/, '').to_sym,
-      Liquid::Template.parse(File.read(f)).render(inputs)
+      Liquid::Template.parse(File.read(f)).render(
+        anger:, love:
+      )
     ]
   end
 end
