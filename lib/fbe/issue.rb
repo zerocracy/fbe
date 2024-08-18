@@ -24,6 +24,18 @@
 
 require_relative '../fbe'
 
+# Converts an ID of GitHub user into a nicely formatting string with his name.
+#
+# @param [Factbase::Fact] fact The fact, where to get the ID of GitHub user
+# @param [Judges::Options] options The options coming from the +judges+ tool
+# @param [Hash] global The hash for global caching
+# @param [Loog] logg The logging facility
 def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
-  "#{Fbe.octo(global:, options:, loog:).repo_name_by_id(fact.repository)}##{fact.issue}"
+  rid = fact['repository']
+  raise "There is no 'repository' property" if rid.nil?
+  rid = rid.first.to_i
+  issue = fact['issue']
+  raise "There is no 'issue' property" if issue.nil?
+  issue = issue.first.to_i
+  "#{Fbe.octo(global:, options:, loog:).repo_name_by_id(rid)}##{issue}"
 end

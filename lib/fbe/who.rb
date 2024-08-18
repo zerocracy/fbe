@@ -24,6 +24,16 @@
 
 require_relative '../fbe'
 
+# Converts an ID of GitHub user into a nicely formatting string with his name.
+#
+# @param [Factbase::Fact] fact The fact, where to get the ID of GitHub user
+# @param [String] prop The property in the fact, with the ID
+# @param [Judges::Options] options The options coming from the +judges+ tool
+# @param [Hash] global The hash for global caching
+# @param [Loog] logg The logging facility
 def Fbe.who(fact, prop = :who, options: $options, global: $global, loog: $loog)
-  "@#{Fbe.octo(options:, global:, loog:).user_name_by_id(fact.send(prop.to_s))}"
+  id = fact[prop.to_s]
+  raise "There is no #{prop} property" if id.nil?
+  id = id.first.to_i
+  "@#{Fbe.octo(options:, global:, loog:).user_name_by_id(id)}"
 end
