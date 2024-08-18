@@ -130,7 +130,9 @@ class TestAward < Minitest::Test
       '(award (let x_a 25) (set z (plus x_a 1)) (give z "..."))' =>
         'First, let _x-a_ be equal to **25**. Then, set _z_ to _x-a_ + **1**, and award _z_.',
       '(award (aka (let x 17) (give x "hey") "add ${x} when necessary"))' =>
-        'Just add **17** when necessary'
+        'Just add **17** when necessary',
+      '(award (let x 10) (give (frame x 4 16) "for fun"))' =>
+        'First, let _x_ be equal to **10**, and award _x_.'
     }.each do |q, t|
       md = Fbe::Award.new(q).policy.markdown
       assert(md.include?(t), md)

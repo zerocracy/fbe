@@ -221,7 +221,7 @@ class Fbe::Award
       when :between
         "at least #{to_p(@operands[0])} and at most #{to_p(@operands[1])}"
       when :frame
-        "between #{to_p(@operands[0])} and #{to_p(@operands[1])}"
+        to_p(@operands[0])
       else
         raise "Unknown term '#{@op}'"
       end
