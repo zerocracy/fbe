@@ -22,6 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require 'liquid'
 require_relative '../fbe'
 
 # A generator of policies/bylaws.
@@ -29,10 +30,13 @@ require_relative '../fbe'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
-def Fbe.bylaws(_inputs = {})
+def Fbe.bylaws(inputs = {})
   home = File.join(__dir__, '../../assets/bylaws')
   raise "The directory with templates is absent '#{home}'" unless File.exist?(home)
   Dir[File.join(home, '*.liquid')].to_h do |f|
-    [File.basename(f).gsub(/\.liquid$/, '').to_sym, File.read(f)]
+    [
+      File.basename(f).gsub(/\.liquid$/, '').to_sym,
+      Liquid::Template.parse(File.read(f)).render(inputs)
+    ]
   end
 end
