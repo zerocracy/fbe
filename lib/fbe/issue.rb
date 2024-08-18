@@ -26,7 +26,7 @@ require_relative '../fbe'
 
 # Converts an ID of GitHub issue into a nicely formatting string.
 #
-# @param [Factbase::Fact] fact The fact, where to get the ID of GitHub user
+# @param [Factbase::Fact] fact The fact, where to get the ID of GitHub issue
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Hash] global The hash for global caching
 # @param [Loog] logg The logging facility

@@ -24,8 +24,14 @@
 
 require_relative '../fbe'
 
+# Converts number of seconds into text.
+#
+# @param [Factbase::Fact] fact The fact, where to get the number of seconds
+# @param [String] prop The property in the fact, with the seconds
 def Fbe.sec(fact, prop = :seconds)
-  s = fact.send(prop.to_s)
+  s = fact[prop.to_s]
+  raise "There is no #{prop} property" if s.nil?
+  s = s.first.to_i
   if s < 60
     format('%d seconds', s)
   elsif s < 60 * 60
