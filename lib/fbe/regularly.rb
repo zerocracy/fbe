@@ -25,6 +25,14 @@
 require_relative '../fbe'
 require_relative 'fb'
 
+# Run the block provided every X days.
+#
+# @param [String] area The name of the PMP area
+# @param [Integer] p_every_days How frequently to run, every X days
+# @param [Integer] p_since_days Since when to collect stats, X days
+# @param [Factbase] fb The factbase
+# @param [String] judge The name of the judge, from the +judges+ tool
+# @param [Loog] logg The logging facility
 def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_days}))").each.to_a.first
   interval = pmp.nil? ? 7 : pmp[p_every_days].first

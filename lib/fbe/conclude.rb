@@ -28,6 +28,12 @@ require_relative 'octo'
 require_relative 'if_absent'
 
 # Create a conclude code block.
+#
+# @param [Factbase] fb The factbase
+# @param [String] judge The name of the judge, from the +judges+ tool
+# @param [Hash] global The hash for global caching
+# @param [Judges::Options] options The options coming from the +judges+ tool
+# @param [Loog] logg The logging facility
 def Fbe.conclude(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global, &)
   c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:)
   c.instance_eval(&)
@@ -38,7 +44,14 @@ end
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
 class Fbe::Conclude
-  def initialize(fb:, judge:, loog:, options:, global:)
+  # Ctor.
+  #
+  # @param [Factbase] fb The factbase
+  # @param [String] judge The name of the judge, from the +judges+ tool
+  # @param [Hash] global The hash for global caching
+  # @param [Judges::Options] options The options coming from the +judges+ tool
+  # @param [Loog] logg The logging facility
+  def initialize(fb:, judge:, global:, options:, loog:)
     @fb = fb
     @judge = judge
     @loog = loog
