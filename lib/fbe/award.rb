@@ -23,6 +23,7 @@
 # SOFTWARE.
 
 require 'factbase/syntax'
+require_relative 'fb'
 
 # A generator of awards.
 #

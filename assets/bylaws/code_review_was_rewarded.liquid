@@ -1,0 +1,68 @@
+(award
+  (explain "An author of every code review gets a bonus")
+  (in hoc "the total number of hits-of-code in the contribution")
+  (in comments "the total number of comments made by all reviewers")
+  (in self "1 if the review was made for their own code contribution, otherwise zero")
+
+  (aka
+    (let basis 8)
+    (give basis "as a basis")
+    "award ${basis} points")
+
+  (aka
+    (let self_fee 24)
+    (set penalty_for_self_review (if (eq self 1) (times -1 self_fee) 0))
+    (give penalty_for_self_review "for reviewing your own contribution (which is a bad idea)")
+    "deduct ${self_fee} points if they reviewed their own contribution")
+
+  (aka
+    (let hoc_k 0.02)
+    (let hoc_max 16)
+    (let hoc_min 5)
+    (set bonus_for_hoc (times hoc hoc_k))
+    (set bonus_for_hoc (between bonus_for_hoc hoc_min hoc_max))
+    (set bonus_for_hoc (if (eq self 1) 0 bonus_for_hoc))
+    (give bonus_for_hoc "for the ${hoc} hits-of-code that you reviewed")
+    "add ${hoc_k} points for each
+      [hit-of-code](https://www.yegor256.com/2014/11/14/hits-of-code.html),
+      but not more than ${hoc_max} points")
+
+  (aka
+    (let few_comments_fee 10)
+    (let comments_needed 6)
+    (set penalty_for_few_comments (if (and (lt comments comments_needed) (not (eq comments 0))) (times -1 few_comments_fee) 0))
+    (give penalty_for_few_comments "for very few (${comments}) comments")
+    "deduct ${few_comments_fee} points if there were less than ${comments_needed} comments made during review")
+
+  (aka
+    (let silence_fee 16)
+    (set penalty_for_silence (if (eq comments 0) (times -1 silence_fee) 0))
+    (give penalty_for_silence "for absolutely no comments posted")
+    "deduct ${silence_fee} points if there were absolutely no comments made during review")
+
+  (aka
+    (let comments_k 0.5)
+    (let comments_max 8)
+    (let comments_min 5)
+    (set bonus_for_comments (times comments comments_k))
+    (set bonus_for_comments (between bonus_for_comments comments_min comments_max))
+    (set bonus_for_comments (if (eq self 1) 0 bonus_for_comments))
+    (give bonus_for_comments "for the ${comments} comment(s) that you have made")
+    "add ${comments_k} points for each comment during the review, but not more than ${comments_max} points")
+
+  (aka
+    (let hoc_fee 8)
+    (let hoc_needed 15)
+    (set penalty_for_hoc (if (lt hoc hoc_needed) (times -1 hoc_fee) 0))
+    (give penalty_for_hoc "for too few (${hoc}) hits-of-code")
+    "deduct ${hoc_fee} points if there were less than ${hoc_needed} hits-of-code")
+
+  (aka
+    (let max 32)
+    (set over (if (gt (total) max) (minus max (total)) 0))
+    (give over "to not go over the cap")
+    (let min 4)
+    (set least (if (lt (total) min) (minus min (total)) 0))
+    (give least "to give you at least something")
+    "make sure the reward is not larger than ${max} points and not smaller than ${min} points")
+  )

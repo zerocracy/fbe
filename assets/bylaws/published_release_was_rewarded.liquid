@@ -1,0 +1,29 @@
+(award
+  (explain "When a new release is published, everybody who contributed gets a bonus")
+  (in hoc "how many hits-of-code are in the release")
+  (in contributors "how many people contributed to the release")
+  (aka
+    (let basis 24)
+    (give basis "as a basis")
+    "award ${basis} points")
+
+  (aka
+    (let hoc_k 0.01)
+    (let hoc_max 24)
+    (let hoc_min 4)
+    (set b1 (times hoc hoc_k))
+    (set b1 (between b1 hoc_min hoc_max))
+    (give b1 "for ${hoc} hits-of-code")
+    "add ${hoc_k} points for each
+      [hit-of-code](https://www.yegor256.com/2014/11/14/hits-of-code.html),
+      but not more than ${hoc_max} points")
+
+  (aka
+    (let max 32)
+    (set over (if (gt (total) max) (minus max (total)) 0))
+    (give over "to not go over the cap")
+    (let min 4)
+    (set least (if (lt (total) min) (minus min (total)) 0))
+    (give least "to give you at least something")
+    "make sure the reward is not larger than ${max} points and not smaller than ${min} points")
+  )
