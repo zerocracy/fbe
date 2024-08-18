@@ -159,6 +159,11 @@ class Fbe::Award
         [to_val(@operands[0], bill), to_val(@operands[1], bill)].max
       when :min
         [to_val(@operands[0], bill), to_val(@operands[1], bill)].min
+      when :frame
+        v = to_val(@operands[0], bill)
+        min = to_val(@operands[1], bill)
+        max = to_val(@operands[2], bill)
+        v.clamp(min, max)
       when :between
         v = to_val(@operands[0], bill)
         a = to_val(@operands[1], bill)
@@ -215,6 +220,8 @@ class Fbe::Award
         "minimum of #{to_p(@operands[0])} and #{to_p(@operands[1])}"
       when :between
         "at least #{to_p(@operands[0])} and at most #{to_p(@operands[1])}"
+      when :frame
+        "between #{to_p(@operands[0])} and #{to_p(@operands[1])}"
       else
         raise "Unknown term '#{@op}'"
       end

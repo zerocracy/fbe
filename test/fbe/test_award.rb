@@ -40,7 +40,7 @@ class TestAward < Minitest::Test
         (in hours "hours passed between bug reported and closed")
         (let max 36)
         (let basis 30)
-        (give basis "as a basis")
+        (give (frame basis 10 50) "as a basis")
         (let fee 10)
         (aka
           (set b1
@@ -84,6 +84,9 @@ class TestAward < Minitest::Test
     {
       '(let x 25)' => 0,
       '(award (give (times 5 0.25 "fun")))' => 1,
+      '(award (give (frame 5 1 15)))' => 5,
+      '(award (give (frame 5 10 15)))' => 10,
+      '(award (give (frame 5 1 3)))' => 3,
       '(award (give 25 "for being a good boy"))' => 25,
       '(award (give (between 42 -10 -50) "empty"))' => -10,
       '(award (give (between -3 -10 -50) "empty"))' => 0,
