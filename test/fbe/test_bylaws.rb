@@ -57,7 +57,7 @@ class TestBylaws < Minitest::Test
         { hours: 300, self: 0 } => 4,
         { hours: 3_000, self: 0 } => 4,
         { hours: 30_000, self: 0 } => 4,
-        { hours: 1, self: 1 } => 10
+        { hours: 1, self: 1 } => 8
       },
       push_to_master_was_punished: {
         {} => -16
@@ -77,23 +77,23 @@ class TestBylaws < Minitest::Test
         { hoc: 3, comments: 0, reviews: 0 } => 4,
         { hoc: 78, comments: 0, reviews: 0 } => 4,
         { hoc: 78, comments: 1, reviews: 0 } => 4,
-        { hoc: 50, comments: 15, reviews: 0 } => 4,
+        { hoc: 50, comments: 15, reviews: 0 } => 5,
         { hoc: 50, comments: 25, reviews: 0 } => 4,
-        { hoc: 180, comments: 7, reviews: 2 } => 17,
-        { hoc: 150, comments: 5, reviews: 1 } => 16,
+        { hoc: 180, comments: 7, reviews: 2 } => 32,
+        { hoc: 150, comments: 5, reviews: 1 } => 31,
         { hoc: 500, comments: 25, reviews: 2 } => 4,
-        { hoc: 99, comments: 6, reviews: 1 } => 8,
+        { hoc: 99, comments: 6, reviews: 1 } => 26,
         { hoc: 1_500, comments: 3, reviews: 0 } => 4,
         { hoc: 15_000, comments: 40, reviews: 0 } => 4
-      },
-      dud_was_punished: {
-        {} => -16
       },
       bug_report_was_rewarded: {
         {} => 16
       },
       enhancement_suggestion_was_rewarded: {
         {} => 16
+      },
+      dud_was_punished: {
+        {} => -16
       },
       bad_branch_name_was_punished: {
         {} => -12

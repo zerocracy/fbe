@@ -34,11 +34,9 @@ def Fbe.bylaws(anger: 2, love: 2)
   home = File.join(__dir__, '../../assets/bylaws')
   raise "The directory with templates is absent '#{home}'" unless File.exist?(home)
   Dir[File.join(home, '*.liquid')].to_h do |f|
-    [
-      File.basename(f).gsub(/\.liquid$/, '').to_sym,
-      Liquid::Template.parse(File.read(f)).render(
-        anger:, love:
-      )
-    ]
+    formula = Liquid::Template.parse(File.read(f)).render(
+      'anger' => anger, 'love' => love
+    )
+    [File.basename(f).gsub(/\.liquid$/, '').to_sym, formula]
   end
 end

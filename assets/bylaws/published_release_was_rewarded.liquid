@@ -3,12 +3,12 @@
   (in hoc "how many hits-of-code are in the release")
   (in contributors "how many people contributed to the release")
   (aka
-    (let basis 24)
+    (let basis {{ 12 | times: love }})
     (give basis "as a basis")
     "award ${basis} points")
 
   (aka
-    (let hoc_k 0.01)
+    (let hoc_k {{ 0.005 | times: love }})
     (let hoc_max 24)
     (let hoc_min 4)
     (set b1 (times hoc hoc_k))
