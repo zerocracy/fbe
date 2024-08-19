@@ -181,21 +181,6 @@ class Fbe::FakeOctokit
     }
   end
 
-  def workflow_run(repo, id)
-    {
-      id:,
-      name: 'copyrights',
-      head_branch: 'master',
-      head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
-      event: 'push',
-      status: 'completed',
-      conclusion: 'success',
-      workflow_id: id,
-      created_at: random_time,
-      repository: repository(repo)
-    }
-  end
-
   def workflow_run_usage(_repo, _id)
     {
       billable: {
@@ -541,7 +526,8 @@ class Fbe::FakeOctokit
               }
             },
             head: {
-              ref: 'zerocracy/baza'
+              ref: 'zerocracy/baza',
+              sha: '74d0c234967de0f690805c6943e78db42a294c1a'
             },
             merged_at: Time.now,
             comments: 2,
@@ -700,5 +686,194 @@ class Fbe::FakeOctokit
         content: 'heart'
       }
     ]
+  end
+
+  def check_runs_for_ref(_repo, sha)
+    {
+      total_count: 7,
+      check_runs: [
+        {
+          id: 28_907_016_501,
+          name: 'make',
+          head_sha: sha,
+          started_at: '2024-08-18T08:04:44Z',
+          completed_at: '2024-08-18T08:20:17Z'
+        },
+        {
+          id: 28_906_596_603,
+          name: 'copyrights',
+          head_sha: sha,
+          started_at: '2024-08-18T08:04:44Z',
+          completed_at: '2024-08-18T08:20:17Z'
+        },
+        {
+          id: 28_906_596_550,
+          name: 'markdown-lint',
+          head_sha: sha,
+          started_at: '2024-08-18T08:04:44Z',
+          completed_at: '2024-08-18T08:20:17Z'
+        },
+        {
+          id: 28_906_596_483,
+          name: 'pdd',
+          head_sha: sha,
+          started_at: '2024-08-18T08:04:44Z',
+          completed_at: '2024-08-18T08:20:17Z'
+        },
+        {
+          id: 28_906_596_433,
+          name: 'rake',
+          head_sha: sha,
+          started_at: '2024-08-18T08:04:44Z',
+          completed_at: '2024-08-18T08:20:17Z'
+        },
+        {
+          id: 28_906_596_405,
+          name: 'shellcheck',
+          head_sha: sha,
+          started_at: '2024-08-18T08:04:44Z',
+          completed_at: '2024-08-18T08:20:17Z'
+        },
+        {
+          id: 28_906_596_379,
+          name: 'yamllint',
+          head_sha: sha,
+          started_at: '2024-08-18T08:04:44Z',
+          completed_at: '2024-08-18T08:20:17Z'
+        }
+      ]
+    }
+  end
+
+  def workflow_run_job(_repo, job)
+    result = [
+      {
+        id: 28_907_016_501,
+        run_id: 10_438_531_072,
+        name: 'make',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 28_906_596_603,
+        run_id: 10_438_531_073,
+        name: 'copyrights',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 28_906_596_550,
+        run_id: 10_438_531_074,
+        name: 'markdown-lint',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 28_906_596_483,
+        run_id: 10_438_531_075,
+        name: 'pdd',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 28_906_596_433,
+        run_id: 10_438_531_076,
+        name: 'rake',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 28_906_596_405,
+        run_id: 10_438_531_077,
+        name: 'shellcheck',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 28_906_596_379,
+        run_id: 10_438_531_078,
+        name: 'yamllint',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      }
+    ].select { |json| json[:id] == job }
+    result.first
+  end
+
+  def workflow_run(repo, id)
+    runs = [
+      {
+        id: 10_438_531_072,
+        event: 'pull_request',
+        conclusion: 'success',
+        name: 'make',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 10_438_531_073,
+        event: 'pull_request',
+        conclusion: 'success',
+        name: 'copyrights',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 10_438_531_074,
+        event: 'pull_request',
+        conclusion: 'success',
+        name: 'markdown-lint',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 10_438_531_075,
+        event: 'pull_request',
+        conclusion: 'failure',
+        name: 'pdd',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 10_438_531_076,
+        event: 'pull_request',
+        conclusion: 'success',
+        name: 'rake',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 10_438_531_077,
+        event: 'commit',
+        conclusion: 'success',
+        name: 'shellcheck',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      },
+      {
+        id: 10_438_531_078,
+        event: 'pull_request',
+        conclusion: 'failure',
+        name: 'yamllint',
+        started_at: '2024-08-18T08:04:44Z',
+        completed_at: '2024-08-18T08:20:17Z'
+      }
+    ].select { |json| json[:id] == id }
+    if runs.first.nil?
+      {
+        id:,
+        name: 'copyrights',
+        head_branch: 'master',
+        head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
+        event: 'push',
+        status: 'completed',
+        conclusion: 'success',
+        workflow_id: id,
+        created_at: random_time,
+        repository: repository(repo)
+      }
+    else
+      runs.first
+    end
   end
 end
