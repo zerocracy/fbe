@@ -73,7 +73,7 @@ class TestAward < Minitest::Test
       'bug in 10 (<36) hours',
       '+30 as a basis'
     ].each { |t| assert(g.include?(t), g) }
-    md = a.policy.markdown
+    md = a.bylaw.markdown
     [
       'First, assume that _hours_ is hours',
       ', and award _b₂_'
@@ -129,7 +129,7 @@ class TestAward < Minitest::Test
       '(award (aka (let x 17) (give x "hey") "add ${x} when necessary"))' =>
         'Just add **17** when necessary'
     }.each do |q, t|
-      md = Fbe::Award.new(q).policy.markdown
+      md = Fbe::Award.new(q).bylaw.markdown
       assert(md.include?(t), md)
     end
   end

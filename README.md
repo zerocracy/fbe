@@ -29,18 +29,22 @@ These tools help manage facts:
 * `Fbe.overwrite` changes a property in a fact to another value by deleting
 the fact first, and then creating a new similar fact with all previous
 properties but one changed.
-* `Fbe.pmp` takes a PMP-related property by the area.
 
 They help with formatting:
 
 * `Fbe.who` formats user name.
 * `Fbe.issue` formats issue number.
-* `Fbe.award` calculates award by the policy.
+* `Fbe.award` calculates award by the bylaw.
 * `Fbe.sec` formats seconds.
 
 They help with external connections:
 
 * `Fbe.octo` connects to GitHub API.
+
+They help with management:
+
+* `Fbe.pmp` takes a PMP-related property by the area.
+* `Fbe.bylaws` builds a hash with bylaws.
 
 ## How to contribute
 

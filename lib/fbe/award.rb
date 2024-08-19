@@ -27,7 +27,7 @@ require_relative 'fb'
 
 # A generator of awards.
 #
-# First, you should create a policy, using the same Lisp-ish syntax as
+# First, you should create a bylaw, using the same Lisp-ish syntax as
 # we use in queries to a Factbase, for example:
 #
 #  require 'fbe/award'
@@ -39,17 +39,17 @@ require_relative 'fb'
 #  puts b.points  # how many points to reward, a number
 #  puts b.greeting  # how to explain the reward, a text
 #
-# Or else, you can get a policy text:
+# Or else, you can get a bylaw text:
 #
-#  p = a.policy
-#  puts p.markdown  # Markdown of the policy
+#  p = a.bylaw
+#  puts p.markdown  # Markdown of the bylaw
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class Fbe::Award
   # Ctor.
-  # @param [String] query The query with the policy
+  # @param [String] query The query with the bylaw
   # @param [String] judge The name of the judge
   def initialize(query = nil, judge: $judge, global: $global, options: $options, loog: $loog)
     query = Fbe.pmp(fb: Fbe.fb, global:, options:, loog:).hr.send(judge.gsub('-', '_')) if query.nil?
@@ -67,13 +67,13 @@ class Fbe::Award
     bill
   end
 
-  # Build a policy object from this award query.
-  # @return [Fbe::Award::Policy] The policy
-  def policy
+  # Build a bylaw object from this award query.
+  # @return [Fbe::Award::Bylaw] The bylaw
+  def bylaw
     term = Factbase::Syntax.new(@query, term: Fbe::Award::PTerm).to_term
-    policy = Policy.new
-    term.publish_to(policy)
-    policy
+    bylaw = Bylaw.new
+    term.publish_to(bylaw)
+    bylaw
   end
 
   # A term for bill.
@@ -173,7 +173,7 @@ class Fbe::Award
     end
   end
 
-  # A term for policy.
+  # A term for bylaw.
   class PTerm
     def initialize(operator, operands)
       @op = operator
@@ -221,33 +221,33 @@ class Fbe::Award
       end
     end
 
-    def publish_to(policy)
+    def publish_to(bylaw)
       case @op
       when :award
         @operands.each do |o|
-          o.publish_to(policy)
+          o.publish_to(bylaw)
         rescue StandardError => e
           raise "Failure in #{o}: #{e.message}"
         end
       when :aka
         @operands[0..-2].each do |o|
-          o.publish_to(policy)
+          o.publish_to(bylaw)
         rescue StandardError => e
           raise "Failure in #{o}: #{e.message}"
         end
-        policy.revert(@operands.size - 1)
-        policy.line(to_p(@operands[@operands.size - 1]))
+        bylaw.revert(@operands.size - 1)
+        bylaw.line(to_p(@operands[@operands.size - 1]))
       when :explain
-        policy.intro(to_p(@operands[0]))
+        bylaw.intro(to_p(@operands[0]))
       when :in
-        policy.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
+        bylaw.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
       when :let
-        policy.line("let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}")
-        policy.let(@operands[0], @operands[1])
+        bylaw.line("let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}")
+        bylaw.let(@operands[0], @operands[1])
       when :set
-        policy.line("set #{to_p(@operands[0])} to #{to_p(@operands[1])}")
+        bylaw.line("set #{to_p(@operands[0])} to #{to_p(@operands[1])}")
       when :give
-        policy.line("award #{to_p(@operands[0])}")
+        bylaw.line("award #{to_p(@operands[0])}")
       else
         raise "Unknown term '#{@op}'"
       end
@@ -317,8 +317,8 @@ class Fbe::Award
     end
   end
 
-  # A policy.
-  class Policy
+  # A bylaw.
+  class Bylaw
     attr_reader :vars
 
     def initialize
