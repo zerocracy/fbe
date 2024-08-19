@@ -37,6 +37,6 @@ def Fbe.bylaws(anger: 2, love: 2)
     formula = Liquid::Template.parse(File.read(f)).render(
       'anger' => anger, 'love' => love
     )
-    [File.basename(f).gsub(/\.liquid$/, '').to_sym, formula]
+    [File.basename(f).gsub(/\.liquid$/, ''), formula]
   end
 end

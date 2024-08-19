@@ -36,12 +36,12 @@ class TestBylaws < Minitest::Test
   def test_simple
     laws = Fbe.bylaws
     assert(laws.size > 1)
-    assert(!laws[:published_release_was_rewarded].nil?)
+    assert(!laws['published-release-was-rewarded'].nil?)
   end
 
   def test_check_all_bills
     awards = {
-      published_release_was_rewarded: {
+      'published-release-was-rewarded' => {
         { hoc: 0, contributors: 1 } => 24,
         { hoc: 10, contributors: 1 } => 24,
         { hoc: 100, contributors: 1 } => 24,
@@ -50,7 +50,7 @@ class TestBylaws < Minitest::Test
         { hoc: 10_000, contributors: 1 } => 32,
         { hoc: 30_000, contributors: 1 } => 32
       },
-      resolved_bug_was_rewarded: {
+      'resolved-bug-was-rewarded' => {
         { hours: 1, self: 0 } => 24,
         { hours: 48, self: 0 } => 14,
         { hours: 80, self: 0 } => 13,
@@ -59,10 +59,10 @@ class TestBylaws < Minitest::Test
         { hours: 30_000, self: 0 } => 4,
         { hours: 1, self: 1 } => 8
       },
-      push_to_master_was_punished: {
+      'push-to-master-was-punished' => {
         {} => -16
       },
-      code_review_was_rewarded: {
+      'code-review-was-rewarded' => {
         { hoc: 0, comments: 0, self: 0 } => 4,
         { hoc: 3, comments: 0, self: 0 } => 4,
         { hoc: 78, comments: 7, self: 0 } => 8,
@@ -72,7 +72,7 @@ class TestBylaws < Minitest::Test
         { hoc: 100, comments: 50, self: 1 } => 4,
         { hoc: 10_000, comments: 200, self: 1 } => 4
       },
-      code_contribution_was_rewarded: {
+      'code-contribution-was-rewarded' => {
         { hoc: 0, comments: 0, reviews: 0 } => 4,
         { hoc: 3, comments: 0, reviews: 0 } => 4,
         { hoc: 78, comments: 0, reviews: 0 } => 4,
@@ -86,21 +86,23 @@ class TestBylaws < Minitest::Test
         { hoc: 1_500, comments: 3, reviews: 0 } => 4,
         { hoc: 15_000, comments: 40, reviews: 0 } => 4
       },
-      bug_report_was_rewarded: {
+      'bug-report-was-rewarded' => {
         {} => 16
       },
-      enhancement_suggestion_was_rewarded: {
+      'enhancement-suggestion-was-rewarded' => {
         {} => 16
       },
-      dud_was_punished: {
+      'dud-was-punished' => {
         {} => -16
       },
-      bad_branch_name_was_punished: {
+      'bad-branch-name-was-punished' => {
         {} => -12
       }
     }
     awards.each do |title, pairs|
-      a = Fbe::Award.new(Fbe.bylaws[title])
+      formula = Fbe.bylaws[title]
+      assert(!formula.nil?, title)
+      a = Fbe::Award.new(formula)
       help = [
         "  #{title}: {\n    ",
         pairs.map do |args, _|
