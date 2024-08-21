@@ -82,7 +82,7 @@ class Fbe::Graph
         }
       GRAPHQL
     )
-    result.repository.pull_request.review_threads.to_h['nodes']
+    result&.repository&.pull_request&.review_threads&.to_h&.fetch('nodes', []) || []
   end
 
   def total_commits(owner, name, branch)
@@ -124,29 +124,35 @@ class Fbe::Graph
       {}
     end
 
-    def resolved_conversations(_owner, _name, _number)
-      [
-        {
-          'id' => 'PRRT_kwDOK2_4A85BHZAR',
-          'isResolved' => true,
-          'comments' => {
-            'nodes' => [
-              {
-                'id' => 'PRRC_kwDOK2_4A85l3obO',
-                'body' => 'first message',
-                'author' => { '__typename' => 'User', 'login' => 'reviewer' },
-                'createdAt' => '2024-08-08T09:41:46Z'
-              },
-              {
-                'id' => 'PRRC_kwDOK2_4A85l3yTp',
-                'body' => 'second message',
-                'author' => { '__typename' => 'User', 'login' => 'programmer' },
-                'createdAt' => '2024-08-08T10:01:55Z'
-              }
-            ]
+    def resolved_conversations(owner, name, _number)
+      data = {
+        zerocracy_baza: [
+          {
+            'id' => 'PRRT_kwDOK2_4A85BHZAR',
+            'isResolved' => true,
+            'comments' => {
+              'nodes' => [
+                {
+                  'id' => 'PRRC_kwDOK2_4A85l3obO',
+                  'body' => 'first message',
+                  'author' => { '__typename' => 'User', 'login' => 'reviewer' },
+                  'createdAt' => '2024-08-08T09:41:46Z'
+                },
+                {
+                  'id' => 'PRRC_kwDOK2_4A85l3yTp',
+                  'body' => 'second message',
+                  'author' => { '__typename' => 'User', 'login' => 'programmer' },
+                  'createdAt' => '2024-08-08T10:01:55Z'
+                }
+              ]
+            }
           }
-        }
-      ]
+        ]
+      }
+      result = data[:"#{owner}_#{name}"]
+      return [] if result.nil?
+
+      result
     end
   end
 end
