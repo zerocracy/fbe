@@ -103,18 +103,14 @@ class TestGitHubGraph < Minitest::Test
 
   def test_get_fake_empty_conversations
     WebMock.disable_net_connect!
-    global = {}
-    options = Judges::Options.new({ 'testing' => true })
-    graph = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
     result = graph.resolved_conversations(nil, 'baza', 172)
     assert(result.empty?)
   end
 
   def test_get_fake_conversations
     WebMock.disable_net_connect!
-    global = {}
-    options = Judges::Options.new({ 'testing' => true })
-    graph = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
     result = graph.resolved_conversations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
   end
