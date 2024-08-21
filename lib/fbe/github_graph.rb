@@ -149,10 +149,7 @@ class Fbe::Graph
           }
         ]
       }
-      result = data[:"#{owner}_#{name}"]
-      return [] if result.nil?
-
-      result
+      data[:"#{owner}_#{name}"] || []
     end
   end
 end
