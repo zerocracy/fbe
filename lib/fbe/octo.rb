@@ -522,7 +522,10 @@ class Fbe::FakeOctokit
                 node_id: 'R_kgDOK2_4Aw',
                 name: 'baza',
                 full_name: 'zerocracy/baza',
-                private: false
+                private: false,
+                owner: {
+                  login: 'zerocracy'
+                }
               }
             },
             head: {
