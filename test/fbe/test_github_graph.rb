@@ -91,6 +91,14 @@ class TestGitHubGraph < Minitest::Test
     assert(0, result.count)
   end
 
+  def test_does_not_count_unresolved_conversations
+    skip # it's a "live" test, run it manually if you need it
+    WebMock.allow_net_connect!
+    g = Fbe.github_graph(options: Judges::Options.new, loog: Loog::NULL, global: {})
+    result = g.resolved_conversations('zerocracy', 'judges-action', 296)
+    assert_equal(0, result.count)
+  end
+
   def test_gets_total_commits_of_repo
     skip # it's a "live" test, run it manually if you need it
     WebMock.allow_net_connect!

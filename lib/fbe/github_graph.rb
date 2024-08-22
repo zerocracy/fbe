@@ -82,7 +82,9 @@ class Fbe::Graph
         }
       GRAPHQL
     )
-    result&.to_h&.dig('repository', 'pullRequest', 'reviewThreads', 'nodes') || []
+    result&.to_h&.dig('repository', 'pullRequest', 'reviewThreads', 'nodes')&.select do |thread|
+      thread['isResolved']
+    end || []
   end
 
   def total_commits(owner, name, branch)
