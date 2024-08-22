@@ -127,29 +127,35 @@ class Fbe::Graph
     def resolved_conversations(owner, name, _number)
       data = {
         zerocracy_baza: [
-          {
-            'id' => 'PRRT_kwDOK2_4A85BHZAR',
-            'isResolved' => true,
-            'comments' => {
-              'nodes' => [
-                {
-                  'id' => 'PRRC_kwDOK2_4A85l3obO',
-                  'body' => 'first message',
-                  'author' => { '__typename' => 'User', 'login' => 'reviewer' },
-                  'createdAt' => '2024-08-08T09:41:46Z'
-                },
-                {
-                  'id' => 'PRRC_kwDOK2_4A85l3yTp',
-                  'body' => 'second message',
-                  'author' => { '__typename' => 'User', 'login' => 'programmer' },
-                  'createdAt' => '2024-08-08T10:01:55Z'
-                }
-              ]
-            }
-          }
+          conversation('PRRT_kwDOK2_4A85BHZAR')
         ]
       }
       data[:"#{owner}_#{name}"] || []
+    end
+
+    private
+
+    def conversation(id)
+      {
+        'id' => id,
+        'isResolved' => true,
+        'comments' => {
+          'nodes' => [
+            {
+              'id' => 'PRRC_kwDOK2_4A85l3obO',
+              'body' => 'first message',
+              'author' => { '__typename' => 'User', 'login' => 'reviewer' },
+              'createdAt' => '2024-08-08T09:41:46Z'
+            },
+            {
+              'id' => 'PRRC_kwDOK2_4A85l3yTp',
+              'body' => 'second message',
+              'author' => { '__typename' => 'User', 'login' => 'programmer' },
+              'createdAt' => '2024-08-08T10:01:55Z'
+            }
+          ]
+        }
+      }
     end
   end
 end
