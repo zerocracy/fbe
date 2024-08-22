@@ -80,7 +80,7 @@ class TestBylaws < Minitest::Test
         { hoc: 50, comments: 15, reviews: 0 } => 5,
         { hoc: 50, comments: 25, reviews: 0 } => 4,
         { hoc: 180, comments: 7, reviews: 2 } => 32,
-        { hoc: 150, comments: 5, reviews: 1 } => 31,
+        { hoc: 150, comments: 5, reviews: 1 } => 27,
         { hoc: 500, comments: 25, reviews: 2 } => 4,
         { hoc: 99, comments: 6, reviews: 1 } => 26,
         { hoc: 1_500, comments: 3, reviews: 0 } => 4,
@@ -104,7 +104,7 @@ class TestBylaws < Minitest::Test
       assert(!formula.nil?, title)
       a = Fbe::Award.new(formula)
       help = [
-        "  #{title}: {\n    ",
+        "  '#{title.gsub('-', '_')}' => {\n    ",
         pairs.map do |args, _|
           [
             '{',

@@ -10,7 +10,7 @@
 
   (aka
     (let b1 {{ 4 | times: love }})
-    (let hours_threshold 24)
+    (let hours_threshold {{ 48 | divided_by: paranoia }})
     (set b1 (if (lt hours hours_threshold) b1 0))
     (give b1 "for resolving it in less than ${hours_threshold} hours")
     "add ${b1} points if it was resolved in less than ${hours_threshold} hours")
