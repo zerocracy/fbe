@@ -80,6 +80,15 @@ class TestGitHubGraph < Minitest::Test
     g = Fbe.github_graph(options:, loog: Loog::NULL, global:)
     result = g.resolved_conversations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
+    result = g.resolved_conversations('zerocracy', 'baza', 0)
+    assert(Array, result.class)
+    assert(0, result.count)
+    result = g.resolved_conversations('zerocracy1', 'baza', 0)
+    assert(Array, result.class)
+    assert(0, result.count)
+    result = g.resolved_conversations('zerocracy', 'baza1', 0)
+    assert(Array, result.class)
+    assert(0, result.count)
   end
 
   def test_gets_total_commits_of_repo
@@ -90,5 +99,19 @@ class TestGitHubGraph < Minitest::Test
     g = Fbe.github_graph(options:, loog: Loog::NULL, global:)
     result = g.total_commits('zerocracy', 'baza', 'master')
     assert(result.positive?)
+  end
+
+  def test_get_fake_empty_conversations
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    result = graph.resolved_conversations(nil, 'baza', 172)
+    assert(result.empty?)
+  end
+
+  def test_get_fake_conversations
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    result = graph.resolved_conversations('zerocracy', 'baza', 172)
+    assert_equal(1, result.count)
   end
 end
