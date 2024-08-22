@@ -31,6 +31,9 @@ require_relative '../fbe'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 def Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
+  raise 'The "anger" must be in the [0..4] interval' unless !anger.negative? && anger < 5
+  raise 'The "lover" must be in the [0..4] interval' unless !love.negative? && love < 5
+  raise 'The "paranoia" must be in the [1..4] interval' unless paranoia.positive? && paranoia < 5
   home = File.join(__dir__, '../../assets/bylaws')
   raise "The directory with templates is absent '#{home}'" unless File.exist?(home)
   Dir[File.join(home, '*.liquid')].to_h do |f|
