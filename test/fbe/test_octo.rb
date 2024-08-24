@@ -166,15 +166,16 @@ class TestOcto < Minitest::Test
   def test_fetches_fake_check_runs_for_ref
     WebMock.disable_net_connect!
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    result = o.check_runs_for_ref('zerocracy/baza', 'sha')
+    sha = 'f2ca1bb6c7e907d06'
+    result = o.check_runs_for_ref('zerocracy/baza', sha)
     assert_equal(7, result[:total_count])
     assert_equal(7, result[:check_runs].count)
-    result = o.check_runs_for_ref('zerocracy/judges-action', 'sha')
+    result = o.check_runs_for_ref('zerocracy/judges-action', sha)
     assert_equal(7, result[:total_count])
     assert_equal(7, result[:check_runs].count)
-    result = o.check_runs_for_ref('zerocracy/something', 'sha')
+    result = o.check_runs_for_ref('zerocracy/something', sha)
     assert_equal(0, result[:total_count])
-    assert_equal(Array, result[:check_runs].class)
+    assert_instance_of(Array, result[:check_runs])
     assert_equal(0, result[:check_runs].count)
   end
 

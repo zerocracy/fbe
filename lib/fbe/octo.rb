@@ -902,11 +902,13 @@ class Fbe::FakeOctokit
         ]
       }
     }
-    data[repo] || { total_count: 0, check_runs: [] }
+    data.fetch(repo) do
+      { total_count: 0, check_runs: [] }
+    end
   end
 
   def workflow_run_job(_repo, job)
-    result = [
+    [
       {
         id: 28_907_016_501,
         run_id: 10_438_531_072,
@@ -956,8 +958,7 @@ class Fbe::FakeOctokit
         started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       }
-    ].select { |json| json[:id] == job }
-    result.first || {
+    ].select { |json| json[:id] == job }.first || {
       id: job,
       run_id: 1234,
       name: 'run job',
@@ -967,7 +968,7 @@ class Fbe::FakeOctokit
   end
 
   def workflow_run(repo, id)
-    runs = [
+    [
       {
         id: 10_438_531_072,
         event: 'pull_request',
@@ -1024,8 +1025,7 @@ class Fbe::FakeOctokit
         started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       }
-    ].select { |json| json[:id] == id }
-    runs.first || {
+    ].select { |json| json[:id] == id }.first || {
       id:,
       name: 'copyrights',
       head_branch: 'master',
