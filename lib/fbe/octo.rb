@@ -541,6 +541,64 @@ class Fbe::FakeOctokit
             changed_files: 2
           }
         }
+      },
+      {
+        id: 43,
+        created_at: Time.now,
+        actor: { id: 42 },
+        type: 'PullRequestEvent',
+        repo: { id: repo },
+        payload: {
+          action: 'closed',
+          number: 172,
+          ref_type: 'tag',
+          ref: 'foo',
+          pull_request: {
+            url: 'https://api.github.com/repos/yegor256/judges/pulls/93',
+            id: 1_990_323_142,
+            node_id: 'PR_kwDOL6GCO852oevG',
+            number: 172,
+            state: 'closed',
+            locked: false,
+            title: '#999 new feature',
+            user: {
+              login: 'test',
+              id: 88_084_038,
+              node_id: 'MDQ6VXNlcjE2NDYwMjA=',
+              type: 'User',
+              site_admin: false
+            },
+            base: {
+              label: 'zerocracy:master',
+              ref: 'master',
+              user: {
+                login: 'zerocracy',
+                id: 24_234_201
+              },
+              repo: {
+                id: repo,
+                node_id: 'R_kgDOK2_4Aw',
+                name: 'judges-action',
+                full_name: 'zerocracy/judges-action',
+                private: false,
+                owner: {
+                  login: 'zerocracy'
+                }
+              }
+            },
+            head: {
+              ref: 'zerocracy/judges-action',
+              sha: '74d0c234967de0f690805c6943e78db42a294c1a'
+            },
+            merged_at: Time.now,
+            comments: 2,
+            review_comments: 2,
+            commits: 1,
+            additions: 3,
+            deletions: 3,
+            changed_files: 2
+          }
+        }
       }
     ]
   end
@@ -698,6 +756,81 @@ class Fbe::FakeOctokit
         check_runs: [
           {
             id: 28_907_016_501,
+            name: 'make',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_603,
+            name: 'copyrights',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_550,
+            name: 'markdown-lint',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_483,
+            name: 'pdd',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_433,
+            name: 'rake',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_405,
+            name: 'shellcheck',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_379,
+            name: 'yamllint',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          }
+        ]
+      },
+      'zerocracy/judges-action' => {
+        total_count: 7,
+        check_runs: [
+          {
+            id: 28_907_016_501,
             name: 'Codacy Static Code Analysis',
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
@@ -824,7 +957,13 @@ class Fbe::FakeOctokit
         completed_at: '2024-08-18T08:20:17Z'
       }
     ].select { |json| json[:id] == job }
-    result.first
+    result.first || {
+      id: job,
+      run_id: 1234,
+      name: 'run job',
+      started_at: '2024-08-18T08:04:44Z',
+      completed_at: '2024-08-18T08:20:17Z'
+    }
   end
 
   def workflow_run(repo, id)
@@ -886,21 +1025,17 @@ class Fbe::FakeOctokit
         completed_at: '2024-08-18T08:20:17Z'
       }
     ].select { |json| json[:id] == id }
-    if runs.first.nil?
-      {
-        id:,
-        name: 'copyrights',
-        head_branch: 'master',
-        head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
-        event: 'push',
-        status: 'completed',
-        conclusion: 'success',
-        workflow_id: id,
-        created_at: random_time,
-        repository: repository(repo)
-      }
-    else
-      runs.first
-    end
+    runs.first || {
+      id:,
+      name: 'copyrights',
+      head_branch: 'master',
+      head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
+      event: 'push',
+      status: 'completed',
+      conclusion: 'success',
+      workflow_id: id,
+      created_at: random_time,
+      repository: repository(repo)
+    }
   end
 end
