@@ -162,4 +162,39 @@ class TestOcto < Minitest::Test
     end
     assert_in_delta(pause, Time.now - start_time, 1)
   end
+
+  def test_fetches_fake_check_runs_for_ref
+    WebMock.disable_net_connect!
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.check_runs_for_ref('zerocracy/baza', 'sha')
+    assert_equal(7, result[:total_count])
+    assert_equal(7, result[:check_runs].count)
+    result = o.check_runs_for_ref('zerocracy/judges-action', 'sha')
+    assert_equal(7, result[:total_count])
+    assert_equal(7, result[:check_runs].count)
+    result = o.check_runs_for_ref('zerocracy/something', 'sha')
+    assert_equal(0, result[:total_count])
+    assert_equal(Array, result[:check_runs].class)
+    assert_equal(0, result[:check_runs].count)
+  end
+
+  def test_fetches_fake_workflow_run
+    WebMock.disable_net_connect!
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    id = 10_438_531_072
+    result = o.workflow_run('zerocracy/baza', id)
+    assert_equal(id, result[:id])
+    result = o.workflow_run('zerocracy/baza', 0)
+    assert_equal(0, result[:id])
+  end
+
+  def test_fetches_fake_workflow_run_job
+    WebMock.disable_net_connect!
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    id = 28_906_596_433
+    result = o.workflow_run_job('zerocracy/baza', id)
+    assert_equal(id, result[:id])
+    result = o.workflow_run_job('zerocracy/baza', 0)
+    assert_equal(0, result[:id])
+  end
 end
