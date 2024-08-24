@@ -691,61 +691,85 @@ class Fbe::FakeOctokit
     ]
   end
 
-  def check_runs_for_ref(_repo, sha)
-    {
-      total_count: 7,
-      check_runs: [
-        {
-          id: 28_907_016_501,
-          name: 'make',
-          head_sha: sha,
-          started_at: '2024-08-18T08:04:44Z',
-          completed_at: '2024-08-18T08:20:17Z'
-        },
-        {
-          id: 28_906_596_603,
-          name: 'copyrights',
-          head_sha: sha,
-          started_at: '2024-08-18T08:04:44Z',
-          completed_at: '2024-08-18T08:20:17Z'
-        },
-        {
-          id: 28_906_596_550,
-          name: 'markdown-lint',
-          head_sha: sha,
-          started_at: '2024-08-18T08:04:44Z',
-          completed_at: '2024-08-18T08:20:17Z'
-        },
-        {
-          id: 28_906_596_483,
-          name: 'pdd',
-          head_sha: sha,
-          started_at: '2024-08-18T08:04:44Z',
-          completed_at: '2024-08-18T08:20:17Z'
-        },
-        {
-          id: 28_906_596_433,
-          name: 'rake',
-          head_sha: sha,
-          started_at: '2024-08-18T08:04:44Z',
-          completed_at: '2024-08-18T08:20:17Z'
-        },
-        {
-          id: 28_906_596_405,
-          name: 'shellcheck',
-          head_sha: sha,
-          started_at: '2024-08-18T08:04:44Z',
-          completed_at: '2024-08-18T08:20:17Z'
-        },
-        {
-          id: 28_906_596_379,
-          name: 'yamllint',
-          head_sha: sha,
-          started_at: '2024-08-18T08:04:44Z',
-          completed_at: '2024-08-18T08:20:17Z'
-        }
-      ]
+  def check_runs_for_ref(repo, sha)
+    data = {
+      'zerocracy/baza' => {
+        total_count: 7,
+        check_runs: [
+          {
+            id: 28_907_016_501,
+            name: 'Codacy Static Code Analysis',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'codacy-production'
+            }
+          },
+          {
+            id: 28_906_596_603,
+            name: 'copyrights',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_550,
+            name: 'markdown-lint',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_483,
+            name: 'pdd',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_433,
+            name: 'rake',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_405,
+            name: 'shellcheck',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          },
+          {
+            id: 28_906_596_379,
+            name: 'yamllint',
+            head_sha: sha,
+            started_at: '2024-08-18T08:04:44Z',
+            completed_at: '2024-08-18T08:20:17Z',
+            app: {
+              slug: 'github-actions'
+            }
+          }
+        ]
+      }
     }
+    data[repo] || { total_count: 0, check_runs: [] }
   end
 
   def workflow_run_job(_repo, job)
