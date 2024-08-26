@@ -91,7 +91,7 @@ class TestBylaws < Minitest::Test
         {} => 8
       },
       'enhancement-suggestion-was-rewarded' => {
-        {} => 16
+        {} => 8
       },
       'dud-was-punished' => {
         {} => -16
