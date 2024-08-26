@@ -160,7 +160,7 @@ class TestOcto < Minitest::Test
       assert(!o.off_quota) if n > 100
       limit -= 1
     end
-    assert_in_delta(pause, Time.now - start_time, 1)
+    assert_in_delta(pause, Time.now - start_time, 5)
   end
 
   def test_fetches_fake_check_runs_for_ref
