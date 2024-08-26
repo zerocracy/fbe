@@ -5,12 +5,12 @@
   (in reviews "the number of reviews provided")
 
   (aka
-    (let basis {{ 4 | times: love }})
+    (let basis {{ 2 | times: love }})
     (give basis "as a basis")
     "award ${basis} points")
 
   (aka
-    (let hoc_k {{ 0.05 | times: love }})
+    (let hoc_k {{ 0.025 | times: love }})
     (let hoc_threshold {{ 400 | divided_by: paranoia }})
     (let hoc_max 16)
     (let hoc_min 5)
@@ -72,7 +72,7 @@
     "deduct ${few_hoc_fee} points if you contribute less than ${hoc_needed} hits-of-code")
 
   (aka
-    (let max 32)
+    (let max 24)
     (set over (if (gt (total) max) (minus max (total)) 0))
     (give over "to not go over the cap")
     (let min 4)
