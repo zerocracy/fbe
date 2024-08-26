@@ -51,13 +51,13 @@ class TestBylaws < Minitest::Test
         { hoc: 30_000, contributors: 1 } => 32
       },
       'resolved-bug-was-rewarded' => {
-        { hours: 1, self: 0 } => 24,
-        { hours: 48, self: 0 } => 14,
-        { hours: 80, self: 0 } => 13,
+        { hours: 1, self: 0 } => 8,
+        { hours: 48, self: 0 } => 4,
+        { hours: 80, self: 0 } => 4,
         { hours: 300, self: 0 } => 4,
         { hours: 3_000, self: 0 } => 4,
         { hours: 30_000, self: 0 } => 4,
-        { hours: 1, self: 1 } => 8
+        { hours: 1, self: 1 } => 4
       },
       'push-to-master-was-punished' => {
         {} => -16

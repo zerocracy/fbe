@@ -4,12 +4,12 @@
   (in self "1 if the bug was reported and resolved by the same person, otherwise zero")
   (set days (div hours 24))
   (aka
-    (let basis {{ 8 | times: love }})
+    (let basis {{ 2 | times: love }})
     (give basis "as a basis")
     "award ${basis} points")
 
   (aka
-    (let b1 {{ 4 | times: love }})
+    (let b1 {{ 2 | times: love }})
     (let hours_threshold {{ 48 | divided_by: paranoia }})
     (set b1 (if (lt hours hours_threshold) b1 0))
     (give b1 "for resolving it in less than ${hours_threshold} hours")
@@ -30,7 +30,7 @@
     "deduct ${day_fee} points for each day of delay, but no more than ${days_fee_max} points")
 
   (aka
-    (let max 24)
+    (let max 16)
     (set over (if (gt (total) max) (minus max (total)) 0))
     (give over "to not go over the cap")
     (let min 4)
