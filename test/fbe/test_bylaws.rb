@@ -87,7 +87,7 @@ class TestBylaws < Minitest::Test
         { hoc: 15_000, comments: 40, reviews: 0 } => 4
       },
       'bug-report-was-rewarded' => {
-        {} => 16
+        {} => 8
       },
       'enhancement-suggestion-was-rewarded' => {
         {} => 16
