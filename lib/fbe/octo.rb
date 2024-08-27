@@ -983,6 +983,7 @@ class Fbe::FakeOctokit
         conclusion: 'success',
         name: 'copyrights',
         started_at: '2024-08-18T08:04:44Z',
+        run_started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       },
       {
@@ -991,6 +992,7 @@ class Fbe::FakeOctokit
         conclusion: 'success',
         name: 'markdown-lint',
         started_at: '2024-08-18T08:04:44Z',
+        run_started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       },
       {
@@ -999,6 +1001,7 @@ class Fbe::FakeOctokit
         conclusion: 'failure',
         name: 'pdd',
         started_at: '2024-08-18T08:04:44Z',
+        run_started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       },
       {
@@ -1007,6 +1010,7 @@ class Fbe::FakeOctokit
         conclusion: 'success',
         name: 'rake',
         started_at: '2024-08-18T08:04:44Z',
+        run_started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       },
       {
@@ -1015,6 +1019,7 @@ class Fbe::FakeOctokit
         conclusion: 'success',
         name: 'shellcheck',
         started_at: '2024-08-18T08:04:44Z',
+        run_started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       },
       {
@@ -1023,6 +1028,7 @@ class Fbe::FakeOctokit
         conclusion: 'failure',
         name: 'yamllint',
         started_at: '2024-08-18T08:04:44Z',
+        run_started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       }
     ].select { |json| json[:id] == id }.first || {
@@ -1035,6 +1041,7 @@ class Fbe::FakeOctokit
       conclusion: 'success',
       workflow_id: id,
       created_at: random_time,
+      run_started_at: random_time,
       repository: repository(repo)
     }
   end
