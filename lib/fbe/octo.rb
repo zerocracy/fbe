@@ -350,6 +350,20 @@ class Fbe::FakeOctokit
           }
         ]
       }
+    elsif query.include?('type:pr') && query.include?('is:merged')
+      {
+        total_count: 1,
+        incomplete_results: false,
+        items: [
+          {
+            id: 42,
+            number: 10,
+            title: 'Awesome PR 10',
+            created_at: Time.parse('2024-08-21 19:00:00 UTC'),
+            merged_at: Time.parse('2024-08-23 19:00:00 UTC')
+          }
+        ]
+      }
     elsif query.include?('type:pr')
       {
         total_count: 2,
