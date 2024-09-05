@@ -320,6 +320,35 @@ class Fbe::FakeOctokit
     ]
   end
 
+  def review_comments(_repo, _number)
+    [
+      {
+        pull_request_review_id: 22_687_249,
+        id: 17_361_949,
+        body: 'Some comment 1',
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        created_at: Time.parse('2024-09-05 15:31:06 UTC'),
+        updated_at: Time.parse('2024-09-05 15:33:04 UTC')
+      },
+      {
+        pull_request_review_id: 22_687_503,
+        id: 17_361_950,
+        body: 'Some comment 2',
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        created_at: Time.parse('2024-09-06 14:20:00 UTC'),
+        updated_at: Time.parse('2024-09-06 14:20:50 UTC')
+      },
+      {
+        pull_request_review_id: 22_687_255,
+        id: 17_361_970,
+        body: 'Some comment 3',
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        created_at: Time.parse('2024-09-06 20:45:30 UTC'),
+        updated_at: Time.parse('2024-09-06 20:45:30 UTC')
+      }
+    ]
+  end
+
   def add_comment(_repo, _issue, _text)
     {
       id: 42
