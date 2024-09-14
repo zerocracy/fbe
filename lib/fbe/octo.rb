@@ -1113,4 +1113,89 @@ class Fbe::FakeOctokit
       repository: repository(repo)
     }
   end
+
+  def compare(_repo, _start, _end)
+    {
+      base_commit: {
+        sha: '498464613c0b9',
+        commit: {
+          author: {
+            name: 'Yegor Bugayenko', email: 'yegor256@gmail.com', date: Time.parse('2024-09-04 15:23:25 UTC')
+          },
+          committer: {
+            name: 'Yegor Bugayenko', email: 'yegor256@gmail.com', date: Time.parse('2024-09-04 15:23:25 UTC')
+          },
+          message: 'Some text',
+          tree: { sha: '51aee236ba884' },
+          comment_count: 0,
+          verification: { verified: false, reason: 'unsigned', signature: nil, payload: nil }
+        },
+        author: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+        committer: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+        parents: [{ sha: '9763dab47b50a12f59c3630690ec2c0f6bdda0b3' }]
+      },
+      merge_base_commit: {
+        sha: '8e4348746638595a7e',
+        commit: {
+          author: {
+            name: 'Yegor Bugayenko', email: 'yegor256@gmail.com', date: Time.parse('2024-08-25 15:57:35 UTC')
+          },
+          committer: {
+            name: 'Yegor Bugayenko', email: 'yegor256@gmail.com', date: Time.parse('2024-08-25 15:57:35 UTC')
+          },
+          message: 'Some text',
+          tree: { sha: '7145fc122e70bf51e1d' },
+          comment_count: 0,
+          verification: { verified: true, reason: 'valid', signature: '', payload: '' }
+        },
+        author: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+        committer: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+        parents: [
+          { sha: '8c8278efedbd795e70' },
+          { sha: '7dfd2e0186113f66f' }
+        ]
+      },
+      status: 'diverged',
+      ahead_by: 1,
+      behind_by: 30,
+      total_commits: 1,
+      commits: [
+        {
+          sha: 'ee04386901692abb',
+          commit: {
+            author: {
+              name: 'Yegor Bugayenko', email: 'yegor256@gmail.com', date: Time.parse('2024-08-25 15:57:35 UTC')
+            },
+            committer: {
+              name: 'Yegor Bugayenko', email: 'yegor256@gmail.com', date: Time.parse('2024-08-25 15:57:35 UTC')
+            },
+            message: 'Some text',
+            tree: { sha: '7a6124a500aed8c92' },
+            comment_count: 0,
+            verification: { verified: false, reason: 'unsigned', signature: nil, payload: nil }
+          },
+          author: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+          committer: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+          parents: [{ sha: '8e4348746638595a7e' }]
+        }
+      ],
+      files: [
+        {
+          sha: '9e100c7246c0cc9', filename: 'file.txt', status: 'modified',
+          additions: 1, deletions: 1, changes: 2,
+          patch: '@@ -24,7 +24,7 @@ text ...'
+        },
+        {
+          sha: 'f97818271059e5455', filename: 'file2.txt', status: 'modified',
+          additions: 1, deletions: 1, changes: 2,
+          patch: '@@ -25,7 +25,7 @@ text ...'
+        },
+        {
+          sha: '5a957c57d090bfeccb', filename: 'file3.txt', status: 'modified',
+          additions: 1, deletions: 1, changes: 2,
+          patch: '@@ -27,7 +27,7 @@ text ...'
+        }
+      ]
+    }
+  end
 end
