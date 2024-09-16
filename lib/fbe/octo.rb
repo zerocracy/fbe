@@ -297,6 +297,69 @@ class Fbe::FakeOctokit
     }
   end
 
+  def pull_requests(_repo, _options = {})
+    [
+      {
+        id: 2_072_543_250,
+        number: 100,
+        state: 'closed',
+        locked: false,
+        title: '#90: some title',
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        body: 'Closes #90',
+        created_at: Time.parse('2024-09-15 09:32:49 UTC'),
+        updated_at: Time.parse('2024-09-15 10:06:23 UTC'),
+        closed_at: Time.parse('2024-09-15 10:05:34 UTC'),
+        merged_at: Time.parse('2024-09-15 10:05:34 UTC'),
+        merge_commit_sha: '0527cc188b0495e',
+        draft: false,
+        head: {
+          label: 'yegor256:90',
+          ref: '90',
+          sha: '0527cc188b049',
+          user: { login: 'yegor256', id: 526_301, type: 'User' },
+          repo: repository('yegor256/repo')
+        },
+        base: {
+          label: 'zerocracy:master',
+          ref: 'master',
+          sha: '4643eb3c7a0ccb3c',
+          user: { login: 'zerocracy', id: 24_234_201, type: 'Organization' },
+          repo: repository('zerocracy/repo')
+        }
+      },
+      {
+        id: 2_072_543_240,
+        number: 95,
+        state: 'open',
+        locked: false,
+        title: '#80: some title',
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        body: 'Closes #80',
+        created_at: Time.parse('2024-09-14 09:32:49 UTC'),
+        updated_at: Time.parse('2024-09-14 10:06:23 UTC'),
+        closed_at: nil,
+        merged_at: nil,
+        merge_commit_sha: '0627cc188b0497e',
+        draft: false,
+        head: {
+          label: 'yegor256:80',
+          ref: '80',
+          sha: '1527cc188b040',
+          user: { login: 'yegor256', id: 526_301, type: 'User' },
+          repo: repository('yegor256/repo')
+        },
+        base: {
+          label: 'zerocracy:master',
+          ref: 'master',
+          sha: '5643eb3c7a0ccb3b',
+          user: { login: 'zerocracy', id: 24_234_201, type: 'Organization' },
+          repo: repository('zerocracy/repo')
+        }
+      }
+    ]
+  end
+
   def pull_request_reviews(_repo, _number)
     [
       {
