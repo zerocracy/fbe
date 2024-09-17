@@ -452,7 +452,7 @@ class Fbe::FakeOctokit
             number: 10,
             title: 'Awesome PR 10',
             created_at: Time.parse('2024-08-21 19:00:00 UTC'),
-            merged_at: Time.parse('2024-08-23 19:00:00 UTC')
+            pull_request: { merged_at: Time.parse('2024-08-23 19:00:00 UTC') }
           }
         ]
       }
