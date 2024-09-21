@@ -39,7 +39,7 @@ class Fbe::Middleware::LoggingFormatter < Faraday::Logging::Formatter
 
   def response(env)
     return super unless log_only_errors?
-    request_with_response(env) if error_status?(env)
+    request_with_response(env) if env.status.nil? || env.status >= 400
   end
 
   def request_with_response(env)
@@ -55,10 +55,6 @@ class Fbe::Middleware::LoggingFormatter < Faraday::Logging::Formatter
     log_body('response', env[:response_body]) if env[:response_body] && log_body?(:response)
     @options[:log_level] = old_log_level
     nil
-  end
-
-  def error_status?(env)
-    env.status.nil? || env.status >= 400
   end
 
   def log_only_errors?
