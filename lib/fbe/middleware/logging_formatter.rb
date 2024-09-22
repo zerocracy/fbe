@@ -43,7 +43,7 @@ class Fbe::Middleware::LoggingFormatter < Faraday::Logging::Formatter
   end
 
   def request_with_response(env)
-    old_log_level = @options[:log_level]
+    oll = @options[:log_level]
     @options[:log_level] = :error
     public_send(log_level, 'request') do
       "#{env.method.upcase} #{apply_filters(env.url.to_s)}"
@@ -53,7 +53,7 @@ class Fbe::Middleware::LoggingFormatter < Faraday::Logging::Formatter
     public_send(log_level, 'response') { "Status #{env.status}" }
     log_headers('response', env.response_headers) if log_headers?(:response)
     log_body('response', env[:response_body]) if env[:response_body] && log_body?(:response)
-    @options[:log_level] = old_log_level
+    @options[:log_level] = oll
     nil
   end
 
