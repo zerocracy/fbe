@@ -108,6 +108,27 @@ class Fbe::Graph
     result.repository.ref.target.history.total_count
   end
 
+  def total_issues_and_pulls(owner, name)
+    result = query(
+      <<~GRAPHQL
+        {
+          repository(owner: "#{owner}", name: "#{name}") {
+            issues {
+              totalCount
+            }
+            pullRequests {
+              totalCount
+            }
+          }
+        }
+      GRAPHQL
+    ).to_h
+    {
+      'issues' => result.dig('repository', 'issues', 'totalCount') || 0,
+      'pulls' => result.dig('repository', 'pullRequests', 'totalCount') || 0
+    }
+  end
+
   # The HTTP class
   class HTTP < GraphQL::Client::HTTP
     def initialize(token, host)
@@ -133,6 +154,13 @@ class Fbe::Graph
         ]
       }
       data[:"#{owner}_#{name}"] || []
+    end
+
+    def total_issues_and_pulls(_owner, _name)
+      {
+        'issues' => 23,
+        'pulls' => 19
+      }
     end
 
     private

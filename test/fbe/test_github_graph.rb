@@ -122,4 +122,13 @@ class TestGitHubGraph < Minitest::Test
     result = graph.resolved_conversations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
   end
+
+  def test_total_issues_and_pulls
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    result = graph.total_issues_and_pulls('zerocracy', 'fbe')
+    refute_empty(result)
+    assert_equal(23, result['issues'])
+    assert_equal(19, result['pulls'])
+  end
 end
