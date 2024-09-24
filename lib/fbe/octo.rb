@@ -664,10 +664,7 @@ class Fbe::FakeOctokit
                 node_id: 'R_kgDOK2_4Aw',
                 name: 'baza',
                 full_name: 'zerocracy/baza',
-                private: false,
-                owner: {
-                  login: 'zerocracy'
-                }
+                private: false
               }
             },
             head: {
@@ -722,10 +719,7 @@ class Fbe::FakeOctokit
                 node_id: 'R_kgDOK2_4Aw',
                 name: 'judges-action',
                 full_name: 'zerocracy/judges-action',
-                private: false,
-                owner: {
-                  login: 'zerocracy'
-                }
+                private: false
               }
             },
             head: {
