@@ -131,4 +131,10 @@ class TestGitHubGraph < Minitest::Test
     assert_equal(23, result['issues'])
     assert_equal(19, result['pulls'])
   end
+
+  def test_fake_total_commits
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    assert_equal(1484, graph.total_commits('zerocracy', 'fbe', 'master'))
+  end
 end
