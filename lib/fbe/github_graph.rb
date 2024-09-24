@@ -163,6 +163,10 @@ class Fbe::Graph
       }
     end
 
+    def total_commits(_owner, _name, _branch)
+      1484
+    end
+
     private
 
     def conversation(id)
