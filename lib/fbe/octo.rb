@@ -1266,4 +1266,74 @@ class Fbe::FakeOctokit
       ]
     }
   end
+
+  def tree(_repo, _tree_sha, _options = {})
+    {
+      sha: '492072971ad3c8644a191f62426bd3',
+      tree: [
+        {
+          path: '.github',
+          mode: '040000',
+          type: 'tree',
+          sha: '438682e07e45ccbf9ca58f294a'
+        },
+        {
+          path: '.github/workflows',
+          mode: '040000',
+          type: 'tree',
+          sha: 'dea8a01c236530cc92a63c5774'
+        },
+        {
+          path: '.github/workflows/actionlint.yml',
+          mode: '100644',
+          type: 'blob',
+          sha: 'ffed2deef2383d6f685489b289',
+          size: 1671
+        },
+        {
+          path: '.github/workflows/copyrights.yml',
+          mode: '100644',
+          type: 'blob',
+          sha: 'ab8357cfd94e0628676aff34cd',
+          size: 1293
+        },
+        {
+          path: '.github/workflows/zerocracy.yml',
+          mode: '100644',
+          type: 'blob',
+          sha: '5c224c7742e5ebeeb176b90605',
+          size: 2005
+        },
+        {
+          path: '.gitignore',
+          mode: '100644',
+          type: 'blob',
+          sha: '9383e7111a173b44baa0692775',
+          size: 27
+        },
+        {
+          path: '.rubocop.yml',
+          mode: '100644',
+          type: 'blob',
+          sha: 'cb9b62eb1979589daa18142008',
+          size: 1963
+        },
+        {
+          path: 'README.md',
+          mode: '100644',
+          type: 'blob',
+          sha: '8011ad43c37edbaf1969417b94',
+          size: 4877
+        },
+        {
+          path: 'Rakefile',
+          mode: '100644',
+          type: 'blob',
+          sha: 'a0ac9bf2643d9f5392e1119301',
+          size: 1805
+        }
+      ],
+      truncated: false
+    }
+  end
 end
