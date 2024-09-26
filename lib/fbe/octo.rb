@@ -1336,4 +1336,51 @@ class Fbe::FakeOctokit
       truncated: false
     }
   end
+
+  def contributors(_repo, _anon = nil, _options = {})
+    [
+      {
+        login: 'yegor256',
+        id: 526_301,
+        type: 'User',
+        contributions: 500
+      },
+      {
+        login: 'renovate[bot]',
+        id: 29_139_614,
+        type: 'Bot',
+        contributions: 320
+      },
+      {
+        login: 'user1',
+        id: 2_476_362,
+        type: 'User',
+        contributions: 120
+      },
+      {
+        login: 'rultor',
+        id: 8_086_956,
+        type: 'Bot',
+        contributions: 87
+      },
+      {
+        login: 'user2',
+        id: 5_427_638,
+        type: 'User',
+        contributions: 49
+      },
+      {
+        login: 'user3',
+        id: 2_648_875,
+        type: 'User',
+        contributions: 10
+      },
+      {
+        login: 'user4',
+        id: 7_125_293,
+        type: 'User',
+        contributions: 1
+      }
+    ]
+  end
 end
