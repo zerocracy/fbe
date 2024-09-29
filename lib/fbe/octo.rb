@@ -520,6 +520,63 @@ class Fbe::FakeOctokit
     }
   end
 
+  def search_commits(_query, _options = {})
+    {
+      total_count: 3,
+      incomplete_results: false,
+      items: [
+        {
+          commit: {
+            author: { name: 'Yegor', email: 'yegor@gmail.com', date: Time.parse('2024-09-15 12:23:25 UTC') },
+            committer: { name: 'Yegor', email: 'yegor@gmail.com', date: Time.parse('2024-09-15 12:23:25 UTC') },
+            message: 'Some text',
+            tree: { sha: '6e04579960bf67610d' },
+            comment_count: 0
+          },
+          author: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+          committer: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+          parents: [{ sha: '60cff20bdb66' }],
+          repository: {
+            id: 799_177_290, name: 'judges-action', full_name: 'zerocracy/judges-action',
+            owner: { login: 'zerocracy', id: 24_234_201, type: 'Organization', site_admin: false }
+          }
+        },
+        {
+          commit: {
+            author: { name: 'Yegor', email: 'yegor2@gmail.com', date: Time.parse('2024-09-14 12:23:25 UTC') },
+            committer: { name: 'Yegor', email: 'yegor2@gmail.com', date: Time.parse('2024-09-14 12:23:25 UTC') },
+            message: 'Some text 2',
+            tree: { sha: 'defa18e4e2250987' },
+            comment_count: 0
+          },
+          author: { login: 'yegor257', id: 526_302, type: 'User', site_admin: false },
+          committer: { login: 'yegor257', id: 526_302, type: 'User', site_admin: false },
+          parents: [{ sha: 'a04c15bb34fddbba' }],
+          repository: {
+            id: 799_177_290, name: 'judges-action', full_name: 'zerocracy/judges-action',
+            owner: { login: 'zerocracy', id: 24_234_201, type: 'Organization', site_admin: false }
+          }
+        },
+        {
+          commit: {
+            author: { name: 'Yegor', email: 'yegor3@gmail.com', date: Time.parse('2024-09-13 12:23:25 UTC') },
+            committer: { name: 'Yegor', email: 'yegor3@gmail.com', date: Time.parse('2024-09-13 12:23:25 UTC') },
+            message: 'Some text 3',
+            tree: { sha: 'bb7277441139739b902a' },
+            comment_count: 0
+          },
+          author: { login: 'yegor258', id: 526_303, type: 'User', site_admin: false },
+          committer: { login: 'yegor258', id: 526_303, type: 'User', site_admin: false },
+          parents: [{ sha: '18db84d469bb727' }],
+          repository: {
+            id: 799_177_290, name: 'judges-action', full_name: 'zerocracy/judges-action',
+            owner: { login: 'zerocracy', id: 24_234_201, type: 'Organization', site_admin: false }
+          }
+        }
+      ]
+    }
+  end
+
   def issue_timeline(_repo, _issue, _options = {})
     [
       {
