@@ -497,7 +497,8 @@ class Fbe::FakeOctokit
               {
                 name: 'bug'
               }
-            ]
+            ],
+            created_at: Time.parse('2024-08-20 19:00:00 UTC')
           }
         ]
       }
