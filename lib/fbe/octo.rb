@@ -291,7 +291,8 @@ class Fbe::FakeOctokit
       },
       pull_request: {
         merged_at: nil
-      }
+      },
+      created_at: Time.parse('2024-09-20 19:00:00 UTC')
     }
   end
 
@@ -498,6 +499,7 @@ class Fbe::FakeOctokit
                 name: 'bug'
               }
             ],
+            user: { login: 'yegor256', id: 526_301, type: 'User' },
             created_at: Time.parse('2024-08-20 19:00:00 UTC')
           }
         ]
