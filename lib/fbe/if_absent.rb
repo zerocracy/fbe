@@ -47,7 +47,7 @@ require_relative 'fb'
 # time of its first creation.
 #
 # @param [Factbase] fb The global factbase
-# @yields [Factbase::Fact] The fact just created
+# @yield [Factbase::Fact] The fact just created
 # @return [nil|Factbase::Fact] Either +nil+ if it's already there or a new fact
 def Fbe.if_absent(fb: Fbe.fb)
   attrs = {}
