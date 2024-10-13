@@ -22,27 +22,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'loog'
 require 'decoor'
+require 'faraday/http_cache'
+require 'faraday/retry'
+require 'loog'
 require 'obk'
 require 'octokit'
 require 'verbose'
-require 'faraday/http_cache'
-require 'faraday/retry'
 require_relative '../fbe'
 require_relative 'middleware'
-require_relative 'middleware/quota'
 require_relative 'middleware/logging_formatter'
+require_relative 'middleware/quota'
 
-# Interface to GitHub API.
+# Makes a call to the GitHub API.
 #
-# It is supposed to be used instead of Octokit client, because it
-# is pre-configured and enables additional fearues, such as retrying,
+# It is supposed to be used instead of +Octokit::Client+, because it
+# is pre-configured and enables additional features, such as retrying,
 # logging, and caching.
 #
 # @param [Judges::Options] options The options available globally
 # @param [Hash] global Hash of global options
 # @param [Loog] loog Logging facility
+# @return [Hash] Usually returns a JSON, as it comes from the GitHub API
 def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $global is not set' if global.nil?
   global[:octo] ||=

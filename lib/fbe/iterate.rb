@@ -23,9 +23,9 @@
 # SOFTWARE.
 
 require_relative '../fbe'
-require_relative 'unmask_repos'
-require_relative 'octo'
 require_relative 'fb'
+require_relative 'octo'
+require_relative 'unmask_repos'
 
 # Creates an instance of {Fbe::Iterate}.
 def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
@@ -33,7 +33,7 @@ def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
   c.instance_eval(&)
 end
 
-# Iterate.
+# An iterator.
 #
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

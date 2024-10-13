@@ -32,6 +32,7 @@ require_relative '../fbe'
 #
 # @param [Factbase::Fact] fact The fact, where to get the number of seconds
 # @param [String] prop The property in the fact, with the seconds
+# @return [String] Time interval as a text
 def Fbe.sec(fact, prop = :seconds)
   s = fact[prop.to_s]
   raise "There is no #{prop.inspect} property" if s.nil?

@@ -23,8 +23,8 @@
 # SOFTWARE.
 
 require 'others'
-require_relative 'fb'
 require_relative '../fbe'
+require_relative 'fb'
 
 # Takes configuration parameter from the "PMP" fact.
 #

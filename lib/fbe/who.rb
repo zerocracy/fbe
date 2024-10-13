@@ -23,6 +23,7 @@
 # SOFTWARE.
 
 require_relative '../fbe'
+require_relative 'octo'
 
 # Converts an ID of GitHub user into a nicely formatting string with his name.
 #
