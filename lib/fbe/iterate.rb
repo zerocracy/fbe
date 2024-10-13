@@ -41,6 +41,11 @@ end
 
 # An iterator.
 #
+# Here, you go through all repositories defined by the +repositories+ option
+# in the +$options+, trying to run the provided query for each of them. If the
+# query returns an integer that is different from the previously seen, the
+# function keeps repeating the cycle. Otherwise, it will restart from the
+# beginning.
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
