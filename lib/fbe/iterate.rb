@@ -27,13 +27,13 @@ require_relative 'fb'
 require_relative 'octo'
 require_relative 'unmask_repos'
 
-# Creates an instance of {Fbe::Iterate}.
+# Creates an instance of {Fbe::Iterate} and evals it with the block provided.
 #
 # @param [Factbase] fb The global factbase provided by the +judges+ tool
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Hash] global The hash for global caching
 # @param [Loog] loog The logging facility
-# @return [Fbe::Iterate] The instance of the class
+# @yield [Factbase::Fact] The fact
 def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
   c = Fbe::Iterate.new(fb:, loog:, options:, global:)
   c.instance_eval(&)
@@ -46,6 +46,12 @@ end
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
 class Fbe::Iterate
+  # Ctor.
+  #
+  # @param [Factbase] fb The factbase
+  # @param [Loog] loog The logging facility
+  # @param [Judges::Options] options The options coming from the +judges+ tool
+  # @param [Hash] global The hash for global caching
   def initialize(fb:, loog:, options:, global:)
     @fb = fb
     @loog = loog
@@ -67,18 +73,30 @@ class Fbe::Iterate
     @quota_aware = true
   end
 
+  # Sets the total counter of repeats to make.
+  #
+  # @param [Integer] repeats The total count of them
+  # @return [nil] Nothing
   def repeats(repeats)
     raise 'Cannot set "repeats" to nil' if repeats.nil?
     raise 'The "repeats" must be a positive integer' unless repeats.positive?
     @repeats = repeats
   end
 
+  # Sets the query to run.
+  #
+  # @param [String] query The query
+  # @return [nil] Nothing
   def by(query)
     raise 'Query is already set' unless @query.nil?
     raise 'Cannot set query to nil' if query.nil?
     @query = query
   end
 
+  # Sets the label to use in the "marker" fact.
+  #
+  # @param [String] label The label
+  # @return [nil] Nothing
   def as(label)
     raise 'Label is already set' unless @label.nil?
     raise 'Cannot set "label" to nil' if label.nil?
