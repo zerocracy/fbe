@@ -29,6 +29,20 @@ require_relative 'fb'
 
 # Injects a fact if it's absent in the factbase, otherwise (it is already
 # there) returns the existing one.
+#
+#  require 'fbe/just_one'
+#  n =
+#   Fbe.just_one do |f|
+#     f.what = 'something'
+#     f.details = 'important'
+#   end
+#
+# This code will guarantee that only one fact with +what+ equals to +something+
+# and +details+ equals to +important+ may exist.
+#
+# @param [Factbase] fb The global factbase
+# @yield [Factbase::Fact] The fact that was either created or found
+# @return [Factbase::Fact] The fact found
 def Fbe.just_one(fb: Fbe.fb)
   attrs = {}
   f =
