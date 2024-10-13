@@ -87,7 +87,7 @@ class Fbe::Conclude
   #
   # @param [Arra<String>] props List of property names
   def follow(props)
-    @follows = props.split
+    @follows = props.strip.split.compact
   end
 
   # Create new fact from every fact found by the query.
@@ -97,6 +97,7 @@ class Fbe::Conclude
   #  require 'fbe/conclude'
   #  conclude do
   #    on '(exist win)'
+  #    follow 'win when'
   #    draw on |n, w|
   #      n.reward = 10
   #    end
