@@ -37,6 +37,7 @@ require_relative 'octo'
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Hash] global The hash for global caching
 # @param [Loog] loog The logging facility
+# @return [String] Full name of the user
 def Fbe.who(fact, prop = :who, options: $options, global: $global, loog: $loog)
   id = fact[prop.to_s]
   raise "There is no #{prop.inspect} property" if id.nil?
