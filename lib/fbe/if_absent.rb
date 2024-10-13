@@ -71,7 +71,8 @@ def Fbe.if_absent(fb: Fbe.fb)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  return nil unless fb.query(q).each.to_a.empty?
+  before = fb.query(q).each.to_a.first
+  return nil if before
   n = fb.insert
   attrs.each { |k, v| n.send("#{k}=", v) }
   n
