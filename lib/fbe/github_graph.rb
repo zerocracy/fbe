@@ -22,15 +22,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'loog'
 require 'graphql/client'
 require 'graphql/client/http'
+require 'loog'
 
-# Interface to GitHub GraphQL API.
+# Creates an instance of {Fbe::Graph}.
 #
 # @param [Judges::Options] options The options available globally
 # @param [Hash] global Hash of global options
 # @param [Loog] loog Logging facility
+# @return [Fbe::Graph] The instance of the class
 def Fbe.github_graph(options: $options, global: $global, loog: $loog)
   global[:github_graph] ||=
     if options.testing.nil?
@@ -41,7 +42,11 @@ def Fbe.github_graph(options: $options, global: $global, loog: $loog)
     end
 end
 
-# The GitHub GraphQL client
+# A client to GitHub GraphQL.
+#
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2024 Zerocracy
+# License:: MIT
 class Fbe::Graph
   def initialize(token:, host: 'api.github.com')
     @token = token
