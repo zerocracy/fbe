@@ -94,6 +94,7 @@ class Fbe::Conclude
   #
   # For example, you want to conclude a +reward+ from every +win+ fact:
   #
+  #  require 'fbe/conclude'
   #  conclude do
   #    on '(exist win)'
   #    draw on |n, w|
@@ -120,6 +121,7 @@ class Fbe::Conclude
   #
   # For example, you want to add +when+ property to every fact:
   #
+  #  require 'fbe/conclude'
   #  conclude do
   #    on '(always)'
   #    consider on |f|
