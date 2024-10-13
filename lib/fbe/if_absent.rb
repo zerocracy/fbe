@@ -22,13 +22,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'time'
 require 'others'
+require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 
 # Injects a fact if it's absent in the factbase, otherwise (it is already
 # there) returns NIL.
+#
+# Here is what you do when you want to add a fact to the factbase, but
+# don't want to make a duplicate of an existing one:
+#
+#  require 'fbe/if_absent'
+#  n =
+#   Fbe.if_absent do |f|
+#     f.what = 'something'
+#     f.details = 'important'
+#   end
+#  return if n.nil?
+#  n.when = Time.now
+#
+# This code will definitely create one fact with +what+ equals to +something+
+# and +details+ equals to +important+, while the +when+ will be equal to the
+# time of its first creation.
+#
+# @param [Factbase] fb The global factbase
+# @return [nil|Factbase::Fact] Either +nil+ if it's already there or a new fact
 def Fbe.if_absent(fb: Fbe.fb)
   attrs = {}
   f =
