@@ -43,8 +43,22 @@ end
 # A concluding block.
 #
 # You may want to use this class when you want to go through a number
-# of facts in the factbase, applying certain algorithm to each of them.
-# For example, you want to check whether each issue exists in
+# of facts in the factbase, applying certain algorithm to each of them
+# and possibly creating new facts from them.
+#
+# For example, you want to make a new +good+ fact for every +bad+ fact found:
+#
+#  require 'fbe/conclude'
+#  conclude do
+#    on '(exist bad)'
+#    follow 'when'
+#    draw on |n, b|
+#      n.good = 'yes!'
+#    end
+#  end
+#
+# This snippet will find all facts that have +bad+ property and then create
+# new facts, letting the block in the {Fbe::Conclude#draw} deal with them.
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
