@@ -28,6 +28,12 @@ require_relative 'octo'
 require_relative 'unmask_repos'
 
 # Creates an instance of {Fbe::Iterate}.
+#
+# @param [Factbase] fb The global factbase provided by the +judges+ tool
+# @param [Judges::Options] options The options coming from the +judges+ tool
+# @param [Hash] global The hash for global caching
+# @param [Loog] loog The logging facility
+# @return [Fbe::Iterate] The instance of the class
 def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
   c = Fbe::Iterate.new(fb:, loog:, options:, global:)
   c.instance_eval(&)

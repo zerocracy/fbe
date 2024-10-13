@@ -25,6 +25,10 @@
 require 'faraday'
 
 # Faraday Middleware that monitors GitHub API rate limits.
+#
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2024 Zerocracy
+# License:: MIT
 class Fbe::Middleware::Quota < Faraday::Middleware
   def initialize(app, loog: Loog::NULL, pause: 60, limit: 100, rate: 5)
     super(app)

@@ -25,6 +25,10 @@
 require_relative '../fbe'
 
 # The module.
+#
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2024 Zerocracy
+# License:: MIT
 module Fbe::Middleware
   # empty
 end

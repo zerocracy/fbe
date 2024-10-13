@@ -33,6 +33,7 @@ require_relative 'overwrite'
 # @param [Factbase] fb The factbase
 # @param [String] judge The name of the judge, from the +judges+ tool
 # @param [Loog] loog The logging facility
+# @return [nil] Nothing
 def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &)
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_hours}))").each.to_a.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
@@ -51,4 +52,5 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   end
   Fbe.overwrite(f, 'when', Time.now)
   yield fb.query("(and (eq what '#{judge}'))").each.to_a.first
+  nil
 end
