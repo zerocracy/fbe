@@ -58,6 +58,11 @@ class Fbe::Iterate
     @quota_aware = false
   end
 
+  # Make this block aware of GitHub API quota.
+  #
+  # When the quota is reached, the loop will gracefully stop.
+  #
+  # @return [nil] Nothing
   def quota_aware
     @quota_aware = true
   end
@@ -81,10 +86,13 @@ class Fbe::Iterate
   end
 
   # It makes a number of repeats of going through all repositories
-  # provided by the "repositories" configuration option. In each "repeat"
+  # provided by the +repositories+ configuration option. In each "repeat"
   # it yields the repository ID and a number that is retrieved by the
-  # "query". The query is supplied with two parameter:
-  # "$before" (the value from the previous repeat and "$rid" (the repo ID).
+  # +query+. The query is supplied with two parameter:
+  # +$before+ the value from the previous repeat and +$repository+ (GitHub repo ID).
+  #
+  # @yield [Array<Integer, Integer>] Repository ID and the next number to be considered
+  # @return [nil] Nothing
   def over(&)
     raise 'Use "as" first' if @label.nil?
     raise 'Use "by" first' if @query.nil?
