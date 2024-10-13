@@ -42,6 +42,9 @@ end
 
 # A concluding block.
 #
+# You may want to use this class when you want to go through a number
+# of facts in the factbase, applying certain algorithm to each of them.
+# For example, you want to check whether each issue exists in
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
@@ -65,19 +68,46 @@ class Fbe::Conclude
     @quota_aware = false
   end
 
+  # Make this block aware of GitHub API quota.
+  #
+  # When the quota is reached, the
   def quota_aware
     @quota_aware = true
   end
 
+  # Set the query that should find the facts in the factbase.
+  #
+  # @param [String] query The query
   def on(query)
     raise 'Query is already set' unless @query.nil?
     @query = query
   end
 
+  # Set the list of properties to copy from the facts found to new facts.
+  #
+  # @param [Arra<String>] props List of property names
   def follow(props)
     @follows = props.split
   end
 
+  # Create new fact from every fact found by the query.
+  #
+  # For example, you want to conclude a +reward+ from every +win+ fact:
+  #
+  #  conclude do
+  #    on '(exist win)'
+  #    draw on |n, w|
+  #      n.reward = 10
+  #    end
+  #  end
+  #
+  # This snippet will find all facts that have +win+ property and will create
+  # new facts for all of them, passing them one by one in to the block of
+  # the +draw+, where +n+ would be the new created fact and the +w+ would
+  # be the fact found.
+  #
+  # @yield [Array<Factbase::Fact,Factbase::Fact>] New fact and seen fact
+  # @return [Integer] The count of the facts processed
   def draw(&)
     roll do |fbt, a|
       n = fbt.insert
@@ -86,14 +116,19 @@ class Fbe::Conclude
     end
   end
 
-  def maybe(&)
-    roll do |fbt, a|
-      Fbe.if_absent(fb: fbt) do |n|
-        fill(n, a, &)
-      end
-    end
-  end
-
+  # Take every fact, allowing the given block to process it.
+  #
+  # For example, you want to add +when+ property to every fact:
+  #
+  #  conclude do
+  #    on '(always)'
+  #    consider on |f|
+  #      f.when = Time.new
+  #    end
+  #  end
+  #
+  # @yield [Factbase::Fact] The next fact found by the query
+  # @return [Integer] The count of the facts processed
   def consider(&)
     roll do |_fbt, a|
       yield a
@@ -103,6 +138,8 @@ class Fbe::Conclude
 
   private
 
+  # @yield [Factbase::Fact] The next fact found by the query
+  # @return [Integer] The count of the facts seen
   def roll(&)
     passed = 0
     catch :stop do
@@ -116,6 +153,7 @@ class Fbe::Conclude
       end
     end
     @loog.debug("Found and processed #{passed} facts by: #{@query}")
+    passed
   end
 
   def fill(fact, prev)

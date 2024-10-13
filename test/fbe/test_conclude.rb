@@ -64,26 +64,6 @@ class TestConclude < Minitest::Test
     assert_equal('something funny', f.details)
   end
 
-  def test_maybe
-    options = Judges::Options.new
-    fb = Fbe.fb(fb: Factbase.new, global: {}, options:, loog: Loog::NULL)
-    fb.insert.foo = 1
-    Fbe.conclude(fb:, judge: 'issue-was-opened', loog: Loog::NULL, options:, global: {}) do
-      on '(exists foo)'
-      maybe do |n, prev|
-        n.repository = 111
-        n.where = 'github'
-        n.issue = prev.foo
-        n.who = 777
-        n.when = Time.now
-        "it's a test." * 20
-      end
-    end
-    f = fb.query('(exists issue)').each.to_a[0]
-    assert_equal(1, f.issue)
-    assert(f._id.positive?)
-  end
-
   def test_consider
     fb = Factbase.new
     fb.insert.foo = 1
