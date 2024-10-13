@@ -34,12 +34,15 @@ require_relative 'if_absent'
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Loog] loog The logging facility
+# @return [Fbe::Conclude] The instance of the class
 def Fbe.conclude(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global, &)
   c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:)
   c.instance_eval(&)
 end
 
-# Conclude.
+# A concluding block.
+#
+#
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT

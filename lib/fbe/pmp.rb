@@ -38,6 +38,7 @@ require_relative 'fb'
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Loog] loog The logging facility
+# @return [String|Integer] The value of the property found
 def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
   others do |*args1|
     area = args1.first
@@ -47,9 +48,9 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
     others do |*args2|
       param = args2.first
       f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.to_a.first
-      raise "Unknown area '#{area}'" if f.nil?
+      raise "Unknown area #{area.inspect}" if f.nil?
       r = f[param]
-      raise "Unknown property '#{param}' in the '#{area}' area" if r.nil?
+      raise "Unknown property #{param.inspect} in the #{area.inspect} area" if r.nil?
       r.first
     end
   end
