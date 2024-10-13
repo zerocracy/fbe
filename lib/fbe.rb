@@ -20,12 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# The module.
+# The main and only module of this gem.
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT
 module Fbe
-  # Current version of the gem (changed by .rultor.yml on every release)
+  # Current version of the gem (changed by +.rultor.yml+ on every release)
   VERSION = '0.0.0'
 end

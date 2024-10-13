@@ -27,13 +27,15 @@ require_relative 'unmask_repos'
 require_relative 'octo'
 require_relative 'fb'
 
-# Create a conclude code block.
+# Creates an instance of {Fbe::Iterate}.
 def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
   c = Fbe::Iterate.new(fb:, loog:, options:, global:)
   c.instance_eval(&)
 end
 
 # Iterate.
+#
+#
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Zerocracy
 # License:: MIT

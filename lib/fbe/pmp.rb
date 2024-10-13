@@ -26,7 +26,13 @@ require 'others'
 require_relative 'fb'
 require_relative '../fbe'
 
-# Get configuration parameter from the "PMP" fact.
+# Takes configuration parameter from the "PMP" fact.
+#
+# The factbase may have a few facts with the +what+ set to +pmp+ (stands for
+# "project management plan"). These facts contain information that configure
+# the project. It is expected that every fact with the +what+ set to +pmp+ also
+# contains the +area+ property, which is set to one of nine values: +scope+,
+# +time+, +cost+, etc. (by nine process areas in the PMBOK).
 #
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching
@@ -35,6 +41,9 @@ require_relative '../fbe'
 def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
   others do |*args1|
     area = args1.first
+    unless %w[cost scope hr time procurement risk integration quality communication].include?(area.to_s)
+      raise "Invalid area #{area.inspect} (not part of PMBOK)"
+    end
     others do |*args2|
       param = args2.first
       f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.to_a.first

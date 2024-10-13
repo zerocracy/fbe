@@ -27,7 +27,7 @@ require_relative 'fb'
 require_relative 'octo'
 require_relative 'if_absent'
 
-# Create a conclude code block.
+# Creates an instance of {Fbe::Conclude}.
 #
 # @param [Factbase] fb The factbase
 # @param [String] judge The name of the judge, from the +judges+ tool
