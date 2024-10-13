@@ -133,7 +133,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         def repo_id_by_name(name)
           json = @origin.repository(name)
           id = json[:id]
-          @loog.debug("GitHub repository #{name} has an ID: ##{id}")
+          @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
           id
         end
 
