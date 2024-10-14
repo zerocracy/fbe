@@ -33,6 +33,7 @@ require_relative '../fbe'
 # @param [Loog] loog The logging facility
 # @return [String] Full name of the user
 def Fbe.enter(badge, why, options: $options, loog: $loog, &)
+  return yield unless options.testing.nil?
   baza = BazaRb.new('api.zerocracy.com', 443, options.zerocracy_token, loog:)
   baza.enter(options.job_name, badge, why, options.job_id.to_i, &)
 end
