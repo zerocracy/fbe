@@ -246,7 +246,7 @@ class Fbe::FakeOctokit
       created_at: random_time,
       updated_at: random_time,
       pushed_at: random_time,
-      size: 470,
+      size: name == 'yegor256/empty-repo' ? 0 : 470,
       stargazers_count: 1,
       watchers_count: 1,
       language: 'Ruby',
