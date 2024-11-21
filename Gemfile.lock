@@ -152,7 +152,7 @@ GEM
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
     loog (0.6.0)
-    minitest (5.25.1)
+    minitest (5.25.2)
     minitest-reporters (1.7.1)
       ansi
       builder
@@ -293,7 +293,7 @@ PLATFORMS
 DEPENDENCIES
   fbe!
   graphql-client
-  minitest (= 5.25.1)
+  minitest (= 5.25.2)
   minitest-reporters (= 1.7.1)
   rake (= 13.2.1)
   rspec-rails (= 7.1.0)
