@@ -116,7 +116,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         def off_quota
           left = @origin.rate_limit.remaining
           if left < 5
-            @loog.info("To much GitHub API quota consumed already (remaining=#{left}), stopping")
+            @loog.info("Too much GitHub API quota consumed already (remaining=#{left}), stopping")
             true
           else
             false
