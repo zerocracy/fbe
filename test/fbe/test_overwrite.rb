@@ -46,6 +46,15 @@ class TestOverwrite < Minitest::Test
     assert_equal(2, fb.query('(always)').each.to_a.first['many'].size)
   end
 
+  def test_overwrite_twice
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f2 = Fbe.overwrite(f, 'foo', 42, fb:)
+    Fbe.overwrite(f2, 'bar', 7, fb:)
+    assert_equal(42, fb.query('(exists foo)').each.to_a.first.foo)
+  end
+
   def test_no_need_to_overwrite
     fb = Factbase.new
     f = fb.insert
