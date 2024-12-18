@@ -50,6 +50,8 @@ Metrics/PerceivedComplexity:
   Enabled: false
 Metrics/ClassLength:
   Enabled: false
+Style/SafeNavigationChainLength:
+  Enabled: false
 Layout/EmptyLineAfterGuardClause:
   Enabled: false
 Naming/MethodParameterName:
