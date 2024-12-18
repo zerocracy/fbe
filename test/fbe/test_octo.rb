@@ -77,6 +77,14 @@ class TestOcto < Minitest::Test
     o.user('yegor256')
   end
 
+  def test_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: '{}', headers: { 'X-RateLimit-Remaining' => '1000' })
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert(!o.off_quota)
+  end
+
   def test_retrying
     WebMock.disable_net_connect!
     global = {}
