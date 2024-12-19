@@ -70,6 +70,7 @@ def Fbe.unmask_repos(options: $options, global: $global, loog: $loog)
   end
   repos.reject! { |repo| octo.repository(repo)[:archived] }
   raise "No repos found matching: #{options.repositories}" if repos.empty?
+  repos.shuffle!
   loog.debug("Scanning #{repos.size} repositories: #{repos.join(', ')}...")
-  repos.shuffle
+  repos
 end
