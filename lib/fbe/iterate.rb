@@ -22,6 +22,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+require 'tago'
+require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 require_relative 'octo'
@@ -114,17 +116,23 @@ class Fbe::Iterate
   # +query+. The query is supplied with two parameter:
   # +$before+ the value from the previous repeat and +$repository+ (GitHub repo ID).
   #
+  # @param [Float] timeout How many seconds to spend as a maximum
   # @yield [Array<Integer, Integer>] Repository ID and the next number to be considered
   # @return [nil] Nothing
-  def over(&)
+  def over(timeout: 2 * 60, &)
     raise 'Use "as" first' if @label.nil?
     raise 'Use "by" first' if @query.nil?
     seen = {}
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     repos = Fbe.unmask_repos(loog: @loog, options: @options, global: @global)
     restarted = []
+    start = Time.now
     loop do
       repos.each do |repo|
+        if Time.now - start > timeout
+          $loog.info("We are doing this for #{start.ago} already, won't check #{repo}")
+          next
+        end
         next if restarted.include?(repo)
         seen[repo] = 0 if seen[repo].nil?
         if seen[repo] >= @repeats
@@ -179,6 +187,6 @@ class Fbe::Iterate
         break
       end
     end
-    @loog.debug("Finished scanning #{repos.size} repos: #{seen.map { |k, v| "#{k}:#{v}" }.join(', ')}")
+    @loog.debug("Finished scanning #{repos.size} repos in #{start.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.join(', ')}")
   end
 end
