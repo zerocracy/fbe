@@ -86,7 +86,7 @@ GEM
     elapsed (0.0.1)
       loog (> 0)
       tago (> 0)
-    erubi (1.13.0)
+    erubi (1.13.1)
     ethon (0.16.0)
       ffi (>= 1.15.0)
     factbase (0.4.0)
@@ -130,8 +130,8 @@ GEM
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     iri (0.8.0)
-    json (2.9.0)
-    judges (0.27.0)
+    json (2.9.1)
+    judges (0.28.1)
       backtrace (~> 0)
       baza.rb (~> 0)
       concurrent-ruby (~> 1.2)
@@ -148,7 +148,7 @@ GEM
       typhoeus (~> 1.3)
     language_server-protocol (3.17.0.3)
     liquid (5.5.1)
-    logger (1.6.3)
+    logger (1.6.4)
     loofah (2.23.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
@@ -290,6 +290,7 @@ GEM
 PLATFORMS
   arm64-darwin-22
   arm64-darwin-23
+  arm64-darwin-24
   x64-mingw-ucrt
   x86_64-darwin-20
   x86_64-darwin-21
@@ -311,4 +312,4 @@ DEPENDENCIES
   yard (= 0.9.37)
 
 BUNDLED WITH
-   2.4.22
+   2.5.16

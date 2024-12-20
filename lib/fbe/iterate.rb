@@ -175,15 +175,15 @@ class Fbe::Iterate
         end
       end
       if oct.off_quota
-        @loog.debug('We are off GitHub quota, time to stop')
+        @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
         break
       end
       unless seen.any? { |r, v| v < @repeats && !restarted.include?(r) }
-        @loog.debug("No more repos to scan (out of #{repos.size}), quitting")
+        @loog.debug("No more repos to scan (out of #{repos.size}), quitting after #{start.ago}")
         break
       end
       if restarted.size == repos.size
-        @loog.debug("All #{repos.size} repos restarted, quitting")
+        @loog.debug("All #{repos.size} repos restarted, quitting after #{start.ago}")
         break
       end
     end

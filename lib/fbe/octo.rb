@@ -31,7 +31,7 @@ require 'octokit'
 require 'verbose'
 require_relative '../fbe'
 require_relative 'middleware'
-require_relative 'middleware/logging_formatter'
+require_relative 'middleware/formatter'
 require_relative 'middleware/quota'
 
 # Makes a call to the GitHub API.
@@ -93,17 +93,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             builder.use(Fbe::Middleware::Quota, loog:, pause: options.github_api_pause || 60)
             builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
             builder.use(Octokit::Response::RaiseError)
-            builder.use(
-              Faraday::Response::Logger,
-              loog,
-              {
-                formatter: Fbe::Middleware::LoggingFormatter,
-                log_only_errors: true,
-                headers: true,
-                bodies: true,
-                errors: false
-              }
-            )
+            builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
             builder.adapter(Faraday.default_adapter)
           end
         o.middleware = stack

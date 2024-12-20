@@ -51,9 +51,7 @@ class Fbe::Middleware::Quota < Faraday::Middleware
     @requests += 1
     response = @app.call(env)
     if out_of_limit?(env)
-      @loog.info(
-        "Too much GitHub API quota consumed, pausing for #{@pause} seconds"
-      )
+      @loog.info("Too much GitHub API quota consumed, pausing for #{@pause} seconds")
       sleep(@pause)
       @requests = 0
     end
