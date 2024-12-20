@@ -22,9 +22,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-require 'minitest/autorun'
 require 'faraday'
 require 'loog'
+require 'minitest/autorun'
 require_relative '../../../lib/fbe'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/formatter'
