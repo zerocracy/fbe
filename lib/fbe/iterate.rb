@@ -186,6 +186,10 @@ class Fbe::Iterate
         @loog.debug("All #{repos.size} repos restarted, quitting after #{start.ago}")
         break
       end
+      if Time.now - start > timeout
+        $loog.info("We are iterating for #{start.ago} already, time to give up")
+        next
+      end
     end
     @loog.debug("Finished scanning #{repos.size} repos in #{start.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.join(', ')}")
   end
