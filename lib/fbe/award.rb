@@ -52,7 +52,7 @@ class Fbe::Award
   # @param [String] query The query with the bylaw
   # @param [String] judge The name of the judge
   def initialize(query = nil, judge: $judge, global: $global, options: $options, loog: $loog)
-    query = Fbe.pmp(fb: Fbe.fb, global:, options:, loog:).hr.send(judge.gsub('-', '_')) if query.nil?
+    query = Fbe.pmp(fb: Fbe.fb, global:, options:, loog:).hr.send(judge.tr('-', '_')) if query.nil?
     @query = query
   end
 
@@ -288,7 +288,7 @@ class Fbe::Award
           9 => '₉'
         }
         s.gsub!(/([a-z]+)([0-9])/) { |_| "#{Regexp.last_match[1]}#{subs[Regexp.last_match[2].to_i]}" }
-        "_#{s.gsub('_', '-')}_"
+        "_#{s.tr('_', '-')}_"
       when Integer, Float
         "**#{any}**"
       else
@@ -317,7 +317,7 @@ class Fbe::Award
     end
 
     def points
-      @lines.map { |l| l[:v] }.inject(&:+).to_f.round.to_i
+      @lines.sum { |l| l[:v] }.to_f.round.to_i
     end
 
     def greeting

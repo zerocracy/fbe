@@ -30,6 +30,6 @@ require_relative '../lib/fbe'
 # License:: MIT
 class TestFbe < Minitest::Test
   def test_simple
-    assert(!Fbe::VERSION.nil?)
+    refute_nil(Fbe::VERSION)
   end
 end

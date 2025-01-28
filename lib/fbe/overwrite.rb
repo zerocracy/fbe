@@ -54,7 +54,7 @@ def Fbe.overwrite(fact, property, value, fb: Fbe.fb)
   before.each do |k, vv|
     next unless n[k].nil?
     vv.each do |v|
-      n.send("#{k}=", v)
+      n.send(:"#{k}=", v)
     end
   end
   n

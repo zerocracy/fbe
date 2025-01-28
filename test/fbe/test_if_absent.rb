@@ -42,7 +42,7 @@ class TestIfAbsent < Minitest::Test
       Fbe.if_absent(fb:) do |f|
         f.foo = 'hello dude'
       end
-    assert(n.nil?)
+    assert_nil(n)
   end
 
   def test_ignores_with_time
@@ -53,7 +53,7 @@ class TestIfAbsent < Minitest::Test
       Fbe.if_absent(fb:) do |f|
         f.foo = t
       end
-    assert(n.nil?)
+    assert_nil(n)
   end
 
   def test_injects
@@ -87,7 +87,7 @@ class TestIfAbsent < Minitest::Test
         f.z = t
         f.bar = 3.14
       end
-    assert(n.nil?)
+    assert_nil(n)
   end
 
   def test_complex_injects
@@ -105,6 +105,6 @@ class TestIfAbsent < Minitest::Test
         f.z = t + 1
         f.bar = 3.15
       end
-    assert(!n.nil?)
+    refute_nil(n)
   end
 end

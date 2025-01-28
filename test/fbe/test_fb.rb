@@ -44,7 +44,7 @@ class TestFb < Minitest::Test
     Fbe.fb.insert.bar = 2
     assert_equal(1, Fbe.fb.query('(exists bar)').each.to_a.size)
     stdout = $loog.to_s
-    assert(stdout.include?('Inserted new fact #1'), stdout)
+    assert_includes(stdout, 'Inserted new fact #1', stdout)
   end
 
   def test_increment_id_in_transaction
@@ -68,9 +68,9 @@ class TestFb < Minitest::Test
     $loog = Loog::Buffer.new
     Fbe.fb.insert
     f = Fbe.fb.query('(always)').each.to_a.first
-    assert(!f._id.nil?)
-    assert(!f._time.nil?)
-    assert(!f._version.nil?)
-    assert(!f._job.nil?)
+    refute_nil(f._id)
+    refute_nil(f._time)
+    refute_nil(f._version)
+    refute_nil(f._job)
   end
 end

@@ -68,6 +68,6 @@ def Fbe.just_one(fb: Fbe.fb)
   before = fb.query(q).each.to_a.first
   return before unless before.nil?
   n = fb.insert
-  attrs.each { |k, v| n.send("#{k}=", v) }
+  attrs.each { |k, v| n.send(:"#{k}=", v) }
   n
 end

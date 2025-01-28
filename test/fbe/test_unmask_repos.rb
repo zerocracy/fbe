@@ -41,7 +41,7 @@ class TestUnmaskRepos < Minitest::Test
       }
     )
     list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
-    assert(list.size.positive?)
+    assert_predicate(list.size, :positive?)
     refute_includes(list, 'zerocracy/datum')
   end
 
@@ -53,9 +53,9 @@ class TestUnmaskRepos < Minitest::Test
       }
     )
     list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
-    assert(list.size.positive?)
-    assert(list.include?('zerocracy/pages-action'))
-    assert(!list.include?('zerocracy/judges-action'))
+    assert_predicate(list.size, :positive?)
+    assert_includes(list, 'zerocracy/pages-action')
+    refute_includes(list, 'zerocracy/judges-action')
     refute_includes(list, 'zerocracy/datum')
   end
 end

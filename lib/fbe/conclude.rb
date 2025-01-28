@@ -180,7 +180,7 @@ class Fbe::Conclude
   def fill(fact, prev)
     @follows.each do |follow|
       v = prev.send(follow)
-      fact.send("#{follow}=", v)
+      fact.send(:"#{follow}=", v)
     end
     r = yield fact, prev
     return unless r.is_a?(String)

@@ -145,7 +145,7 @@ class Fbe::FakeOctokit
 
   def name_to_number(name)
     return name unless name.is_a?(String)
-    name.chars.map(&:ord).inject(0, :+)
+    name.chars.sum(&:ord)
   end
 
   def rate_limit
@@ -1145,7 +1145,7 @@ class Fbe::FakeOctokit
         started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       }
-    ].select { |json| json[:id] == job }.first || {
+    ].find { |json| json[:id] == job } || {
       id: job,
       run_id: 1234,
       name: 'run job',
@@ -1218,7 +1218,7 @@ class Fbe::FakeOctokit
         run_started_at: '2024-08-18T08:04:44Z',
         completed_at: '2024-08-18T08:20:17Z'
       }
-    ].select { |json| json[:id] == id }.first || {
+    ].find { |json| json[:id] == id } || {
       id:,
       name: 'copyrights',
       head_branch: 'master',

@@ -53,7 +53,7 @@ class TestGitHubGraph < Minitest::Test
         }
       GRAPHQL
     )
-    refute(result.viewer.login.empty?)
+    refute_empty(result.viewer.login)
   end
 
   def test_use_with_global_variables
@@ -81,14 +81,14 @@ class TestGitHubGraph < Minitest::Test
     result = g.resolved_conversations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
     result = g.resolved_conversations('zerocracy', 'baza', 0)
-    assert(Array, result.class)
-    assert(0, result.count)
+    assert_equal(Array, result.class)
+    assert_equal(0, result.count)
     result = g.resolved_conversations('zerocracy1', 'baza', 0)
-    assert(Array, result.class)
-    assert(0, result.count)
+    assert_equal(Array, result.class)
+    assert_equal(0, result.count)
     result = g.resolved_conversations('zerocracy', 'baza1', 0)
-    assert(Array, result.class)
-    assert(0, result.count)
+    assert_equal(Array, result.class)
+    assert_equal(0, result.count)
   end
 
   def test_does_not_count_unresolved_conversations
@@ -106,14 +106,14 @@ class TestGitHubGraph < Minitest::Test
     options = Judges::Options.new
     g = Fbe.github_graph(options:, loog: Loog::NULL, global:)
     result = g.total_commits('zerocracy', 'baza', 'master')
-    assert(result.positive?)
+    assert_predicate(result, :positive?)
   end
 
   def test_get_fake_empty_conversations
     WebMock.disable_net_connect!
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
     result = graph.resolved_conversations(nil, 'baza', 172)
-    assert(result.empty?)
+    assert_empty(result)
   end
 
   def test_get_fake_conversations

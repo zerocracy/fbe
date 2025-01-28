@@ -52,6 +52,6 @@ class TestCopy < Minitest::Test
     f2 = fb.insert
     f2._id = 2
     Fbe.copy(f1, f2, except: ['foo'])
-    assert(f2['foo'].nil?)
+    assert_nil(f2['foo'])
   end
 end

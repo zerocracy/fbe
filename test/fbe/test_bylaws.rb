@@ -35,8 +35,8 @@ require_relative '../../lib/fbe/bylaws'
 class TestBylaws < Minitest::Test
   def test_simple
     laws = Fbe.bylaws
-    assert(laws.size > 1)
-    assert(!laws['published-release-was-rewarded'].nil?)
+    assert_operator(laws.size, :>, 1)
+    refute_nil(laws['published-release-was-rewarded'])
   end
 
   def test_check_all_bills
@@ -102,10 +102,10 @@ class TestBylaws < Minitest::Test
     }
     awards.each do |title, pairs|
       formula = Fbe.bylaws[title]
-      assert(!formula.nil?, title)
+      refute_nil(formula, title)
       a = Fbe::Award.new(formula)
       help = [
-        "  '#{title.gsub('_', '-')}' => {\n    ",
+        "  '#{title.tr('_', '-')}' => {\n    ",
         pairs.map do |args, _|
           [
             '{',

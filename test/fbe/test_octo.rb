@@ -38,9 +38,9 @@ class TestOcto < Minitest::Test
     global = {}
     options = Judges::Options.new({ 'testing' => true })
     o = Fbe.octo(loog: Loog::NULL, global:, options:)
-    assert(!o.off_quota)
-    assert(!o.pull_request('foo/foo', 42).nil?)
-    assert(!o.commit_pulls('foo/foo', 'sha').nil?)
+    refute(o.off_quota)
+    refute_nil(o.pull_request('foo/foo', 42))
+    refute_nil(o.commit_pulls('foo/foo', 'sha'))
   end
 
   def test_post_comment
@@ -82,7 +82,7 @@ class TestOcto < Minitest::Test
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(status: 200, body: '{}', headers: { 'X-RateLimit-Remaining' => '1000' })
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
-    assert(!o.off_quota)
+    refute(o.off_quota)
   end
 
   def test_retrying
@@ -165,7 +165,7 @@ class TestOcto < Minitest::Test
         )
         .times(1)
       o.user(user)
-      assert(!o.off_quota) if n > 100
+      refute(o.off_quota) if n > 100
       limit -= 1
     end
     assert_in_delta(pause, Time.now - start_time, 5)

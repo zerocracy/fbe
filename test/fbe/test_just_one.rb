@@ -39,7 +39,7 @@ class TestJustOne < Minitest::Test
       Fbe.just_one(fb:) do |f|
         f.foo = 'hello dude'
       end
-    assert(!n.nil?)
+    refute_nil(n)
   end
 
   def test_injects

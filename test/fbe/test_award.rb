@@ -63,8 +63,8 @@ class TestAward < Minitest::Test
       judge: '', global: {}, loog: Loog::NULL, options: nil
     )
     b = a.bill(hours: 10)
-    assert(b.points <= 100)
-    assert(b.points >= 5)
+    assert_operator(b.points, :<=, 100)
+    assert_operator(b.points, :>=, 5)
     assert_equal(40, b.points)
     g = b.greeting
     [
@@ -72,12 +72,12 @@ class TestAward < Minitest::Test
       '+10 for resolving the bug in 10',
       'bug in 10 (<36) hours',
       '+30 as a basis'
-    ].each { |t| assert(g.include?(t), g) }
+    ].each { |t| assert_includes(g, t, g) }
     md = a.bylaw.markdown
     [
       'First, assume that _hours_ is hours',
       ', and award _b₂_'
-    ].each { |t| assert(md.include?(t), md) }
+    ].each { |t| assert_includes(md, t, md) }
   end
 
   def test_some_terms
@@ -130,7 +130,7 @@ class TestAward < Minitest::Test
         'Just add **17** when necessary'
     }.each do |q, t|
       md = Fbe::Award.new(q).bylaw.markdown
-      assert(md.include?(t), md)
+      assert_includes(md, t, md)
     end
   end
 
