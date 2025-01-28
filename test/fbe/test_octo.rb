@@ -110,7 +110,7 @@ class TestOcto < Minitest::Test
   end
 
   def test_with_broken_token
-    skip # it's a "live" test, run it manually if you need it
+    skip("it's a live test, run it manually if you need it")
     WebMock.enable_net_connect!
     global = {}
     options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
@@ -125,7 +125,7 @@ class TestOcto < Minitest::Test
   end
 
   def test_commit_pulls
-    skip # it's a "live" test, run it manually if you need it
+    skip("it's a live test, run it manually if you need it")
     WebMock.enable_net_connect!
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     assert_equal(1, o.commit_pulls('zerocracy/fbe', '0b7d0699bd744b62c0731064c2adaad0c58e1416').size)

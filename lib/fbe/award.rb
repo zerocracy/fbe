@@ -79,6 +79,7 @@ class Fbe::Award
   # A term for bill.
   class BTerm < Factbase::Term
     def initialize(_fb, operator, operands)
+      super(nil, nil, nil)
       @op = operator
       @operands = operands
     end
@@ -184,6 +185,7 @@ class Fbe::Award
   # A term for bylaw.
   class PTerm < Factbase::Term
     def initialize(_fb, operator, operands)
+      super(nil, nil, nil)
       @op = operator
       @operands = operands
     end

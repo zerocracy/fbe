@@ -41,7 +41,7 @@ class TestGitHubGraph < Minitest::Test
   end
 
   def test_simple_use_graph
-    skip("it's a "live" test, run it manually if you need it")
+    skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
     client = Fbe::Graph.new(token: ENV.fetch('GITHUB_TOKEN', nil))
     result = client.query(
@@ -65,7 +65,7 @@ class TestGitHubGraph < Minitest::Test
   end
 
   def test_with_broken_token
-    skip("it's a "live" test, run it manually if you need it")
+    skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
     global = {}
     options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
@@ -73,7 +73,7 @@ class TestGitHubGraph < Minitest::Test
   end
 
   def test_gets_resolved_conversations
-    skip("it's a "live" test, run it manually if you need it")
+    skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
     global = {}
     options = Judges::Options.new
@@ -81,18 +81,18 @@ class TestGitHubGraph < Minitest::Test
     result = g.resolved_conversations('zerocracy', 'baza', 172)
     assert_equal(1, result.count)
     result = g.resolved_conversations('zerocracy', 'baza', 0)
-    assert_equal(Array, result.class)
+    assert_instance_of(Array, result)
     assert_equal(0, result.count)
     result = g.resolved_conversations('zerocracy1', 'baza', 0)
-    assert_equal(Array, result.class)
+    assert_instance_of(Array, result)
     assert_equal(0, result.count)
     result = g.resolved_conversations('zerocracy', 'baza1', 0)
-    assert_equal(Array, result.class)
+    assert_instance_of(Array, result)
     assert_equal(0, result.count)
   end
 
   def test_does_not_count_unresolved_conversations
-    skip("it's a "live" test, run it manually if you need it")
+    skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
     g = Fbe.github_graph(options: Judges::Options.new, loog: Loog::NULL, global: {})
     result = g.resolved_conversations('zerocracy', 'judges-action', 296)
@@ -100,7 +100,7 @@ class TestGitHubGraph < Minitest::Test
   end
 
   def test_gets_total_commits_of_repo
-    skip("it's a "live" test, run it manually if you need it")
+    skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
     global = {}
     options = Judges::Options.new
