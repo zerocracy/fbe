@@ -5,7 +5,7 @@ PATH
       backtrace (~> 0)
       baza.rb (~> 0)
       decoor (~> 0)
-      factbase (>= 0.5.1)
+      factbase (>= 0.5.2)
       faraday (~> 2)
       faraday-http-cache (~> 2)
       faraday-multipart (~> 1)

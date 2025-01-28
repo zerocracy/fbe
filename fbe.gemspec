@@ -42,7 +42,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'backtrace', '~>0'
   s.add_dependency 'baza.rb', '~>0'
   s.add_dependency 'decoor', '~>0'
-  s.add_dependency 'factbase', '>=0.5.1'
+  s.add_dependency 'factbase', '>=0.5.2'
   s.add_dependency 'faraday', '~>2'
   s.add_dependency 'faraday-http-cache', '~>2'
   s.add_dependency 'faraday-multipart', '~>1'
