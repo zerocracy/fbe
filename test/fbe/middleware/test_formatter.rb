@@ -50,12 +50,14 @@ class LoggingFormatterTest < Minitest::Test
     log_it(status: 401) do |loog|
       str = loog.to_s
       refute_empty(str)
-      assert_match(%r{http://example.com}, str)
-      assert_match(/Authorization:/, str)
-      assert_match(%r{HTTP/1.1 401}, str)
-      assert_match(/x-github-api-version-selected: "2022-11-28"/, str)
-      assert_match(/hello, world!/, str)
-      assert_match(/request body/, str)
+      [
+        %r{http://example.com},
+        /Authorization:/,
+        %r{HTTP/1.1 401},
+        /x-github-api-version-selected: "2022-11-28"/,
+        /hello, world!/,
+        /request body/
+      ].each { |ptn| assert_match(ptn, str) }
     end
   end
 
