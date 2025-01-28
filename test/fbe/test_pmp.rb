@@ -49,6 +49,6 @@ class TestPmp < Minitest::Test
   def test_fail_on_wrong_area
     $global = {}
     $loog = Loog::NULL
-    assert_raises { Fbe.pmp(Factbase.new, loog: Loog::NULL).something }
+    assert_raises(StandardError) { Fbe.pmp(Factbase.new, loog: Loog::NULL).something }
   end
 end

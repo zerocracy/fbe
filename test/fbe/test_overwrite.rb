@@ -76,7 +76,7 @@ class TestOverwrite < Minitest::Test
   def test_without_id
     fb = Factbase.new
     f = fb.insert
-    assert_raises do
+    assert_raises(StandardError) do
       Fbe.overwrite(f, 'foo', 42, fb:)
     end
   end

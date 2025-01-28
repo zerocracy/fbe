@@ -60,7 +60,7 @@ class Fbe::Award
   # @param [Hash] vars Hash of variables
   # @return [Fbe::Award::Bill] The bill
   def bill(vars = {})
-    term = Factbase::Syntax.new(@query, term: Fbe::Award::BTerm).to_term
+    term = Factbase::Syntax.new(Factbase.new, @query, term: Fbe::Award::BTerm).to_term
     bill = Bill.new
     vars.each { |k, v| bill.set(k, v) }
     term.bill_to(bill)
@@ -70,21 +70,29 @@ class Fbe::Award
   # Build a bylaw object from this award query.
   # @return [Fbe::Award::Bylaw] The bylaw
   def bylaw
-    term = Factbase::Syntax.new(@query, term: Fbe::Award::PTerm).to_term
+    term = Factbase::Syntax.new(Factbase.new, @query, term: Fbe::Award::PTerm).to_term
     bylaw = Bylaw.new
     term.publish_to(bylaw)
     bylaw
   end
 
   # A term for bill.
-  class BTerm
-    def initialize(operator, operands)
+  class BTerm < Factbase::Term
+    def initialize(_fb, operator, operands)
       @op = operator
       @operands = operands
     end
 
     def to_s
       "(#{@op} #{@operands.join(' ')})"
+    end
+
+    def static?
+      true
+    end
+
+    def abstract?
+      false
     end
 
     def bill_to(bill)
@@ -174,8 +182,8 @@ class Fbe::Award
   end
 
   # A term for bylaw.
-  class PTerm
-    def initialize(operator, operands)
+  class PTerm < Factbase::Term
+    def initialize(_fb, operator, operands)
       @op = operator
       @operands = operands
     end
@@ -219,6 +227,14 @@ class Fbe::Award
       else
         raise "Unknown term '#{@op}'"
       end
+    end
+
+    def static?
+      true
+    end
+
+    def abstract?
+      false
     end
 
     def publish_to(bylaw)

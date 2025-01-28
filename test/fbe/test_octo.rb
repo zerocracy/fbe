@@ -115,7 +115,7 @@ class TestOcto < Minitest::Test
     global = {}
     options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
     o = Fbe.octo(loog: Loog::NULL, global:, options:)
-    assert_raises { o.repository('zerocracy/fbe') }
+    assert_raises(StandardError) { o.repository('zerocracy/fbe') }
   end
 
   def test_workflow_run_usage

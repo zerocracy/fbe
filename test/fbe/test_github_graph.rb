@@ -69,7 +69,7 @@ class TestGitHubGraph < Minitest::Test
     WebMock.allow_net_connect!
     global = {}
     options = Judges::Options.new({ 'github_token' => 'incorrect-value' })
-    assert_raises { Fbe.github_graph(loog: Loog::NULL, global:, options:) }
+    assert_raises(StandardError) { Fbe.github_graph(loog: Loog::NULL, global:, options:) }
   end
 
   def test_gets_resolved_conversations
