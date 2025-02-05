@@ -30,7 +30,6 @@ AllCops:
 require:
   - rubocop-minitest
   - rubocop-performance
-
 Minitest/EmptyLineBeforeAssertionMethods:
   Enabled: false
 Style/GlobalVars:
@@ -69,3 +68,5 @@ Metrics/ParameterLists:
   Enabled: false
 Layout/MultilineAssignmentLayout:
   Enabled: true
+required:
+  - rubocop-rake
