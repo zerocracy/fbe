@@ -300,7 +300,7 @@ GEM
       hashdiff (>= 0.4.0, < 2.0.0)
     yaml (0.4.0)
     yard (0.9.37)
-    zeitwerk (2.7.1)
+    zeitwerk (2.7.2)
 
 PLATFORMS
   arm64-darwin-22
