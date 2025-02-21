@@ -68,7 +68,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           loog.warn('The GitHub API token is an empty string, won\'t use it')
         else
           o = Octokit::Client.new(access_token: token)
-          loog.info("Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..]})")
+          loog.info("Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect})")
         end
         o.auto_paginate = true
         o.per_page = 100
