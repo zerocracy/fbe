@@ -5,14 +5,14 @@ version = 1
 [[annotations]]
 path = [
     "**/*.csv",
+    "**/*.fe",
     "**/*.jpg",
     "**/*.json",
+    "**/*.liquid",
     "**/*.md",
     "**/*.pdf",
     "**/*.png",
     "**/*.svg",
-    "**/*.liquid",
-    "**/*.fe",
     "**/*.txt",
     "**/*.vm",
     "**/.gitignore",
