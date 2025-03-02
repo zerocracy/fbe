@@ -6,7 +6,7 @@
 require 'loog'
 require 'judges'
 require 'factbase'
-require 'factbase/looged'
+require 'factbase/logged'
 require 'factbase/pre'
 require 'factbase/rules'
 require_relative '../fbe'
@@ -39,6 +39,6 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
           f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{options.action_version}"
           f._job = options.job_id unless options.job_id.nil?
         end
-      Factbase::Looged.new(fbe, loog)
+      Factbase::Logged.new(fbe, loog)
     end
 end
