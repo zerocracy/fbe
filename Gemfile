@@ -18,5 +18,5 @@ gem 'rubocop-rake', '>0', require: false
 gem 'rubocop-rspec', '3.4.0', require: false
 gem 'simplecov', '0.22.0', require: false
 gem 'simplecov-cobertura', '2.1.0', require: false
-gem 'webmock', '3.24.0', require: false
+gem 'webmock', '3.25.0', require: false
 gem 'yard', '0.9.37', require: false
