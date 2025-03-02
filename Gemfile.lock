@@ -234,7 +234,7 @@ GEM
     rspec-mocks (3.13.2)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-rails (7.1.0)
+    rspec-rails (7.1.1)
       actionpack (>= 7.0)
       activesupport (>= 7.0)
       railties (>= 7.0)
@@ -319,11 +319,10 @@ PLATFORMS
 
 DEPENDENCIES
   fbe!
-  graphql-client
   minitest (= 5.25.4)
-  minitest-reporters (= 1.7.1)
-  rake (= 13.2.1)
-  rspec-rails (= 7.1.0)
+  minitest-reporters (>= 1.7)
+  rake (>= 13)
+  rspec-rails (> 0)
   rubocop (= 1.73.1)
   rubocop-minitest (> 0)
   rubocop-performance (> 0)
