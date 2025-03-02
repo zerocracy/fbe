@@ -3,7 +3,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'minitest/autorun'
 require 'loog'
 require 'factbase'
 require_relative '../test__helper'

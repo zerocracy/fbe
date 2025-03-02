@@ -5,7 +5,7 @@
 
 require 'faraday'
 require 'loog'
-require 'minitest/autorun'
+require_relative '../../test__helper'
 require_relative '../../../lib/fbe'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/formatter'
