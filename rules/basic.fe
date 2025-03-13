@@ -22,7 +22,7 @@
 
 (undef explain)
 (defn explain '
-  r = @operands[0].evaluate(fact, maps);
+  r = @operands[0].evaluate(fact, maps, fb);
   if !r && !$loog.nil?
     $loog.error(\'This rule failed: \' + self.to_s)
   end

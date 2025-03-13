@@ -40,8 +40,9 @@ class Fbe::Award
   # Build a bill object from this award query.
   # @param [Hash] vars Hash of variables
   # @return [Fbe::Award::Bill] The bill
-  def bill(vars = {})
-    term = Factbase::Syntax.new(Factbase.new, @query, term: Fbe::Award::BTerm).to_term
+def bill(vars = {})
+    term = Factbase::Syntax.new(@query).to_term
+    term.redress!(Fbe::Award::BTerm)
     bill = Bill.new
     vars.each { |k, v| bill.set(k, v) }
     term.bill_to(bill)
@@ -51,20 +52,15 @@ class Fbe::Award
   # Build a bylaw object from this award query.
   # @return [Fbe::Award::Bylaw] The bylaw
   def bylaw
-    term = Factbase::Syntax.new(Factbase.new, @query, term: Fbe::Award::PTerm).to_term
+    term = Factbase::Syntax.new(@query).to_term
+    term.redress!(Fbe::Award::PTerm)
     bylaw = Bylaw.new
     term.publish_to(bylaw)
     bylaw
   end
 
   # A term for bill.
-  class BTerm < Factbase::Term
-    def initialize(_fb, operator, operands)
-      super(nil, nil, nil)
-      @op = operator
-      @operands = operands
-    end
-
+  module BTerm
     def to_s
       "(#{@op} #{@operands.join(' ')})"
     end
@@ -164,13 +160,7 @@ class Fbe::Award
   end
 
   # A term for bylaw.
-  class PTerm < Factbase::Term
-    def initialize(_fb, operator, operands)
-      super(nil, nil, nil)
-      @op = operator
-      @operands = operands
-    end
-
+  module PTerm
     def to_s
       case @op
       when :total

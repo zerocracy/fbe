@@ -126,7 +126,7 @@ class Fbe::Iterate
         ).one
         @fb.query("(and (eq what '#{@label}') (eq where 'github') (eq repository #{rid}))").delete!
         before = before.nil? ? @since : before.first
-        nxt = @fb.query(@query).one(before:, repository: rid)
+        nxt = @fb.query(@query).one(@fb, before:, repository: rid)
         after =
           if nxt.nil?
             @loog.debug("Next element after ##{before} not suggested, re-starting from ##{@since}: #{@query}")
