@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'faraday'
+require_relative '../middleware'
 
 # Faraday Middleware that monitors GitHub API rate limits.
 #

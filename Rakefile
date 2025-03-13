@@ -18,7 +18,7 @@ end
 
 ENV['RACK_ENV'] = 'test'
 
-task default: %i[clean test picks rubocop yard]
+task default: %i[clean test picks reqs rubocop yard]
 
 require 'rake/testtask'
 desc 'Run all unit tests'
@@ -33,6 +33,13 @@ end
 desc 'Run them via Ruby, one by one'
 task :picks do
   Dir['test/**/*.rb'].each do |f|
+    qbash("bundle exec ruby #{Shellwords.escape(f)}", log: $stdout)
+  end
+end
+
+desc 'Require them via Ruby, one by one'
+task :reqs do
+  Dir['lib/**/*.rb'].each do |f|
     qbash("bundle exec ruby #{Shellwords.escape(f)}", log: $stdout)
   end
 end
