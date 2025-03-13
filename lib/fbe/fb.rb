@@ -3,12 +3,12 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'loog'
-require 'judges'
 require 'factbase'
 require 'factbase/logged'
 require 'factbase/pre'
 require 'factbase/rules'
+require 'judges'
+require 'loog'
 require_relative '../fbe'
 
 # Returns an instance of +Factbase+ (cached).

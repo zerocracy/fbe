@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase'
 require_relative '../test__helper'
 require_relative '../../lib/fbe/sec'
 

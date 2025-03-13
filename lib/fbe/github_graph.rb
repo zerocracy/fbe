@@ -6,6 +6,7 @@
 require 'graphql/client'
 require 'graphql/client/http'
 require 'loog'
+require_relative '../fbe'
 
 # Creates an instance of {Fbe::Graph}.
 #

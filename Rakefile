@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'qbash'
 require 'rubygems'
 require 'rake'
 require 'rake/clean'
@@ -17,7 +18,7 @@ end
 
 ENV['RACK_ENV'] = 'test'
 
-task default: %i[clean test rubocop yard]
+task default: %i[clean test picks rubocop yard]
 
 require 'rake/testtask'
 desc 'Run all unit tests'
@@ -27,6 +28,13 @@ Rake::TestTask.new(:test) do |test|
   test.pattern = 'test/**/test_*.rb'
   test.warning = true
   test.verbose = false
+end
+
+desc 'Run them via Ruby, one by one'
+task :picks do
+  Dir['test/**/*.rb'].each do |f|
+    qbash("bundle exec ruby #{Shellwords.escape(f)}", log: $stdout)
+  end
 end
 
 require 'yard'

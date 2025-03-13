@@ -6,6 +6,7 @@
 require 'judges/options'
 require 'webmock/minitest'
 require 'loog'
+require_relative '../test__helper'
 require_relative '../../lib/fbe/github_graph'
 
 # Test.

@@ -3,9 +3,11 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'judges/options'
 require 'loog'
-require_relative '../test__helper'
+require 'webmock/minitest'
 require_relative '../../lib/fbe/enter'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

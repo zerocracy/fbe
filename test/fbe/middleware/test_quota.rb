@@ -5,7 +5,12 @@
 
 require 'faraday'
 require 'logger'
+require 'loog'
+require 'judges'
+require 'judges/options'
 require_relative '../../../lib/fbe/middleware'
+require_relative '../../../lib/fbe/middleware/quota'
+require_relative '../../test__helper'
 
 class QuotaTest < Minitest::Test
   class FakeApp
