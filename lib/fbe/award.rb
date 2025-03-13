@@ -40,7 +40,7 @@ class Fbe::Award
   # Build a bill object from this award query.
   # @param [Hash] vars Hash of variables
   # @return [Fbe::Award::Bill] The bill
-def bill(vars = {})
+  def bill(vars = {})
     term = Factbase::Syntax.new(@query).to_term
     term.redress!(Fbe::Award::BTerm)
     bill = Bill.new

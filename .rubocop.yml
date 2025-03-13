@@ -22,6 +22,8 @@ Lint/NestedMethodDefinition:
   Enabled: false
 Gemspec/RequiredRubyVersion:
   Enabled: false
+Metrics/ModuleLength:
+  Enabled: false
 Metrics/MethodLength:
   Enabled: false
 Style/ClassAndModuleChildren:
@@ -52,4 +54,3 @@ Metrics/ParameterLists:
   Enabled: false
 Layout/MultilineAssignmentLayout:
   Enabled: true
-require: []
