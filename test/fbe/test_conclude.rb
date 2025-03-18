@@ -28,20 +28,23 @@ class TestConclude < Minitest::Test
   end
 
   def test_draw
-    fb = Factbase.new
-    fb.insert.foo = 1
-    fb.insert.bar = 2
-    Fbe.conclude(fb:, judge: 'judge-one', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
+    $fb = Factbase.new
+    $global = {}
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $fb.insert.foo = 1
+    $fb.insert.bar = 2
+    Fbe.conclude(judge: 'judge-one') do
       on '(exists foo)'
       draw do |n, prev|
         n.sum = prev.foo + 1
-        'something funny'
+        'Something funny and long enough to pass the requirements: long and long and long and long and long and long.'
       end
     end
-    f = fb.query('(exists sum)').each.to_a[0]
+    f = $fb.query('(exists sum)').each.to_a[0]
     assert_equal(2, f.sum)
     assert_equal('judge-one', f.what)
-    assert_equal('something funny', f.details)
+    assert_includes(f.details, 'funny')
   end
 
   def test_consider

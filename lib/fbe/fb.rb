@@ -28,16 +28,17 @@ require_relative '../fbe'
 def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
   global[:fb] ||=
     begin
+      fbe = Factbase::Logged.new(fb, loog)
       rules = Dir.glob(File.join('rules', '*.fe')).map { |f| File.read(f) }
       fbe = Factbase::Rules.new(
-        fb,
+        fbe,
         "(and \n#{rules.join("\n")}\n)",
         uid: '_id'
       )
       fbe =
         Factbase::Pre.new(fbe) do |f, fbt|
-          max = fbt.query('(eq _id (max _id))').each.to_a.first
-          f._id = (max.nil? ? 0 : max._id) + 1
+          max = fbt.query('(max _id)').one
+          f._id = (max.nil? ? 0 : max) + 1
           f._time = Time.now
           f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{options.action_version}"
           f._job = options.job_id unless options.job_id.nil?
@@ -45,7 +46,7 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
       Factbase::SyncFactbase.new(
         Factbase::IndexedFactbase.new(
           Factbase::CachedFactbase.new(
-            Factbase::Logged.new(fbe, loog)
+            fbe
           )
         )
       )

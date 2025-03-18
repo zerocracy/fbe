@@ -1,11 +1,11 @@
 PATH
   remote: .
   specs:
-    fbe (0.0.0)
+    fbe (9.9.9)
       backtrace (~> 0)
       baza.rb (~> 0)
       decoor (~> 0)
-      factbase (>= 0.9.1)
+      factbase (>= 0.9.3)
       faraday (~> 2)
       faraday-http-cache (~> 2)
       faraday-multipart (~> 1)
@@ -89,7 +89,7 @@ GEM
     erubi (1.13.1)
     ethon (0.16.0)
       ffi (>= 1.15.0)
-    factbase (0.9.1)
+    factbase (0.9.3)
       backtrace (>= 0.4.0)
       decoor (>= 0.0.1)
       json (~> 2.7)
@@ -117,7 +117,7 @@ GEM
     fiber-storage (1.0.0)
     gli (2.22.2)
       ostruct
-    graphql (2.4.13)
+    graphql (2.4.14)
       base64
       fiber-storage
       logger
