@@ -9,10 +9,16 @@ require 'minitest/reporters'
 Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 
 require 'simplecov'
-SimpleCov.external_at_exit = true
-SimpleCov.start
-
 require 'simplecov-cobertura'
-SimpleCov.formatter = SimpleCov::Formatter::CoberturaFormatter
+SimpleCov.formatters = [
+  SimpleCov::Formatter::HTMLFormatter,
+  SimpleCov::Formatter::CoberturaFormatter
+]
+SimpleCov.start do
+  enable_coverage :branch
+  track_files 'lib/**/*.rb'
+  add_filter '/test/'
+  add_filter '/vendor/'
+end
 
 require 'minitest/autorun'
