@@ -41,7 +41,7 @@ GEM
     ast (2.4.3)
     backtrace (0.4.0)
     base64 (0.2.0)
-    baza.rb (0.0.9)
+    baza.rb (0.0.11)
       backtrace (> 0)
       elapsed (> 0)
       faraday (> 0)
