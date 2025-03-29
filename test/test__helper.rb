@@ -8,17 +8,19 @@ $stdout.sync = true
 require 'minitest/reporters'
 Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 
-require 'simplecov'
-require 'simplecov-cobertura'
-SimpleCov.formatters = [
-  SimpleCov::Formatter::HTMLFormatter,
-  SimpleCov::Formatter::CoberturaFormatter
-]
-SimpleCov.start do
-  enable_coverage :branch
-  track_files 'lib/**/*.rb'
-  add_filter '/test/'
-  add_filter '/vendor/'
+if ENV['RACK_ENV'] == 'test'
+  require 'simplecov'
+  require 'simplecov-cobertura'
+  SimpleCov.formatters = [
+    SimpleCov::Formatter::HTMLFormatter,
+    SimpleCov::Formatter::CoberturaFormatter
+  ]
+  SimpleCov.start do
+    enable_coverage :branch
+    track_files 'lib/**/*.rb'
+    add_filter '/test/'
+    add_filter '/vendor/'
+  end
 end
 
 require 'minitest/autorun'
