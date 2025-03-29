@@ -9,6 +9,7 @@ require 'minitest/reporters'
 Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 
 require 'simplecov'
+SimpleCov.external_at_exit = true
 SimpleCov.start
 
 require 'simplecov-cobertura'
