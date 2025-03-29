@@ -65,17 +65,19 @@ class Fbe::Conclude
 
   # Make this block aware of GitHub API quota.
   #
-  # When the quota is reached, the loop will gracefully stop.
+  # When the quota is reached, the loop will gracefully stop to avoid
+  # hitting GitHub API rate limits. This helps prevent interruptions
+  # in long-running operations.
   #
-  # @return [nil] Nothing
+  # @return [nil] Nothing is returned
   def quota_aware
     @quota_aware = true
   end
 
   # Set the query that should find the facts in the factbase.
   #
-  # @param [String] query The query
-  # @return [nil] Nothing
+  # @param [String] query The query to execute
+  # @return [nil] Nothing is returned
   def on(query)
     raise 'Query is already set' unless @query.nil?
     @query = query
@@ -83,7 +85,7 @@ class Fbe::Conclude
 
   # Set the list of properties to copy from the facts found to new facts.
   #
-  # @param [Arra<String>] props List of property names
+  # @param [Array<String>] props List of property names
   # @return [nil] Nothing
   def follow(props)
     @follows = props.strip.split.compact

@@ -54,17 +54,19 @@ class Fbe::Iterate
 
   # Make this block aware of GitHub API quota.
   #
-  # When the quota is reached, the loop will gracefully stop.
+  # When the quota is reached, the loop will gracefully stop to avoid
+  # hitting GitHub API rate limits. This helps prevent interruptions
+  # in long-running operations.
   #
-  # @return [nil] Nothing
+  # @return [nil] Nothing is returned
   def quota_aware
     @quota_aware = true
   end
 
   # Sets the total counter of repeats to make.
   #
-  # @param [Integer] repeats The total count of them
-  # @return [nil] Nothing
+  # @param [Integer] repeats The total count of repeats to execute
+  # @return [nil] Nothing is returned
   def repeats(repeats)
     raise 'Cannot set "repeats" to nil' if repeats.nil?
     raise 'The "repeats" must be a positive integer' unless repeats.positive?
@@ -73,8 +75,8 @@ class Fbe::Iterate
 
   # Sets the query to run.
   #
-  # @param [String] query The query
-  # @return [nil] Nothing
+  # @param [String] query The query to execute
+  # @return [nil] Nothing is returned
   def by(query)
     raise 'Query is already set' unless @query.nil?
     raise 'Cannot set query to nil' if query.nil?
@@ -83,8 +85,8 @@ class Fbe::Iterate
 
   # Sets the label to use in the "marker" fact.
   #
-  # @param [String] label The label
-  # @return [nil] Nothing
+  # @param [String] label The label identifier
+  # @return [nil] Nothing is returned
   def as(label)
     raise 'Label is already set' unless @label.nil?
     raise 'Cannot set "label" to nil' if label.nil?
@@ -94,12 +96,12 @@ class Fbe::Iterate
   # It makes a number of repeats of going through all repositories
   # provided by the +repositories+ configuration option. In each "repeat"
   # it yields the repository ID and a number that is retrieved by the
-  # +query+. The query is supplied with two parameter:
+  # +query+. The query is supplied with two parameters:
   # +$before+ the value from the previous repeat and +$repository+ (GitHub repo ID).
   #
   # @param [Float] timeout How many seconds to spend as a maximum
-  # @yield [Array<Integer, Integer>] Repository ID and the next number to be considered
-  # @return [nil] Nothing
+  # @yield [Integer, Integer] Repository ID and the next number to be considered
+  # @return [nil] Nothing is returned
   def over(timeout: 2 * 60, &)
     raise 'Use "as" first' if @label.nil?
     raise 'Use "by" first' if @query.nil?

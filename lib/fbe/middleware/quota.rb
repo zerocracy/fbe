@@ -12,6 +12,13 @@ require_relative '../middleware'
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
 class Fbe::Middleware::Quota < Faraday::Middleware
+  # Constructor.
+  #
+  # @param [Object] app The Faraday app
+  # @param [Loog] loog The logging facility
+  # @param [Integer] pause Seconds to pause when rate limit is reached
+  # @param [Integer] limit Maximum number of requests before checking rate limit
+  # @param [Integer] rate Minimum remaining requests threshold
   def initialize(app, loog: Loog::NULL, pause: 60, limit: 100, rate: 5)
     super(app)
     @requests = 0
@@ -29,6 +36,10 @@ class Fbe::Middleware::Quota < Faraday::Middleware
     @rate = rate
   end
 
+  # Process the request and handle rate limiting.
+  #
+  # @param [Faraday::Env] env The environment
+  # @return [Faraday::Response] The response
   def call(env)
     @requests += 1
     response = @app.call(env)
@@ -42,6 +53,10 @@ class Fbe::Middleware::Quota < Faraday::Middleware
 
   private
 
+  # Check if we're approaching the rate limit.
+  #
+  # @param [Faraday::Env] env The environment
+  # @return [Boolean] True if we should pause to avoid hitting rate limits
   def out_of_limit?(env)
     remaining = env.response_headers['x-ratelimit-remaining'].to_i
     (@requests % @limit).zero? && remaining < @rate
