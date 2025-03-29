@@ -23,7 +23,7 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
       (eq what '#{judge}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
   ).each.to_a.empty?
-    loog.debug("#{$judge} have recently been executed, skipping now")
+    loog.debug("#{$judge} has recently been executed, skipping now")
     return
   end
   f = fb.query("(and (eq what '#{judge}'))").each.to_a.first

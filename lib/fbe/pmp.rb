@@ -9,11 +9,15 @@ require_relative 'fb'
 
 # Takes configuration parameter from the "PMP" fact.
 #
-# The factbase may have a few facts with the +what+ set to +pmp+ (stands for
-# "project management plan"). These facts contain information that configure
+# The factbase may have a few facts with the +what+ set to +pmp+ (stands for the
+# "project management plan"). These facts contain information that configures
 # the project. It is expected that every fact with the +what+ set to +pmp+ also
 # contains the +area+ property, which is set to one of nine values: +scope+,
-# +time+, +cost+, etc. (by nine process areas in the PMBOK).
+# +time+, +cost+, etc. (the nine process areas in the PMBOK).
+#
+# If a proper pmp fact is not found or the property is absent in the fact,
+# this method throws an exception. The factbase must contain PMP-related facts.
+# Most probably, a special judge must fill it up with such a fact.
 #
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching

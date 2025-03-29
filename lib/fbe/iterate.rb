@@ -97,7 +97,7 @@ class Fbe::Iterate
   # provided by the +repositories+ configuration option. In each "repeat"
   # it yields the repository ID and a number that is retrieved by the
   # +query+. The query is supplied with two parameters:
-  # +$before+ the value from the previous repeat and +$repository+ (GitHub repo ID).
+  # +$before+ (the value from the previous repeat) and +$repository+ (GitHub repo ID).
   #
   # @param [Float] timeout How many seconds to spend as a maximum
   # @yield [Integer, Integer] Repository ID and the next number to be considered

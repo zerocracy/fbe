@@ -8,7 +8,7 @@ require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 
-# Injects a fact if it's absent in the factbase, otherwise (it is already
+# Injects a fact if it's absent in the factbase, otherwise (if it is already
 # there) returns NIL.
 #
 # Here is what you do when you want to add a fact to the factbase, but

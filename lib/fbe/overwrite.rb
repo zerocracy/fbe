@@ -9,8 +9,8 @@ require_relative 'fb'
 # Overwrites a property in the fact.
 #
 # If the property doesn't exist in the fact, it will be added. If it does
-# exist, it will be re-set (the entire fact will be destroyed, new fact
-# created, and property set with the new value).
+# exist, it will be re-set (the entire fact will be destroyed, a new fact
+# created, and the property set with the new value).
 #
 # It is important that the fact has the +_id+ property. If it doesn't,
 # an exception will be raised.

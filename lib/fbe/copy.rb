@@ -12,7 +12,7 @@ require_relative 'fb'
 # listed in the +except+.
 #
 # @param [Factbase::Fact] source The source
-# @param [Factbase::Fact] target The targer
+# @param [Factbase::Fact] target The target
 # @param [Array<String>] except List of properties to NOT copy
 # @return [Integer] How many properties were copied
 def Fbe.copy(source, target, except: [])

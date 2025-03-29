@@ -6,7 +6,7 @@
 require_relative '../fbe'
 require_relative 'octo'
 
-# Converts an ID of GitHub issue into a nicely formatting string.
+# Converts an ID of GitHub issue into a nicely formatted string.
 #
 # The function takes the +repository+ property of the provided +fact+,
 # goes to the GitHub API in order to find the full name of the repository,

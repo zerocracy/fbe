@@ -23,9 +23,9 @@ end
 # Builds a list of repositories required by the +repositories+ option.
 #
 # The +repositories+ option defined in the +$options+ must contain something
-# like "zerocracy/fbe,zerocracy/ab*" (comma-separated list of masks). This
+# like "zerocracy/fbe,zerocracy/ab*" (a comma-separated list of masks). This
 # function will go to the GitHub API and fetch all available repositories
-# by these masks.
+# matching these masks.
 #
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Hash] global The hash for global caching

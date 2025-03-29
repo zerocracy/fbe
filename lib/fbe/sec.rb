@@ -7,7 +7,7 @@ require_relative '../fbe'
 
 # Converts number of seconds into text.
 #
-# THe number of seconds is taken from the +fact+ provided, usually stored
+# The number of seconds is taken from the +fact+ provided, usually stored
 # there in the +seconds+ property. The seconds are formatted to hours,
 # days, or weeks.
 #

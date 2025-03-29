@@ -8,7 +8,7 @@ require 'faraday/logging/formatter'
 require_relative '../../fbe'
 require_relative '../../fbe/middleware'
 
-# Faraday logging formatter show verbose log for only error response
+# Faraday logging formatter shows verbose logs for error responses only
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy

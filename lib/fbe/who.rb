@@ -6,7 +6,7 @@
 require_relative '../fbe'
 require_relative 'octo'
 
-# Converts an ID of GitHub user into a nicely formatting string with his name.
+# Converts an ID of GitHub user into a nicely formatted string with their name.
 #
 # The ID of the user (integer) is expected to be stored in the +who+ property of the
 # provided +fact+. This function makes a live request to GitHub API in order
