@@ -28,10 +28,9 @@ require_relative '../fbe'
 def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
   global[:fb] ||=
     begin
-      fbe = Factbase::Logged.new(fb, loog)
       rules = Dir.glob(File.join('rules', '*.fe')).map { |f| File.read(f) }
       fbe = Factbase::Rules.new(
-        fbe,
+        fb,
         "(and \n#{rules.join("\n")}\n)",
         uid: '_id'
       )
@@ -43,12 +42,15 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
           f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{options.action_version}"
           f._job = options.job_id unless options.job_id.nil?
         end
-      Factbase::SyncFactbase.new(
-        Factbase::IndexedFactbase.new(
-          Factbase::CachedFactbase.new(
-            fbe
+      Factbase::Logged.new(
+        Factbase::SyncFactbase.new(
+          Factbase::IndexedFactbase.new(
+            Factbase::CachedFactbase.new(
+              fbe
+            )
           )
-        )
+        ),
+        loog
       )
     end
 end
