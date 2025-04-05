@@ -8,6 +8,7 @@ gemspec
 
 gem 'minitest', '~>5.25', require: false
 gem 'minitest-reporters', '>=1.7', require: false
+gem 'os', '>0', require: false
 gem 'qbash', '>0', require: false
 gem 'rake', '>=13', require: false
 gem 'rubocop', '~>1.75', require: false
