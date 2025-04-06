@@ -30,6 +30,13 @@ class TestOcto < Minitest::Test
     assert_equal(42, o.add_comment('foo/foo', 4, 'hello!')[:id])
   end
 
+  def test_give_repo_a_star
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    o = Fbe.octo(loog: Loog::NULL, global:, options:)
+    assert(o.star('foo/foo'))
+  end
+
   def test_detect_bot
     global = {}
     options = Judges::Options.new({ 'testing' => true })
