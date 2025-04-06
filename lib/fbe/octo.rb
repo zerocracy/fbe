@@ -145,7 +145,7 @@ class Fbe::FakeOctokit
   end
 
   # Give this repo a star.
-  def star(repo)
+  def star(_repo)
     true
   end
 
