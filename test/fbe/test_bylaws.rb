@@ -78,6 +78,9 @@ class TestBylaws < Minitest::Test
       },
       'bad-branch-name-was-punished' => {
         {} => -12
+      },
+      'long-pull-was-punished' => {
+        {} => -8
       }
     }
     awards.each do |title, pairs|
