@@ -277,7 +277,8 @@ class Fbe::FakeOctokit
       },
       additions: 12,
       deletions: 5,
-      changed_files: 3
+      changed_files: 3,
+      review_comments: 2
     }
   end
 
