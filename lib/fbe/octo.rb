@@ -144,6 +144,11 @@ class Fbe::FakeOctokit
     ]
   end
 
+  # Give this repo a star.
+  def star(repo)
+    true
+  end
+
   def user(name)
     login = name
     login = name == 526_301 ? 'yegor256' : 'torvalds' if login.is_a?(Integer)
