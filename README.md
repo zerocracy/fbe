@@ -1,12 +1,12 @@
 # FactBase Extended (FBE)
 
-[![DevOps By Rultor.com](http://www.rultor.com/b/zerocracy/fbe)](http://www.rultor.com/p/zerocracy/fbe)
+[![DevOps By Rultor.com](https://www.rultor.com/b/zerocracy/fbe)](https://www.rultor.com/p/zerocracy/fbe)
 
 [![rake](https://github.com/zerocracy/fbe/actions/workflows/rake.yml/badge.svg)](https://github.com/zerocracy/fbe/actions/workflows/rake.yml)
-[![PDD status](http://www.0pdd.com/svg?name=zerocracy/fbe)](http://www.0pdd.com/p?name=zerocracy/fbe)
-[![Gem Version](https://badge.fury.io/rb/fbe.svg)](http://badge.fury.io/rb/fbe)
+[![PDD status](https://www.0pdd.com/svg?name=zerocracy/fbe)](https://www.0pdd.com/p?name=zerocracy/fbe)
+[![Gem Version](https://badge.fury.io/rb/fbe.svg)](https://badge.fury.io/rb/fbe)
 [![Test Coverage](https://img.shields.io/codecov/c/github/zerocracy/fbe.svg)](https://codecov.io/github/zerocracy/fbe?branch=master)
-[![Yard Docs](http://img.shields.io/badge/yard-docs-blue.svg)](http://rubydoc.info/github/zerocracy/fbe/master/frames)
+[![Yard Docs](https://img.shields.io/badge/yard-docs-blue.svg)](https://rubydoc.info/github/zerocracy/fbe/master/frames)
 [![Hits-of-Code](https://hitsofcode.com/github/zerocracy/fbe)](https://hitsofcode.com/view/github/zerocracy/fbe)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/zerocracy/fbe/blob/master/LICENSE.txt)
 
