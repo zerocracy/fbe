@@ -62,6 +62,7 @@ class Fbe::Conclude
     @query = nil
     @follows = []
     @quota_aware = false
+    @timeout = 60
   end
 
   # Make this block aware of GitHub API quota.
@@ -73,6 +74,17 @@ class Fbe::Conclude
   # @return [nil] Nothing is returned
   def quota_aware
     @quota_aware = true
+  end
+
+  # Make sure this block runs for less than allowed amount of seconds.
+  #
+  # When the quota is reached, the loop will gracefully stop to avoid.
+  # This helps prevent interruptions in long-running operations.
+  #
+  # @param [Float] sec Seconds
+  # @return [nil] Nothing is returned
+  def timeout(sec)
+    @timeout = sec
   end
 
   # Set the query that should find the facts in the factbase.
@@ -155,7 +167,7 @@ class Fbe::Conclude
             @loog.debug('We ran out of GitHub quota, must stop here')
             throw :stop
           end
-          if Time.now > start + 60
+          if Time.now > start + @timeout
             @loog.debug("We've spent more than #{start.ago}, must stop here")
             throw :stop
           end
