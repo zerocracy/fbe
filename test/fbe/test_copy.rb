@@ -11,7 +11,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestCopy < Minitest::Test
+class TestCopy < Fbe::Test
   def test_simple_copy
     fb = Factbase.new
     f1 = fb.insert

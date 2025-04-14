@@ -11,7 +11,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestOverwrite < Minitest::Test
+class TestOverwrite < Fbe::Test
   def test_simple_overwrite
     fb = Factbase.new
     f = fb.insert

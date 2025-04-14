@@ -14,7 +14,7 @@ require_relative '../../../lib/fbe/middleware/formatter'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class LoggingFormatterTest < Minitest::Test
+class LoggingFormatterTest < Fbe::Test
   def test_success_response
     log_it(status: 200) do |loog|
       assert_empty(loog.to_s)

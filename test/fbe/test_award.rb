@@ -11,7 +11,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
-class TestAward < Minitest::Test
+class TestAward < Fbe::Test
   def test_simple
     a = Fbe::Award.new(
       '

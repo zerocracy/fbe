@@ -10,7 +10,7 @@ require_relative '../lib/fbe'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestFbe < Minitest::Test
+class TestFbe < Fbe::Test
   def test_simple
     refute_nil(Fbe::VERSION)
   end

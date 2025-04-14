@@ -11,7 +11,7 @@ require_relative '../../lib/fbe/just_one'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestJustOne < Minitest::Test
+class TestJustOne < Fbe::Test
   def test_ignores
     fb = Factbase.new
     fb.insert.foo = 'hello dude'

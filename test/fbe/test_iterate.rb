@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestIterate < Minitest::Test
+class TestIterate < Fbe::Test
   def test_simple
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Factbase.new

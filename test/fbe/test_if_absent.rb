@@ -13,7 +13,7 @@ require_relative '../../lib/fbe/if_absent'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestIfAbsent < Minitest::Test
+class TestIfAbsent < Fbe::Test
   def test_ignores
     fb = Factbase.new
     fb.insert.foo = 'hello dude'

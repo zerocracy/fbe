@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestOcto < Minitest::Test
+class TestOcto < Fbe::Test
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })

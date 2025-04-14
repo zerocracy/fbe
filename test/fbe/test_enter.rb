@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestEnter < Minitest::Test
+class TestEnter < Fbe::Test
   def test_simple
     WebMock.disable_net_connect!
     options = Judges::Options.new({ 'zerocracy_token' => '00000-0000-0000-00000' })

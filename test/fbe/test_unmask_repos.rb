@@ -12,7 +12,7 @@ require_relative '../../lib/fbe/unmask_repos'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestUnmaskRepos < Minitest::Test
+class TestUnmaskRepos < Fbe::Test
   def test_simple_use
     opts = Judges::Options.new(
       {

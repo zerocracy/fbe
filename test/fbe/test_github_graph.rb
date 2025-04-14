@@ -13,7 +13,7 @@ require_relative '../../lib/fbe/github_graph'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
-class TestGitHubGraph < Minitest::Test
+class TestGitHubGraph < Fbe::Test
   def test_simple_use
     WebMock.disable_net_connect!
     global = {}
