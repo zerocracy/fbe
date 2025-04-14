@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'tago'
 require_relative '../fbe'
 
 # Converts number of seconds into text.
@@ -18,15 +19,5 @@ def Fbe.sec(fact, prop = :seconds)
   s = fact[prop.to_s]
   raise "There is no #{prop.inspect} property" if s.nil?
   s = s.first.to_i
-  if s < 60
-    format('%d seconds', s)
-  elsif s < 60 * 60
-    format('%d minutes', s / 60)
-  elsif s < 60 * 60 * 24
-    format('%d hours', s / (60 * 60))
-  elsif s < 7 * 60 * 60 * 24
-    format('%d days', s / (60 * 60 * 24))
-  else
-    format('%d weeks', s / (7 * 60 * 60 * 24))
-  end
+  (Time.now + s).ago
 end

@@ -16,6 +16,6 @@ class TestSec < Fbe::Test
     fb = Factbase.new
     f = fb.insert
     f.seconds = 333
-    assert_equal('5 minutes', Fbe.sec(f))
+    assert(Fbe.sec(f).start_with?('5m'))
   end
 end
