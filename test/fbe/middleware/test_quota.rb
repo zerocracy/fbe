@@ -12,7 +12,7 @@ require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/quota'
 require_relative '../../test__helper'
 
-class QuotaTest < Minitest::Test
+class QuotaTest < Fbe::Test
   class FakeApp
     def initialize
       @calls = 0

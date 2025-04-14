@@ -30,7 +30,7 @@ Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 
 require 'minitest/autorun'
 require 'webmock/minitest'
-require_relative '../fbe/fb'
+require_relative '../lib/fbe'
 
 # Parent class for all tests.
 class Fbe::Test < Minitest::Test
