@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
 require_relative 'octo'
@@ -146,10 +147,18 @@ class Fbe::Conclude
   # @return [Integer] The count of the facts seen
   def roll(&)
     passed = 0
+    start = Time.now
     catch :stop do
       @fb.txn do |fbt|
         fbt.query(@query).each do |a|
-          throw :stop if @quota_aware && Fbe.octo(loog: @loog, options: @options, global: @global).off_quota
+          if @quota_aware && Fbe.octo(loog: @loog, options: @options, global: @global).off_quota
+            @loog.debug('We ran out of GitHub quota, must stop here')
+            throw :stop
+          end
+          if Time.now > start + 60
+            @loog.debug("We've spent more than #{start.ago}, must stop here")
+            throw :stop
+          end
           n = yield fbt, a
           @loog.info("#{n.what}: #{n.details}") unless n.nil?
           passed += 1

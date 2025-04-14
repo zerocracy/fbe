@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: MIT
 
 require 'loog'
-require_relative '../test__helper'
 require_relative '../../lib/fbe/award'
 require_relative '../../lib/fbe/bylaws'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

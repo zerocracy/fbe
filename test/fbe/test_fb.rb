@@ -4,11 +4,11 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
-require 'loog'
 require 'judges/options'
-require_relative '../test__helper'
+require 'loog'
 require_relative '../../lib/fbe'
 require_relative '../../lib/fbe/fb'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

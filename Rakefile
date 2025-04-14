@@ -23,7 +23,6 @@ task default: %i[clean test picks rubocop yard]
 require 'rake/testtask'
 desc 'Run all unit tests'
 Rake::TestTask.new(:test) do |test|
-  Rake::Cleaner.cleanup_files(['coverage'])
   test.libs << 'lib' << 'test'
   test.pattern = 'test/**/test_*.rb'
   test.warning = true
@@ -33,7 +32,7 @@ end
 desc 'Run them via Ruby, one by one'
 task :picks do
   (Dir['test/**/*.rb'] + Dir['lib/**/*.rb']).each do |f|
-    qbash("bundle exec ruby #{Shellwords.escape(f)}", log: $stdout, env: { 'RACK_ENV' => 'picks' })
+    qbash("bundle exec ruby #{Shellwords.escape(f)} -- --no-cov", log: $stdout)
   end
 end
 

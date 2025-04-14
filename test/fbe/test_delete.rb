@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
-require_relative '../test__helper'
 require_relative '../../lib/fbe/delete'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

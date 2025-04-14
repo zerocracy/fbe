@@ -3,11 +3,11 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase'
 require 'judges/options'
 require 'loog'
-require 'factbase'
-require_relative '../test__helper'
 require_relative '../../lib/fbe/pmp'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

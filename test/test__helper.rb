@@ -5,22 +5,33 @@
 
 $stdout.sync = true
 
-require 'minitest/reporters'
-Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
-
-if ENV['RACK_ENV'] == 'test'
-  require 'simplecov'
-  require 'simplecov-cobertura'
-  SimpleCov.formatters = [
-    SimpleCov::Formatter::HTMLFormatter,
-    SimpleCov::Formatter::CoberturaFormatter
-  ]
+require 'simplecov'
+require 'simplecov-cobertura'
+unless SimpleCov.running || ARGV.include?('--no-cov')
+  SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new(
+    [
+      SimpleCov::Formatter::HTMLFormatter,
+      SimpleCov::Formatter::CoberturaFormatter
+    ]
+  )
+  SimpleCov.minimum_coverage 80
+  SimpleCov.minimum_coverage_by_file 25
   SimpleCov.start do
-    enable_coverage :branch
+    add_filter 'vendor/'
+    add_filter 'target/'
+    track_files 'judges/**/*.rb'
     track_files 'lib/**/*.rb'
-    add_filter '/test/'
-    add_filter '/vendor/'
+    track_files '*.rb'
   end
 end
 
+require 'minitest/reporters'
+Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
+
 require 'minitest/autorun'
+require 'webmock/minitest'
+require_relative '../fbe/fb'
+
+# Parent class for all tests.
+class Fbe::Test < Minitest::Test
+end
