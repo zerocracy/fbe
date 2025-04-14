@@ -72,6 +72,27 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(0, result.count)
   end
 
+  def test_gets_resolved_conversations_via_http
+    skip('This test does not work, because the JSON returned is not a valid response from GraphQL')
+    WebMock.disallow_net_connect!
+    global = {}
+    options = Judges::Options.new
+    g = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    stub_request(:post, 'https://api.github.com/graphql').to_return(
+      body: JSON.pretty_generate(
+        {
+          data: {
+            repository: {
+              name: 'foo'
+            }
+          }
+        }
+      )
+    )
+    result = g.resolved_conversations('foo', 'bar', 42)
+    assert_equal(1, result.count)
+  end
+
   def test_does_not_count_unresolved_conversations
     skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!

@@ -32,13 +32,11 @@ end
 class Fbe::Graph
   def initialize(token:, host: 'api.github.com')
     @token = token
-    http = HTTP.new(token, host)
-    @client = GraphQL::Client.new(schema: GraphQL::Client.load_schema(http), execute: http)
-    @client.allow_dynamic_queries = true
+    @host = host
   end
 
-  def query(query_string)
-    result = @client.query(@client.parse(query_string))
+  def query(qry)
+    result = client.query(client.parse(qry))
     result.data
   end
 
@@ -114,6 +112,19 @@ class Fbe::Graph
       'issues' => result.dig('repository', 'issues', 'totalCount') || 0,
       'pulls' => result.dig('repository', 'pullRequests', 'totalCount') || 0
     }
+  end
+
+  private
+
+  def client
+    @client ||=
+      begin
+        http = HTTP.new(@token, @host)
+        schema = GraphQL::Client.load_schema(http)
+        c = GraphQL::Client.new(schema:, execute: http)
+        c.allow_dynamic_queries = true
+        c
+      end
   end
 
   # The HTTP class
