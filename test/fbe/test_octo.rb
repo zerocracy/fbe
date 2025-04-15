@@ -188,6 +188,6 @@ class TestOcto < Fbe::Test
   def test_reads_quota
     WebMock.enable_net_connect!
     o = Fbe.octo(loog: Loog::VERBOSE, global: {}, options: Judges::Options.new({ 'github_api_pause' => 0.01 }))
-    refute(o.off_quota)
+    refute_nil(o.off_quota)
   end
 end
