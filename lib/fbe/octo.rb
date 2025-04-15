@@ -84,10 +84,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         o = Fbe::FakeOctokit.new
       end
       decoor(o, loog:) do
-        def off_quota
+        def off_quota(threshold: 50)
           left = @origin.rate_limit.remaining
-          if left < 5
-            @loog.info("Too much GitHub API quota consumed already (remaining=#{left}), stopping")
+          if left < threshold
+            @loog.info("Too much GitHub API quota consumed already (#{left} < #{threshold}), stopping")
             true
           else
             false

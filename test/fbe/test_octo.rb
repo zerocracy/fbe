@@ -133,29 +133,20 @@ class TestOcto < Fbe::Test
 
   def test_pauses_when_quota_is_exceeded
     WebMock.disable_net_connect!
-    global = {}
-    pause = 0.1
-    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'github_api_pause' => pause }))
-    limit = 100
-    start_time = Time.now
-    105.times do |i|
-      n = i + 1
-      user = "test#{n}"
-      limit = 100 if n > 100
-      stub_request(:get, "https://api.github.com/users/#{user}")
-        .then
-        .to_return(
-          status: 200, body: '{}',
-          headers: {
-            'x-ratelimit-remaining' => limit.to_s
-          }
-        )
-        .times(1)
-      o.user(user)
-      refute(o.off_quota) if n > 100
-      limit -= 1
-    end
-    assert_in_delta(pause, Time.now - start_time, 5)
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_api_pause' => 0.01 }))
+    stub_request(:get, 'https://api.github.com/users/foo')
+      .to_return(
+        status: 200, body: '{}',
+        headers: { 'x-ratelimit-remaining' => '1' }
+      )
+      .to_return(
+        status: 200, body: '{}',
+        headers: { 'x-ratelimit-remaining' => '10000' }
+      )
+    o.user('foo')
+    assert(o.off_quota)
+    o.user('foo')
+    refute(o.off_quota)
   end
 
   def test_fetches_fake_check_runs_for_ref
@@ -192,5 +183,11 @@ class TestOcto < Fbe::Test
     assert_equal(id, result[:id])
     result = o.workflow_run_job('zerocracy/baza', 0)
     assert_equal(0, result[:id])
+  end
+
+  def test_reads_quota
+    WebMock.enable_net_connect!
+    o = Fbe.octo(loog: Loog::VERBOSE, global: {}, options: Judges::Options.new)
+    refute(o.off_quota)
   end
 end

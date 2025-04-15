@@ -5,6 +5,8 @@
 
 $stdout.sync = true
 
+ENV['RACK_ENV'] = 'test'
+
 require 'simplecov'
 require 'simplecov-cobertura'
 unless SimpleCov.running || ARGV.include?('--no-cov')
