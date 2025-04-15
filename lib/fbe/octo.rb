@@ -13,7 +13,6 @@ require 'verbose'
 require_relative '../fbe'
 require_relative 'middleware'
 require_relative 'middleware/formatter'
-require_relative 'middleware/quota'
 
 # Makes a call to the GitHub API.
 #
@@ -71,7 +70,6 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               methods: [:get],
               backoff_factor: 2
             )
-            builder.use(Fbe::Middleware::Quota, loog:, pause: options.github_api_pause || 60)
             builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
