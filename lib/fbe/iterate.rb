@@ -107,11 +107,23 @@ class Fbe::Iterate
     raise 'Use "by" first' if @query.nil?
     seen = {}
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
+    if oct.off_quota
+      @loog.debug('We are off GitHub quota, cannot even start, sorry')
+      return
+    end
     repos = Fbe.unmask_repos(loog: @loog, options: @options, global: @global)
     restarted = []
     start = Time.now
     loop do
+      if oct.off_quota
+        @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
+        break
+      end
       repos.each do |repo|
+        if oct.off_quota
+          @loog.debug("We are off GitHub quota, we must skip #{repo}")
+          break
+        end
         if Time.now - start > timeout
           $loog.info("We are doing this for #{start.ago} already, won't check #{repo}")
           next
@@ -152,14 +164,6 @@ class Fbe::Iterate
           end
         f.what = @label
         seen[repo] += 1
-        if oct.off_quota
-          @loog.debug('We are off GitHub quota, time to stop')
-          break
-        end
-      end
-      if oct.off_quota
-        @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
-        break
       end
       unless seen.any? { |r, v| v < @repeats && !restarted.include?(r) }
         @loog.debug("No more repos to scan (out of #{repos.size}), quitting after #{start.ago}")
