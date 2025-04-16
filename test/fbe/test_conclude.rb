@@ -61,6 +61,38 @@ class TestConclude < Fbe::Test
     assert_equal(42, f.bar)
   end
 
+  def test_considers_until_quota
+    WebMock.disable_net_connect!
+    fb = Factbase.new
+    5.times do
+      fb.insert.foo = 1
+    end
+    options = Judges::Options.new
+    stub_request(:get, %r{https://api.github.com/users/.*}).to_return(
+      {
+        body: { id: rand(100) }.to_json,
+        headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '999' }
+      },
+      {
+        body: { id: rand(100) }.to_json,
+        headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '9' }
+      }
+    )
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: 'hm...', headers: { 'X-RateLimit-Remaining' => '777' }
+    ).times(1)
+    global = {}
+    o = Fbe.octo(loog: Loog::NULL, options:, global:)
+    Fbe.conclude(fb:, judge: 'boom', loog: Loog::NULL, options:, global:) do
+      quota_aware
+      on '(exists foo)'
+      consider do |f|
+        f.bar = o.user("user-#{rand(100)}")[:id]
+      end
+    end
+    assert_equal(2, fb.query('(exists bar)').each.to_a.size)
+  end
+
   def test_ignores_globals
     $fb = nil
     $loog = nil

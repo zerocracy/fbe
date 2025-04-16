@@ -56,7 +56,7 @@ class TestOcto < Fbe::Test
     global = {}
     o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
     stub_request(:get, 'https://api.github.com/users/yegor256')
-      .to_return(status: 200, body: '{}', headers: { 'Cache-Control' => 'public, max-age=60', 'etag' => 'abc' })
+      .to_return(body: '{}', headers: { 'Cache-Control' => 'public, max-age=60', 'etag' => 'abc' })
       .times(1)
       .then
       .to_raise('second request should be cached, not passed to GitHub API!')
@@ -64,12 +64,50 @@ class TestOcto < Fbe::Test
     o.user('yegor256')
   end
 
+  def test_rate_limit_remaining
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/user/42').to_return(
+      body: '', headers: { 'X-RateLimit-Remaining' => '4' }
+    )
+    o = Octokit::Client.new
+    assert_equal(222, o.rate_limit.remaining)
+    o.user(42)
+    assert_equal(4, o.rate_limit.remaining)
+    assert_equal(4, o.rate_limit.remaining)
+  end
+
   def test_off_quota
     WebMock.disable_net_connect!
-    stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: '{}', headers: { 'X-RateLimit-Remaining' => '1000' })
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}', headers: { 'X-RateLimit-Remaining' => '333' }
+    )
+    stub_request(:get, 'https://api.github.com/user/42').to_return(
+      body: '', headers: { 'X-RateLimit-Remaining' => '3' }
+    )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     refute(o.off_quota)
+    o.user(42)
+    assert(o.off_quota)
+  end
+
+  def test_off_quota_twice
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}', headers: { 'X-RateLimit-Remaining' => '333' }
+    )
+    stub_request(:get, 'https://api.github.com/user/42').to_return(
+      { body: '', headers: { 'X-RateLimit-Remaining' => '5555' } },
+      { body: '', headers: { 'X-RateLimit-Remaining' => '5' } }
+    )
+    o = Fbe.octo(loog: Loog::VERBOSE, global: {}, options: Judges::Options.new)
+    refute(o.off_quota)
+    o.user(42)
+    refute(o.off_quota)
+    o.user(42)
+    assert(o.off_quota)
   end
 
   def test_retrying
@@ -80,7 +118,7 @@ class TestOcto < Fbe::Test
       .to_raise(Octokit::TooManyRequests.new)
       .times(1)
       .then
-      .to_return(status: 200, body: '{}')
+      .to_return(body: '{}')
     o.user('yegor256')
   end
 
@@ -92,7 +130,7 @@ class TestOcto < Fbe::Test
       .to_return(status: 503)
       .times(1)
       .then
-      .to_return(status: 200, body: '{}')
+      .to_return(body: '{}')
     o.user('yegor256')
   end
 
@@ -136,11 +174,11 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_api_pause' => 0.01 }))
     stub_request(:get, 'https://api.github.com/users/foo')
       .to_return(
-        status: 200, body: '{}',
+        body: '{}',
         headers: { 'x-ratelimit-remaining' => '1' }
       )
       .to_return(
-        status: 200, body: '{}',
+        body: '{}',
         headers: { 'x-ratelimit-remaining' => '10000' }
       )
     o.user('foo')

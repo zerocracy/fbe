@@ -88,6 +88,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             @loog.info("Too much GitHub API quota consumed already (#{left} < #{threshold}), stopping")
             true
           else
+            @loog.debug("Still #{left} GitHub API quota left (>#{threshold})")
             false
           end
         end
@@ -147,13 +148,14 @@ class Fbe::FakeOctokit
     true
   end
 
-  def user(name)
-    login = name
-    login = name == 526_301 ? 'yegor256' : 'torvalds' if login.is_a?(Integer)
+  # Get details of the user.
+  # @param [String|Integer] uid The login of the user or its ID
+  def user(uid)
+    login = (uid == 526_301 ? 'yegor256' : 'torvalds') if uid.is_a?(Integer)
     {
       id: 444,
       login:,
-      type: name == 29_139_614 ? 'Bot' : 'User'
+      type: uid == 29_139_614 ? 'Bot' : 'User'
     }
   end
 

@@ -160,21 +160,20 @@ class Fbe::Conclude
   def roll(&)
     passed = 0
     start = Time.now
-    catch :stop do
-      @fb.txn do |fbt|
-        fbt.query(@query).each do |a|
-          if @quota_aware && Fbe.octo(loog: @loog, options: @options, global: @global).off_quota
-            @loog.debug('We ran out of GitHub quota, must stop here')
-            throw :stop
-          end
-          if Time.now > start + @timeout
-            @loog.debug("We've spent more than #{start.ago}, must stop here")
-            throw :stop
-          end
-          n = yield fbt, a
-          @loog.info("#{n.what}: #{n.details}") unless n.nil?
-          passed += 1
+    oct = Fbe.octo(loog: @loog, options: @options, global: @global)
+    @fb.txn do |fbt|
+      fbt.query(@query).each do |a|
+        if @quota_aware && oct.off_quota
+          @loog.debug('We ran out of GitHub quota, must stop here')
+          throw :commit
         end
+        if Time.now > start + @timeout
+          @loog.debug("We've spent more than #{start.ago}, must stop here")
+          throw :commit
+        end
+        n = yield fbt, a
+        @loog.info("#{n.what}: #{n.details}") unless n.nil?
+        passed += 1
       end
     end
     @loog.debug("Found and processed #{passed} facts by: #{@query}")
