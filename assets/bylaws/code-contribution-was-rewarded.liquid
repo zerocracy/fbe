@@ -52,19 +52,6 @@
     "deduct ${comments_k} points for every comment made during review, but not more than ${comments_max} points")
 
   (aka
-    (let few_comments_fee {{ 2 | times: anger }})
-    (let comments_needed {{ 3 | times: paranoia }})
-    (set penalty_for_few_comments (if (and (lt comments comments_needed) (not (eq comments 0))) (times -1 few_comments_fee) 0))
-    (give penalty_for_few_comments "for very few (${comments}) comments")
-    "deduct ${few_comments_fee} points if there were less than ${comments_needed} comments made during review")
-
-  (aka
-    (let silence_fee {{ 8 | times: anger }})
-    (set penalty_for_silence (if (eq comments 0) (times -1 silence_fee) 0))
-    (give penalty_for_silence "for absolutely no comments posted by reviewers")
-    "deduct ${silence_fee} points if there were absolutely no comments made by reviewers during the review")
-
-  (aka
     (let few_hoc_fee {{ 4 | times: anger }})
     (let hoc_needed {{ 10 | times: paranoia }})
     (set penalty_for_few_hoc (if (lt hoc hoc_needed) (times -1 few_hoc_fee) 0))
