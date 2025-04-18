@@ -96,6 +96,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         end
 
         def user_name_by_id(id)
+          raise 'The ID of the user is nil' if id.nil?
+          raise 'The ID of the user must be an Integer' unless id.is_a?(Integer)
           json = @origin.user(id)
           name = json[:login].downcase
           @loog.debug("GitHub user ##{id} has a name: @#{name}")
@@ -103,6 +105,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         end
 
         def repo_id_by_name(name)
+          raise 'The name of the repo is nil' if name.nil?
           json = @origin.repository(name)
           id = json[:id]
           @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
@@ -110,6 +113,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         end
 
         def repo_name_by_id(id)
+          raise 'The ID of the repo is nil' if id.nil?
+          raise 'The ID of the repo must be an Integer' unless id.is_a?(Integer)
           json = @origin.repository(id)
           name = json[:full_name].downcase
           @loog.debug("GitHub repository ##{id} has a name: #{name}")
