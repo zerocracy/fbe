@@ -26,6 +26,8 @@ require_relative 'middleware/formatter'
 # @return [Hash] Usually returns a JSON, as it comes from the GitHub API
 def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $global is not set' if global.nil?
+  raise 'The $options is not set' if options.nil?
+  raise 'The $loog is not set' if loog.nil?
   global[:octo] ||=
     begin
       if options.testing.nil?

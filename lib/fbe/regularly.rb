@@ -16,6 +16,11 @@ require_relative 'fb'
 # @param [Loog] loog The logging facility
 # @return [nil] Nothing
 def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+  raise 'The area is nil' if area.nil?
+  raise 'The p_every_days is nil' if p_every_days.nil?
+  raise 'The fb is nil' if fb.nil?
+  raise 'The $judge is not set' if judge.nil?
+  raise 'The $loog is not set' if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_days}))").each.to_a.first
   interval = pmp.nil? ? 7 : pmp[p_every_days].first
   unless fb.query(

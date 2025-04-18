@@ -18,6 +18,10 @@ require_relative 'unmask_repos'
 # @param [Loog] loog The logging facility
 # @yield [Factbase::Fact] The fact
 def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
+  raise 'The fb is nil' if fb.nil?
+  raise 'The $global is not set' if global.nil?
+  raise 'The $options is not set' if options.nil?
+  raise 'The $loog is not set' if loog.nil?
   c = Fbe::Iterate.new(fb:, loog:, options:, global:)
   c.instance_eval(&)
 end

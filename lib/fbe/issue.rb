@@ -19,6 +19,10 @@ require_relative 'octo'
 # @param [Loog] loog The logging facility
 # @return [String] Textual representation of GitHub issue number
 def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
+  raise 'The fact is nil' if fact.nil?
+  raise 'The $global is not set' if global.nil?
+  raise 'The $options is not set' if options.nil?
+  raise 'The $loog is not set' if loog.nil?
   rid = fact['repository']
   raise "There is no 'repository' property" if rid.nil?
   rid = rid.first.to_i

@@ -18,6 +18,11 @@ require_relative 'if_absent'
 # @param [Loog] loog The logging facility
 # @yield [Factbase::Fact] The fact
 def Fbe.conclude(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global, &)
+  raise 'The fb is nil' if fb.nil?
+  raise 'The $judge is not set' if judge.nil?
+  raise 'The $global is not set' if global.nil?
+  raise 'The $options is not set' if options.nil?
+  raise 'The $loog is not set' if loog.nil?
   c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:)
   c.instance_eval(&)
 end

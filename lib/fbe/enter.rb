@@ -14,6 +14,10 @@ require_relative '../fbe'
 # @param [Loog] loog The logging facility
 # @return [String] Full name of the user
 def Fbe.enter(badge, why, options: $options, loog: $loog, &)
+  raise 'The badge is nil' if badge.nil?
+  raise 'The why is nil' if why.nil?
+  raise 'The $options is not set' if options.nil?
+  raise 'The $loog is not set' if loog.nil?
   return yield unless options.testing.nil?
   baza = BazaRb.new('api.zerocracy.com', 443, options.zerocracy_token, loog:)
   baza.enter(options.job_name, badge, why, options.job_id.to_i, &)
