@@ -51,6 +51,17 @@ class TestOcto < Fbe::Test
     assert_equal(100, o.rate_limit.remaining)
   end
 
+  def test_reads_nickname_by_id
+    WebMock.disable_net_connect!
+    global = {}
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/user/42').to_return(
+      body: { login: 'Dude56' }.to_json, headers: { 'Content-Type': 'application/json' }
+    )
+    nick = o.user_name_by_id(42)
+    assert_equal('dude56', nick)
+  end
+
   def test_caching
     WebMock.disable_net_connect!
     global = {}

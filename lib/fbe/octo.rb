@@ -97,7 +97,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
 
         def user_name_by_id(id)
           json = @origin.user(id)
-          name = json[:login]
+          name = json[:login].downcase
           @loog.debug("GitHub user ##{id} has a name: @#{name}")
           name
         end
