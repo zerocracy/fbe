@@ -62,6 +62,17 @@ class TestOcto < Fbe::Test
     assert_equal('dude56', nick)
   end
 
+  def test_reads_repo_name_by_id
+    WebMock.disable_net_connect!
+    global = {}
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repositories/42').to_return(
+      body: { full_name: 'Foo/bar56-Ff' }.to_json, headers: { 'Content-Type': 'application/json' }
+    )
+    nick = o.repo_name_by_id(42)
+    assert_equal('foo/bar56-ff', nick)
+  end
+
   def test_caching
     WebMock.disable_net_connect!
     global = {}

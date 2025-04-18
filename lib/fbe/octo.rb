@@ -111,7 +111,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
 
         def repo_name_by_id(id)
           json = @origin.repository(id)
-          name = json[:full_name]
+          name = json[:full_name].downcase
           @loog.debug("GitHub repository ##{id} has a name: #{name}")
           name
         end
