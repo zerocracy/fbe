@@ -91,7 +91,9 @@ class Fbe::Award
           raise "Failure in #{o}: #{e.message}"
         end
       when :let, :set
-        bill.set(@operands[0], to_val(@operands[1], bill))
+        v = to_val(@operands[1], bill)
+        raise "Can't #{@op.inspect} #{@operands[0].inspect} to nil" if v.nil?
+        bill.set(@operands[0], v)
       when :give
         text = @operands[1]
         text = '' if text.nil?
@@ -108,7 +110,7 @@ class Fbe::Award
         any.calc(bill)
       elsif any.is_a?(Symbol)
         v = bill.vars[any]
-        raise "Unknown name '#{any}' among [#{bill.vars.keys.join(', ')}]" if v.nil?
+        raise "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).join(', ')}" if v.nil?
         v
       else
         any
