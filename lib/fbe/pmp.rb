@@ -19,11 +19,27 @@ require_relative 'fb'
 # this method throws an exception. The factbase must contain PMP-related facts.
 # Most probably, a special judge must fill it up with such a fact.
 #
+# The method uses a double nested `others` block to create a chainable interface
+# that allows accessing configuration like:
+#
+#   Fbe.pmp.hr.reward_points
+#   Fbe.pmp.cost.hourly_rate
+#   Fbe.pmp.time.deadline
+#
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Loog] loog The logging facility
-# @return [String|Integer] The value of the property found
+# @return [Object] A proxy object that allows method chaining to access PMP properties
+# @example
+#   # Get HR reward points from PMP configuration
+#   points = Fbe.pmp.hr.reward_points
+#
+#   # Get hourly rate from cost area
+#   rate = Fbe.pmp.cost.hourly_rate
+#
+#   # Get deadline from time area
+#   deadline = Fbe.pmp.time.deadline
 def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
   others do |*args1|
     area = args1.first

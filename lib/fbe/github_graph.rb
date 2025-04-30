@@ -35,11 +35,29 @@ class Fbe::Graph
     @host = host
   end
 
+  # Executes a GraphQL query against the GitHub API.
+  #
+  # @param [String] qry The GraphQL query to execute
+  # @return [GraphQL::Client::Response] The query result data
+  # @example
+  #   graph = Fbe::Graph.new(token: 'github_token')
+  #   result = graph.query('{viewer {login}}')
+  #   puts result.viewer.login #=> "octocat"
   def query(qry)
     result = client.query(client.parse(qry))
     result.data
   end
 
+  # Retrieves resolved conversation threads from a pull request.
+  #
+  # @param [String] owner The repository owner (username or organization)
+  # @param [String] name The repository name
+  # @param [Integer] number The pull request number
+  # @return [Array<Hash>] An array of resolved conversation threads with their comments
+  # @example
+  #   graph = Fbe::Graph.new(token: 'github_token')
+  #   threads = graph.resolved_conversations('octocat', 'Hello-World', 42)
+  #   threads.first['comments']['nodes'].first['body'] #=> "Great work!"
   def resolved_conversations(owner, name, number)
     result = query(
       <<~GRAPHQL
@@ -72,6 +90,16 @@ class Fbe::Graph
     end || []
   end
 
+  # Gets the total number of commits in a branch.
+  #
+  # @param [String] owner The repository owner (username or organization)
+  # @param [String] name The repository name
+  # @param [String] branch The branch name (e.g., "master" or "main")
+  # @return [Integer] The total number of commits in the branch
+  # @example
+  #   graph = Fbe::Graph.new(token: 'github_token')
+  #   count = graph.total_commits('octocat', 'Hello-World', 'main')
+  #   puts count #=> 42
   def total_commits(owner, name, branch)
     result = query(
       <<~GRAPHQL
@@ -93,6 +121,15 @@ class Fbe::Graph
     result.repository.ref.target.history.total_count
   end
 
+  # Gets the total number of issues and pull requests in a repository.
+  #
+  # @param [String] owner The repository owner (username or organization)
+  # @param [String] name The repository name
+  # @return [Hash] A hash with 'issues' and 'pulls' counts
+  # @example
+  #   graph = Fbe::Graph.new(token: 'github_token')
+  #   counts = graph.total_issues_and_pulls('octocat', 'Hello-World')
+  #   puts counts #=> {"issues"=>42, "pulls"=>17}
   def total_issues_and_pulls(owner, name)
     result = query(
       <<~GRAPHQL
@@ -116,6 +153,9 @@ class Fbe::Graph
 
   private
 
+  # Creates or returns a cached GraphQL client instance.
+  #
+  # @return [GraphQL::Client] A configured GraphQL client for GitHub
   def client
     @client ||=
       begin
@@ -127,13 +167,24 @@ class Fbe::Graph
       end
   end
 
-  # The HTTP class
+  # HTTP transport class for GraphQL client to communicate with GitHub API
+  #
+  # This class extends GraphQL::Client::HTTP to handle GitHub-specific
+  # authentication and endpoints.
   class HTTP < GraphQL::Client::HTTP
+    # Initializes a new HTTP transport with GitHub authentication.
+    #
+    # @param [String] token GitHub API token for authentication
+    # @param [String] host GitHub API host (default: 'api.github.com')
     def initialize(token, host)
       @token = token
       super("https://#{host}/graphql")
     end
 
+    # Provides headers for GraphQL requests including authentication.
+    #
+    # @param [Object] _context The GraphQL request context (unused)
+    # @return [Hash] Headers for the request
     def headers(_context)
       { Authorization: "Bearer #{@token}" }
     end

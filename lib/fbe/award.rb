@@ -62,20 +62,46 @@ class Fbe::Award
     bylaw
   end
 
-  # A term for bill.
+  # A term module for processing award billing logic.
+  #
+  # This module is used to extend Factbase terms to handle award calculations
+  # and billing operations. It provides methods to calculate point values and
+  # evaluate complex award expressions.
   module BTerm
+    # Returns a string representation of the term.
+    #
+    # @return [String] The term as a string in S-expression format
+    # @example
+    #   term.to_s #=> "(give (times loc 5) 'for LoC')"
     def to_s
       "(#{@op} #{@operands.join(' ')})"
     end
 
+    # Indicates whether the term is static.
+    #
+    # @return [Boolean] Always returns true for BTerm
     def static?
       true
     end
 
+    # Indicates whether the term is abstract.
+    #
+    # @return [Boolean] Always returns false for BTerm
     def abstract?
       false
     end
 
+    # Processes this term and applies its operations to a bill.
+    #
+    # @param [Fbe::Award::Bill] bill The bill to update
+    # @return [nil]
+    # @raise [RuntimeError] If there's a failure processing any term
+    # @example
+    #   term = Factbase::Syntax.new('(award (give 100 "for effort"))').to_term
+    #   term.redress!(Fbe::Award::BTerm)
+    #   bill = Fbe::Award::Bill.new
+    #   term.bill_to(bill)
+    #   bill.points #=> 100
     def bill_to(bill)
       case @op
       when :award
@@ -105,6 +131,16 @@ class Fbe::Award
       end
     end
 
+    # Evaluates a value in the context of a bill.
+    #
+    # @param [Object] any The value to evaluate (symbol, term, or literal)
+    # @param [Fbe::Award::Bill] bill The bill providing context for evaluation
+    # @return [Object] The evaluated value
+    # @raise [RuntimeError] If a symbol isn't found in the bill
+    # @example
+    #   bill = Fbe::Award::Bill.new
+    #   bill.set(:loc, 100)
+    #   term.to_val(:loc, bill) #=> 100
     def to_val(any, bill)
       if any.is_a?(BTerm)
         any.calc(bill)
@@ -117,6 +153,21 @@ class Fbe::Award
       end
     end
 
+    # Calculates the value of this term in the context of a bill.
+    #
+    # This method evaluates terms like arithmetic operations, logical
+    # operations, and other expressions based on the operator type.
+    #
+    # @param [Fbe::Award::Bill] bill The bill providing context for calculation
+    # @return [Object] The calculated value (number, boolean, etc.)
+    # @raise [RuntimeError] If the term operation is unknown
+    # @example
+    #   bill = Fbe::Award::Bill.new
+    #   bill.set(:x, 10)
+    #   bill.set(:y, 5)
+    #   term = Factbase::Syntax.new('(times x y)').to_term
+    #   term.redress!(Fbe::Award::BTerm)
+    #   term.calc(bill) #=> 50
     def calc(bill)
       case @op
       when :total
@@ -275,29 +326,70 @@ class Fbe::Award
     end
   end
 
-  # A bill.
+  # A bill class that accumulates points and explanations for rewards.
+  #
+  # This class tracks variables, point values, and explanatory text
+  # for each award component. It provides methods to calculate total points
+  # and generate a human-readable summary of the rewards.
   class Bill
+    # @return [Hash] Variables set in this bill
     attr_reader :vars
 
+    # Creates a new empty bill.
+    #
+    # @example
+    #   bill = Fbe::Award::Bill.new
     def initialize
       @lines = []
       @vars = {}
     end
 
+    # Sets a variable in the bill's context.
+    #
+    # @param [Symbol] var The variable name
+    # @param [Object] value The value to assign
+    # @return [Object] The assigned value
+    # @example
+    #   bill = Fbe::Award::Bill.new
+    #   bill.set(:lines_of_code, 500)
     def set(var, value)
       @vars[var] = value
     end
 
+    # Adds a point value with explanatory text to the bill.
+    #
+    # @param [Integer, Float] value The point value to add
+    # @param [String] text The explanation for these points
+    # @return [nil]
+    # @note Zero-valued points are ignored
+    # @example
+    #   bill = Fbe::Award::Bill.new
+    #   bill.line(50, "for code review")
     def line(value, text)
       return if value.zero?
       text = text.gsub(/\$\{([a-z_0-9]+)\}/) { |_x| @vars[Regexp.last_match[1].to_sym] }
       @lines << { v: value, t: text }
     end
 
+    # Calculates the total points in this bill.
+    #
+    # @return [Integer] The sum of all point values, rounded to an integer
+    # @example
+    #   bill = Fbe::Award::Bill.new
+    #   bill.line(42.5, "for answer")
+    #   bill.points #=> 43
     def points
       @lines.sum { |l| l[:v] }.to_f.round.to_i
     end
 
+    # Generates a human-readable summary of the bill.
+    #
+    # @return [String] A description of the points earned
+    # @example
+    #   bill = Fbe::Award::Bill.new
+    #   bill.line(50, "for code review")
+    #   bill.line(25, "for documentation")
+    #   bill.greeting #=> "You've earned +75 points for this: +50 for code review; +25 for documentation. "
     def greeting
       items = @lines.map { |l| "#{format('%+d', l[:v])} #{l[:t]}" }
       case items.size
@@ -311,33 +403,83 @@ class Fbe::Award
     end
   end
 
-  # A bylaw.
+  # A class for generating human-readable bylaws.
+  #
+  # This class builds textual descriptions of award bylaws including
+  # introductions, calculation steps, and variable substitutions.
+  # It produces Markdown-formatted output describing how awards are calculated.
   class Bylaw
+    # @return [Hash] Variables defined in this bylaw
     attr_reader :vars
 
+    # Creates a new empty bylaw.
+    #
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
     def initialize
       @lines = []
       @intro = ''
       @lets = {}
     end
 
+    # Removes the specified number of most recently added lines.
+    #
+    # @param [Integer] num The number of lines to remove from the end
+    # @return [Array] The removed lines
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
+    #   bylaw.line("award 50 points")
+    #   bylaw.line("award 30 points")
+    #   bylaw.revert(1) # Removes "award 30 points"
     def revert(num)
       @lines.slice!(-num, num)
     end
 
+    # Sets the introductory text for the bylaw.
+    #
+    # @param [String] text The introductory text to set
+    # @return [String] The introductory text
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
+    #   bylaw.intro("This bylaw determines rewards for code contributions")
     def intro(text)
       @intro = text
     end
 
+    # Adds a line of text to the bylaw, replacing variable references.
+    #
+    # @param [String] line The line of text to add
+    # @return [nil]
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
+    #   bylaw.let(:points, 50)
+    #   bylaw.line("award ${points} points")
     def line(line)
       line = line.gsub(/\$\{([a-z_0-9]+)\}/) { |_x| "**#{@lets[Regexp.last_match[1].to_sym]}**" }
       @lines << line
     end
 
+    # Registers a variable with its value for substitution in lines.
+    #
+    # @param [Symbol] key The variable name
+    # @param [Object] value The value to associate with the variable
+    # @return [Object] The assigned value
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
+    #   bylaw.let(:points, 50)
     def let(key, value)
       @lets[key] = value
     end
 
+    # Generates a Markdown-formatted representation of the bylaw.
+    #
+    # @return [String] The bylaw formatted as Markdown text
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
+    #   bylaw.intro("This bylaw determines rewards for code contributions")
+    #   bylaw.line("award **50** points")
+    #   bylaw.markdown 
+    #   #=> "This bylaw determines rewards for code contributions. Here is how it's calculated: Just award **50** points."
     def markdown
       pars = []
       pars << "#{@intro}." unless @intro.empty?

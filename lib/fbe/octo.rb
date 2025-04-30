@@ -124,17 +124,40 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
     end
 end
 
-# Fake GitHub client, for tests.
+# Fake GitHub client for testing purposes.
+# 
+# This class provides mock implementations of Octokit methods for testing.
+# It returns predictable data structures that mimic GitHub API responses.
 class Fbe::FakeOctokit
+  # Generates a random time in the past.
+  #
+  # @return [Time] A random time within the last 10,000 seconds
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   time = fake_client.random_time #=> 2024-09-04 12:34:56 -0700
   def random_time
     Time.now - rand(10_000)
   end
 
+  # Converts a string name to a deterministic integer.
+  #
+  # @param [String, Integer] name The name to convert or pass through
+  # @return [Integer, String] The sum of character codes if input is a string, otherwise the original input
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.name_to_number("octocat") #=> 728
+  #   fake_client.name_to_number(42) #=> 42
   def name_to_number(name)
     return name unless name.is_a?(String)
     name.chars.sum(&:ord)
   end
 
+  # Returns a mock rate limit object.
+  #
+  # @return [Object] An object with a remaining method that returns 100
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.rate_limit.remaining #=> 100
   def rate_limit
     o = Object.new
     def o.remaining
@@ -150,13 +173,25 @@ class Fbe::FakeOctokit
     ]
   end
 
-  # Give this repo a star.
+  # Gives a star to a repository.
+  #
+  # @param [String] _repo The repository name (e.g., 'user/repo')
+  # @return [Boolean] Always returns true
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.star('octocat/Hello-World') #=> true
   def star(_repo)
     true
   end
 
-  # Get details of the user.
-  # @param [String|Integer] uid The login of the user or its ID
+  # Gets details of a GitHub user.
+  #
+  # @param [String, Integer] uid The login of the user or its numeric ID
+  # @return [Hash] User information including id, login, and type
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.user(526_301) #=> {:id=>444, :login=>"yegor256", :type=>"User"}
+  #   fake_client.user('octocat') #=> {:id=>444, :login=>nil, :type=>"User"}
   def user(uid)
     login = (uid == 526_301 ? 'yegor256' : 'torvalds') if uid.is_a?(Integer)
     {
@@ -166,6 +201,15 @@ class Fbe::FakeOctokit
     }
   end
 
+  # Gets workflow runs for a repository.
+  #
+  # @param [String] repo The repository name
+  # @param [Hash] _opts Additional options (not used in mock)
+  # @return [Hash] Information about workflow runs including counts and details
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   result = fake_client.repository_workflow_runs('octocat/Hello-World')
+  #   result[:total_count] #=> 2
   def repository_workflow_runs(repo, _opts = {})
     {
       total_count: 2,
@@ -176,6 +220,15 @@ class Fbe::FakeOctokit
     }
   end
 
+  # Gets usage information for a specific workflow run.
+  #
+  # @param [String] _repo The repository name
+  # @param [Integer] _id The workflow run ID
+  # @return [Hash] Billing and usage information for the workflow run
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   usage = fake_client.workflow_run_usage('octocat/Hello-World', 42)
+  #   usage[:run_duration_ms] #=> 53000
   def workflow_run_usage(_repo, _id)
     {
       billable: {

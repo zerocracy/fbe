@@ -160,8 +160,24 @@ class Fbe::Conclude
 
   private
 
-  # @yield [Factbase::Fact] The next fact found by the query
-  # @return [Integer] The count of the facts seen
+  # Executes a query and processes each matching fact.
+  #
+  # This internal method handles fetching facts from the factbase,
+  # monitoring quotas and timeouts, and processing each fact through
+  # the provided block.
+  #
+  # @yield [Factbase::Transaction, Factbase::Fact] Transaction and the matching fact
+  # @return [Integer] The count of facts processed
+  # @example
+  #   # Inside the Fbe::Conclude class
+  #   def example_method
+  #     roll do |fbt, fact|
+  #       # Process the fact
+  #       new_fact = fbt.insert
+  #       # Return the new fact
+  #       new_fact
+  #     end
+  #   end
   def roll(&)
     passed = 0
     start = Time.now
@@ -185,6 +201,27 @@ class Fbe::Conclude
     passed
   end
 
+  # Populates a new fact based on a previous fact and a processing block.
+  #
+  # This internal method copies specified properties from the previous fact,
+  # calls the provided block for custom processing, and sets metadata 
+  # on the new fact.
+  #
+  # @param [Factbase::Fact] fact The fact to populate
+  # @param [Factbase::Fact] prev The previous fact to copy from
+  # @yield [Factbase::Fact, Factbase::Fact] New fact and the previous fact
+  # @return [nil]
+  # @example
+  #   # Inside the Fbe::Conclude class
+  #   def example_method
+  #     @fb.txn do |fbt|
+  #       new_fact = fbt.insert
+  #       fill(new_fact, existing_fact) do |n, prev|
+  #         n.some_property = "new value"
+  #         "Operation completed"  # This becomes fact.details
+  #       end
+  #     end
+  #   end
   def fill(fact, prev)
     @follows.each do |follow|
       v = prev.send(follow)

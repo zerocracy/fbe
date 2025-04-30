@@ -54,11 +54,25 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
 
   private
 
+  # Indents text with two spaces, including all lines.
+  #
+  # @param [String, nil] txt The text to indent
+  # @return [String] The indented text, or an empty string if input was nil
+  # @example
+  #   shifted("line1\nline2")
+  #   #=> "  line1\n  line2"
   def shifted(txt)
     return '' if txt.nil?
     "  #{txt.gsub("\n", "\n  ")}"
   end
 
+  # Formats HTTP headers as a multi-line string.
+  #
+  # @param [Hash, nil] headers The headers to format
+  # @return [String] The formatted headers, or an empty string if input was nil
+  # @example
+  #   dump_headers({"Content-Type" => "application/json", "Authorization" => "Bearer token"})
+  #   #=> "Content-Type: \"application/json\"\nAuthorization: \"Bearer token\""
   def dump_headers(headers)
     return '' if headers.nil?
     headers.map { |k, v| "#{k}: #{v.inspect}" }.join("\n")
