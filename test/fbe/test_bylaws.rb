@@ -31,9 +31,9 @@ class TestBylaws < Fbe::Test
         { hoc: 30_000, contributors: 1 } => 32
       },
       'resolved-bug-was-rewarded' => {
-        { hours: 1, self: 0 } => 8,
-        { hours: 48, self: 0 } => 4,
-        { hours: 80, self: 0 } => 4,
+        { hours: 1, self: 0 } => 12,
+        { hours: 48, self: 0 } => 6,
+        { hours: 80, self: 0 } => 5,
         { hours: 300, self: 0 } => 4,
         { hours: 3_000, self: 0 } => 4,
         { hours: 30_000, self: 0 } => 4,
@@ -45,9 +45,10 @@ class TestBylaws < Fbe::Test
       'code-review-was-rewarded' => {
         { hoc: 0, comments: 0, self: 0 } => 4,
         { hoc: 3, comments: 0, self: 0 } => 4,
-        { hoc: 78, comments: 7, self: 0 } => 4,
-        { hoc: 600, comments: 1, self: 0 } => 4,
-        { hoc: 500, comments: 40, self: 0 } => 17,
+        { hoc: 78, comments: 7, self: 0 } => 12,
+        { hoc: 120, comments: 4, self: 0 } => 4,
+        { hoc: 600, comments: 1, self: 0 } => 8,
+        { hoc: 500, comments: 40, self: 0 } => 24,
         { hoc: 5_000, comments: 100, self: 0 } => 24,
         { hoc: 100, comments: 50, self: 1 } => 4,
         { hoc: 10_000, comments: 200, self: 1 } => 4
@@ -59,19 +60,19 @@ class TestBylaws < Fbe::Test
         { hoc: 78, comments: 1, reviews: 0 } => 4,
         { hoc: 50, comments: 15, reviews: 0 } => 4,
         { hoc: 50, comments: 25, reviews: 0 } => 4,
-        { hoc: 180, comments: 7, reviews: 2 } => 13,
-        { hoc: 199, comments: 8, reviews: 3 } => 14,
-        { hoc: 150, comments: 5, reviews: 1 } => 12,
+        { hoc: 180, comments: 7, reviews: 2 } => 24,
+        { hoc: 199, comments: 8, reviews: 3 } => 24,
+        { hoc: 150, comments: 5, reviews: 1 } => 24,
         { hoc: 500, comments: 25, reviews: 2 } => 4,
-        { hoc: 99, comments: 6, reviews: 1 } => 4,
+        { hoc: 99, comments: 6, reviews: 1 } => 16,
         { hoc: 1_500, comments: 3, reviews: 0 } => 4,
         { hoc: 15_000, comments: 40, reviews: 0 } => 4
       },
       'bug-report-was-rewarded' => {
-        {} => 8
+        {} => 12
       },
       'enhancement-suggestion-was-rewarded' => {
-        {} => 8
+        {} => 12
       },
       'dud-was-punished' => {
         {} => -16
