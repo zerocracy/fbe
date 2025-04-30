@@ -478,8 +478,8 @@ class Fbe::Award
     #   bylaw = Fbe::Award::Bylaw.new
     #   bylaw.intro("This bylaw determines rewards for code contributions")
     #   bylaw.line("award **50** points")
-    #   bylaw.markdown 
-    #   #=> "This bylaw determines rewards for code contributions. Here is how it's calculated: Just award **50** points."
+    #   bylaw.markdown
+    #   #=> "This bylaw determines rewards for code contributions. Just award **50** points."
     def markdown
       pars = []
       pars << "#{@intro}." unless @intro.empty?

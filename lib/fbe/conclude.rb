@@ -204,7 +204,7 @@ class Fbe::Conclude
   # Populates a new fact based on a previous fact and a processing block.
   #
   # This internal method copies specified properties from the previous fact,
-  # calls the provided block for custom processing, and sets metadata 
+  # calls the provided block for custom processing, and sets metadata
   # on the new fact.
   #
   # @param [Factbase::Fact] fact The fact to populate

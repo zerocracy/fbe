@@ -125,7 +125,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
 end
 
 # Fake GitHub client for testing purposes.
-# 
+#
 # This class provides mock implementations of Octokit methods for testing.
 # It returns predictable data structures that mimic GitHub API responses.
 class Fbe::FakeOctokit
