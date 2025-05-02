@@ -263,6 +263,12 @@ class TestOcto < Fbe::Test
     refute_nil(o.off_quota)
   end
 
+  def test_fetches_fake_not_found_users
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_raises(Octokit::NotFound) { o.user(404_001) }
+    assert_raises(Octokit::NotFound) { o.user(404_002) }
+  end
+
   def test_fetches_fake_not_found_repos
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_raises(Octokit::NotFound) { o.repository(404_123) }
