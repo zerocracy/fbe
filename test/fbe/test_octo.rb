@@ -138,8 +138,10 @@ class TestOcto < Fbe::Test
       body: '{}', headers: { 'X-RateLimit-Remaining' => '1234' }
     )
     buf = Loog::Buffer.new
-    Fbe.octo(loog: buf, global: {}, options: Judges::Options.new({ 'github_token' => 'secret_github_token' }))
+    o = Fbe.octo(loog: buf, global: {}, options: Judges::Options.new({ 'github_token' => 'secret_github_token' }))
     assert_match(/Accessing GitHub API with a token \(19 chars, ending by "oken", 1234 quota remaining\)/, buf.to_s)
+    assert_nil(o.last_response, 'Not to be requests until initialize main Octokit client, ' \
+                                'because middleware cached after first request and not apply after')
   end
 
   def test_retrying
