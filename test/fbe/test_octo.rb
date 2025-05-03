@@ -132,6 +132,16 @@ class TestOcto < Fbe::Test
     assert(o.off_quota)
   end
 
+  def test_print_quota_left_while_initialize
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}', headers: { 'X-RateLimit-Remaining' => '1234' }
+    )
+    buf = Loog::Buffer.new
+    Fbe.octo(loog: buf, global: {}, options: Judges::Options.new({ 'github_token' => 'secret_github_token' }))
+    assert_match(/Accessing GitHub API with a token \(19 chars, ending by "oken", 1234 quota remaining\)/, buf.to_s)
+  end
+
   def test_retrying
     WebMock.disable_net_connect!
     global = {}
