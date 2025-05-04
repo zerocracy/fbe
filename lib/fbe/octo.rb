@@ -269,6 +269,7 @@ class Fbe::FakeOctokit
   end
 
   def repository(name)
+    raise Octokit::NotFound if [404_123, 404_124].include?(name)
     {
       id: name_to_number(name),
       full_name: name.is_a?(Integer) ? 'yegor256/test' : name,
