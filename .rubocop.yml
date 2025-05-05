@@ -54,3 +54,4 @@ Metrics/ParameterLists:
   Enabled: false
 Layout/MultilineAssignmentLayout:
   Enabled: true
+require: []
