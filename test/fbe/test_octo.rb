@@ -250,4 +250,10 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::VERBOSE, global: {}, options: Judges::Options.new({ 'github_api_pause' => 0.01 }))
     refute_nil(o.off_quota)
   end
+
+  def test_fetches_fake_not_found_repos
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_raises(Octokit::NotFound) { o.repository(404_123) }
+    assert_raises(Octokit::NotFound) { o.repository(404_124) }
+  end
 end
