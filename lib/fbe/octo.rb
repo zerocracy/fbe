@@ -194,6 +194,7 @@ class Fbe::FakeOctokit
   #   fake_client.user(526_301) #=> {:id=>444, :login=>"yegor256", :type=>"User"}
   #   fake_client.user('octocat') #=> {:id=>444, :login=>nil, :type=>"User"}
   def user(uid)
+    raise Octokit::NotFound if [404_001, 404_002].include?(uid)
     login = (uid == 526_301 ? 'yegor256' : 'torvalds') if uid.is_a?(Integer)
     {
       id: 444,
