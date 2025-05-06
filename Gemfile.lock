@@ -99,7 +99,7 @@ GEM
     fiber-storage (1.0.1)
     gli (2.22.2)
       ostruct
-    graphql (2.5.5)
+    graphql (2.5.6)
       base64
       fiber-storage
       logger
