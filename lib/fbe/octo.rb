@@ -174,6 +174,173 @@ class Fbe::FakeOctokit
     ]
   end
 
+  # Gets repository invitations for the authenticated user.
+  #
+  # @param [Hash] _options Additional options (not used in mock)
+  # @return [Array<Hash>] Array of invitation objects with repository and inviter information
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.user_repository_invitations #=> [{:id=>1, :node_id=>"INV_", ...}]
+  def user_repository_invitations(_options = {})
+    [
+      {
+        id: 1,
+        node_id: 'INV_kwDOJRF-Hq4B_yXr',
+        repository: repository('zerocracy/fbe'),
+        invitee: user(526_301),
+        inviter: user(888),
+        permissions: 'write',
+        created_at: random_time,
+        url: 'https://api.github.com/user/repository_invitations/1',
+        html_url: 'https://github.com/zerocracy/fbe/invitations',
+        expired: false
+      },
+      {
+        id: 2,
+        node_id: 'INV_kwDOJRF-Hq4B_yXs',
+        repository: repository('yegor256/takes'),
+        invitee: user(526_301),
+        inviter: user(888),
+        permissions: 'admin',
+        created_at: random_time,
+        url: 'https://api.github.com/user/repository_invitations/2',
+        html_url: 'https://github.com/yegor256/takes/invitations',
+        expired: false
+      }
+    ]
+  end
+
+  # Gets organization memberships for the authenticated user.
+  #
+  # @param [Hash] _options Additional options (not used in mock)
+  # @return [Array<Hash>] Array of organization membership objects
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.organization_memberships #=> [{:url=>"https://api.github.com/orgs/...", ...}]
+  def organization_memberships(_options = {})
+    [
+      {
+        url: 'https://api.github.com/orgs/zerocracy/memberships/yegor256',
+        state: 'active',
+        role: 'admin',
+        organization_url: 'https://api.github.com/orgs/zerocracy',
+        organization: {
+          login: 'zerocracy',
+          id: 24_234_201,
+          node_id: 'MDEyOk9yZ2FuaXphdGlvbjI0MjM0MjAx',
+          url: 'https://api.github.com/orgs/zerocracy',
+          avatar_url: 'https://avatars.githubusercontent.com/u/24234201?v=4',
+          description: 'AI-managed software development',
+          name: 'Zerocracy',
+          company: nil,
+          blog: 'https://www.zerocracy.com',
+          location: nil,
+          email: 'team@zerocracy.com',
+          twitter_username: nil,
+          is_verified: false,
+          has_organization_projects: true,
+          has_repository_projects: true,
+          public_repos: 30,
+          public_gists: 0,
+          followers: 0,
+          following: 0,
+          html_url: 'https://github.com/zerocracy',
+          created_at: random_time,
+          updated_at: random_time,
+          type: 'Organization'
+        },
+        user: user(526_301)
+      },
+      {
+        url: 'https://api.github.com/orgs/objectionary/memberships/yegor256',
+        state: 'active',
+        role: 'member',
+        organization_url: 'https://api.github.com/orgs/objectionary',
+        organization: {
+          login: 'objectionary',
+          id: 80_033_603,
+          node_id: 'MDEyOk9yZ2FuaXphdGlvbjgwMDMzNjAz',
+          url: 'https://api.github.com/orgs/objectionary',
+          avatar_url: 'https://avatars.githubusercontent.com/u/80033603?v=4',
+          description: 'EO/EOLANG, an object-oriented language',
+          name: 'Objectionary',
+          company: nil,
+          blog: 'https://www.eolang.org',
+          location: nil,
+          email: nil,
+          twitter_username: nil,
+          is_verified: false,
+          has_organization_projects: true,
+          has_repository_projects: true,
+          public_repos: 15,
+          public_gists: 0,
+          followers: 0,
+          following: 0,
+          html_url: 'https://github.com/objectionary',
+          created_at: random_time,
+          updated_at: random_time,
+          type: 'Organization'
+        },
+        user: user(526_301)
+      }
+    ]
+  end
+
+  # Updates the authenticated user's organization membership.
+  #
+  # @param [String] org The organization name (e.g., 'zerocracy')
+  # @param [Hash] _options Additional options (typically includes :state to update membership state)
+  # @return [Hash] Updated membership information
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.update_organization_membership('zerocracy', state: 'active')
+  def update_organization_membership(org, _options = {})
+    {
+      url: "https://api.github.com/orgs/#{org}/memberships/yegor256",
+      state: 'active',
+      role: 'member',
+      organization_url: "https://api.github.com/orgs/#{org}",
+      organization: {
+        login: org,
+        id: 24_234_201,
+        node_id: 'MDEyOk9yZ2FuaXphdGlvbjI0MjM0MjAx',
+        url: "https://api.github.com/orgs/#{org}",
+        avatar_url: 'https://avatars.githubusercontent.com/u/24234201?v=4',
+        description: 'Organization description',
+        name: org.capitalize,
+        company: nil,
+        blog: "https://www.#{org}.com",
+        location: nil,
+        email: "team@#{org}.com",
+        twitter_username: nil,
+        is_verified: false,
+        has_organization_projects: true,
+        has_repository_projects: true,
+        public_repos: 30,
+        public_gists: 0,
+        followers: 0,
+        following: 0,
+        html_url: "https://github.com/#{org}",
+        created_at: random_time,
+        updated_at: random_time,
+        type: 'Organization'
+      },
+      user: user(526_301)
+    }
+  end
+
+  # Removes a user from an organization.
+  #
+  # @param [String] org The organization name (e.g., 'zerocracy')
+  # @param [String] _user The user login (not used in this mock implementation)
+  # @return [Boolean] Returns true when successful (204 No Content in actual API)
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.remove_organization_membership('zerocracy') #=> true
+  def remove_organization_membership(_org, _user = nil)
+    true
+  end
+
   # Gives a star to a repository.
   #
   # @param [String] _repo The repository name (e.g., 'user/repo')
