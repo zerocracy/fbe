@@ -341,6 +341,18 @@ class Fbe::FakeOctokit
     true
   end
 
+  # Accepts a repository invitation.
+  #
+  # @param [Integer] id The invitation ID
+  # @return [Boolean] Returns true when successful (204 No Content in actual API)
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.accept_repository_invitation(1) #=> true
+  def accept_repository_invitation(id)
+    raise Octokit::NotFound if id == 404_000
+    true
+  end
+
   # Gives a star to a repository.
   #
   # @param [String] _repo The repository name (e.g., 'user/repo')
