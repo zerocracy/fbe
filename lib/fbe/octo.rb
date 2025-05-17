@@ -832,6 +832,32 @@ class Fbe::FakeOctokit
           name: 'bug'
         },
         created_at: random_time
+      },
+      {
+        node_id: 'ITAE_examplevq862Ga8lzwAAAAQZanzv',
+        event: 'issue_type_added',
+        actor: {
+          id: 526_301,
+          login: 'yegor256'
+        },
+        repository: {
+          id: name_to_number('yegor256/judges'),
+          full_name: 'yegor256/judges'
+        },
+        created_at: random_time
+      },
+      {
+        node_id: 'ITCE_examplevq862Ga8lzwAAAAQZbq9S',
+        event: 'issue_type_changed',
+        actor: {
+          id: 526_301,
+          login: 'yegor256'
+        },
+        repository: {
+          id: name_to_number('yegor256/judges'),
+          full_name: 'yegor256/judges'
+        },
+        created_at: random_time
       }
     ]
   end
