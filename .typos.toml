@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
+# SPDX-License-Identifier: MIT
+
+[default.extend-identifiers]
+51aee236ba884 = "51aee236ba884"
+cb9b62eb1979589daa18142008 = "cb9b62eb1979589daa18142008"
