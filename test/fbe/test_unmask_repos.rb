@@ -25,6 +25,12 @@ class TestUnmaskRepos < Fbe::Test
     refute_includes(list, 'zerocracy/datum')
   end
 
+  def test_finds_case_insensitive
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'Yegor256/*' })
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_equal(2, list.size)
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new(

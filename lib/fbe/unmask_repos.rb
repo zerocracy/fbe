@@ -17,7 +17,7 @@ require_relative 'octo'
 def Fbe.mask_to_regex(mask)
   org, repo = mask.split('/')
   raise "Org '#{org}' can't have an asterisk" if org.include?('*')
-  Regexp.compile("#{org}/#{repo.gsub('*', '.*')}")
+  Regexp.compile("#{org}/#{repo.gsub('*', '.*')}", Regexp::IGNORECASE)
 end
 
 # Builds a list of repositories required by the +repositories+ option.
