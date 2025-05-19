@@ -139,4 +139,31 @@ class TestGitHubGraph < Fbe::Test
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
     assert_equal(1484, graph.total_commits('zerocracy', 'fbe', 'master'))
   end
+
+  def test_fake_issue_type_event
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    assert_nil(graph.issue_type_event('wrong_id'))
+    add_type_event = graph.issue_type_event('ITAE_examplevq862Ga8lzwAAAAQZanzv')
+    assert_equal('IssueTypeAddedEvent', add_type_event['type'])
+    assert_equal(Time.parse('2025-05-11 18:17:16 UTC'), add_type_event['created_at'])
+    assert_equal('Bug', add_type_event.dig('issue_type', 'name'))
+    assert_nil(add_type_event['prev_issue_type'])
+    assert_equal(526_301, add_type_event.dig('actor', 'id'))
+    assert_equal('yegor256', add_type_event.dig('actor', 'login'))
+    change_type_event = graph.issue_type_event('ITCE_examplevq862Ga8lzwAAAAQZbq9S')
+    assert_equal('IssueTypeChangedEvent', change_type_event['type'])
+    assert_equal(Time.parse('2025-05-11 20:23:13 UTC'), change_type_event['created_at'])
+    assert_equal('Task', change_type_event.dig('issue_type', 'name'))
+    assert_equal('Bug', change_type_event.dig('prev_issue_type', 'name'))
+    assert_equal(526_301, change_type_event.dig('actor', 'id'))
+    assert_equal('yegor256', change_type_event.dig('actor', 'login'))
+    remove_type_event = graph.issue_type_event('ITRE_examplevq862Ga8lzwAAAAQcqceV')
+    assert_equal('IssueTypeRemovedEvent', remove_type_event['type'])
+    assert_equal(Time.parse('2025-05-11 22:09:42 UTC'), remove_type_event['created_at'])
+    assert_equal('Feature', remove_type_event.dig('issue_type', 'name'))
+    assert_nil(remove_type_event['prev_issue_type'])
+    assert_equal(526_301, remove_type_event.dig('actor', 'id'))
+    assert_equal('yegor256', remove_type_event.dig('actor', 'login'))
+  end
 end

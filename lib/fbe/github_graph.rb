@@ -151,6 +151,87 @@ class Fbe::Graph
     }
   end
 
+  # Get info about issue type event
+  #
+  # @param [String] node_id ID of the event object
+  # @return [Hash] A hash with issue type event
+  def issue_type_event(node_id)
+    result = query(
+      <<~GRAPHQL
+        {
+          node(id: "#{node_id}") {
+            __typename
+            ... on IssueTypeAddedEvent {
+              id
+              createdAt
+              issueType { ...IssueTypeFragment }
+              actor { ...ActorFragment }
+            }
+            ... on IssueTypeChangedEvent {
+              id
+              createdAt
+              issueType { ...IssueTypeFragment }
+              prevIssueType { ...IssueTypeFragment }
+              actor { ...ActorFragment }
+            }
+            ... on IssueTypeRemovedEvent {
+              id
+              createdAt
+              issueType { ...IssueTypeFragment }
+              actor { ...ActorFragment }
+            }
+          }
+        }
+        fragment ActorFragment on Actor {
+          __typename
+          login
+          ... on User { databaseId name email }
+          ... on Bot { databaseId }
+          ... on EnterpriseUserAccount { user { databaseId name email } }
+          ... on Mannequin { claimant { databaseId name email } }
+        }
+        fragment IssueTypeFragment on IssueType {
+          id
+          name
+          description
+        }
+      GRAPHQL
+    ).to_h
+    return unless result['node']
+    type = result.dig('node', '__typename')
+    prev_issue_type =
+      if type == 'IssueTypeChangedEvent'
+        {
+          'id' => result.dig('node', 'prevIssueType', 'id'),
+          'name' => result.dig('node', 'prevIssueType', 'name'),
+          'description' => result.dig('node', 'prevIssueType', 'description')
+        }
+      end
+    {
+      'type' => type,
+      'created_at' => Time.parse(result.dig('node', 'createdAt')),
+      'issue_type' => {
+        'id' => result.dig('node', 'issueType', 'id'),
+        'name' => result.dig('node', 'issueType', 'name'),
+        'description' => result.dig('node', 'issueType', 'description')
+      },
+      'prev_issue_type' => prev_issue_type,
+      'actor' => {
+        'login' => result.dig('node', 'actor', 'login'),
+        'type' => result.dig('node', 'actor', '__typename'),
+        'id' => result.dig('node', 'actor', 'databaseId') ||
+          result.dig('node', 'actor', 'user', 'databaseId') ||
+          result.dig('node', 'actor', 'claimant', 'databaseId'),
+        'name' => result.dig('node', 'actor', 'name') ||
+          result.dig('node', 'actor', 'user', 'name') ||
+          result.dig('node', 'actor', 'claimant', 'name'),
+        'email' => result.dig('node', 'actor', 'email') ||
+          result.dig('node', 'actor', 'user', 'email') ||
+          result.dig('node', 'actor', 'claimant', 'email')
+      }
+    }
+  end
+
   private
 
   # Creates or returns a cached GraphQL client instance.
@@ -214,6 +295,69 @@ class Fbe::Graph
 
     def total_commits(_owner, _name, _branch)
       1484
+    end
+
+    def issue_type_event(node_id)
+      case node_id
+      when 'ITAE_examplevq862Ga8lzwAAAAQZanzv'
+        {
+          'type' => 'IssueTypeAddedEvent',
+          'created_at' => Time.parse('2025-05-11 18:17:16 UTC'),
+          'issue_type' => {
+            'id' => 'IT_exampleQls4BmRE0',
+            'name' => 'Bug',
+            'description' => 'An unexpected problem or behavior'
+          },
+          'prev_issue_type' => nil,
+          'actor' => {
+            'login' => 'yegor256',
+            'type' => 'User',
+            'id' => 526_301,
+            'name' => 'Yegor',
+            'email' => 'example@gmail.com'
+          }
+        }
+      when 'ITCE_examplevq862Ga8lzwAAAAQZbq9S'
+        {
+          'type' => 'IssueTypeChangedEvent',
+          'created_at' => Time.parse('2025-05-11 20:23:13 UTC'),
+          'issue_type' => {
+            'id' => 'IT_kwDODJdQls4BmREz',
+            'name' => 'Task',
+            'description' => 'A specific piece of work'
+          },
+          'prev_issue_type' => {
+            'id' => 'IT_kwDODJdQls4BmRE0',
+            'name' => 'Bug',
+            'description' => 'An unexpected problem or behavior'
+          },
+          'actor' => {
+            'login' => 'yegor256',
+            'type' => 'User',
+            'id' => 526_301,
+            'name' => 'Yegor',
+            'email' => 'example@gmail.com'
+          }
+        }
+      when 'ITRE_examplevq862Ga8lzwAAAAQcqceV'
+        {
+          'type' => 'IssueTypeRemovedEvent',
+          'created_at' => Time.parse('2025-05-11 22:09:42 UTC'),
+          'issue_type' => {
+            'id' => 'IT_kwDODJdQls4BmRE1',
+            'name' => 'Feature',
+            'description' => 'A request, idea, or new functionality'
+          },
+          'prev_issue_type' => nil,
+          'actor' => {
+            'login' => 'yegor256',
+            'type' => 'User',
+            'id' => 526_301,
+            'name' => 'Yegor',
+            'email' => 'example@gmail.com'
+          }
+        }
+      end
     end
 
     private
