@@ -50,7 +50,7 @@ end
 # "marker" facts in the factbase and supports features like:
 #
 # - Stateful iteration with automatic restart capability
-# - GitHub API quota awareness to prevent rate limit issues  
+# - GitHub API quota awareness to prevent rate limit issues
 # - Configurable repeat counts per repository
 # - Timeout controls for long-running operations
 #
@@ -159,27 +159,40 @@ class Fbe::Iterate
 
   # Executes the iteration over all configured repositories.
   #
-  # Processes each repository by executing the configured query repeatedly.
-  # The query receives two parameters: $before (previous iteration's result)
-  # and $repository (GitHub repository ID). The block must return an Integer
-  # representing the next item to process, or the iteration will fail.
+  # For each repository, retrieves the last processed value (or uses the initial
+  # value from +since+) and executes the configured query with it. The query
+  # receives two parameters: $before (the last processed value) and $repository
+  # (GitHub repository ID).
+  #
+  # When the query returns a non-nil result, the block is called with the
+  # repository ID and query result. The block must return an Integer that will
+  # be stored as the new "latest" value for the next iteration.
+  #
+  # When the query returns nil, the iteration for that repository restarts
+  # from the initial value (set by +since+), and the block is NOT called.
   #
   # The method tracks progress using marker facts and supports:
   # - Automatic restart when query returns nil
   # - Timeout to prevent infinite loops
   # - GitHub API quota checking (if enabled)
-  # - State persistence for resuming
+  # - State persistence for resuming after interruptions
+  #
+  # Processing flow for each repository:
+  # 1. Read the "latest" value from factbase (or use +since+ if not found)
+  # 2. Execute the query with $before=latest and $repository=repo_id
+  # 3. If query returns nil: restart from +since+ value, skip to next repo
+  # 4. If query returns a value: call the block with (repo_id, query_result)
+  # 5. Store the block's return value as the new "latest" for next iteration
   #
   # @param [Float] timeout Maximum seconds to run (default: 120)
-  # @yield [Integer, Integer] Repository ID and the item ID from query
-  # @yieldreturn [Integer] The ID to use as "latest" marker for next iteration
+  # @yield [Integer, Object] Repository ID and the result from query execution
+  # @yieldreturn [Integer] The value to store as "latest" for next iteration
   # @return [nil] Nothing is returned
   # @raise [RuntimeError] If block doesn't return an Integer
-  # @example Process issues with timeout
-  #   iterator.over(timeout: 300) do |repo_id, issue_id|
-  #     issue = fetch_issue(repo_id, issue_id)
-  #     store_issue(issue)
-  #     issue_id  # Return same ID to mark as processed
+  # @example Process issues incrementally
+  #   iterator.over(timeout: 300) do |repo_id, issue_number|
+  #     fetch_and_process_issue(repo_id, issue_number)
+  #     issue_number + 1  # Return next issue number to process
   #   end
   def over(timeout: 2 * 60, &)
     raise 'Use "as" first' if @label.nil?
