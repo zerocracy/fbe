@@ -217,7 +217,7 @@ class Fbe::Iterate
           break
         end
         if Time.now - start > timeout
-          $loog.info("We are doing this for #{start.ago} already, won't check #{repo}")
+          @loog.info("We are doing this for #{start.ago} already, won't check #{repo}")
           next
         end
         next if restarted.include?(repo)
@@ -266,7 +266,7 @@ class Fbe::Iterate
         break
       end
       if Time.now - start > timeout
-        $loog.info("We are iterating for #{start.ago} already, time to give up")
+        @loog.info("We are iterating for #{start.ago} already, time to give up")
         break
       end
     end
