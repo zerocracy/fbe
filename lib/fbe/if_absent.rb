@@ -8,28 +8,43 @@ require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 
-# Injects a fact if it's absent in the factbase, otherwise (if it is already
-# there) returns NIL.
+# Injects a fact if it's absent in the factbase, otherwise returns nil.
+#
+# Checks if a fact with the same property values already exists. If not,
+# creates a new fact. System properties (_id, _time, _version) are excluded
+# from the uniqueness check.
 #
 # Here is what you do when you want to add a fact to the factbase, but
 # don't want to make a duplicate of an existing one:
 #
 #  require 'fbe/if_absent'
-#  n =
-#   Fbe.if_absent do |f|
-#     f.what = 'something'
-#     f.details = 'important'
-#   end
-#  return if n.nil?
-#  n.when = Time.now
+#  n = Fbe.if_absent do |f|
+#    f.what = 'something'
+#    f.details = 'important'
+#  end
+#  return if n.nil?  # Fact already existed
+#  n.when = Time.now # Add additional properties to the new fact
 #
 # This code will definitely create one fact with +what+ equals to +something+
 # and +details+ equals to +important+, while the +when+ will be equal to the
 # time of its first creation.
 #
-# @param [Factbase] fb The global factbase
-# @yield [Factbase::Fact] The fact just created
-# @return [nil|Factbase::Fact] Either +nil+ if it's already there or a new fact
+# @param [Factbase] fb The factbase to check and insert into (defaults to Fbe.fb)
+# @yield [Factbase::Fact] A proxy fact object to set properties on
+# @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
+# @note String values are properly escaped in queries
+# @note Time values are converted to UTC ISO8601 format for comparison
+# @example Ensure unique user registration
+#   user = Fbe.if_absent do |f|
+#     f.type = 'user'
+#     f.email = 'john@example.com'
+#   end
+#   if user
+#     user.registered_at = Time.now
+#     puts "New user created"
+#   else
+#     puts "User already exists"
+#   end
 def Fbe.if_absent(fb: Fbe.fb)
   attrs = {}
   f =

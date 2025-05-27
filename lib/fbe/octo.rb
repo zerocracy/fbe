@@ -128,7 +128,21 @@ end
 # Fake GitHub client for testing purposes.
 #
 # This class provides mock implementations of Octokit methods for testing.
-# It returns predictable data structures that mimic GitHub API responses.
+# It returns predictable, deterministic data structures that mimic GitHub API
+# responses without making actual API calls. The mock data uses consistent
+# patterns:
+# - IDs are generated from string names using character code sums
+# - Timestamps are random but within recent past
+# - Repository and user data follows GitHub's JSON structure
+#
+# @example Using FakeOctokit in tests
+#   client = Fbe::FakeOctokit.new
+#   repo = client.repository('octocat/hello-world')
+#   puts repo[:full_name]  # => "octocat/hello-world"
+#   puts repo[:id]         # => 1224 (deterministic from name)
+#
+# @note All methods return static or pseudo-random data
+# @note No actual API calls are made
 class Fbe::FakeOctokit
   # Generates a random time in the past.
   #
@@ -167,6 +181,13 @@ class Fbe::FakeOctokit
     o
   end
 
+  # Lists repositories for a user or organization.
+  #
+  # @param [String] _user The user/org name (ignored in mock)
+  # @return [Array<Hash>] Array of repository hashes
+  # @example
+  #   client.repositories('octocat')
+  #   # => [{:id=>123, :full_name=>"yegor256/judges", ...}, ...]
   def repositories(_user = nil)
     [
       repository('yegor256/judges'),
@@ -428,6 +449,14 @@ class Fbe::FakeOctokit
     }
   end
 
+  # Lists releases for a repository.
+  #
+  # @param [String] _repo Repository name (ignored in mock)
+  # @param [Hash] _opts Options hash (ignored in mock)
+  # @return [Array<Hash>] Array of release hashes
+  # @example
+  #   client.releases('octocat/Hello-World')
+  #   # => [{:tag_name=>"0.19.0", :name=>"just a fake name", ...}, ...]
   def releases(_repo, _opts = {})
     [
       release('https://github...'),
@@ -435,6 +464,13 @@ class Fbe::FakeOctokit
     ]
   end
 
+  # Gets a single release.
+  #
+  # @param [String] _url Release URL (ignored in mock)
+  # @return [Hash] Release information
+  # @example
+  #   client.release('https://api.github.com/repos/octocat/Hello-World/releases/1')
+  #   # => {:tag_name=>"0.19.0", :name=>"just a fake name", ...}
   def release(_url)
     {
       node_id: 'RE_kwDOL6GCO84J7Cen',
@@ -449,6 +485,14 @@ class Fbe::FakeOctokit
     }
   end
 
+  # Gets repository information.
+  #
+  # @param [String, Integer] name Repository name ('owner/repo') or ID
+  # @return [Hash] Repository information
+  # @raise [Octokit::NotFound] If name is 404123 or 404124 (for testing)
+  # @example
+  #   client.repository('octocat/Hello-World')
+  #   # => {:id=>1296269, :full_name=>"octocat/Hello-World", ...}
   def repository(name)
     raise Octokit::NotFound if [404_123, 404_124].include?(name)
     {
@@ -488,12 +532,28 @@ class Fbe::FakeOctokit
     }
   end
 
+  # Lists pull requests associated with a commit.
+  #
+  # @param [String] repo Repository name ('owner/repo')
+  # @param [String] _sha Commit SHA (ignored in mock)
+  # @return [Array<Hash>] Array of pull request hashes
+  # @example
+  #   client.commit_pulls('octocat/Hello-World', 'abc123')
+  #   # => [{:number=>42, :state=>"open", ...}]
   def commit_pulls(repo, _sha)
     [
       pull_request(repo, 42)
     ]
   end
 
+  # Lists issues for a repository.
+  #
+  # @param [String] repo Repository name ('owner/repo')
+  # @param [Hash] _options Query options (ignored in mock)
+  # @return [Array<Hash>] Array of issue hashes
+  # @example
+  #   client.list_issues('octocat/Hello-World', state: 'open')
+  #   # => [{:number=>42, :title=>"Found a bug", ...}, ...]
   def list_issues(repo, _options = {})
     [
       issue(repo, 42),
@@ -501,6 +561,14 @@ class Fbe::FakeOctokit
     ]
   end
 
+  # Gets a single issue.
+  #
+  # @param [String] repo Repository name ('owner/repo')
+  # @param [Integer] number Issue number
+  # @return [Hash] Issue information
+  # @example
+  #   client.issue('octocat/Hello-World', 42)
+  #   # => {:id=>42, :number=>42, :created_at=>...}
   def issue(repo, number)
     {
       id: 42,
@@ -515,6 +583,14 @@ class Fbe::FakeOctokit
     }
   end
 
+  # Gets a single pull request.
+  #
+  # @param [String] repo Repository name ('owner/repo')
+  # @param [Integer] number Pull request number
+  # @return [Hash] Pull request information
+  # @example
+  #   client.pull_request('octocat/Hello-World', 1)
+  #   # => {:id=>42, :number=>1, :additions=>12, ...}
   def pull_request(repo, number)
     {
       id: 42,
@@ -529,6 +605,14 @@ class Fbe::FakeOctokit
     }
   end
 
+  # Lists pull requests for a repository.
+  #
+  # @param [String] _repo Repository name (ignored in mock)
+  # @param [Hash] _options Query options (ignored in mock)
+  # @return [Array<Hash>] Array of pull request hashes
+  # @example
+  #   client.pull_requests('octocat/Hello-World', state: 'open')
+  #   # => [{:number=>100, :state=>"closed", :title=>"#90: some title", ...}]
   def pull_requests(_repo, _options = {})
     [
       {

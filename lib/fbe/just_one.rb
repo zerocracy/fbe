@@ -8,22 +8,30 @@ require 'others'
 require_relative '../fbe'
 require_relative 'fb'
 
-# Injects a fact if it's absent in the factbase, otherwise (it is already
-# there) returns the existing one.
+# Ensures exactly one fact exists with the specified attributes in the factbase.
 #
-#  require 'fbe/just_one'
-#  n =
-#   Fbe.just_one do |f|
-#     f.what = 'something'
-#     f.details = 'important'
+# This method creates a new fact if none exists with the given attributes,
+# or returns an existing fact if one already matches. Useful for preventing
+# duplicate facts while ensuring required facts exist.
+#
+# @example Creating or finding a unique fact
+#   require 'fbe/just_one'
+#   fact = Fbe.just_one do |f|
+#     f.what = 'github_issue'
+#     f.issue_id = 123
+#     f.repository = 'zerocracy/fbe'
 #   end
+#   # Returns existing fact if one exists with these exact attributes,
+#   # otherwise creates and returns a new fact
 #
-# This code will guarantee that only one fact with +what+ equals to +something+
-# and +details+ equals to +important+ may exist.
+# @example Attributes are matched exactly (case-sensitive)
+#   Fbe.just_one { |f| f.name = 'Test' }  # Creates fact with name='Test'
+#   Fbe.just_one { |f| f.name = 'test' }  # Creates another fact (different case)
 #
-# @param [Factbase] fb The global factbase
-# @yield [Factbase::Fact] The fact that was either created or found
-# @return [Factbase::Fact] The fact found
+# @param [Factbase] fb The factbase to search/insert into (defaults to Fbe.fb)
+# @yield [Factbase::Fact] Block to set attributes on the fact
+# @return [Factbase::Fact] The existing or newly created fact
+# @note System attributes (_id, _time, _version) are ignored when matching
 def Fbe.just_one(fb: Fbe.fb)
   attrs = {}
   f =

@@ -6,13 +6,22 @@
 require_relative '../fbe'
 require_relative 'fb'
 
-# Delete a few properties from the fact.
+# Delete properties from a fact by creating a new fact without them.
 #
-# @param [Factbase::Fact] source The source
-# @param [Array<String>] props List of properties to delete
-# @param [Factbase] fb The factbase
-# @param [String] id The unique ID of the fact
-# @return [Factbase::Fact] New fact
+# This method doesn't modify the original fact. Instead, it deletes the existing
+# fact from the factbase and creates a new one with all properties except those
+# specified for deletion.
+#
+# @param [Factbase::Fact] fact The fact to delete properties from (must have an ID)
+# @param [Array<String>] props List of property names to delete
+# @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
+# @param [String] id The property name used as unique identifier (defaults to '_id')
+# @return [Factbase::Fact] New fact without the deleted properties
+# @raise [RuntimeError] If fact is nil, has no ID, or ID property doesn't exist
+# @example Delete multiple properties from a fact
+#   fact = fb.query('(eq type "user")').first
+#   new_fact = Fbe.delete(fact, 'age', 'city')
+#   # new_fact will have all properties except 'age' and 'city'
 def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
   raise 'The fact is nil' if fact.nil?
   i = fact[id]

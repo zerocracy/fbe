@@ -6,19 +6,27 @@
 require_relative '../fbe'
 require_relative 'fb'
 
-# Overwrites a property in the fact.
+# Overwrites a property in the fact by recreating the entire fact.
 #
 # If the property doesn't exist in the fact, it will be added. If it does
-# exist, it will be re-set (the entire fact will be destroyed, a new fact
-# created, and the property set with the new value).
+# exist, the entire fact will be destroyed, a new fact created with all
+# existing properties, and the specified property set with the new value.
 #
 # It is important that the fact has the +_id+ property. If it doesn't,
 # an exception will be raised.
 #
-# @param [Factbase::Fact] fact The fact to modify
+# @param [Factbase::Fact] fact The fact to modify (must have _id property)
 # @param [String] property The name of the property to set
-# @param [Any] value The value to set
-# @return [Factbase::Fact] Returns new fact or previous one
+# @param [Any] value The value to set (can be any type)
+# @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
+# @return [Factbase::Fact] Returns new fact if recreated, or original if unchanged
+# @raise [RuntimeError] If fact is nil, has no _id, or property is not a String
+# @note This operation preserves all other properties during recreation
+# @note If property already has the same single value, no changes are made
+# @example Update a user's status
+#   user = fb.query('(eq login "john")').first
+#   updated_user = Fbe.overwrite(user, 'status', 'active')
+#   # All properties preserved, only 'status' is set to 'active'
 def Fbe.overwrite(fact, property, value, fb: Fbe.fb)
   raise 'The fact is nil' if fact.nil?
   raise 'The fb is nil' if fb.nil?

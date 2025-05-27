@@ -6,13 +6,25 @@
 require 'baza-rb'
 require_relative '../fbe'
 
-# Enter a new valve.
+# Enter a new valve in the Zerocracy system.
 #
-# @param [String] badge Unique badge of the valve
-# @param [String] why The reason
-# @param [Judges::Options] options The options coming from the +judges+ tool
-# @param [Loog] loog The logging facility
-# @return [String] Full name of the user
+# A valve is a checkpoint or gate in the processing pipeline. This method
+# records the entry into a valve with a reason, unless in testing mode.
+#
+# @param [String] badge Unique badge identifier for the valve
+# @param [String] why The reason for entering this valve
+# @param [Judges::Options] options The options from judges tool (uses $options if not provided)
+# @param [Loog] loog The logging facility (uses $loog if not provided)
+# @yield Block to execute within the valve context
+# @return [Object] The result of the yielded block
+# @raise [RuntimeError] If badge, why, or required globals are nil
+# @note Requires $options and $loog global variables to be set
+# @note In testing mode (options.testing != nil), bypasses valve recording
+# @example Enter a valve for processing
+#   Fbe.enter('payment-check', 'Validating payment data') do
+#     # Process payment validation
+#     validate_payment(data)
+#   end
 def Fbe.enter(badge, why, options: $options, loog: $loog, &)
   raise 'The badge is nil' if badge.nil?
   raise 'The why is nil' if why.nil?

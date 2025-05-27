@@ -271,12 +271,34 @@ class Fbe::Graph
     end
   end
 
-  # Fake GitHub GraphQL client, for tests.
+  # Fake GitHub GraphQL client for testing.
+  #
+  # This class mocks the GraphQL client interface and returns predictable
+  # test data without making actual API calls. It's used when the application
+  # is in testing mode.
+  #
+  # @example Using the fake client in tests
+  #   fake = Fbe::Graph::Fake.new
+  #   result = fake.total_commits('owner', 'repo', 'main')
+  #   # => 1484 (always returns the same value)
   class Fake
+    # Executes a GraphQL query (mock implementation).
+    #
+    # @param [String] _query The GraphQL query (ignored)
+    # @return [Hash] Empty hash
     def query(_query)
       {}
     end
 
+    # Returns mock resolved conversation threads.
+    #
+    # @param [String] owner Repository owner
+    # @param [String] name Repository name
+    # @param [Integer] _number Pull request number (ignored)
+    # @return [Array<Hash>] Array of conversation threads
+    # @example
+    #   fake.resolved_conversations('zerocracy', 'baza', 42)
+    #   # => [conversation data for zerocracy_baza]
     def resolved_conversations(owner, name, _number)
       data = {
         zerocracy_baza: [
@@ -286,6 +308,14 @@ class Fbe::Graph
       data[:"#{owner}_#{name}"] || []
     end
 
+    # Returns mock issue and pull request counts.
+    #
+    # @param [String] _owner Repository owner (ignored)
+    # @param [String] _name Repository name (ignored)
+    # @return [Hash] Hash with 'issues' and 'pulls' counts
+    # @example
+    #   fake.total_issues_and_pulls('owner', 'repo')
+    #   # => {"issues"=>23, "pulls"=>19}
     def total_issues_and_pulls(_owner, _name)
       {
         'issues' => 23,
@@ -293,10 +323,23 @@ class Fbe::Graph
       }
     end
 
+    # Returns mock total commit count.
+    #
+    # @param [String] _owner Repository owner (ignored)
+    # @param [String] _name Repository name (ignored)
+    # @param [String] _branch Branch name (ignored)
+    # @return [Integer] Always returns 1484
     def total_commits(_owner, _name, _branch)
       1484
     end
 
+    # Returns mock issue type event data.
+    #
+    # @param [String] node_id The event node ID
+    # @return [Hash, nil] Event data for known IDs, nil otherwise
+    # @example
+    #   fake.issue_type_event('ITAE_examplevq862Ga8lzwAAAAQZanzv')
+    #   # => {'type'=>'IssueTypeAddedEvent', ...}
     def issue_type_event(node_id)
       case node_id
       when 'ITAE_examplevq862Ga8lzwAAAAQZanzv'
@@ -362,6 +405,10 @@ class Fbe::Graph
 
     private
 
+    # Generates mock conversation thread data.
+    #
+    # @param [String] id The conversation thread ID
+    # @return [Hash] Mock conversation data with comments
     def conversation(id)
       {
         'id' => id,

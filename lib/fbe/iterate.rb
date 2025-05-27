@@ -10,13 +10,30 @@ require_relative 'fb'
 require_relative 'octo'
 require_relative 'unmask_repos'
 
-# Creates an instance of {Fbe::Iterate} and evals it with the block provided.
+# Creates an instance of {Fbe::Iterate} and evaluates it with the provided block.
 #
-# @param [Factbase] fb The global factbase provided by the +judges+ tool
-# @param [Judges::Options] options The options coming from the +judges+ tool
-# @param [Hash] global The hash for global caching
-# @param [Loog] loog The logging facility
-# @yield [Factbase::Fact] The fact
+# This is a convenience method that creates an iterator instance and evaluates
+# the DSL block within its context. The iterator processes repositories defined
+# in options.repositories, executing queries and managing state for each.
+#
+# @param [Factbase] fb The global factbase provided by the +judges+ tool (defaults to Fbe.fb)
+# @param [Judges::Options] options The options from judges tool (uses $options global)
+# @param [Hash] global The hash for global caching (uses $global)
+# @param [Loog] loog The logging facility (uses $loog global)
+# @yield Block containing DSL methods (as, by, over, etc.) to configure iteration
+# @return [Object] Result of the block evaluation
+# @raise [RuntimeError] If required globals are not set
+# @example Iterate through repositories processing issues
+#   Fbe.iterate do
+#     as 'issues-iterator'
+#     by '(and (eq what "issue") (gt created_at $before))'
+#     repeats 5
+#     quota_aware
+#     over(timeout: 300) do |repository_id, issue_id|
+#       process_issue(repository_id, issue_id)
+#       issue_id + 1
+#     end
+#   end
 def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
   raise 'The fb is nil' if fb.nil?
   raise 'The $global is not set' if global.nil?
@@ -26,24 +43,44 @@ def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
   c.instance_eval(&)
 end
 
-# An iterator.
+# Repository iterator with stateful query execution.
 #
-# Here, you go through all repositories defined by the +repositories+ option
-# in the +$options+, trying to run the provided query for each of them. If the
-# query returns an integer that is different from the previously seen, the
-# function keeps repeating the cycle. Otherwise, it will restart from the
-# beginning.
+# This class provides a DSL for iterating through repositories and executing
+# queries while maintaining state between iterations. It tracks progress using
+# "marker" facts in the factbase and supports features like:
+#
+# - Stateful iteration with automatic restart capability
+# - GitHub API quota awareness to prevent rate limit issues  
+# - Configurable repeat counts per repository
+# - Timeout controls for long-running operations
+#
+# The iterator executes a query for each repository, passing the previous
+# result as context. If the query returns nil, it restarts from the beginning
+# for that repository. Progress is persisted in the factbase to support
+# resuming after interruptions.
+#
+# @example Processing pull requests with state management
+#   iterator = Fbe::Iterate.new(fb: fb, loog: loog, options: options, global: global)
+#   iterator.as('pull-requests')
+#   iterator.by('(and (eq what "pull_request") (gt number $before))')
+#   iterator.repeats(10)
+#   iterator.quota_aware
+#   iterator.over(timeout: 600) do |repo_id, pr_number|
+#     # Process pull request
+#     fetch_and_store_pr(repo_id, pr_number)
+#     pr_number  # Return next PR number to process
+#   end
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
 class Fbe::Iterate
-  # Ctor.
+  # Creates a new iterator instance.
   #
-  # @param [Factbase] fb The factbase
-  # @param [Loog] loog The logging facility
-  # @param [Judges::Options] options The options coming from the +judges+ tool
-  # @param [Hash] global The hash for global caching
+  # @param [Factbase] fb The factbase for storing iteration state
+  # @param [Loog] loog The logging facility for debug output
+  # @param [Judges::Options] options The options containing repository configuration
+  # @param [Hash] global The hash for global caching of API responses
   def initialize(fb:, loog:, options:, global:)
     @fb = fb
     @loog = loog
@@ -56,56 +93,94 @@ class Fbe::Iterate
     @quota_aware = false
   end
 
-  # Make this block aware of GitHub API quota.
+  # Makes the iterator aware of GitHub API quota limits.
   #
-  # When the quota is reached, the loop will gracefully stop to avoid
-  # hitting GitHub API rate limits. This helps prevent interruptions
-  # in long-running operations.
+  # When enabled, the iterator will check quota status before processing
+  # each repository and gracefully stop when the quota is exhausted.
+  # This prevents API errors and allows for resuming later.
   #
   # @return [nil] Nothing is returned
+  # @example Enable quota awareness
+  #   iterator.quota_aware
+  #   iterator.over { |repo, item| ... }  # Will stop if quota exhausted
   def quota_aware
     @quota_aware = true
   end
 
-  # Sets the total counter of repeats to make.
+  # Sets the maximum number of iterations per repository.
   #
-  # @param [Integer] repeats The total count of repeats to execute
+  # Controls how many times the query will be executed for each repository
+  # before moving to the next one. Useful for limiting processing scope.
+  #
+  # @param [Integer] repeats The maximum iterations per repository
   # @return [nil] Nothing is returned
+  # @raise [RuntimeError] If repeats is nil or not positive
+  # @example Process up to 100 items per repository
+  #   iterator.repeats(100)
   def repeats(repeats)
     raise 'Cannot set "repeats" to nil' if repeats.nil?
     raise 'The "repeats" must be a positive integer' unless repeats.positive?
     @repeats = repeats
   end
 
-  # Sets the query to run.
+  # Sets the query to execute for each iteration.
   #
-  # @param [String] query The query to execute
+  # The query can use two special variables:
+  # - $before: The value from the previous iteration (or initial value)
+  # - $repository: The current repository ID
+  #
+  # @param [String] query The Factbase query to execute
   # @return [nil] Nothing is returned
+  # @raise [RuntimeError] If query is already set or nil
+  # @example Query for issues after a certain ID
+  #   iterator.by('(and (eq what "issue") (gt id $before) (eq repo $repository))')
   def by(query)
     raise 'Query is already set' unless @query.nil?
     raise 'Cannot set query to nil' if query.nil?
     @query = query
   end
 
-  # Sets the label to use in the "marker" fact.
+  # Sets the label for tracking iteration state.
   #
-  # @param [String] label The label identifier
+  # The label is used to create marker facts in the factbase that track
+  # the last processed item for each repository. This enables resuming
+  # iteration after interruptions.
+  #
+  # @param [String] label Unique identifier for this iteration type
   # @return [nil] Nothing is returned
+  # @raise [RuntimeError] If label is already set or nil
+  # @example Set label for issue processing
+  #   iterator.as('issue-processor')
   def as(label)
     raise 'Label is already set' unless @label.nil?
     raise 'Cannot set "label" to nil' if label.nil?
     @label = label
   end
 
-  # It makes a number of repeats of going through all repositories
-  # provided by the +repositories+ configuration option. In each "repeat"
-  # it yields the repository ID and a number that is retrieved by the
-  # +query+. The query is supplied with two parameters:
-  # +$before+ (the value from the previous repeat) and +$repository+ (GitHub repo ID).
+  # Executes the iteration over all configured repositories.
   #
-  # @param [Float] timeout How many seconds to spend as a maximum
-  # @yield [Integer, Integer] Repository ID and the next number to be considered
+  # Processes each repository by executing the configured query repeatedly.
+  # The query receives two parameters: $before (previous iteration's result)
+  # and $repository (GitHub repository ID). The block must return an Integer
+  # representing the next item to process, or the iteration will fail.
+  #
+  # The method tracks progress using marker facts and supports:
+  # - Automatic restart when query returns nil
+  # - Timeout to prevent infinite loops
+  # - GitHub API quota checking (if enabled)
+  # - State persistence for resuming
+  #
+  # @param [Float] timeout Maximum seconds to run (default: 120)
+  # @yield [Integer, Integer] Repository ID and the item ID from query
+  # @yieldreturn [Integer] The ID to use as "latest" marker for next iteration
   # @return [nil] Nothing is returned
+  # @raise [RuntimeError] If block doesn't return an Integer
+  # @example Process issues with timeout
+  #   iterator.over(timeout: 300) do |repo_id, issue_id|
+  #     issue = fetch_issue(repo_id, issue_id)
+  #     store_issue(issue)
+  #     issue_id  # Return same ID to mark as processed
+  #   end
   def over(timeout: 2 * 60, &)
     raise 'Use "as" first' if @label.nil?
     raise 'Use "by" first' if @query.nil?

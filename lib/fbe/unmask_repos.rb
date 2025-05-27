@@ -6,31 +6,52 @@
 require_relative '../fbe'
 require_relative 'octo'
 
-# Converts mask to repository name.
+# Converts a repository mask pattern to a regular expression.
 #
-# This function takes something like +"zerocracy/*"+ as an input and returns
-# a regular expression that may match repositories defined by this mask, which
-# is +/zerocracy\/.*+ in this particular case.
+# @example Basic wildcard matching
+#   Fbe.mask_to_regex('zerocracy/*')
+#   # => /zerocracy\/.*/i
 #
-# @param [String] mask The mask
-# @return [Regex] Regular expression
+# @example Specific repository (no wildcard)
+#   Fbe.mask_to_regex('zerocracy/fbe')
+#   # => /zerocracy\/fbe/i
+#
+# @param [String] mask Repository mask in format 'org/repo' where repo can contain '*'
+# @return [Regexp] Case-insensitive regular expression for matching repositories
+# @raise [RuntimeError] If organization part contains asterisk
 def Fbe.mask_to_regex(mask)
   org, repo = mask.split('/')
   raise "Org '#{org}' can't have an asterisk" if org.include?('*')
   Regexp.compile("#{org}/#{repo.gsub('*', '.*')}", Regexp::IGNORECASE)
 end
 
-# Builds a list of repositories required by the +repositories+ option.
+# Resolves repository masks to actual GitHub repository names.
 #
-# The +repositories+ option defined in the +$options+ must contain something
-# like "zerocracy/fbe,zerocracy/ab*" (a comma-separated list of masks). This
-# function will go to the GitHub API and fetch all available repositories
-# matching these masks.
+# Takes a comma-separated list of repository masks from options and expands
+# wildcards by querying GitHub API. Supports inclusion and exclusion patterns.
+# Archived repositories are automatically filtered out.
 #
-# @param [Judges::Options] options The options coming from the +judges+ tool
-# @param [Hash] global The hash for global caching
-# @param [Loog] loog The logging facility
-# @return [Array<String>] List of repository full names
+# @example Basic usage with wildcards
+#   # options.repositories = "zerocracy/fbe,zerocracy/ab*"
+#   repos = Fbe.unmask_repos
+#   # => ["zerocracy/fbe", "zerocracy/abc", "zerocracy/abcd"]
+#
+# @example Using exclusion patterns
+#   # options.repositories = "zerocracy/*,-zerocracy/private*"
+#   repos = Fbe.unmask_repos
+#   # Returns all zerocracy repos except those starting with 'private'
+#
+# @example Empty result handling
+#   # options.repositories = "nonexistent/*"
+#   Fbe.unmask_repos  # Raises error: "No repos found matching: nonexistent/*"
+#
+# @param [Judges::Options] options Options containing 'repositories' field with masks
+# @param [Hash] global Global cache for storing API responses
+# @param [Loog] loog Logger for debug output
+# @return [Array<String>] Shuffled list of repository full names (e.g., 'org/repo')
+# @raise [RuntimeError] If no repositories match the provided masks
+# @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
+# @note Results are shuffled to distribute load when processing
 def Fbe.unmask_repos(options: $options, global: $global, loog: $loog)
   repos = []
   octo = Fbe.octo(loog:, global:, options:)
