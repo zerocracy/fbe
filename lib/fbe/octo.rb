@@ -1129,6 +1129,45 @@ class Fbe::FakeOctokit
     ]
   end
 
+  def issue_events(_repo, _number)
+    [
+      {
+        id: 126, actor: { login: 'user', id: 411, type: 'User' },
+        event: 'labeled', created_at: Time.parse('2025-05-30 14:41:00 UTC'),
+        label: { name: 'bug', color: 'd73a4a' }
+      },
+      {
+        id: 206, actor: { login: 'user', id: 411, type: 'User' },
+        event: 'mentioned', created_at: Time.parse('2025-05-30 14:41:10 UTC')
+      },
+      {
+        id: 339, actor: { login: 'user2', id: 422, type: 'User' },
+        event: 'subscribed', created_at: Time.parse('2025-05-30 14:41:10 UTC')
+      },
+      {
+        id: 490, actor: { login: 'github-actions[bot]', id: 41_898_282, type: 'Bot' },
+        event: 'renamed', created_at: Time.parse('2025-05-30 14:41:30 UTC'),
+        rename: { from: 'some title', to: 'some title 2' }
+      },
+      {
+        id: 505, actor: { login: 'user', id: 411, type: 'User' },
+        event: 'subscribed', created_at: Time.parse('2025-05-30 16:18:24 UTC')
+      },
+      {
+        id: 608, actor: { login: 'user2', id: 422, type: 'User', test: 123 },
+        event: 'assigned', created_at: Time.parse('2025-05-30 17:59:08 UTC'),
+        assignee: { login: 'user2', id: 422, type: 'User' },
+        assigner: { login: 'user', id: 411, type: 'User' }
+      },
+      {
+        id: 776, actor: { login: 'user2', id: 422, type: 'User' },
+        event: 'referenced', commit_id: '4621af032170f43d',
+        commit_url: 'https://api.github.com/repos/foo/foo/commits/4621af032170f43d',
+        created_at: Time.parse('2025-05-30 19:57:50 UTC')
+      }
+    ]
+  end
+
   def pull_request_comments(_name, _number)
     [
       {
