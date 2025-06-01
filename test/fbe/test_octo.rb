@@ -274,4 +274,23 @@ class TestOcto < Fbe::Test
     assert_raises(Octokit::NotFound) { o.repository(404_123) }
     assert_raises(Octokit::NotFound) { o.repository(404_124) }
   end
+
+  def test_fetches_fake_issue_events_has_assigned_event
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.issue_events('foo/foo', 123)
+    assert_instance_of(Array, result)
+    assert_equal(7, result.size)
+    event = result.find { _1[:event] == 'assigned' }
+    assert_equal(608, event[:id])
+    assert_pattern do
+      event => {
+        id: Integer,
+        actor: { login: 'user2', id: 422, type: 'User' },
+        event: 'assigned',
+        created_at: Time,
+        assignee: { login: 'user2', id: 422, type: 'User' },
+        assigner: { login: 'user', id: 411, type: 'User' }
+      }
+    end
+  end
 end
