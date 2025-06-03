@@ -35,7 +35,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'liquid', '5.5.1'
   s.add_dependency 'loog', '~>0'
   s.add_dependency 'obk', '~>0'
-  s.add_dependency 'octokit', '~>9'
+  s.add_dependency 'octokit', '~>10'
   s.add_dependency 'others', '~>0'
   s.add_dependency 'tago', '~>0'
   s.add_dependency 'verbose', '~>0'
