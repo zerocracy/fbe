@@ -570,17 +570,40 @@ class Fbe::FakeOctokit
   #   client.issue('octocat/Hello-World', 42)
   #   # => {:id=>42, :number=>42, :created_at=>...}
   def issue(repo, number)
-    {
-      id: 42,
-      number:,
-      repo: {
-        full_name: repo
-      },
-      pull_request: {
-        merged_at: nil
-      },
-      created_at: Time.parse('2024-09-20 19:00:00 UTC')
-    }
+    if number == 142
+      {
+        id: 655,
+        number:,
+        repo: { full_name: repo },
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        created_at: Time.parse('2025-06-01 12:00:55 UTC'),
+        updated_at: Time.parse('2025-06-01 15:47:18 UTC'),
+        closed_at: Time.parse('2025-06-02 15:00:00 UTC')
+      }
+    elsif number == 143
+      {
+        id: 656,
+        number:,
+        repo: { full_name: repo },
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        pull_request: { merged_at: nil },
+        created_at: Time.parse('2025-05-29 17:00:55 UTC'),
+        updated_at: Time.parse('2025-05-29 19:00:00 UTC'),
+        closed_at: Time.parse('2025-06-01 18:20:00 UTC')
+      }
+    else
+      {
+        id: 42,
+        number:,
+        repo: {
+          full_name: repo
+        },
+        pull_request: {
+          merged_at: nil
+        },
+        created_at: Time.parse('2024-09-20 19:00:00 UTC')
+      }
+    end
   end
 
   # Gets a single pull request.

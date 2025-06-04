@@ -293,4 +293,33 @@ class TestOcto < Fbe::Test
       }
     end
   end
+
+  def test_fetch_fake_issue_and_pr
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.issue('yegor256/test', 142)
+    assert_equal(Time.parse('2025-06-02 15:00:00 UTC'), result[:closed_at])
+    assert_pattern do
+      result => {
+        id: 655,
+        number: 142,
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        created_at: Time,
+        updated_at: Time,
+        closed_at: Time
+      }
+    end
+    result = o.issue('yegor256/test', 143)
+    assert_equal(Time.parse('2025-06-01 18:20:00 UTC'), result[:closed_at])
+    assert_pattern do
+      result => {
+        id: 656,
+        number: 143,
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        pull_request: { merged_at: nil },
+        created_at: Time,
+        updated_at: Time,
+        closed_at: Time
+      }
+    end
+  end
 end
