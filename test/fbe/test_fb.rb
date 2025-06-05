@@ -27,6 +27,28 @@ class TestFb < Fbe::Test
     assert_includes(stdout, 'Inserted new fact #1', stdout)
   end
 
+  def test_defends_against_improper_facts
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::Buffer.new
+    assert_raises(StandardError, 'issue without repository') do
+      Fbe.fb.txn do |fbt|
+        f = fbt.insert
+        f.what = 'issue-was-opened'
+        f.issue = 42
+        f.where = 'github'
+      end
+    end
+    assert_raises(StandardError, 'repository without where') do
+      Fbe.fb.txn do |fbt|
+        f = fbt.insert
+        f.what = 'issue-was-opened'
+        f.repository = 44
+      end
+    end
+  end
+
   def test_increment_id_in_transaction
     $fb = Factbase.new
     $global = {}
