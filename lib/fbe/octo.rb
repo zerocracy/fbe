@@ -13,6 +13,7 @@ require 'verbose'
 require_relative '../fbe'
 require_relative 'middleware'
 require_relative 'middleware/formatter'
+require_relative 'middleware/trace'
 
 # Makes a call to the GitHub API.
 #
@@ -28,6 +29,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $global is not set' if global.nil?
   raise 'The $options is not set' if options.nil?
   raise 'The $loog is not set' if loog.nil?
+  global[:octo_trace] ||= []
   global[:octo] ||=
     begin
       if options.testing.nil?
@@ -50,8 +52,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           loog.warn('The GitHub API token is an empty string, won\'t use it')
         else
           o = Octokit::Client.new(access_token: token)
-          loog.info("Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect}, " \
-                    "#{Octokit::Client.new(access_token: token).rate_limit.remaining} quota remaining)")
+          loog.info(
+            "Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect}, " \
+            "#{Octokit::Client.new(access_token: token).rate_limit.remaining} quota remaining)"
+          )
         end
         o.auto_paginate = true
         o.per_page = 100
@@ -76,6 +80,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
+            builder.use(Fbe::Middleware::Trace, global[:octo_trace])
             builder.adapter(Faraday.default_adapter)
           end
         o.middleware = stack
