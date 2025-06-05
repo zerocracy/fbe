@@ -347,4 +347,23 @@ class TestOcto < Fbe::Test
     user_index = output.index('https://api.github.com/user/123: 1')
     assert_operator repo_index, :<, user_index, 'URLs should be sorted by request count (highest first)'
   end
+
+  def test_trace_gets_cleared_after_print
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/user/456').to_return(
+      status: 200,
+      body: '{"id":456,"login":"testuser"}'
+    )
+    first_loog = Loog::Buffer.new
+    octo = Fbe.octo(loog: first_loog, global: {}, options: Judges::Options.new)
+    octo.user(456)
+    octo.print_trace!
+    first_output = first_loog.to_s
+    assert_includes first_output, 'GitHub API trace'
+    second_loog = Loog::Buffer.new
+    octo.instance_variable_set(:@loog, second_loog)
+    octo.print_trace!
+    second_output = second_loog.to_s
+    assert_includes second_output, 'GitHub API trace is empty'
+  end
 end
