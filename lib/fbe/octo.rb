@@ -93,7 +93,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
       decoor(o, loog:, trace:) do
         def print_trace!
           if @trace.empty?
-            @loog.info('GitHub API trace is empty')
+            @loog.debug('GitHub API trace is empty')
           else
             grouped =
               @trace.group_by do |entry|
