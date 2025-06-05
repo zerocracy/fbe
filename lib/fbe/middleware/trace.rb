@@ -42,17 +42,17 @@ class Fbe::Middleware::Trace < Faraday::Middleware
   # @return [Faraday::Response] The response from the next middleware
   def call(env)
     started = Time.now
-    trace_entry = {
+    entry = {
       method: env.method,
       url: env.url.to_s,
       started_at: started
     }
     @app.call(env).on_complete do |response_env|
       finished = Time.now
-      trace_entry[:status] = response_env.status
-      trace_entry[:finished_at] = finished
-      trace_entry[:duration] = finished - started
-      @trace << trace_entry
+      entry[:status] = response_env.status
+      entry[:finished_at] = finished
+      entry[:duration] = finished - started
+      @trace << entry
     end
   end
 end
