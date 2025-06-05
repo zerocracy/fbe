@@ -100,7 +100,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 uri = URI.parse(entry[:url])
                 "#{uri.scheme}://#{uri.host}#{uri.path}"
               end
-            message = grouped.map { |path, entries| "  #{path}: #{entries.count}" }.join("\n")
+            message = grouped
+              .sort_by { |_path, entries| -entries.count }
+              .map { |path, entries| "  #{path}: #{entries.count}" }
+              .join("\n")
             @loog.info("GitHub API trace (URLs vs. requests):\n  #{message}")
             @trace.clear
           end
