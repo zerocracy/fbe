@@ -14,6 +14,8 @@ plugins:
   - rubocop-minitest
   - rubocop-performance
   - rubocop-rake
+Minitest/MultipleAssertions:
+  Max: 10
 Minitest/EmptyLineBeforeAssertionMethods:
   Enabled: false
 Style/GlobalVars:
@@ -54,4 +56,3 @@ Metrics/ParameterLists:
   Enabled: false
 Layout/MultilineAssignmentLayout:
   Enabled: true
-require: []

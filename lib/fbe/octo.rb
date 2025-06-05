@@ -9,10 +9,12 @@ require 'faraday/retry'
 require 'loog'
 require 'obk'
 require 'octokit'
+require 'uri'
 require 'verbose'
 require_relative '../fbe'
 require_relative 'middleware'
 require_relative 'middleware/formatter'
+require_relative 'middleware/trace'
 
 # Makes a call to the GitHub API.
 #
@@ -30,6 +32,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $loog is not set' if loog.nil?
   global[:octo] ||=
     begin
+      trace = []
       if options.testing.nil?
         o = Octokit::Client.new
         token = options.github_token
@@ -50,8 +53,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           loog.warn('The GitHub API token is an empty string, won\'t use it')
         else
           o = Octokit::Client.new(access_token: token)
-          loog.info("Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect}, " \
-                    "#{Octokit::Client.new(access_token: token).rate_limit.remaining} quota remaining)")
+          loog.info(
+            "Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect}, " \
+            "#{Octokit::Client.new(access_token: token).rate_limit.remaining} quota remaining)"
+          )
         end
         o.auto_paginate = true
         o.per_page = 100
@@ -76,6 +81,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
+            builder.use(Fbe::Middleware::Trace, trace)
             builder.adapter(Faraday.default_adapter)
           end
         o.middleware = stack
@@ -84,7 +90,25 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         loog.debug('The connection to GitHub API is mocked')
         o = Fbe::FakeOctokit.new
       end
-      decoor(o, loog:) do
+      decoor(o, loog:, trace:) do
+        def print_trace!
+          if @trace.empty?
+            @loog.debug('GitHub API trace is empty')
+          else
+            grouped =
+              @trace.group_by do |entry|
+                uri = URI.parse(entry[:url])
+                "#{uri.scheme}://#{uri.host}#{uri.path}"
+              end
+            message = grouped
+              .sort_by { |_path, entries| -entries.count }
+              .map { |path, entries| "  #{path}: #{entries.count}" }
+              .join("\n")
+            @loog.info("GitHub API trace (URLs vs. requests):\n  #{message}")
+            @trace.clear
+          end
+        end
+
         def off_quota(threshold: 50)
           left = @origin.rate_limit.remaining
           if left < threshold
