@@ -15,6 +15,7 @@ require_relative '../fbe'
 require_relative 'middleware'
 require_relative 'middleware/formatter'
 require_relative 'middleware/trace'
+require_relative 'middleware/sqlite_store'
 
 # Makes a call to the GitHub API.
 #
@@ -78,7 +79,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               methods: [:get],
               backoff_factor: 2
             )
-            builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
+            store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache) if options.sqlite_cache
+            builder.use(Faraday::HttpCache, store: store, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
             builder.use(Fbe::Middleware::Trace, trace)

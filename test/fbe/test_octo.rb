@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'fileutils'
 require 'judges/options'
 require 'loog'
 require 'webmock/minitest'
@@ -365,5 +366,28 @@ class TestOcto < Fbe::Test
     octo.print_trace!
     second_output = second_loog.to_s
     assert_includes second_output, 'GitHub API trace is empty'
+  end
+
+  def test_sqlite_store
+    WebMock.disable_net_connect!
+    global = {}
+    sqlite_cache = File.expand_path('../../.test.db2', __dir__)
+    FileUtils.rm(sqlite_cache, force: true)
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+    stub = stub_request(:get, 'https://api.github.com/user/42').to_return(
+      status: 200,
+      body: { login: 'user1' }.to_json,
+      headers: {
+        'Content-Type' => 'application/json',
+        'Cache-Control' => 'public, max-age=60, s-maxage=60',
+        'Etag' => 'W/"2ff9dd4c3153f006830b2b8b721f6a4bb400a1eb81a2e1fa0a3b846ad349b9ec"',
+        'Last-Modified' => 'Wed, 01 May 2025 20:00:00 GMT'
+      }
+    )
+    assert_equal('user1', o.user_name_by_id(42))
+    WebMock.remove_request_stub(stub)
+    global = {}
+    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+    assert_equal('user1', o.user_name_by_id(42))
   end
 end
