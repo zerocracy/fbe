@@ -17,6 +17,7 @@ PATH
       obk (> 0)
       octokit (~> 10.0)
       others (> 0)
+      sqlite3 (~> 2.6)
       tago (> 0)
       verbose (> 0)
 
@@ -217,6 +218,10 @@ GEM
       simplecov (~> 0.19)
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
+    sqlite3 (2.6.0-arm64-darwin)
+    sqlite3 (2.6.0-x64-mingw-ucrt)
+    sqlite3 (2.6.0-x86_64-darwin)
+    sqlite3 (2.6.0-x86_64-linux-gnu)
     strscan (3.1.5)
     tago (0.1.0)
     timeout (0.4.3)

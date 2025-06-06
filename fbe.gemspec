@@ -37,6 +37,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'obk', '>0'
   s.add_dependency 'octokit', '~>10.0'
   s.add_dependency 'others', '>0'
+  s.add_dependency 'sqlite3', '~> 2.6'
   s.add_dependency 'tago', '>0'
   s.add_dependency 'verbose', '>0'
   s.metadata['rubygems_mfa_required'] = 'true'
