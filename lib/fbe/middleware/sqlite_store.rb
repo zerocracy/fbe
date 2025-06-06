@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'json'
 require 'sqlite3'
 require_relative '../../fbe'
 require_relative '../../fbe/middleware'
@@ -14,6 +15,9 @@ require_relative '../../fbe/middleware'
 # License:: MIT
 class Fbe::Middleware::SqliteStore
   def initialize(path)
+    raise ArgumentError, 'Database path cannot be nil or empty' if path.nil? || path.empty?
+    dir = File.dirname(path)
+    raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
     @path = path
     open
     prepare
@@ -22,7 +26,7 @@ class Fbe::Middleware::SqliteStore
 
   def read(key)
     value = perform { _1.execute('SELECT value FROM cache WHERE key = ? LIMIT 1', [key]) }.dig(0, 0)
-    Marshal.load(value) if value
+    JSON.parse(value) if value
   end
 
   def delete(key)
@@ -31,7 +35,7 @@ class Fbe::Middleware::SqliteStore
   end
 
   def write(key, value)
-    value = Marshal.dump(value)
+    value = JSON.dump(value)
     perform do |tdb|
       tdb.execute(<<~SQL, [key, value])
         INSERT INTO cache(key, value) VALUES(?1, ?2)

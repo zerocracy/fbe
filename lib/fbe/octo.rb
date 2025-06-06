@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'json'
 require 'decoor'
 require 'faraday/http_cache'
 require 'faraday/retry'
@@ -79,8 +80,15 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               methods: [:get],
               backoff_factor: 2
             )
-            store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache) if options.sqlite_cache
-            builder.use(Faraday::HttpCache, store: store, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
+            serializer = Marshal
+            if options.sqlite_cache
+              store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache)
+              serializer = JSON
+            end
+            builder.use(
+              Faraday::HttpCache,
+              store: store, serializer: serializer, shared_cache: false, logger: Loog::NULL
+            )
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
             builder.use(Fbe::Middleware::Trace, trace)
