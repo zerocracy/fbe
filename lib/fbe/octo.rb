@@ -55,10 +55,6 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           loog.warn('The GitHub API token is an empty string, won\'t use it')
         else
           o = Octokit::Client.new(access_token: token)
-          loog.info(
-            "Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect}, " \
-            "#{Octokit::Client.new(access_token: token).rate_limit.remaining} quota remaining)"
-          )
         end
         o.auto_paginate = true
         o.per_page = 100
@@ -97,6 +93,12 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           end
         o.middleware = stack
         o = Verbose.new(o, log: loog)
+        unless token.nil? || token.empty?
+          loog.info(
+            "Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect}, " \
+            "#{o.rate_limit.remaining} quota remaining)"
+          )
+        end
       else
         loog.debug('The connection to GitHub API is mocked')
         o = Fbe::FakeOctokit.new

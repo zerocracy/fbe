@@ -138,10 +138,8 @@ class TestOcto < Fbe::Test
       body: '{}', headers: { 'X-RateLimit-Remaining' => '1234' }
     )
     buf = Loog::Buffer.new
-    o = Fbe.octo(loog: buf, global: {}, options: Judges::Options.new({ 'github_token' => 'secret_github_token' }))
+    Fbe.octo(loog: buf, global: {}, options: Judges::Options.new({ 'github_token' => 'secret_github_token' }))
     assert_match(/Accessing GitHub API with a token \(19 chars, ending by "oken", 1234 quota remaining\)/, buf.to_s)
-    assert_nil(o.last_response, 'Not to be requests until initialize main Octokit client, ' \
-                                'because middleware cached after first request and not apply after')
   end
 
   def test_retrying
@@ -388,6 +386,20 @@ class TestOcto < Fbe::Test
       global = {}
       o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
       assert_equal('user1', o.user_name_by_id(42))
+    end
+  end
+
+  def test_through_sqlite_store_when_broken_token
+    WebMock.disable_net_connect!
+    Dir.mktmpdir do |dir|
+      global = {}
+      file = File.expand_path('test.db', dir)
+      stub_request(:get, 'https://api.github.com/user/4242').to_return(status: 401)
+      o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => file }))
+      assert_raises(StandardError) do
+        assert_equal('user1', o.user_name_by_id(4242))
+      end
+      assert_path_exists(file)
     end
   end
 end
