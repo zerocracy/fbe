@@ -18,7 +18,7 @@ class TestOcto < Fbe::Test
     global = {}
     options = Judges::Options.new({ 'testing' => true })
     o = Fbe.octo(loog: Loog::NULL, global:, options:)
-    refute(o.off_quota)
+    refute_predicate(o, :off_quota?)
     refute_nil(o.pull_request('foo/foo', 42))
     refute_nil(o.commit_pulls('foo/foo', 'sha'))
   end
@@ -101,7 +101,7 @@ class TestOcto < Fbe::Test
     assert_equal(4, o.rate_limit.remaining)
   end
 
-  def test_off_quota
+  def test_off_quota?
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       body: '{}', headers: { 'X-RateLimit-Remaining' => '333' }
@@ -110,9 +110,9 @@ class TestOcto < Fbe::Test
       body: '', headers: { 'X-RateLimit-Remaining' => '3' }
     )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
-    refute(o.off_quota)
+    refute_predicate(o, :off_quota?)
     o.user(42)
-    assert(o.off_quota)
+    assert_predicate(o, :off_quota?)
   end
 
   def test_off_quota_twice
@@ -125,11 +125,11 @@ class TestOcto < Fbe::Test
       { body: '', headers: { 'X-RateLimit-Remaining' => '5' } }
     )
     o = Fbe.octo(loog: Loog::VERBOSE, global: {}, options: Judges::Options.new)
-    refute(o.off_quota)
+    refute_predicate(o, :off_quota?)
     o.user(42)
-    refute(o.off_quota)
+    refute_predicate(o, :off_quota?)
     o.user(42)
-    assert(o.off_quota)
+    assert_predicate(o, :off_quota?)
   end
 
   def test_print_quota_left_while_initialize
@@ -216,9 +216,9 @@ class TestOcto < Fbe::Test
         headers: { 'x-ratelimit-remaining' => '10000' }
       )
     o.user('foo')
-    assert(o.off_quota)
+    assert_predicate(o, :off_quota?)
     o.user('foo')
-    refute(o.off_quota)
+    refute_predicate(o, :off_quota?)
   end
 
   def test_fetches_fake_check_runs_for_ref
@@ -260,7 +260,7 @@ class TestOcto < Fbe::Test
   def test_reads_quota
     WebMock.enable_net_connect!
     o = Fbe.octo(loog: Loog::VERBOSE, global: {}, options: Judges::Options.new({ 'github_api_pause' => 0.01 }))
-    refute_nil(o.off_quota)
+    refute_nil(o.off_quota?)
   end
 
   def test_fetches_fake_not_found_users

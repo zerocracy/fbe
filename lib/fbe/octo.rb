@@ -119,7 +119,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           end
         end
 
-        def off_quota(threshold: 50)
+        def off_quota?(threshold: 50)
           left = @origin.rate_limit.remaining
           if left < threshold
             @loog.info("Too much GitHub API quota consumed already (#{left} < #{threshold}), stopping")
@@ -392,9 +392,11 @@ class Fbe::FakeOctokit
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.remove_organization_membership('zerocracy') #=> true
+  # rubocop:disable Naming/PredicateMethod
   def remove_organization_membership(_org, _user = nil)
     true
   end
+  # rubocop:enable Naming/PredicateMethod
 
   # Accepts a repository invitation.
   #
@@ -403,10 +405,12 @@ class Fbe::FakeOctokit
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.accept_repository_invitation(1) #=> true
+  # rubocop:disable Naming/PredicateMethod
   def accept_repository_invitation(id)
     raise Octokit::NotFound if id == 404_000
     true
   end
+  # rubocop:enable Naming/PredicateMethod
 
   # Gives a star to a repository.
   #
@@ -415,9 +419,11 @@ class Fbe::FakeOctokit
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.star('octocat/Hello-World') #=> true
+  # rubocop:disable Naming/PredicateMethod
   def star(_repo)
     true
   end
+  # rubocop:enable Naming/PredicateMethod
 
   # Gets details of a GitHub user.
   #

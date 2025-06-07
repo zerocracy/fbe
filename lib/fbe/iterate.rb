@@ -199,7 +199,7 @@ class Fbe::Iterate
     raise 'Use "by" first' if @query.nil?
     seen = {}
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
-    if oct.off_quota
+    if oct.off_quota?
       @loog.debug('We are off GitHub quota, cannot even start, sorry')
       return
     end
@@ -207,12 +207,12 @@ class Fbe::Iterate
     restarted = []
     start = Time.now
     loop do
-      if oct.off_quota
+      if oct.off_quota?
         @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
         break
       end
       repos.each do |repo|
-        if oct.off_quota
+        if oct.off_quota?
           @loog.debug("We are off GitHub quota, we must skip #{repo}")
           break
         end
