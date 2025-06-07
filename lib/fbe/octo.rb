@@ -47,7 +47,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             loog.debug("The 'GITHUB_TOKEN' environment was provided")
           end
         else
-          loog.debug("The 'github_token' option was provided")
+          loog.debug("The 'github_token' option was provided (#{token.length} chars)")
         end
         if token.nil?
           loog.warn('Accessing GitHub API without a token!')
