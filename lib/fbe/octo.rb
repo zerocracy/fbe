@@ -84,6 +84,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             if options.sqlite_cache
               store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache)
               serializer = JSON
+              loog.info("Using HTTP cache in SQLite file: #{store.path}")
             end
             builder.use(
               Faraday::HttpCache,

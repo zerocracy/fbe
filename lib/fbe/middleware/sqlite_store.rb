@@ -14,11 +14,13 @@ require_relative '../../fbe/middleware'
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
 class Fbe::Middleware::SqliteStore
+  attr_reader :path
+
   def initialize(path)
     raise ArgumentError, 'Database path cannot be nil or empty' if path.nil? || path.empty?
     dir = File.dirname(path)
     raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
-    @path = path
+    @path = File.absolute_path(path)
     open
     prepare
     at_exit { close }
