@@ -61,7 +61,7 @@ class Fbe::Middleware::SqliteStore
           t.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
           t.execute 'CREATE INDEX IF NOT EXISTS key_idx ON cache(key);'
         end
-        at_exit { @db.close if @db && !@db.closed? }
+        at_exit { @db&.close }
       end
     @db.transaction(&)
   end
