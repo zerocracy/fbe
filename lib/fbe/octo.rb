@@ -84,6 +84,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 store:, serializer: JSON, shared_cache: false, logger: Loog::NULL
               )
             else
+              loog.info('No HTTP cache in SQLite file, because sqlite_cache option is not provided')
               builder.use(
                 Faraday::HttpCache,
                 serializer: Marshal, shared_cache: false, logger: Loog::NULL
