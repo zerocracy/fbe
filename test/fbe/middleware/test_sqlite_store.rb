@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'qbash'
 require_relative '../../test__helper'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/sqlite_store'
@@ -37,18 +38,24 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_drops_all_keys
+  def test_clear_all_keys
     with_tmpfile('a.db') do |f|
       store = Fbe::Middleware::SqliteStore.new(f)
       k = 'a key'
       store.write(k, 'some value')
-      store.drop
-      store.prepare
+      store.clear
       assert_empty(store.all)
     end
   end
 
-  def test_read_from_wrong_db_path
+  def test_empty_all_if_not_written
+    with_tmpfile do |f|
+      store = Fbe::Middleware::SqliteStore.new(f)
+      assert_empty(store.all)
+    end
+  end
+
+  def test_wrong_db_path
     assert_raises(ArgumentError) do
       Fbe::Middleware::SqliteStore.new(nil).read('my_key')
     end
@@ -60,43 +67,44 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_empty_all_if_not_written
+  def test_not_db_file
     with_tmpfile do |f|
-      store = Fbe::Middleware::SqliteStore.new(f)
-      assert_empty(store.all)
+      File.binwrite(f, Array.new(20) { rand(0..255) }.pack('C*'))
+      ex =
+        assert_raises(SQLite3::NotADatabaseException) do
+          Fbe::Middleware::SqliteStore.new(f).read('my_key')
+        end
+      assert_match('file is not a database', ex.message)
     end
   end
 
-  def test_setup
-    with_tmpfile do |path|
-      store = Fbe::Middleware::SqliteStore.new(path)
-      refute_predicate store, :setup?
-      2.times { store.setup }
-      assert_predicate store, :setup?
-      store.drop
-      refute_predicate store, :setup?
-      2.times { store.setup }
-      assert_predicate store, :setup?
-    end
-  end
+  def test_defer_db_close_callback
+    txt = <<~RUBY
+      require 'tempfile'
+      require 'fbe/middleware/sqlite_store'
 
-  def test_close
-    with_tmpfile do |path|
-      store = Fbe::Middleware::SqliteStore.new(path)
-      store.write('my_key', 'my_value')
-      2.times { store.close }
-      assert_equal('my_value', store.read('my_key'))
-    end
-  end
+      class Fbe::Middleware::SqliteStoreExt < Fbe::Middleware::SqliteStore
+        private
+        def close
+          super
+          puts 'closed sqlite after process exit'
+        end
+      end
 
-  def test_clear
-    with_tmpfile do |path|
-      store = Fbe::Middleware::SqliteStore.new(path)
-      store.write('my_key', 'my_value')
-      assert_equal('my_value', store.read('my_key'))
-      store.clear
-      assert_nil(store.read('my_key'))
-    end
+      Tempfile.open('test.db') do |f|
+        Fbe::Middleware::SqliteStoreExt.new(f.path).read('my_key')
+      end
+    RUBY
+    out, _err =
+      capture_io do
+        qbash(
+          'bundle exec ruby ' \
+          "-I#{File.expand_path('../../../lib', __dir__)} " \
+          "-e #{Shellwords.escape(txt)}",
+          log: $stdout
+        )
+      end
+    assert_match('closed sqlite after process exit', out)
   end
 
   private
