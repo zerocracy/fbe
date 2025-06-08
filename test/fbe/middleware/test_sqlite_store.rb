@@ -12,24 +12,43 @@ require_relative '../../../lib/fbe/middleware/sqlite_store'
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
 class SqliteStoreTest < Fbe::Test
-  def test_sqlite_store
+  def test_simple_caching_algorithm
     Dir.mktmpdir do |dir|
-      store = Fbe::Middleware::SqliteStore.new(File.expand_path('test.db', dir))
-      assert_nil(store.read('my_key'))
-      assert_nil(store.delete('my_key'))
-      assert_nil(store.write('my_key', 'some value'))
-      assert_equal('some value', store.read('my_key'))
-      assert_nil(store.write('my_key', 'some value 2'))
-      assert_equal('some value 2', store.read('my_key'))
-      assert_nil(store.delete('my_key'))
-      assert_nil(store.read('my_key'))
+      f = File.expand_path('x.db', dir)
+      store = Fbe::Middleware::SqliteStore.new(f)
+      k = 'some-key'
+      assert_nil(store.read(k))
+      assert_nil(store.delete(k))
+      v1 = 'first value to save'
+      assert_nil(store.write(k, v1))
+      assert_equal(v1, store.read(k))
+      v2 = 'another value to save'
+      assert_nil(store.write(k, v2))
+      assert_equal(v2, store.read(k))
+      assert_nil(store.delete(k))
+      assert_nil(store.read(k))
+      store.close
+      assert_path_exists(f)
     end
   end
 
-  def test_sqlite_store_empty_all
+  def test_returns_empty_list
     Dir.mktmpdir do |dir|
-      store = Fbe::Middleware::SqliteStore.new(File.expand_path('test.db', dir))
+      store = Fbe::Middleware::SqliteStore.new(File.expand_path('b.db', dir))
       assert_empty(store.all)
+      store.close
+    end
+  end
+
+  def test_drops_all_keys
+    Dir.mktmpdir do |dir|
+      store = Fbe::Middleware::SqliteStore.new(File.expand_path('a.db', dir))
+      k = 'a key'
+      store.write(k, 'some value')
+      store.drop
+      store.prepare
+      assert_empty(store.all)
+      store.close
     end
   end
 end
