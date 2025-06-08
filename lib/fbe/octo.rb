@@ -76,16 +76,19 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               methods: [:get],
               backoff_factor: 2
             )
-            serializer = Marshal
             if options.sqlite_cache
               store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache)
-              serializer = JSON
               loog.info("Using HTTP cache in SQLite file: #{store.path}")
+              builder.use(
+                Faraday::HttpCache,
+                store:, serializer: JSON, shared_cache: false, logger: Loog::NULL
+              )
+            else
+              builder.use(
+                Faraday::HttpCache,
+                serializer: Marshal, shared_cache: false, logger: Loog::NULL
+              )
             end
-            builder.use(
-              Faraday::HttpCache,
-              store: store, serializer: serializer, shared_cache: false, logger: Loog::NULL
-            )
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
             builder.use(Fbe::Middleware::Trace, trace)

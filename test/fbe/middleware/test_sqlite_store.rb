@@ -27,7 +27,6 @@ class SqliteStoreTest < Fbe::Test
       assert_equal(v2, store.read(k))
       assert_nil(store.delete(k))
       assert_nil(store.read(k))
-      store.close
       assert_path_exists(f)
     end
   end
@@ -36,7 +35,6 @@ class SqliteStoreTest < Fbe::Test
     Dir.mktmpdir do |dir|
       store = Fbe::Middleware::SqliteStore.new(File.expand_path('b.db', dir))
       assert_empty(store.all)
-      store.close
     end
   end
 
@@ -48,7 +46,6 @@ class SqliteStoreTest < Fbe::Test
       store.drop
       store.prepare
       assert_empty(store.all)
-      store.close
     end
   end
 end
