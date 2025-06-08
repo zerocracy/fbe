@@ -81,29 +81,31 @@ class SqliteStoreTest < Fbe::Test
   def test_defer_db_close_callback
     txt = <<~RUBY
       require 'tempfile'
+      require 'sqlite3'
       require 'fbe/middleware/sqlite_store'
 
-      class Fbe::Middleware::SqliteStoreExt < Fbe::Middleware::SqliteStore
-        private
-        def close
-          super
-          puts 'closed sqlite after process exit'
-        end
+      SQLite3::Database.class_eval do
+        prepend(Module.new do
+          def close
+            super
+            puts 'closed sqlite after process exit'
+          end
+        end)
       end
 
       Tempfile.open('test.db') do |f|
-        Fbe::Middleware::SqliteStoreExt.new(f.path).read('my_key')
+        Fbe::Middleware::SqliteStore.new(f.path).then do |s|
+          s.write('my_key', 'my_value')
+          s.read('my_key')
+        end
       end
     RUBY
-    out, _err =
-      capture_io do
-        qbash(
-          'bundle exec ruby ' \
-          "-I#{File.expand_path('../../../lib', __dir__)} " \
-          "-e #{Shellwords.escape(txt)}",
-          log: $stdout
-        )
-      end
+    out =
+      qbash(
+        'bundle exec ruby ' \
+        "-I#{Shellwords.escape(File.expand_path('../../../lib', __dir__))} " \
+        "-e #{Shellwords.escape(txt)} 2>&1"
+      )
     assert_match('closed sqlite after process exit', out)
   end
 

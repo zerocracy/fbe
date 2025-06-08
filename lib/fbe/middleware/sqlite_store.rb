@@ -54,12 +54,6 @@ class Fbe::Middleware::SqliteStore
 
   private
 
-  def close
-    return unless @db
-    @db.close unless @db.closed?
-    @db = nil
-  end
-
   def perform(&)
     @db ||=
       SQLite3::Database.new(@path).tap do |d|
@@ -67,7 +61,7 @@ class Fbe::Middleware::SqliteStore
           t.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
           t.execute 'CREATE INDEX IF NOT EXISTS key_idx ON cache(key);'
         end
-        at_exit { close }
+        at_exit { @db.close if @db && !@db.closed? }
       end
     @db.transaction(&)
   end
