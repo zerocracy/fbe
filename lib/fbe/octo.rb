@@ -78,7 +78,11 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             )
             if options.sqlite_cache
               store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache)
-              loog.info("Using HTTP cache in SQLite file: #{store.path}")
+              loog.info(
+                "Using HTTP cache in SQLite file: #{store.path} (" \
+                "#{File.exist?(store.path) ? "#{File.size(store.path)} bytes" : 'file is absent'}" \
+                ')'
+              )
               builder.use(
                 Faraday::HttpCache,
                 store:, serializer: JSON, shared_cache: false, logger: Loog::NULL
