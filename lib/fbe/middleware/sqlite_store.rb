@@ -16,11 +16,13 @@ require_relative '../../fbe/middleware'
 class Fbe::Middleware::SqliteStore
   attr_reader :path
 
-  def initialize(path)
+  def initialize(path, fbe_version)
     raise ArgumentError, 'Database path cannot be nil or empty' if path.nil? || path.empty?
     dir = File.dirname(path)
     raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
+    raise ArgumentError, 'Fbe version cannot be nil or empty' if fbe_version.nil? || fbe_version.empty?
     @path = File.absolute_path(path)
+    @fbe_version = fbe_version
   end
 
   def read(key)
@@ -49,11 +51,23 @@ class Fbe::Middleware::SqliteStore
   end
 
   def clear
-    perform { _1.execute 'DELETE FROM cache;' }
+    perform do |t|
+      t.execute 'DELETE FROM cache;'
+      t.execute 'DELETE FROM version;'
+      t.execute 'INSERT INTO version(value) VALUES(?);', [@fbe_version]
+    end
   end
 
   def all
     perform { _1.execute('SELECT key, value FROM cache') }
+  end
+
+  def different_versions?
+    version != @fbe_version
+  end
+
+  def version
+    perform { _1.execute('SELECT value FROM version LIMIT 1;') }.dig(0, 0)
   end
 
   private
@@ -64,6 +78,8 @@ class Fbe::Middleware::SqliteStore
         d.transaction do |t|
           t.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
           t.execute 'CREATE INDEX IF NOT EXISTS key_idx ON cache(key);'
+          t.execute 'CREATE TABLE IF NOT EXISTS version(value VARCHAR(100) UNIQUE NOT NULL);'
+          t.execute 'INSERT INTO version(value) VALUES(?) ON CONFLICT(value) DO NOTHING;', [@fbe_version]
         end
         at_exit { @db&.close }
       end

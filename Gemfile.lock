@@ -143,6 +143,7 @@ GEM
       builder
       minitest (>= 5.0)
       ruby-progressbar
+    minitest-stub-const (0.6)
     moments (0.3.0)
     multipart-post (2.4.1)
     net-http (0.6.0)
@@ -258,6 +259,7 @@ DEPENDENCIES
   fbe!
   minitest (~> 5.25)
   minitest-reporters (~> 1.7)
+  minitest-stub-const (~> 0.6)
   os (~> 1.1)
   qbash (~> 0.4)
   rake (~> 13.3)
