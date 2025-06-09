@@ -21,9 +21,6 @@ class Fbe::Middleware::SqliteStore
     dir = File.dirname(path)
     raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
     @path = File.absolute_path(path)
-    open
-    prepare
-    at_exit { close }
   end
 
   def read(key)
@@ -38,8 +35,8 @@ class Fbe::Middleware::SqliteStore
 
   def write(key, value)
     value = JSON.dump(value)
-    perform do |tdb|
-      tdb.execute(<<~SQL, [key, value])
+    perform do |t|
+      t.execute(<<~SQL, [key, value])
         INSERT INTO cache(key, value) VALUES(?1, ?2)
         ON CONFLICT(key) DO UPDATE SET value = ?2
       SQL
@@ -47,30 +44,8 @@ class Fbe::Middleware::SqliteStore
     nil
   end
 
-  def open
-    return if @db
-    @db = SQLite3::Database.new(@path)
-  end
-
-  def prepare
-    perform do |tdb|
-      tdb.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
-      tdb.execute 'CREATE INDEX IF NOT EXISTS key_idx ON cache(key);'
-    end
-  end
-
-  def close
-    return if !@db || @db.closed?
-    @db.close
-    @db = nil
-  end
-
   def clear
     perform { _1.execute 'DELETE FROM cache;' }
-  end
-
-  def drop
-    perform { _1.execute 'DROP TABLE IF EXISTS cache;' }
   end
 
   def all
@@ -80,6 +55,14 @@ class Fbe::Middleware::SqliteStore
   private
 
   def perform(&)
+    @db ||=
+      SQLite3::Database.new(@path).tap do |d|
+        d.transaction do |t|
+          t.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
+          t.execute 'CREATE INDEX IF NOT EXISTS key_idx ON cache(key);'
+        end
+        at_exit { @db&.close }
+      end
     @db.transaction(&)
   end
 end
