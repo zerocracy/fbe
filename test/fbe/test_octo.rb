@@ -256,7 +256,10 @@ class TestOcto < Fbe::Test
   end
 
   def test_reads_quota
-    WebMock.enable_net_connect!
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     o = Fbe.octo(loog: Loog::VERBOSE, global: {}, options: Judges::Options.new({ 'github_api_pause' => 0.01 }))
     refute_nil(o.off_quota?)
   end
@@ -365,7 +368,7 @@ class TestOcto < Fbe::Test
     assert_includes second_output, 'GitHub API trace is empty'
   end
 
-  def test_sqlite_store
+  def test_works_via_sqlite_store
     WebMock.disable_net_connect!
     Dir.mktmpdir do |dir|
       global = {}

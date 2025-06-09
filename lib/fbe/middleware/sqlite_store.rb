@@ -34,6 +34,10 @@ class Fbe::Middleware::SqliteStore
   end
 
   def write(key, value)
+    return if value.is_a?(Array) && value.any? do |vv|
+      req = JSON.parse(vv[0])
+      req['url'].include?('?') || req['method'] != 'get'
+    end
     value = JSON.dump(value)
     perform do |t|
       t.execute(<<~SQL, [key, value])
