@@ -112,26 +112,23 @@ class SqliteStoreTest < Fbe::Test
   def test_different_versions
     with_tmpfile('d.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
-        assert_equal('0.0.1', store.version)
-        refute_predicate(store, :different_versions?)
-        store.write('key', 'some value')
+        store.write('kkk1', 'some value')
+        store.write('kkk2', 'another value')
+      end
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+        assert_equal('some value', store.read('kkk1'))
+        assert_equal('another value', store.read('kkk2'))
       end
       Fbe::Middleware::SqliteStore.new(f, '0.0.2').then do |store|
-        assert_equal('0.0.1', store.version)
-        store.write('key2', 'some value2')
-        assert_equal(2, store.all.size)
-        assert_predicate(store, :different_versions?)
-        store.clear
-        assert_equal('0.0.2', store.version)
-        refute_predicate(store, :different_versions?)
-        assert_empty(store.all)
+        assert_nil(store.read('kkk1'))
+        assert_nil(store.read('kkk2'))
       end
     end
   end
 
   def test_initialize_wrong_version
     with_tmpfile('e.db') do |f|
-      msg = 'Fbe version cannot be nil or empty'
+      msg = 'Version cannot be nil or empty'
       assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new(f, nil) }.then do |ex|
         assert_match(msg, ex.message)
       end

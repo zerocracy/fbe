@@ -406,14 +406,32 @@ class TestOcto < Fbe::Test
     end
   end
 
-  def test_clear_sqlite_store_if_different_versions
+  def test_sqlite_store_for_use_in_different_versions
     WebMock.disable_net_connect!
     Dir.mktmpdir do |dir|
       global = {}
+      stub =
+        stub_request(:get, 'https://api.github.com/user/42')
+          .to_return(
+            status: 200,
+            body: { login: 'user1' }.to_json,
+            headers: {
+              'Content-Type' => 'application/json',
+              'Cache-Control' => 'public, max-age=60, s-maxage=60',
+              'Etag' => 'W/"2ff9dd4c3153f006830b2b8b721f6a4bb400a1eb81a2e1fa0a3b846ad349b9ec"',
+              'Last-Modified' => 'Wed, 01 May 2025 20:00:00 GMT'
+            }
+          )
+      sqlite_cache = File.expand_path('test.db', dir)
+      Fbe.stub_const(:VERSION, '0.0.1') do
+        o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+        assert_equal('user1', o.user_name_by_id(42))
+      end
+      WebMock.remove_request_stub(stub)
       stub_request(:get, 'https://api.github.com/user/42')
         .to_return(
           status: 200,
-          body: { login: 'user1' }.to_json,
+          body: { login: 'user2' }.to_json,
           headers: {
             'Content-Type' => 'application/json',
             'Cache-Control' => 'public, max-age=60, s-maxage=60',
@@ -421,17 +439,10 @@ class TestOcto < Fbe::Test
             'Last-Modified' => 'Wed, 01 May 2025 20:00:00 GMT'
           }
         )
-      sqlite_cache = File.expand_path('test.db', dir)
-      Fbe.stub_const(:VERSION, '0.0.1') do
-        o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
-        assert_equal('user1', o.user_name_by_id(42))
-      end
       global = {}
       Fbe.stub_const(:VERSION, '0.0.2') do
-        loog = Loog::Buffer.new
-        o = Fbe.octo(loog:, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
-        assert_equal('user1', o.user_name_by_id(42))
-        assert_match("Fbe has different version from cache store '0.0.2!0.0.1' and will be cleared", loog.to_s)
+        o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+        assert_equal('user2', o.user_name_by_id(42))
       end
     end
   end

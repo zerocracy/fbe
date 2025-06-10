@@ -83,13 +83,6 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 "#{File.exist?(store.path) ? "#{File.size(store.path)} bytes" : 'file is absent'}" \
                 ')'
               )
-              if store.different_versions?
-                loog.info(
-                  "Fbe has different version from cache store '#{Fbe::VERSION}!#{store.version}' " \
-                  'and will be cleared'
-                )
-                store.clear
-              end
               builder.use(
                 Faraday::HttpCache,
                 store:, serializer: JSON, shared_cache: false, logger: Loog::NULL
