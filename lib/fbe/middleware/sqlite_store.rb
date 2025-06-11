@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'time'
 require 'json'
 require 'sqlite3'
 require_relative '../../fbe'
@@ -26,7 +27,10 @@ class Fbe::Middleware::SqliteStore
   end
 
   def read(key)
-    value = perform { _1.execute('SELECT value FROM cache WHERE key = ? LIMIT 1', [key]) }.dig(0, 0)
+    value = perform do |t|
+      t.execute('UPDATE cache SET touched_at = ?2 WHERE key = ?1;', [key, Time.now.utc.iso8601])
+      t.execute('SELECT value FROM cache WHERE key = ? LIMIT 1;', [key])
+    end.dig(0, 0)
     JSON.parse(value) if value
   end
 
@@ -43,9 +47,9 @@ class Fbe::Middleware::SqliteStore
     value = JSON.dump(value)
     return if value.bytesize > 10_000
     perform do |t|
-      t.execute(<<~SQL, [key, value])
-        INSERT INTO cache(key, value) VALUES(?1, ?2)
-        ON CONFLICT(key) DO UPDATE SET value = ?2
+      t.execute(<<~SQL, [key, value, Time.now.utc.iso8601])
+        INSERT INTO cache(key, value, touched_at) VALUES(?1, ?2, ?3)
+        ON CONFLICT(key) DO UPDATE SET value = ?2, touched_at = ?3
       SQL
     end
     nil
@@ -69,8 +73,10 @@ class Fbe::Middleware::SqliteStore
     @db ||=
       SQLite3::Database.new(@path).tap do |d|
         d.transaction do |t|
-          t.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
+          t.execute 'CREATE TABLE IF NOT EXISTS cache(' \
+                    'key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL);'
           t.execute 'CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);'
+          t.execute 'CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);'
           t.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
           t.execute 'CREATE INDEX IF NOT EXISTS meta_key_idx ON meta(key);'
           t.execute "INSERT INTO meta(key, value) VALUES('version', ?) ON CONFLICT(key) DO NOTHING;", [@version]
@@ -79,6 +85,15 @@ class Fbe::Middleware::SqliteStore
           d.transaction do |t|
             t.execute 'DELETE FROM cache;'
             t.execute "UPDATE meta SET value = ? WHERE key = 'version';", [@version]
+          end
+          d.execute 'VACUUM;'
+        end
+        while File.size(@path) > 10 * 1024 * 1024
+          d.transaction do |t|
+            t.execute <<~SQL
+              DELETE FROM cache
+              WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
+            SQL
           end
           d.execute 'VACUUM;'
         end
