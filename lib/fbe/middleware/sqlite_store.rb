@@ -88,12 +88,16 @@ class Fbe::Middleware::SqliteStore
           end
           d.execute 'VACUUM;'
         end
-        while File.size(@path) > 10 * 1024 * 1024
-          d.transaction do |t|
-            t.execute <<~SQL
-              DELETE FROM cache
-              WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
-            SQL
+        if File.size(@path) > 10 * 1024 * 1024
+          while d.execute('SELECT (page_count - freelist_count) * page_size AS size ' \
+                          'FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();')
+                 .dig(0, 0) > 10 * 1024 * 1024
+            d.transaction do |t|
+              t.execute <<~SQL
+                DELETE FROM cache
+                WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
+              SQL
+            end
           end
           d.execute 'VACUUM;'
         end
