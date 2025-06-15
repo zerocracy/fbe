@@ -41,6 +41,7 @@ class Fbe::Middleware::SqliteStore
       req['url'].include?('?') || req['method'] != 'get'
     end
     value = JSON.dump(value)
+    return if value.bytesize > 10_000
     perform do |t|
       t.execute(<<~SQL, [key, value])
         INSERT INTO cache(key, value) VALUES(?1, ?2)

@@ -138,6 +138,21 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_skip_write_if_value_more_then_10k_bytes
+    with_tmpfile('a.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+        store.write('a', 'a' * 9_997)
+        store.write('b', 'b' * 9_998)
+        store.write('c', 'c' * 9_999)
+        store.write('d', 'd' * 10_000)
+        assert_equal('a' * 9_997, store.read('a'))
+        assert_equal('b' * 9_998, store.read('b'))
+        assert_nil(store.read('c'))
+        assert_nil(store.read('d'))
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
