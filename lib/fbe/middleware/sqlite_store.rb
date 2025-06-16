@@ -73,8 +73,11 @@ class Fbe::Middleware::SqliteStore
     @db ||=
       SQLite3::Database.new(@path).tap do |d|
         d.transaction do |t|
-          t.execute 'CREATE TABLE IF NOT EXISTS cache(' \
-                    'key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL);'
+          t.execute <<~SQL
+            CREATE TABLE IF NOT EXISTS cache(
+              key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL
+            );
+          SQL
           t.execute 'CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);'
           t.execute 'CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);'
           t.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
@@ -89,9 +92,10 @@ class Fbe::Middleware::SqliteStore
           d.execute 'VACUUM;'
         end
         if File.size(@path) > 10 * 1024 * 1024
-          while d.execute('SELECT (page_count - freelist_count) * page_size AS size ' \
-                          'FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();')
-                 .dig(0, 0) > 10 * 1024 * 1024
+          while d.execute(<<~SQL).dig(0, 0) > 10 * 1024 * 1024
+            SELECT (page_count - freelist_count) * page_size AS size
+            FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
+          SQL
             d.transaction do |t|
               t.execute <<~SQL
                 DELETE FROM cache
