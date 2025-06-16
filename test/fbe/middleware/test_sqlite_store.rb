@@ -153,6 +153,35 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_shrink_cache_if_more_then_10_mb
+    with_tmpfile('large.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+        key = 'aaa'
+        alpha = ('a'..'z').to_a
+        store.write('a', 'aa')
+        Time.stub(:now, (Time.now - (5 * 60 * 60)).round) do
+          store.write('b', 'bb')
+          store.write('c', 'cc')
+        end
+        assert_equal('cc', store.read('c'))
+        Time.stub(:now, rand((Time.now - (5 * 60 * 60))..Time.now).round) do
+          10_240.times do
+            value = alpha.sample * rand(1024..2048)
+            store.write(key, value)
+            key = key.next
+          end
+        end
+      end
+      assert_operator(File.size(f), :>, 10 * 1024 * 1024)
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+        assert_equal('aa', store.read('a'))
+        assert_nil(store.read('b'))
+        assert_equal('cc', store.read('c'))
+        assert_operator(File.size(f), :<=, 10 * 1024 * 1024)
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
