@@ -25,6 +25,10 @@ require_relative 'middleware/sqlite_store'
 # logging, and caching.
 #
 # @param [Judges::Options] options The options available globally
+# @option options [String] :github_token GitHub API token for authentication
+# @option options [Boolean] :testing When true, uses FakeOctokit for testing
+# @option options [String] :sqlite_cache Path to SQLite cache file for HTTP responses
+# @option options [Integer] :sqlite_cache_maxsize Maximum size of SQLite cache in bytes (default: 10MB)
 # @param [Hash] global Hash of global options
 # @param [Loog] loog Logging facility
 # @return [Hash] Usually returns a JSON, as it comes from the GitHub API
@@ -77,11 +81,12 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               backoff_factor: 2
             )
             if options.sqlite_cache
-              store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache, Fbe::VERSION, loog:)
+              maxsize = options.sqlite_cache_maxsize || (10 * 1024 * 1024)
+              store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache, Fbe::VERSION, loog:, maxsize:)
               loog.info(
                 "Using HTTP cache in SQLite file: #{store.path} (" \
-                "#{File.exist?(store.path) ? "#{File.size(store.path)} bytes" : 'file is absent'}" \
-                ')'
+                "#{File.exist?(store.path) ? "#{File.size(store.path)} bytes" : 'file is absent'}, " \
+                "max size: #{maxsize / 1024 / 1024}MB)"
               )
               builder.use(
                 Faraday::HttpCache,
