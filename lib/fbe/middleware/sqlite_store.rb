@@ -12,6 +12,34 @@ require_relative '../../fbe/middleware'
 
 # Persisted SQLite store for Faraday::HttpCache
 #
+# This class provides a persistent cache store backed by SQLite for use with
+# Faraday::HttpCache middleware. It's designed to cache HTTP responses from
+# GitHub API calls to reduce API rate limit consumption and improve performance.
+#
+# Key features:
+# - Automatic version management to invalidate cache on version changes
+# - Size-based cache eviction (configurable, defaults to 10MB)
+# - Thread-safe SQLite transactions
+# - JSON serialization for cached values
+# - Filtering of non-cacheable requests (non-GET, URLs with query parameters)
+#
+# Usage example:
+#   store = Fbe::Middleware::SqliteStore.new(
+#     '/path/to/cache.db',
+#     '1.0.0',
+#     loog: logger,
+#     maxsize: 50 * 1024 * 1024  # 50MB max size
+#   )
+#
+#   # Use with Faraday
+#   Faraday.new do |builder|
+#     builder.use Faraday::HttpCache, store: store
+#   end
+#
+# The store automatically manages the SQLite database schema and handles
+# cleanup operations when the database grows too large. Old entries are
+# deleted based on their last access time to maintain the configured size limit.
+#
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2025 Zerocracy
 # License:: MIT
@@ -22,8 +50,9 @@ class Fbe::Middleware::SqliteStore
   # @param path [String] Path to the SQLite database file
   # @param version [String] Version identifier for cache compatibility
   # @param loog [Loog] Logger instance (optional, defaults to Loog::NULL)
+  # @param maxsize [Integer] Maximum database size in bytes (optional, defaults to 10MB)
   # @raise [ArgumentError] If path is nil/empty, directory doesn't exist, or version is nil/empty
-  def initialize(path, version, loog: Loog::NULL)
+  def initialize(path, version, loog: Loog::NULL, maxsize: 10 * 1024 * 1024)
     raise ArgumentError, 'Database path cannot be nil or empty' if path.nil? || path.empty?
     dir = File.dirname(path)
     raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
@@ -31,6 +60,7 @@ class Fbe::Middleware::SqliteStore
     @path = File.absolute_path(path)
     @version = version
     @loog = loog
+    @maxsize = maxsize
   end
 
   # Read a value from the cache.
@@ -116,10 +146,13 @@ class Fbe::Middleware::SqliteStore
           end
           d.execute 'VACUUM;'
         end
-        if File.size(@path) > 10 * 1024 * 1024
-          @loog.info("SQLite cache file size (#{File.size(@path)} bytes) exceeds 10MB, cleaning up old entries")
+        if File.size(@path) > @maxsize
+          @loog.info(
+            "SQLite cache file size (#{File.size(@path)} bytes) exceeds " \
+            "#{@maxsize / 1024 / 1024}MB, cleaning up old entries"
+          )
           deleted = 0
-          while d.execute(<<~SQL).dig(0, 0) > 10 * 1024 * 1024
+          while d.execute(<<~SQL).dig(0, 0) > @maxsize
             SELECT (page_count - freelist_count) * page_size AS size
             FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
           SQL
