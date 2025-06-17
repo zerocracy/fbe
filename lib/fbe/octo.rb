@@ -77,7 +77,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               backoff_factor: 2
             )
             if options.sqlite_cache
-              store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache, Fbe::VERSION)
+              store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache, Fbe::VERSION, loog:)
               loog.info(
                 "Using HTTP cache in SQLite file: #{store.path} (" \
                 "#{File.exist?(store.path) ? "#{File.size(store.path)} bytes" : 'file is absent'}" \
