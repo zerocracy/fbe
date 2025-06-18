@@ -182,6 +182,26 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_upgrade_sqlite_schema_for_add_touched_at_column
+    with_tmpfile('a.db') do |f|
+      SQLite3::Database.new(f).tap do |d|
+        d.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
+        [
+          ['key1', JSON.dump('value1')],
+          ['key2', JSON.dump('value2')]
+        ].each { d.execute 'INSERT INTO cache(key, value) VALUES(?1, ?2);', _1 }
+        d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
+        d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
+      end
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+        assert_equal('value1', store.read('key1'))
+        assert_equal('value2', store.read('key2'))
+      rescue SQLite3::SQLException => e
+        assert_nil(e)
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)

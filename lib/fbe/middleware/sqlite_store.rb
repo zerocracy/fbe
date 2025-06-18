@@ -126,16 +126,27 @@ class Fbe::Middleware::SqliteStore
     @db ||=
       SQLite3::Database.new(@path).tap do |d|
         d.transaction do |t|
-          t.execute <<~SQL
-            CREATE TABLE IF NOT EXISTS cache(
-              key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL
-            );
-          SQL
+          t.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
           t.execute 'CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);'
-          t.execute 'CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);'
           t.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
           t.execute 'CREATE INDEX IF NOT EXISTS meta_key_idx ON meta(key);'
           t.execute "INSERT INTO meta(key, value) VALUES('version', ?) ON CONFLICT(key) DO NOTHING;", [@version]
+        end
+        if d.execute("SELECT 1 FROM pragma_table_info('cache') WHERE name = 'touched_at';").dig(0, 0) != 1
+          d.transaction do |t|
+            t.execute 'ALTER TABLE cache ADD COLUMN touched_at TEXT;'
+            t.execute 'UPDATE cache set touched_at = ?;', [Time.now.utc.iso8601]
+            t.execute 'ALTER TABLE cache RENAME TO cache_old;'
+            t.execute <<~SQL
+              CREATE TABLE IF NOT EXISTS cache(
+                key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL
+              );
+            SQL
+            t.execute 'INSERT INTO cache SELECT * FROM cache_old;'
+            t.execute 'DROP TABLE cache_old;'
+            t.execute 'CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);'
+          end
+          d.execute 'VACUUM;'
         end
         found = d.execute("SELECT value FROM meta WHERE key = 'version' LIMIT 1;").dig(0, 0)
         if found != @version
