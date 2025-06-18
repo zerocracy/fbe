@@ -24,6 +24,24 @@ class TestIfAbsent < Fbe::Test
     assert_nil(n)
   end
 
+  def test_raises_on_empty_value
+    assert_raises(StandardError) do
+      Fbe.if_absent(fb: Factbase.new) do |f|
+        f.foo = ''
+      end
+    end
+  end
+
+  def test_raises_on_nil
+    fb = Factbase.new
+    fb.insert.foo = 42
+    assert_raises(StandardError) do
+      Fbe.if_absent(fb: Factbase.new) do |f|
+        f.foo = nil
+      end
+    end
+  end
+
   def test_ignores_with_time
     fb = Factbase.new
     t = Time.now
