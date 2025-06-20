@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
     'manipulate the facts and create new ones'
   s.authors = ['Yegor Bugayenko']
   s.email = 'yegor256@gmail.com'
-  s.homepage = 'http://github.com/zerocracy/fbe'
+  s.homepage = 'https://github.com/zerocracy/fbe'
   s.files = `git ls-files`.split($RS)
   s.rdoc_options = ['--charset=UTF-8']
   s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
