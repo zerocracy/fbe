@@ -53,6 +53,9 @@ class TestOcto < Fbe::Test
 
   def test_reads_nickname_by_id
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     global = {}
     o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
     stub_request(:get, 'https://api.github.com/user/42').to_return(
@@ -64,6 +67,9 @@ class TestOcto < Fbe::Test
 
   def test_reads_repo_name_by_id
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     global = {}
     o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
     stub_request(:get, 'https://api.github.com/repositories/42').to_return(
@@ -75,10 +81,16 @@ class TestOcto < Fbe::Test
 
   def test_caching
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     global = {}
     o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
     stub_request(:get, 'https://api.github.com/users/yegor256')
-      .to_return(body: '{}', headers: { 'Cache-Control' => 'public, max-age=60', 'etag' => 'abc' })
+      .to_return(
+        body: '{}',
+        headers: { 'Cache-Control' => 'public, max-age=60', 'etag' => 'abc', 'x-ratelimit-remaining' => '10000' }
+      )
       .times(1)
       .then
       .to_raise('second request should be cached, not passed to GitHub API!')
@@ -144,6 +156,9 @@ class TestOcto < Fbe::Test
 
   def test_retrying
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     global = {}
     o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
     stub_request(:get, 'https://api.github.com/users/yegor256')
@@ -156,6 +171,9 @@ class TestOcto < Fbe::Test
 
   def test_retrying_on_error_response
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     global = {}
     o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
     stub_request(:get, 'https://api.github.com/users/yegor256')
@@ -203,6 +221,9 @@ class TestOcto < Fbe::Test
 
   def test_pauses_when_quota_is_exceeded
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_api_pause' => 0.01 }))
     stub_request(:get, 'https://api.github.com/users/foo')
       .to_return(
@@ -215,8 +236,6 @@ class TestOcto < Fbe::Test
       )
     o.user('foo')
     assert_predicate(o, :off_quota?)
-    o.user('foo')
-    refute_predicate(o, :off_quota?)
   end
 
   def test_fetches_fake_check_runs_for_ref
@@ -327,13 +346,18 @@ class TestOcto < Fbe::Test
   def test_print_trace
     loog = Loog::Buffer.new
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     stub_request(:get, 'https://api.github.com/user/123').to_return(
       status: 200,
-      body: '{"id":123,"login":"test"}'
+      body: '{"id":123,"login":"test"}',
+      headers: { 'X-RateLimit-Remaining' => '222' }
     )
     stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(
       status: 200,
-      body: '{"id":456,"full_name":"foo/bar"}'
+      body: '{"id":456,"full_name":"foo/bar"}',
+      headers: { 'X-RateLimit-Remaining' => '222' }
     )
     octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
     octo.user(123)
@@ -341,7 +365,7 @@ class TestOcto < Fbe::Test
     octo.repository('foo/bar')
     octo.print_trace!
     output = loog.to_s
-    assert_includes output, 'GitHub API trace (2 URLs vs 3 requests)'
+    assert_includes output, 'GitHub API trace (3 URLs vs 4 requests)'
     assert_includes output, 'https://api.github.com/user/123: 1'
     assert_includes output, 'https://api.github.com/repos/foo/bar: 2'
     repo_index = output.index('https://api.github.com/repos/foo/bar: 2')
@@ -351,9 +375,13 @@ class TestOcto < Fbe::Test
 
   def test_trace_gets_cleared_after_print
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     stub_request(:get, 'https://api.github.com/user/456').to_return(
       status: 200,
-      body: '{"id":456,"login":"testuser"}'
+      body: '{"id":456,"login":"testuser"}',
+      headers: { 'X-RateLimit-Remaining' => '222' }
     )
     first_loog = Loog::Buffer.new
     octo = Fbe.octo(loog: first_loog, global: {}, options: Judges::Options.new)
@@ -365,6 +393,9 @@ class TestOcto < Fbe::Test
 
   def test_works_via_sqlite_store
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     Dir.mktmpdir do |dir|
       global = {}
       sqlite_cache = File.expand_path('test.db', dir)
@@ -389,6 +420,9 @@ class TestOcto < Fbe::Test
 
   def test_through_sqlite_store_when_broken_token
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     Dir.mktmpdir do |dir|
       global = {}
       file = File.expand_path('test.db', dir)
@@ -403,6 +437,9 @@ class TestOcto < Fbe::Test
 
   def test_sqlite_store_for_use_in_different_versions
     WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
     Dir.mktmpdir do |dir|
       global = {}
       stub =

@@ -176,6 +176,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         end
       o =
         others(o:) do |*args|
+          raise "We are off-quota (remaining: #{@o.rate_limit.remaining})" if args.first != :off_quota? && @o.off_quota?
           @o.__send__(*args)
         end
       o
