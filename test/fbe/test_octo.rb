@@ -65,6 +65,14 @@ class TestOcto < Fbe::Test
     assert_equal('dude56', nick)
   end
 
+  def test_fails_user_request_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    assert_raises(StandardError) { o.user(42) }
+  end
+
   def test_reads_repo_name_by_id
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
