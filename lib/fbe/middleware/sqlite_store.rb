@@ -51,8 +51,9 @@ class Fbe::Middleware::SqliteStore
   # @param version [String] Version identifier for cache compatibility
   # @param loog [Loog] Logger instance (optional, defaults to Loog::NULL)
   # @param maxsize [Integer] Maximum database size in bytes (optional, defaults to 10MB)
+  # @param maxvsize [Integer] Maximum size in bytes of a single value (optional, defaults to 10Kb)
   # @raise [ArgumentError] If path is nil/empty, directory doesn't exist, or version is nil/empty
-  def initialize(path, version, loog: Loog::NULL, maxsize: 10 * 1024 * 1024)
+  def initialize(path, version, loog: Loog::NULL, maxsize: 10 * 1024 * 1024, maxvsize: 10 * 1024)
     raise ArgumentError, 'Database path cannot be nil or empty' if path.nil? || path.empty?
     dir = File.dirname(path)
     raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
@@ -61,6 +62,7 @@ class Fbe::Middleware::SqliteStore
     @version = version
     @loog = loog
     @maxsize = maxsize
+    @maxvsize = maxvsize
   end
 
   # Read a value from the cache.
@@ -91,10 +93,10 @@ class Fbe::Middleware::SqliteStore
   def write(key, value)
     return if value.is_a?(Array) && value.any? do |vv|
       req = JSON.parse(vv[0])
-      req['url'].include?('?') || req['method'] != 'get'
+      req['method'] != 'get'
     end
     value = JSON.dump(value)
-    return if value.bytesize > 10_000
+    return if value.bytesize > @maxvsize
     perform do |t|
       t.execute(<<~SQL, [key, value, Time.now.utc.iso8601])
         INSERT INTO cache(key, value, touched_at) VALUES(?1, ?2, ?3)

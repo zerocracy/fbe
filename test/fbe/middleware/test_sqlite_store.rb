@@ -143,8 +143,8 @@ class SqliteStoreTest < Fbe::Test
       Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
         store.write('a', 'a' * 9_997)
         store.write('b', 'b' * 9_998)
-        store.write('c', 'c' * 9_999)
-        store.write('d', 'd' * 10_000)
+        store.write('c', 'c' * 19_999)
+        store.write('d', 'd' * 30_000)
         assert_equal('a' * 9_997, store.read('a'))
         assert_equal('b' * 9_998, store.read('b'))
         assert_nil(store.read('c'))
