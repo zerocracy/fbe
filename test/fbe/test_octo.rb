@@ -56,8 +56,7 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
-    global = {}
-    o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new)
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     stub_request(:get, 'https://api.github.com/user/42').to_return(
       body: { login: 'Dude56' }.to_json, headers: { 'Content-Type': 'application/json' }
     )
@@ -70,7 +69,17 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
     )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     assert_raises(StandardError) { o.user(42) }
+  end
+
+  def test_no_failure_on_printing_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    o.print_trace!
   end
 
   def test_reads_repo_name_by_id
