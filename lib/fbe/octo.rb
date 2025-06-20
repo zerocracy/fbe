@@ -10,6 +10,7 @@ require 'faraday/retry'
 require 'loog'
 require 'obk'
 require 'octokit'
+require 'others'
 require 'uri'
 require 'verbose'
 require_relative '../fbe'
@@ -116,62 +117,68 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         loog.debug('The connection to GitHub API is mocked')
         o = Fbe::FakeOctokit.new
       end
-      decoor(o, loog:, trace:) do
-        def print_trace!
-          if @trace.empty?
-            @loog.debug('GitHub API trace is empty')
-          else
-            grouped =
-              @trace.group_by do |entry|
-                uri = URI.parse(entry[:url])
-                "#{uri.scheme}://#{uri.host}#{uri.path}"
-              end
-            message = grouped
-              .sort_by { |_path, entries| -entries.count }
-              .map { |path, entries| "  #{path}: #{entries.count}" }
-              .join("\n")
-            @loog.info("GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests):\n#{message}")
-            @trace.clear
+      o =
+        decoor(o, loog:, trace:) do
+          def print_trace!
+            if @trace.empty?
+              @loog.debug('GitHub API trace is empty')
+            else
+              grouped =
+                @trace.group_by do |entry|
+                  uri = URI.parse(entry[:url])
+                  "#{uri.scheme}://#{uri.host}#{uri.path}"
+                end
+              message = grouped
+                .sort_by { |_path, entries| -entries.count }
+                .map { |path, entries| "  #{path}: #{entries.count}" }
+                .join("\n")
+              @loog.info("GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests):\n#{message}")
+              @trace.clear
+            end
+          end
+
+          def off_quota?(threshold: 50)
+            left = @origin.rate_limit.remaining
+            if left < threshold
+              @loog.info("Too much GitHub API quota consumed already (#{left} < #{threshold}), stopping")
+              true
+            else
+              @loog.debug("Still #{left} GitHub API quota left (>#{threshold})")
+              false
+            end
+          end
+
+          def user_name_by_id(id)
+            raise 'The ID of the user is nil' if id.nil?
+            raise 'The ID of the user must be an Integer' unless id.is_a?(Integer)
+            json = @origin.user(id)
+            name = json[:login].downcase
+            @loog.debug("GitHub user ##{id} has a name: @#{name}")
+            name
+          end
+
+          def repo_id_by_name(name)
+            raise 'The name of the repo is nil' if name.nil?
+            json = @origin.repository(name)
+            id = json[:id]
+            @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
+            id
+          end
+
+          def repo_name_by_id(id)
+            raise 'The ID of the repo is nil' if id.nil?
+            raise 'The ID of the repo must be an Integer' unless id.is_a?(Integer)
+            json = @origin.repository(id)
+            name = json[:full_name].downcase
+            @loog.debug("GitHub repository ##{id} has a name: #{name}")
+            name
           end
         end
-
-        def off_quota?(threshold: 50)
-          left = @origin.rate_limit.remaining
-          if left < threshold
-            @loog.info("Too much GitHub API quota consumed already (#{left} < #{threshold}), stopping")
-            true
-          else
-            @loog.debug("Still #{left} GitHub API quota left (>#{threshold})")
-            false
-          end
+      o =
+        others(o:) do |*args|
+          @o.__send__(*args)
         end
-
-        def user_name_by_id(id)
-          raise 'The ID of the user is nil' if id.nil?
-          raise 'The ID of the user must be an Integer' unless id.is_a?(Integer)
-          json = @origin.user(id)
-          name = json[:login].downcase
-          @loog.debug("GitHub user ##{id} has a name: @#{name}")
-          name
-        end
-
-        def repo_id_by_name(name)
-          raise 'The name of the repo is nil' if name.nil?
-          json = @origin.repository(name)
-          id = json[:id]
-          @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
-          id
-        end
-
-        def repo_name_by_id(id)
-          raise 'The ID of the repo is nil' if id.nil?
-          raise 'The ID of the repo must be an Integer' unless id.is_a?(Integer)
-          json = @origin.repository(id)
-          name = json[:full_name].downcase
-          @loog.debug("GitHub repository ##{id} has a name: #{name}")
-          name
-        end
-      end
+      o
     end
 end
 

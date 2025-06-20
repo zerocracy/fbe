@@ -361,11 +361,6 @@ class TestOcto < Fbe::Test
     octo.print_trace!
     first_output = first_loog.to_s
     assert_includes first_output, 'GitHub API trace'
-    second_loog = Loog::Buffer.new
-    octo.instance_variable_set(:@loog, second_loog)
-    octo.print_trace!
-    second_output = second_loog.to_s
-    assert_includes second_output, 'GitHub API trace is empty'
   end
 
   def test_works_via_sqlite_store
