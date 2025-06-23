@@ -25,6 +25,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'backtrace', '~>0.4'
   s.add_dependency 'baza.rb', '~>0.5'
   s.add_dependency 'decoor', '~>0.0'
+  s.add_dependency 'ellipsized', '~>0.3'
   s.add_dependency 'factbase', '~>0.11'
   s.add_dependency 'faraday', '~>2.0'
   s.add_dependency 'faraday-http-cache', '~>2.5'

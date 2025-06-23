@@ -5,6 +5,7 @@ PATH
       backtrace (~> 0.4)
       baza.rb (~> 0.5)
       decoor (~> 0.0)
+      ellipsized (~> 0.3)
       factbase (~> 0.11)
       faraday (~> 2.0)
       faraday-http-cache (~> 2.5)

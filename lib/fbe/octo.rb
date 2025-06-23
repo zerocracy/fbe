@@ -3,11 +3,12 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'json'
 require 'decoor'
+require 'ellipsized'
 require 'faraday/http_cache'
 require 'faraday/retry'
 require 'filesize'
+require 'json'
 require 'loog'
 require 'obk'
 require 'octokit'
@@ -17,8 +18,8 @@ require 'verbose'
 require_relative '../fbe'
 require_relative 'middleware'
 require_relative 'middleware/formatter'
-require_relative 'middleware/trace'
 require_relative 'middleware/sqlite_store'
+require_relative 'middleware/trace'
 
 # Makes a call to the GitHub API.
 #
@@ -128,7 +129,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               grouped =
                 @trace.group_by do |entry|
                   uri = URI.parse(entry[:url])
-                  "#{uri.scheme}://#{uri.host}#{uri.path}"
+                  query = uri.query
+                  query = "?#{query.ellipsized(40)}" if query
+                  "#{uri.scheme}://#{uri.host}#{uri.path}#{query}"
                 end
               message = grouped
                 .sort_by { |_path, entries| -entries.count }
