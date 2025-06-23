@@ -132,7 +132,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 end
               message = grouped
                 .sort_by { |_path, entries| -entries.count }
-                .map { |path, entries| "  #{path}: #{entries.count}" }
+                .map { |path, entries| "  #{path.gsub(%r{^https://api.github.com/}, '/')}: #{entries.count}" }
                 .join("\n")
               @loog.info(
                 "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \

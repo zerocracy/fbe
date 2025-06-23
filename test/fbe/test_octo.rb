@@ -384,10 +384,10 @@ class TestOcto < Fbe::Test
     output = loog.to_s
     assert_includes output, '3 URLs vs 4 requests'
     assert_includes output, '222 quota left'
-    assert_includes output, 'https://api.github.com/user/123: 1'
-    assert_includes output, 'https://api.github.com/repos/foo/bar: 2'
-    repo_index = output.index('https://api.github.com/repos/foo/bar: 2')
-    user_index = output.index('https://api.github.com/user/123: 1')
+    assert_includes output, '/user/123: 1'
+    assert_includes output, '/repos/foo/bar: 2'
+    repo_index = output.index('/repos/foo/bar: 2')
+    user_index = output.index('/user/123: 1')
     assert_operator repo_index, :<, user_index, 'URLs should be sorted by request count (highest first)'
   end
 
