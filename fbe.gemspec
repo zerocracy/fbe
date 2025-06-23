@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'faraday-http-cache', '~>2.5'
   s.add_dependency 'faraday-multipart', '~>1.1'
   s.add_dependency 'faraday-retry', '~>2.3'
+  s.add_dependency 'filesize', '~>0.2'
   s.add_dependency 'graphql-client', '~>0.26'
   s.add_dependency 'judges', '~>0.46'
   s.add_dependency 'liquid', '~>5.5'

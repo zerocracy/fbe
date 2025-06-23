@@ -3,10 +3,11 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'time'
+require 'filesize'
 require 'json'
-require 'sqlite3'
 require 'loog'
+require 'sqlite3'
+require 'time'
 require_relative '../../fbe'
 require_relative '../../fbe/middleware'
 
@@ -28,7 +29,7 @@ require_relative '../../fbe/middleware'
 #     '/path/to/cache.db',
 #     '1.0.0',
 #     loog: logger,
-#     maxsize: 50 * 1024 * 1024  # 50MB max size
+#     maxsize: '50Mb'
 #   )
 #
 #   # Use with Faraday
@@ -162,7 +163,7 @@ class Fbe::Middleware::SqliteStore
         if File.size(@path) > @maxsize
           @loog.info(
             "SQLite cache file size (#{File.size(@path)} bytes) exceeds " \
-            "#{@maxsize / 1024 / 1024}MB, cleaning up old entries"
+            "#{Filesize.from(@maxsize.to_s).pretty}, cleaning up old entries"
           )
           deleted = 0
           while d.execute(<<~SQL).dig(0, 0) > @maxsize
