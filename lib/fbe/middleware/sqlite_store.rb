@@ -31,7 +31,6 @@ require_relative '../../fbe/middleware'
 #     loog: logger,
 #     maxsize: '50Mb'
 #   )
-#
 #   # Use with Faraday
 #   Faraday.new do |builder|
 #     builder.use Faraday::HttpCache, store: store

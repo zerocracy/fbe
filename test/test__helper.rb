@@ -40,6 +40,6 @@ require_relative '../lib/fbe'
 # Parent class for all tests.
 class Fbe::Test < Minitest::Test
   def fake_loog
-    Loog::VERBOSE
+    Loog::NULL
   end
 end

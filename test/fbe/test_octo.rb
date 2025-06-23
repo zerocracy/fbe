@@ -366,29 +366,64 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
-    stub_request(:get, 'https://api.github.com/user/123').to_return(
-      status: 200,
-      body: '{"id":123,"login":"test"}',
-      headers: { 'X-RateLimit-Remaining' => '222' }
-    )
-    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(
-      status: 200,
-      body: '{"id":456,"full_name":"foo/bar"}',
-      headers: { 'X-RateLimit-Remaining' => '222' }
-    )
+    stub_request(:get, 'https://api.github.com/user/123').to_return do
+      sleep(0.02)
+      {
+        status: 200,
+        body: '{"id":123,"login":"test"}',
+        headers: { 'X-RateLimit-Remaining' => '222' }
+      }
+    end
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return do
+      sleep(0.02)
+      {
+        status: 200,
+        body: '{"id":456,"full_name":"foo/bar"}',
+        headers: { 'X-RateLimit-Remaining' => '222' }
+      }
+    end
     octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
     octo.user(123)
     octo.repository('foo/bar')
     octo.repository('foo/bar')
     octo.print_trace!
     output = loog.to_s
-    assert_includes output, '3 URLs vs 4 requests'
+    assert_includes output, '2 URLs vs 3 requests'
     assert_includes output, '222 quota left'
     assert_includes output, '/user/123: 1'
     assert_includes output, '/repos/foo/bar: 2'
     repo_index = output.index('/repos/foo/bar: 2')
     user_index = output.index('/user/123: 1')
     assert_operator repo_index, :<, user_index, 'URLs should be sorted by request count (highest first)'
+  end
+
+  def test_prints_only_real_requests
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub = stub_request(:get, 'https://api.github.com/user/123').to_return(
+      status: 200,
+      body: '{"id":123,"login":"test"}',
+      headers: {
+        'X-RateLimit-Remaining' => '222',
+        'Content-Type' => 'application/json',
+        'Cache-Control' => 'public, max-age=60, s-maxage=60',
+        'Etag' => 'W/"2ff9dd4c3153f006830b2b8b721f6a4bb400a1eb81a2e1fa0a3b846ad349b9ec"',
+        'Last-Modified' => 'Wed, 01 May 2025 20:00:00 GMT'
+      }
+    )
+    Dir.mktmpdir do |dir|
+      fcache = File.expand_path('test.db', dir)
+      octo = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => fcache }))
+      octo.user(123)
+      loog = Loog::Buffer.new
+      octo = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({ 'sqlite_cache' => fcache }))
+      WebMock.remove_request_stub(stub)
+      octo.user(123)
+      octo.print_trace!
+      assert_empty(loog.to_s)
+    end
   end
 
   def test_trace_gets_cleared_after_print
@@ -415,9 +450,8 @@ class TestOcto < Fbe::Test
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
     Dir.mktmpdir do |dir|
-      global = {}
       sqlite_cache = File.expand_path('test.db', dir)
-      o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
       stub = stub_request(:get, 'https://api.github.com/user/42').to_return(
         status: 200,
         body: { login: 'user1' }.to_json,
@@ -430,8 +464,7 @@ class TestOcto < Fbe::Test
       )
       assert_equal('user1', o.user_name_by_id(42))
       WebMock.remove_request_stub(stub)
-      global = {}
-      o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
       assert_equal('user1', o.user_name_by_id(42))
     end
   end
@@ -442,10 +475,9 @@ class TestOcto < Fbe::Test
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
     Dir.mktmpdir do |dir|
-      global = {}
       file = File.expand_path('test.db', dir)
       stub_request(:get, 'https://api.github.com/user/4242').to_return(status: 401)
-      o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => file }))
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => file }))
       assert_raises(StandardError) do
         assert_equal('user1', o.user_name_by_id(4242))
       end
@@ -459,7 +491,6 @@ class TestOcto < Fbe::Test
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
     Dir.mktmpdir do |dir|
-      global = {}
       stub =
         stub_request(:get, 'https://api.github.com/user/42')
           .to_return(
@@ -474,7 +505,7 @@ class TestOcto < Fbe::Test
           )
       sqlite_cache = File.expand_path('test.db', dir)
       Fbe.stub_const(:VERSION, '0.0.1') do
-        o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+        o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
         assert_equal('user1', o.user_name_by_id(42))
       end
       WebMock.remove_request_stub(stub)
@@ -489,9 +520,8 @@ class TestOcto < Fbe::Test
             'Last-Modified' => 'Wed, 01 May 2025 20:00:00 GMT'
           }
         )
-      global = {}
       Fbe.stub_const(:VERSION, '0.0.2') do
-        o = Fbe.octo(loog: Loog::NULL, global:, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+        o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
         assert_equal('user2', o.user_name_by_id(42))
       end
     end
