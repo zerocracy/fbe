@@ -695,7 +695,8 @@ class Fbe::FakeOctokit
       additions: 12,
       deletions: 5,
       changed_files: 3,
-      review_comments: 2
+      review_comments: 2,
+      created_at: Time.parse('2024-09-20 19:00:00 UTC')
     }
   end
 
