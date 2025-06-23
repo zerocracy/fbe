@@ -54,7 +54,7 @@ class Fbe::Middleware::SqliteStore
   # @param maxsize [Integer] Maximum database size in bytes (optional, defaults to 10MB)
   # @param maxvsize [Integer] Maximum size in bytes of a single value (optional, defaults to 10Kb)
   # @raise [ArgumentError] If path is nil/empty, directory doesn't exist, or version is nil/empty
-  def initialize(path, version, loog: Loog::NULL, maxsize: 10 * 1024 * 1024, maxvsize: 10 * 1024)
+  def initialize(path, version, loog: Loog::NULL, maxsize: '10Mb', maxvsize: '10Kb')
     raise ArgumentError, 'Database path cannot be nil or empty' if path.nil? || path.empty?
     dir = File.dirname(path)
     raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
@@ -62,8 +62,8 @@ class Fbe::Middleware::SqliteStore
     @path = File.absolute_path(path)
     @version = version
     @loog = loog
-    @maxsize = maxsize
-    @maxvsize = maxvsize
+    @maxsize = Filesize.from(maxsize.to_s).to_i
+    @maxvsize = Filesize.from(maxvsize.to_s).to_i
   end
 
   # Read a value from the cache.
@@ -162,7 +162,7 @@ class Fbe::Middleware::SqliteStore
         end
         if File.size(@path) > @maxsize
           @loog.info(
-            "SQLite cache file size (#{File.size(@path)} bytes) exceeds " \
+            "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
             "#{Filesize.from(@maxsize.to_s).pretty}, cleaning up old entries"
           )
           deleted = 0
@@ -179,7 +179,10 @@ class Fbe::Middleware::SqliteStore
             end
           end
           d.execute 'VACUUM;'
-          @loog.info("Deleted #{deleted} old cache entries, new file size: #{File.size(@path)} bytes")
+          @loog.info(
+            "Deleted #{deleted} old cache entries, " \
+            "new file size: #{Filesize.from(File.size(@path).to_s).pretty} bytes"
+          )
         end
         at_exit { @db&.close }
       end

@@ -31,6 +31,7 @@ end
 require 'minitest/reporters'
 Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 
+require 'loog'
 require 'minitest/stub_const'
 require 'minitest/autorun'
 require 'webmock/minitest'
@@ -38,4 +39,7 @@ require_relative '../lib/fbe'
 
 # Parent class for all tests.
 class Fbe::Test < Minitest::Test
+  def fake_loog
+    Loog::VERBOSE
+  end
 end

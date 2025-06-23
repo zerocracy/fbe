@@ -33,14 +33,14 @@ class SqliteStoreTest < Fbe::Test
 
   def test_returns_empty_list
     with_tmpfile('b.db') do |f|
-      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
       assert_empty(store.all)
     end
   end
 
   def test_clear_all_keys
     with_tmpfile('a.db') do |f|
-      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
       k = 'a key'
       store.write(k, 'some value')
       store.clear
@@ -50,20 +50,20 @@ class SqliteStoreTest < Fbe::Test
 
   def test_empty_all_if_not_written
     with_tmpfile do |f|
-      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
       assert_empty(store.all)
     end
   end
 
   def test_wrong_db_path
     assert_raises(ArgumentError) do
-      Fbe::Middleware::SqliteStore.new(nil, '0.0.0').read('my_key')
+      Fbe::Middleware::SqliteStore.new(nil, '0.0.0', loog: fake_loog).read('my_key')
     end
     assert_raises(ArgumentError) do
-      Fbe::Middleware::SqliteStore.new('', '0.0.0').read('my_key')
+      Fbe::Middleware::SqliteStore.new('', '0.0.0', loog: fake_loog).read('my_key')
     end
     assert_raises(ArgumentError) do
-      Fbe::Middleware::SqliteStore.new('/fakepath/fakefolder/test.db', '0.0.0').read('my_key')
+      Fbe::Middleware::SqliteStore.new('/fakepath/fakefolder/test.db', '0.0.0', loog: fake_loog).read('my_key')
     end
   end
 
@@ -72,7 +72,7 @@ class SqliteStoreTest < Fbe::Test
       File.binwrite(f, Array.new(20) { rand(0..255) }.pack('C*'))
       ex =
         assert_raises(SQLite3::NotADatabaseException) do
-          Fbe::Middleware::SqliteStore.new(f, '0.0.0').read('my_key')
+          Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog).read('my_key')
         end
       assert_match('file is not a database', ex.message)
     end
@@ -83,7 +83,6 @@ class SqliteStoreTest < Fbe::Test
       require 'tempfile'
       require 'sqlite3'
       require 'fbe/middleware/sqlite_store'
-
       SQLite3::Database.class_eval do
         prepend(Module.new do
           def close
@@ -92,7 +91,6 @@ class SqliteStoreTest < Fbe::Test
           end
         end)
       end
-
       Tempfile.open('test.db') do |f|
         Fbe::Middleware::SqliteStore.new(f.path, '0.0.0').then do |s|
           s.write('my_key', 'my_value')
@@ -111,15 +109,15 @@ class SqliteStoreTest < Fbe::Test
 
   def test_different_versions
     with_tmpfile('d.db') do |f|
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         store.write('kkk1', 'some value')
         store.write('kkk2', 'another value')
       end
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_equal('some value', store.read('kkk1'))
         assert_equal('another value', store.read('kkk2'))
       end
-      Fbe::Middleware::SqliteStore.new(f, '0.0.2').then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.2', loog: fake_loog).then do |store|
         assert_nil(store.read('kkk1'))
         assert_nil(store.read('kkk2'))
       end
@@ -129,10 +127,10 @@ class SqliteStoreTest < Fbe::Test
   def test_initialize_wrong_version
     with_tmpfile('e.db') do |f|
       msg = 'Version cannot be nil or empty'
-      assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new(f, nil) }.then do |ex|
+      assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new(f, nil, loog: fake_loog) }.then do |ex|
         assert_match(msg, ex.message)
       end
-      assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new(f, '') }.then do |ex|
+      assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new(f, '', loog: fake_loog) }.then do |ex|
         assert_match(msg, ex.message)
       end
     end
@@ -140,7 +138,7 @@ class SqliteStoreTest < Fbe::Test
 
   def test_skip_write_if_value_more_then_10k_bytes
     with_tmpfile('a.db') do |f|
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         store.write('a', 'a' * 9_997)
         store.write('b', 'b' * 9_998)
         store.write('c', 'c' * 19_999)
@@ -155,7 +153,7 @@ class SqliteStoreTest < Fbe::Test
 
   def test_shrink_cache_if_more_then_10_mb
     with_tmpfile('large.db') do |f|
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         key = 'aaa'
         alpha = ('a'..'z').to_a
         store.write('a', 'aa')
@@ -173,7 +171,7 @@ class SqliteStoreTest < Fbe::Test
         end
       end
       assert_operator(File.size(f), :>, 10 * 1024 * 1024)
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_equal('aa', store.read('a'))
         assert_nil(store.read('b'))
         assert_equal('cc', store.read('c'))
@@ -193,7 +191,7 @@ class SqliteStoreTest < Fbe::Test
         d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
         d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
       end
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1').then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_equal('value1', store.read('key1'))
         assert_equal('value2', store.read('key2'))
       rescue SQLite3::SQLException => e
