@@ -692,6 +692,7 @@ class Fbe::FakeOctokit
       repo: {
         full_name: repo
       },
+      head: { ref: 'master', sha: '6dcb09b5b57875f334f61aebed695e2e4193db5e' },
       additions: 12,
       deletions: 5,
       changed_files: 3,
