@@ -134,7 +134,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 .sort_by { |_path, entries| -entries.count }
                 .map { |path, entries| "  #{path}: #{entries.count}" }
                 .join("\n")
-              @loog.info("GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests):\n#{message}")
+              @loog.info(
+                "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
+                "#{@origin.rate_limit.remaining} quota left):\n#{message}"
+              )
               @trace.clear
             end
           end
