@@ -33,6 +33,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'faraday-retry', '~>2.3'
   s.add_dependency 'filesize', '~>0.2'
   s.add_dependency 'graphql-client', '~>0.26'
+  s.add_dependency 'intercepted', '~>0.2'
   s.add_dependency 'judges', '~>0.46'
   s.add_dependency 'liquid', '~>5.5'
   s.add_dependency 'loog', '~>0.6'

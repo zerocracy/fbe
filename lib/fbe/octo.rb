@@ -8,6 +8,7 @@ require 'ellipsized'
 require 'faraday/http_cache'
 require 'faraday/retry'
 require 'filesize'
+require 'intercepted'
 require 'json'
 require 'loog'
 require 'obk'
@@ -123,7 +124,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
       end
       o =
         decoor(o, loog:, trace:) do
-          def print_trace!(all: false)
+          def print_trace!(all: false, max: 5)
             if @trace.empty?
               @loog.debug('GitHub API trace is empty')
             else
@@ -145,7 +146,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                     " (#{entries.sum { |e| e[:duration] }.seconds})"
                   ].join
                 end
-                .take(10)
+                .take(max)
                 .join("\n")
               @loog.info(
                 "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
@@ -193,11 +194,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           end
         end
       o =
-        others(o:) do |*args|
-          if args.first != :off_quota? && args.first != :print_trace! && @o.off_quota?
-            raise "We are off-quota (remaining: #{@o.rate_limit.remaining})"
+        intercepted(o) do |e, m, _args, _r|
+          if e == :before && m != :off_quota? && m != :print_trace! && m != :rate_limit && o.off_quota?
+            raise "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{name}()"
           end
-          @o.__send__(*args)
         end
       o
     end
