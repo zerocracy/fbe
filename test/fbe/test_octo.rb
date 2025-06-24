@@ -384,7 +384,7 @@ class TestOcto < Fbe::Test
     octo.user(123)
     octo.repository('foo/bar')
     octo.repository('foo/bar')
-    octo.print_trace!(true)
+    octo.print_trace!(all: true)
     output = loog.to_s
     assert_includes output, '3 URLs vs 4 requests'
     assert_includes output, '222 quota left'
