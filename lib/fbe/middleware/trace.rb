@@ -31,11 +31,9 @@ class Fbe::Middleware::Trace < Faraday::Middleware
   #
   # @param [Object] app The next middleware in the stack
   # @param [Array] trace The array to store trace entries
-  # @param [Boolean] all Print ALL requests, even very fast?
-  def initialize(app, trace, all: true)
+  def initialize(app, trace)
     super(app)
     @trace = trace
-    @all = all
   end
 
   # Processes the HTTP request and records trace information.
@@ -51,12 +49,10 @@ class Fbe::Middleware::Trace < Faraday::Middleware
     @app.call(env).on_complete do |response_env|
       finished = Time.now
       duration = finished - entry[:started_at]
-      if duration > 0.01 || @all
-        entry[:status] = response_env.status
-        entry[:finished_at] = finished
-        entry[:duration] = duration
-        @trace << entry
-      end
+      entry[:status] = response_env.status
+      entry[:finished_at] = finished
+      entry[:duration] = duration
+      @trace << entry
     end
   end
 end

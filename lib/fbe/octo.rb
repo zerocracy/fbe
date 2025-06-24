@@ -13,6 +13,7 @@ require 'loog'
 require 'obk'
 require 'octokit'
 require 'others'
+require 'tago'
 require 'uri'
 require 'verbose'
 require_relative '../fbe'
@@ -105,7 +106,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             end
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
-            builder.use(Fbe::Middleware::Trace, trace, all: false)
+            builder.use(Fbe::Middleware::Trace, trace)
             builder.adapter(Faraday.default_adapter)
           end
         o.middleware = stack
@@ -122,12 +123,12 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
       end
       o =
         decoor(o, loog:, trace:) do
-          def print_trace!
+          def print_trace!(all = false)
             if @trace.empty?
               @loog.debug('GitHub API trace is empty')
             else
               grouped =
-                @trace.group_by do |entry|
+                @trace.select { |e| e[:duration] > 0.01 || all }.group_by do |entry|
                   uri = URI.parse(entry[:url])
                   query = uri.query
                   query = "?#{query.ellipsized(40)}" if query
@@ -135,7 +136,15 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 end
               message = grouped
                 .sort_by { |_path, entries| -entries.count }
-                .map { |path, entries| "  #{path.gsub(%r{^https://api.github.com/}, '/')}: #{entries.count}" }
+                .map do |path, entries|
+                  [
+                    '  ',
+                    path.gsub(%r{^https://api.github.com/}, '/'),
+                    ': ',
+                    entries.count,
+                    " (#{entries.sum { |e| e[:duration] }.seconds})"
+                  ].join
+                end
                 .join("\n")
               @loog.info(
                 "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \

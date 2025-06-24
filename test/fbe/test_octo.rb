@@ -367,7 +367,6 @@ class TestOcto < Fbe::Test
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
     stub_request(:get, 'https://api.github.com/user/123').to_return do
-      sleep(0.02)
       {
         status: 200,
         body: '{"id":123,"login":"test"}',
@@ -375,7 +374,6 @@ class TestOcto < Fbe::Test
       }
     end
     stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return do
-      sleep(0.02)
       {
         status: 200,
         body: '{"id":456,"full_name":"foo/bar"}',
@@ -386,9 +384,9 @@ class TestOcto < Fbe::Test
     octo.user(123)
     octo.repository('foo/bar')
     octo.repository('foo/bar')
-    octo.print_trace!
+    octo.print_trace!(true)
     output = loog.to_s
-    assert_includes output, '2 URLs vs 3 requests'
+    assert_includes output, '3 URLs vs 4 requests'
     assert_includes output, '222 quota left'
     assert_includes output, '/user/123: 1'
     assert_includes output, '/repos/foo/bar: 2'
