@@ -133,7 +133,9 @@ class TestOcto < Fbe::Test
   def test_off_quota?
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      body: '{}', headers: { 'X-RateLimit-Remaining' => '333' }
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '333' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '333' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
     )
     stub_request(:get, 'https://api.github.com/user/42').to_return(
       body: '', headers: { 'X-RateLimit-Remaining' => '3' }
@@ -147,7 +149,11 @@ class TestOcto < Fbe::Test
   def test_off_quota_twice
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      body: '{}', headers: { 'X-RateLimit-Remaining' => '333' }
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '333' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '333' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '333' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '5555' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '5' } }
     )
     stub_request(:get, 'https://api.github.com/user/42').to_return(
       { body: '', headers: { 'X-RateLimit-Remaining' => '5555' } },
@@ -239,7 +245,9 @@ class TestOcto < Fbe::Test
   def test_pauses_when_quota_is_exceeded
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '1' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '10000' } }
     )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_api_pause' => 0.01 }))
     stub_request(:get, 'https://api.github.com/users/foo')
@@ -364,6 +372,8 @@ class TestOcto < Fbe::Test
     loog = Loog::Buffer.new
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } },
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } },
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
     stub_request(:get, 'https://api.github.com/user/123').to_return do
@@ -386,8 +396,9 @@ class TestOcto < Fbe::Test
     octo.repository('foo/bar')
     octo.print_trace!(all: true, max: 9_999)
     output = loog.to_s
-    assert_includes output, '3 URLs vs 4 requests'
+    assert_includes output, '3 URLs vs 6 requests'
     assert_includes output, '222 quota left'
+    assert_includes output, '/rate_limit: 3'
     assert_includes output, '/user/123: 1'
     assert_includes output, '/repos/foo/bar: 2'
     repo_index = output.index('/repos/foo/bar: 2')
@@ -523,5 +534,24 @@ class TestOcto < Fbe::Test
         assert_equal('user2', o.user_name_by_id(42))
       end
     end
+  end
+
+  def test_fetch_rate_limit_by_making_new_request
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '321' } }
+    ).to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '123' } }
+    ).to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '1' } }
+    ).to_raise(StandardError.new('no more requests to https://api.github.com/rate_limit'))
+    loog = Loog::Buffer.new
+    o = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
+    refute_predicate(o, :off_quota?)
+    assert_match(/321 GitHub API quota left/, loog.to_s)
+    o.print_trace!(all: true)
+    assert_match(/123 quota left/, loog.to_s)
+    assert_predicate(o, :off_quota?)
+    assert_match(/1 GitHub API quota left/, loog.to_s)
   end
 end
