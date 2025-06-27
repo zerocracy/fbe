@@ -150,14 +150,14 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 .join("\n")
               @loog.info(
                 "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
-                "#{@origin.rate_limit.remaining} quota left):\n#{message}"
+                "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
               )
               @trace.clear
             end
           end
 
           def off_quota?(threshold: 50)
-            left = @origin.rate_limit.remaining
+            left = @origin.rate_limit!.remaining
             if left < threshold
               @loog.info("Too much GitHub API quota consumed already (#{left} < #{threshold}), stopping")
               true
@@ -258,6 +258,7 @@ class Fbe::FakeOctokit
     end
     o
   end
+  alias rate_limit! rate_limit
 
   # Lists repositories for a user or organization.
   #
