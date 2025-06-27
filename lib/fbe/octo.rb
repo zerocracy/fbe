@@ -20,6 +20,7 @@ require 'verbose'
 require_relative '../fbe'
 require_relative 'middleware'
 require_relative 'middleware/formatter'
+require_relative 'middleware/rate_limit'
 require_relative 'middleware/sqlite_store'
 require_relative 'middleware/trace'
 
@@ -107,6 +108,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             end
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
+            builder.use(Fbe::Middleware::RateLimit)
             builder.use(Fbe::Middleware::Trace, trace)
             builder.adapter(Faraday.default_adapter)
           end
