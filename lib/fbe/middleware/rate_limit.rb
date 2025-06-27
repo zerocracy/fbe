@@ -116,7 +116,6 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Response] response The cached response
   # @return [Hash] Response environment hash
   def response_env(env, response)
-    # Update headers to match the remaining count
     headers = response.headers.dup
     headers['x-ratelimit-remaining'] = @remaining_count.to_s if @remaining_count
     {
