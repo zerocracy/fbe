@@ -542,4 +542,53 @@ class TestOcto < Fbe::Test
     o.print_trace!(all: true)
     assert_match(/321 quota left/, loog.to_s)
   end
+
+  def test_throttling_request_to_rate_limit
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+      )
+      .then.to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4900' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 4900, 'reset' => 1_672_531_200 } }.to_json
+      )
+      .then.to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4800' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 4800, 'reset' => 1_672_531_200 } }.to_json
+      )
+      .then.to_raise('no more request to /rate_limit')
+    stub_request(:get, 'https://api.github.com/user/1')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json' },
+        body: { 'id' => 1, 'login' => 'user1' }.to_json
+      ).times(1)
+    stub_request(:get, 'https://api.github.com/user/111')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json' },
+        body: { 'id' => 111, 'login' => 'user111' }.to_json
+      )
+      .times(201)
+      .then.to_raise('no more request to /user/111')
+    loog = Loog::Buffer.new
+    o = Fbe.octo(loog:, global: {}, options: Judges::Options.new({}))
+    o.user(1)
+    o.print_trace!(all: true)
+    201.times do
+      o.user(111)
+      o.rate_limit!.remaining
+    end
+    o.print_trace!(all: true)
+    output = loog.to_s
+    assert_requested :get, 'https://api.github.com/user/1', times: 1
+    assert_requested :get, 'https://api.github.com/user/111', times: 201
+    assert_requested :get, 'https://api.github.com/rate_limit', times: 3
+    assert_match('2 URLs vs 2 requests', output)
+    assert_match('/user/1: 1', output)
+    assert_match('/rate_limit: 1', output)
+    assert_match('2 URLs vs 203 requests', output)
+    assert_match('/user/111: 201', output)
+    assert_match('/rate_limit: 2', output)
+  end
 end
