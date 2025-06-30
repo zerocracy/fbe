@@ -421,12 +421,67 @@ class TestOcto < Fbe::Test
       octo = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => fcache }))
       octo.user(123)
       loog = Loog::Buffer.new
-      octo = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({ 'sqlite_cache' => fcache }))
+      octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new({ 'sqlite_cache' => fcache }))
       WebMock.remove_request_stub(stub)
       octo.user(123)
-      octo.print_trace!
-      assert_empty(loog.to_s)
+      octo.print_trace!(all: true)
+      refute_match('/user/123: 1', loog.to_s)
     end
+  end
+
+  def test_octo_not_trace_cached_requests
+    WebMock.disable_net_connect!
+    now = Time.now
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+      )
+    stub_request(:get, 'https://api.github.com/repos/zerocracy/baza.rb')
+      .to_return(
+        status: 200,
+        headers: {
+          'date' => now.httpdate,
+          'cache-control' => 'public, max-age=60, s-maxage=60',
+          'last-modified' => (now - (6 * 60 * 60)).httpdate,
+          'content-type' => 'application/json; charset=utf-8'
+        },
+        body: { id: 840_215_648, name: 'baza.rb' }.to_json
+      )
+      .times(1)
+      .then
+      .to_return(
+        status: 200,
+        headers: {
+          'date' => (now + 70).httpdate,
+          'cache-control' => 'public, max-age=60, s-maxage=60',
+          'last-modified' => (now - (6 * 60 * 60)).httpdate,
+          'content-type' => 'application/json; charset=utf-8'
+        },
+        body: { id: 840_215_648, name: 'baza.rb' }.to_json
+      )
+      .times(1)
+      .then.to_raise('no more request to /repos/zerocracy/baza.rb')
+    loog = Loog::Buffer.new
+    o = Fbe.octo(loog:, global: {}, options: Judges::Options.new({}))
+    o.print_trace!(all: true)
+    Time.stub(:now, now) do
+      5.times do
+        o.repo('zerocracy/baza.rb')
+      end
+    end
+    o.print_trace!(all: true)
+    Time.stub(:now, now + 70) do
+      25.times do
+        o.repo('zerocracy/baza.rb')
+      end
+    end
+    o.print_trace!(all: true)
+    assert_requested :get, 'https://api.github.com/repos/zerocracy/baza.rb', times: 2
+    output = loog.to_s
+    assert_match('/repos/zerocracy/baza.rb: 1', output)
+    refute_match('/repos/zerocracy/baza.rb: 5', output)
+    refute_match('/repos/zerocracy/baza.rb: 25', output)
   end
 
   def test_trace_gets_cleared_after_print
