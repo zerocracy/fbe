@@ -109,7 +109,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             builder.use(Octokit::Response::RaiseError)
             builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
             builder.use(Fbe::Middleware::RateLimit)
-            builder.use(Fbe::Middleware::Trace, trace)
+            builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
             builder.adapter(Faraday.default_adapter)
           end
         o.middleware = stack

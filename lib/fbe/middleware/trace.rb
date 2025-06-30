@@ -31,9 +31,12 @@ class Fbe::Middleware::Trace < Faraday::Middleware
   #
   # @param [Object] app The next middleware in the stack
   # @param [Array] trace The array to store trace entries
-  def initialize(app, trace)
+  # @param [Array<Symbol>] ignores The array of symbols (see Faraday::HttpCache::CACHE_STATUSES),
+  # which will be ignored
+  def initialize(app, trace, ignores: [])
     super(app)
     @trace = trace
+    @ignores = ignores
   end
 
   # Processes the HTTP request and records trace information.
@@ -47,6 +50,9 @@ class Fbe::Middleware::Trace < Faraday::Middleware
       started_at: Time.now
     }
     @app.call(env).on_complete do |response_env|
+      next if !@ignores.empty? &&
+              response_env[:http_cache_trace] &&
+              (response_env[:http_cache_trace] & @ignores).size.positive?
       finished = Time.now
       duration = finished - entry[:started_at]
       entry[:status] = response_env.status
