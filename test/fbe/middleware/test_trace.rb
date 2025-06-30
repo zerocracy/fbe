@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'faraday'
+require 'faraday/http_cache'
 require 'webmock'
 require_relative '../../test__helper'
 require_relative '../../../lib/fbe'
@@ -102,5 +103,66 @@ class TraceTest < Fbe::Test
     assert url.start_with?('http://example.com/search?')
     assert_includes url, 'q=test'
     assert_includes url, 'page=2'
+  end
+
+  def test_trace_and_cache_middlewares_together
+    WebMock.disable_net_connect!
+    now = Time.now
+    stub_request(:get, 'https://api.example.com/page')
+      .to_return(
+        status: 200,
+        headers: {
+          'date' => now.httpdate,
+          'cache-control' => 'public, max-age=60, s-maxage=60',
+          'last-modified' => (now - (6 * 60 * 60)).httpdate
+        },
+        body: 'some body 1'
+      )
+      .times(1)
+      .then
+      .to_return(
+        status: 200,
+        headers: {
+          'date' => (now + 70).httpdate,
+          'cache-control' => 'public, max-age=60, s-maxage=60',
+          'last-modified' => (now - (6 * 60 * 60)).httpdate,
+          'content-type' => 'application/json; charset=utf-8'
+        },
+        body: 'some body 2'
+      )
+      .times(1)
+      .then.to_raise('no more request to /page')
+    trace_real = []
+    trace_full = []
+    builder =
+      Faraday::RackBuilder.new do |f|
+        f.use Fbe::Middleware::Trace, trace_full
+        f.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
+        f.use Fbe::Middleware::Trace, trace_real
+        f.adapter :net_http
+      end
+    conn = Faraday::Connection.new(builder: builder)
+    5.times do
+      r = conn.get('https://api.example.com/page')
+      assert_equal('some body 1', r.body)
+    end
+    assert_equal(1, trace_real.size)
+    assert_equal(5, trace_full.size)
+    trace_real.clear
+    trace_full.clear
+    5.times do
+      r = conn.get('https://api.example.com/page')
+      assert_equal('some body 1', r.body)
+    end
+    assert_equal(0, trace_real.size)
+    assert_equal(5, trace_full.size)
+    Time.stub(:now, now + 70) do
+      5.times do
+        r = conn.get('https://api.example.com/page')
+        assert_equal('some body 2', r.body)
+      end
+    end
+    assert_equal(1, trace_real.size)
+    assert_equal(10, trace_full.size)
   end
 end
