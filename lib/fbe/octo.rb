@@ -86,6 +86,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
               methods: [:get],
               backoff_factor: 2
             )
+            builder.use(Octokit::Response::RaiseError)
+            builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
+            builder.use(Fbe::Middleware::RateLimit)
+            builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
             if options.sqlite_cache
               maxsize = Filesize.from(options.sqlite_cache_maxsize || '10M').to_i
               maxvsize = Filesize.from(options.sqlite_cache_maxvsize || '10K').to_i
@@ -106,10 +110,6 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 serializer: Marshal, shared_cache: false, logger: Loog::NULL
               )
             end
-            builder.use(Octokit::Response::RaiseError)
-            builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
-            builder.use(Fbe::Middleware::RateLimit)
-            builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
             builder.adapter(Faraday.default_adapter)
           end
         o.middleware = stack

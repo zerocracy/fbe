@@ -646,4 +646,20 @@ class TestOcto < Fbe::Test
     assert_match('/user/111: 201', output)
     assert_match('/rate_limit: 2', output)
   end
+
+  def test_octo_http_cache_middleware_located_in_end_of_chain
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+      )
+    o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
+    assert_equal('Faraday::HttpCache', o.middleware.handlers.last.name, <<~MSG.strip.gsub!(/\s+/, ' '))
+      Faraday::HttpCache middleware must be located in the end of chain middlewares,
+      because the Oktokit client change Faraday::HttpCache position to the last,
+      for more info, see: https://github.com/zerocracy/fbe/issues/230#issuecomment-3020551743 and
+      https://github.com/octokit/octokit.rb/blob/ea3413c3174571e87c83d358fc893cc7613091fa/lib/octokit/connection.rb#L109-L119
+    MSG
+  end
 end
