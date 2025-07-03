@@ -74,7 +74,13 @@ class Fbe::Middleware::SqliteStore
       t.execute('UPDATE cache SET touched_at = ?2 WHERE key = ?1;', [key, Time.now.utc.iso8601])
       t.execute('SELECT value FROM cache WHERE key = ? LIMIT 1;', [key])
     end.dig(0, 0)
-    JSON.parse(Zlib::Inflate.inflate(value)) if value
+    return unless value
+    begin
+      JSON.parse(Zlib::Inflate.inflate(value))
+    rescue Zlib::Error => e
+      @loog.info("Failed to decompress cached value for key: #{key}, error: #{e.message}")
+      nil
+    end
   end
 
   # Delete a key from the cache.

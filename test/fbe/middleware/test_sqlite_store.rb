@@ -220,6 +220,27 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_corrupted_compression_stored_data
+    with_tmpfile('c.db') do |f|
+      SQLite3::Database.new(f).tap do |d|
+        d.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
+        [
+          ['my_key', JSON.dump('value1')]
+        ].each { d.execute 'INSERT INTO cache(key, value) VALUES(?1, ?2);', _1 }
+        d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
+        d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
+      end
+      loog = Loog::Buffer.new
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog:).then do |store|
+        assert_nil(store.read('my_key'))
+        assert_match(
+          'Failed to decompress cached value for key: my_key, error: incorrect header check',
+          loog.to_s
+        )
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
