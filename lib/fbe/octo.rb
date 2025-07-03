@@ -91,8 +91,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             builder.use(Fbe::Middleware::RateLimit)
             builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
             if options.sqlite_cache
-              maxsize = Filesize.from(options.sqlite_cache_maxsize || '10M').to_i
-              maxvsize = Filesize.from(options.sqlite_cache_maxvsize || '10K').to_i
+              maxsize = Filesize.from(options.sqlite_cache_maxsize || '100M').to_i
+              maxvsize = Filesize.from(options.sqlite_cache_maxvsize || '100K').to_i
               store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache, Fbe::VERSION, loog:, maxsize:, maxvsize:)
               loog.info(
                 "Using HTTP cache in SQLite file: #{store.path} (" \
@@ -433,7 +433,7 @@ class Fbe::FakeOctokit
 
   # Removes a user from an organization.
   #
-  # @param [String] org The organization name (e.g., 'zerocracy')
+  # @param [String] _org The organization name (e.g., 'zerocracy')
   # @param [String] _user The user login (not used in this mock implementation)
   # @return [Boolean] Returns true when successful (204 No Content in actual API)
   # @example
