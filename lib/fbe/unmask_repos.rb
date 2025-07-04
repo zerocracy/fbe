@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'joined'
 require_relative '../fbe'
 require_relative 'octo'
 
@@ -53,6 +54,8 @@ end
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
 def Fbe.unmask_repos(options: $options, global: $global, loog: $loog)
+  raise 'Repositories mask is not specified' unless options.repositories
+  raise 'Repositories mask is empty' if options.repositories.empty?
   repos = []
   octo = Fbe.octo(loog:, global:, options:)
   masks = (options.repositories || '').split(',')
@@ -71,8 +74,8 @@ def Fbe.unmask_repos(options: $options, global: $global, loog: $loog)
     repos.reject! { |r| re.match?(r) }
   end
   repos.reject! { |repo| octo.repository(repo)[:archived] }
-  raise "No repos found matching: #{options.repositories}" if repos.empty?
+  raise "No repos found matching: #{options.repositories.inspect}" if repos.empty?
   repos.shuffle!
-  loog.debug("Scanning #{repos.size} repositories: #{repos.join(', ')}...")
+  loog.debug("Scanning #{repos.size} repositories: #{repos.joined}...")
   repos
 end
