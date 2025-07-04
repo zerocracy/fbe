@@ -716,6 +716,7 @@ class Fbe::FakeOctokit
       changed_files: 3,
       comments: 2,
       review_comments: 2,
+      closed_at: Time.parse('2024-12-20'),
       merged_at: Time.parse('2024-12-20'),
       created_at: Time.parse('2024-09-20')
     }
