@@ -708,6 +708,7 @@ class Fbe::FakeOctokit
       repo: {
         full_name: repo
       },
+      state: 'closed',
       user: { login: 'yegor256', id: 526_301, type: 'User' },
       head: { ref: 'master', sha: '6dcb09b5b57875f334f61aebed695e2e4193db5e' },
       additions: 12,
@@ -715,7 +716,8 @@ class Fbe::FakeOctokit
       changed_files: 3,
       comments: 2,
       review_comments: 2,
-      created_at: Time.parse('2024-09-20 19:00:00 UTC')
+      merged_at: Time.parse('2024-12-20'),
+      created_at: Time.parse('2024-09-20')
     }
   end
 
