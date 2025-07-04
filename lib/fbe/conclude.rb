@@ -182,8 +182,8 @@ class Fbe::Conclude
     passed = 0
     start = Time.now
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
-    @fb.txn do |fbt|
-      fbt.query(@query).each do |a|
+    @fb.query(@query).each do |a|
+      @fb.txn do |fbt|
         if @quota_aware && oct.off_quota?
           @loog.debug('We ran out of GitHub quota, must stop here')
           throw :commit

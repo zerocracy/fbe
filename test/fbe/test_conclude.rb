@@ -47,6 +47,22 @@ class TestConclude < Fbe::Test
     assert_includes(f.details, 'funny')
   end
 
+  def test_draw_with_rollback
+    $fb = Factbase.new
+    $global = {}
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $fb.insert.foo = 1
+    Fbe.conclude(judge: 'judge-one') do
+      on '(exists foo)'
+      draw do |n, prev|
+        n.hello = prev.foo
+        throw :rollback
+      end
+    end
+    assert_equal(1, $fb.size)
+  end
+
   def test_consider
     fb = Factbase.new
     fb.insert.foo = 1

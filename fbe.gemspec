@@ -23,8 +23,8 @@ Gem::Specification.new do |s|
   s.rdoc_options = ['--charset=UTF-8']
   s.extra_rdoc_files = ['README.md', 'LICENSE.txt']
   s.add_dependency 'backtrace', '~>0.4'
-  s.add_dependency 'baza.rb', '~>0.5'
-  s.add_dependency 'decoor', '~>0.0'
+  s.add_dependency 'baza.rb', '~>0.9'
+  s.add_dependency 'decoor', '~>0.1'
   s.add_dependency 'ellipsized', '~>0.3'
   s.add_dependency 'factbase', '~>0.11'
   s.add_dependency 'faraday', '~>2.0'
@@ -39,7 +39,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'loog', '~>0.6'
   s.add_dependency 'obk', '~>0.3'
   s.add_dependency 'octokit', '~>10.0'
-  s.add_dependency 'others', '~>0.0'
+  s.add_dependency 'others', '~>0.1'
   s.add_dependency 'sqlite3', '~> 2.6'
   s.add_dependency 'tago', '~>0.1'
   s.add_dependency 'verbose', '~>0.0'
