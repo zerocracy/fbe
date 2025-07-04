@@ -230,13 +230,9 @@ class SqliteStoreTest < Fbe::Test
         d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
         d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
       end
-      loog = Loog::Buffer.new
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog:).then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_nil(store.read('my_key'))
-        assert_match(
-          'Failed to decompress cached value for key: my_key, error: incorrect header check',
-          loog.to_s
-        )
+        assert_predicate(store.all.count, :zero?)
       end
     end
   end
