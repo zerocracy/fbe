@@ -708,6 +708,11 @@ class Fbe::FakeOctokit
       repo: {
         full_name: repo
       },
+      base: {
+        repo: {
+          full_name: repo
+        }
+      },
       state: 'closed',
       user: { login: 'yegor256', id: 526_301, type: 'User' },
       head: { ref: 'master', sha: '6dcb09b5b57875f334f61aebed695e2e4193db5e' },
