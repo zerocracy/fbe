@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'joined'
 require 'tago'
 require 'time'
 require_relative '../fbe'
@@ -270,6 +271,6 @@ class Fbe::Iterate
         break
       end
     end
-    @loog.debug("Finished scanning #{repos.size} repos in #{start.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.join(', ')}")
+    @loog.debug("Finished scanning #{repos.size} repos in #{start.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
   end
 end

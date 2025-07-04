@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase/syntax'
+require 'joined'
 require_relative 'fb'
 
 # A generator of awards.
@@ -146,7 +147,7 @@ class Fbe::Award
         any.calc(bill)
       elsif any.is_a?(Symbol)
         v = bill.vars[any]
-        raise "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).join(', ')}" if v.nil?
+        raise "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}" if v.nil?
         v
       else
         any
