@@ -66,6 +66,21 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
       )
       return
     end
+    if http.status >= 500 && http.response_headers['content-type']&.start_with?('text')
+      error(
+        [
+          "#{@req.method.upcase} #{apply_filters(@req.url.to_s)} HTTP/1.1",
+          shifted(apply_filters(dump_headers(@req.request_headers))),
+          '',
+          shifted(apply_filters(@req.request_body)),
+          "HTTP/1.1 #{http.status}",
+          shifted(apply_filters(dump_headers(http.response_headers))),
+          '',
+          shifted(apply_filters(truncate(http.response_body)))
+        ].join("\n")
+      )
+      return
+    end
     error(
       [
         "#{@req.method.upcase} #{apply_filters(@req.url.to_s)} HTTP/1.1",
@@ -104,5 +119,17 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   def dump_headers(headers)
     return '' if headers.nil?
     headers.map { |k, v| "#{k}: #{v.inspect}" }.join("\n")
+  end
+
+  # Truncates text if it is longer than a specified :length by appending :omission
+  #
+  # @param [String, nil] txt The text to truncate
+  # @param [Integer] length The number of characters to keep
+  # @param [String] omission The string that will be added to the end as an omission
+  # @return [String] The truncated text, or an empty string if input was nil
+  def truncate(txt, length: 100, omission: '...')
+    return '' if txt.nil?
+    return txt if txt.length <= length
+    "#{txt.slice(0, length)}#{omission}"
   end
 end
