@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'securerandom'
 require 'qbash'
 require_relative '../../test__helper'
 require_relative '../../../lib/fbe/middleware'
@@ -141,8 +142,8 @@ class SqliteStoreTest < Fbe::Test
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         store.write('a', 'a' * 9_997)
         store.write('b', 'b' * 9_998)
-        store.write('c', 'c' * 19_999)
-        store.write('d', 'd' * 30_000)
+        store.write('c', SecureRandom.alphanumeric((19_999 * 1.4).to_i))
+        store.write('d', SecureRandom.alphanumeric((30_000 * 1.4).to_i))
         assert_equal('a' * 9_997, store.read('a'))
         assert_equal('b' * 9_998, store.read('b'))
         assert_nil(store.read('c'))
@@ -155,7 +156,6 @@ class SqliteStoreTest < Fbe::Test
     with_tmpfile('large.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         key = 'aaa'
-        alpha = ('a'..'z').to_a
         store.write('a', 'aa')
         Time.stub(:now, (Time.now - (5 * 60 * 60)).round) do
           store.write('b', 'bb')
@@ -163,8 +163,8 @@ class SqliteStoreTest < Fbe::Test
         end
         assert_equal('cc', store.read('c'))
         Time.stub(:now, rand((Time.now - (5 * 60 * 60))..Time.now).round) do
+          value = SecureRandom.alphanumeric(2048)
           10_240.times do
-            value = alpha.sample * rand(1024..2048)
             store.write(key, value)
             key = key.next
           end
@@ -185,8 +185,8 @@ class SqliteStoreTest < Fbe::Test
       SQLite3::Database.new(f).tap do |d|
         d.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
         [
-          ['key1', JSON.dump('value1')],
-          ['key2', JSON.dump('value2')]
+          ['key1', Zlib::Deflate.deflate(JSON.dump('value1'))],
+          ['key2', Zlib::Deflate.deflate(JSON.dump('value2'))]
         ].each { d.execute 'INSERT INTO cache(key, value) VALUES(?1, ?2);', _1 }
         d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
         d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
@@ -196,6 +196,43 @@ class SqliteStoreTest < Fbe::Test
         assert_equal('value2', store.read('key2'))
       rescue SQLite3::SQLException => e
         assert_nil(e)
+      end
+    end
+  end
+
+  def test_use_compress_for_stored_data
+    with_tmpfile('c.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        a = SecureRandom.alphanumeric(200)
+        store.write('a', a)
+        store.write('b', 'b' * 100_000)
+        assert_equal(a, store.read('a'))
+        assert_equal('b' * 100_000, store.read('b'))
+        store.all.each do |k, v|
+          case k
+          when 'a'
+            assert_operator(v.size, :<, a.size)
+          when 'b'
+            assert_operator(v.size, :<, 100_000)
+          end
+        end
+      end
+    end
+  end
+
+  def test_corrupted_compression_stored_data
+    with_tmpfile('c.db') do |f|
+      SQLite3::Database.new(f).tap do |d|
+        d.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
+        [
+          ['my_key', JSON.dump('value1')]
+        ].each { d.execute 'INSERT INTO cache(key, value) VALUES(?1, ?2);', _1 }
+        d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
+        d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
+      end
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        assert_nil(store.read('my_key'))
+        assert_predicate(store.all.count, :zero?)
       end
     end
   end

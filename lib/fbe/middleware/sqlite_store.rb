@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'zlib'
 require 'filesize'
 require 'json'
 require 'loog'
@@ -73,7 +74,13 @@ class Fbe::Middleware::SqliteStore
       t.execute('UPDATE cache SET touched_at = ?2 WHERE key = ?1;', [key, Time.now.utc.iso8601])
       t.execute('SELECT value FROM cache WHERE key = ? LIMIT 1;', [key])
     end.dig(0, 0)
-    JSON.parse(value) if value
+    return unless value
+    begin
+      JSON.parse(Zlib::Inflate.inflate(value))
+    rescue Zlib::Error => e
+      @loog.info("Failed to decompress cached value for key: #{key}, error: #{e.message}, the key will be deleted")
+      delete(key)
+    end
   end
 
   # Delete a key from the cache.
@@ -95,7 +102,7 @@ class Fbe::Middleware::SqliteStore
       req = JSON.parse(vv[0])
       req['method'] != 'get'
     end
-    value = JSON.dump(value)
+    value = Zlib::Deflate.deflate(JSON.dump(value))
     return if value.bytesize > @maxvsize
     perform do |t|
       t.execute(<<~SQL, [key, value, Time.now.utc.iso8601])
