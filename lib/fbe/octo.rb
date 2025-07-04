@@ -665,7 +665,8 @@ class Fbe::FakeOctokit
         user: { login: 'yegor256', id: 526_301, type: 'User' },
         created_at: Time.parse('2025-06-01 12:00:55 UTC'),
         updated_at: Time.parse('2025-06-01 15:47:18 UTC'),
-        closed_at: Time.parse('2025-06-02 15:00:00 UTC')
+        closed_at: Time.parse('2025-06-02 15:00:00 UTC'),
+        closed_by: { id: 526_301, login: 'yegor256' }
       }
     elsif number == 143
       {
@@ -676,7 +677,8 @@ class Fbe::FakeOctokit
         pull_request: { merged_at: nil },
         created_at: Time.parse('2025-05-29 17:00:55 UTC'),
         updated_at: Time.parse('2025-05-29 19:00:00 UTC'),
-        closed_at: Time.parse('2025-06-01 18:20:00 UTC')
+        closed_at: Time.parse('2025-06-01 18:20:00 UTC'),
+        closed_by: { id: 526_301, login: 'yegor256' }
       }
     else
       {
