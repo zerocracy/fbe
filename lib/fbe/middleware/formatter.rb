@@ -5,6 +5,7 @@
 
 require 'faraday'
 require 'faraday/logging/formatter'
+require 'ellipsized'
 require_relative '../../fbe'
 require_relative '../../fbe/middleware'
 
@@ -76,7 +77,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
           "HTTP/1.1 #{http.status}",
           shifted(apply_filters(dump_headers(http.response_headers))),
           '',
-          shifted(apply_filters(truncate(http.response_body)))
+          shifted(apply_filters(http.response_body&.ellipsized(100, :right)))
         ].join("\n")
       )
       return
@@ -119,17 +120,5 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   def dump_headers(headers)
     return '' if headers.nil?
     headers.map { |k, v| "#{k}: #{v.inspect}" }.join("\n")
-  end
-
-  # Truncates text if it is longer than a specified :length by appending :omission
-  #
-  # @param [String, nil] txt The text to truncate
-  # @param [Integer] length The number of characters to keep
-  # @param [String] omission The string that will be added to the end as an omission
-  # @return [String] The truncated text, or an empty string if input was nil
-  def truncate(txt, length: 100, omission: '...')
-    return '' if txt.nil?
-    return txt if txt.length <= length
-    "#{txt.slice(0, length)}#{omission}"
   end
 end
