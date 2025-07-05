@@ -69,7 +69,7 @@ class LoggingFormatterTest < Fbe::Test
         %r{HTTP/1.1 502},
         /x-github-api-version-selected: "2022-11-28"/,
         %r{content-type: "text/html; charset=utf-8"},
-        "#{body.slice(0, 100)}..."
+        "#{body.slice(0, 97)}..."
       ].each { |ptn| assert_match(ptn, str) }
     end
   end
