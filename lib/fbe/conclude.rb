@@ -185,11 +185,11 @@ class Fbe::Conclude
     @fb.query(@query).each do |a|
       if @quota_aware && oct.off_quota?
         @loog.debug('We ran out of GitHub quota, must stop here')
-        next
+        break
       end
       if Time.now > start + @timeout
         @loog.debug("We've spent more than #{start.ago}, must stop here")
-        next
+        break
       end
       @fb.txn do |fbt|
         n = yield fbt, a
