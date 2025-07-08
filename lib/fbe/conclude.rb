@@ -17,13 +17,13 @@ require_relative 'if_absent'
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Loog] loog The logging facility
 # @yield [Factbase::Fact] The fact
-def Fbe.conclude(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global, &)
+def Fbe.conclude(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global, time: Time, &)
   raise 'The fb is nil' if fb.nil?
   raise 'The $judge is not set' if judge.nil?
   raise 'The $global is not set' if global.nil?
   raise 'The $options is not set' if options.nil?
   raise 'The $loog is not set' if loog.nil?
-  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:)
+  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, time:)
   c.instance_eval(&)
 end
 
@@ -58,7 +58,8 @@ class Fbe::Conclude
   # @param [Hash] global The hash for global caching
   # @param [Judges::Options] options The options coming from the +judges+ tool
   # @param [Loog] loog The logging facility
-  def initialize(fb:, judge:, global:, options:, loog:)
+  # @param [Time] time The time
+  def initialize(fb:, judge:, global:, options:, loog:, time: Time)
     @fb = fb
     @judge = judge
     @loog = loog
@@ -68,6 +69,7 @@ class Fbe::Conclude
     @follows = []
     @quota_aware = false
     @timeout = 60
+    @time = time
   end
 
   # Make this block aware of GitHub API quota.
@@ -180,14 +182,15 @@ class Fbe::Conclude
   #   end
   def roll(&)
     passed = 0
-    start = Time.now
+    start = @time.now
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     @fb.query(@query).each do |a|
       if @quota_aware && oct.off_quota?
         @loog.debug('We ran out of GitHub quota, must stop here')
         break
       end
-      if Time.now > start + @timeout
+      now = @time.now
+      if now > start + @timeout
         @loog.debug("We've spent more than #{start.ago}, must stop here")
         break
       end
