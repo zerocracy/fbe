@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: MIT
 
 require 'qbash'
-require 'rubygems'
 require 'rake'
 require 'rake/clean'
+require 'rubygems'
 
 def name
   @name ||= File.basename(Dir['*.gemspec'].first, '.*')

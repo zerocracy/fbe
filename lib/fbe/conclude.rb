@@ -6,8 +6,8 @@
 require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
-require_relative 'octo'
 require_relative 'if_absent'
+require_relative 'octo'
 
 # Creates an instance of {Fbe::Conclude} and evals it with the block provided.
 #

@@ -5,10 +5,10 @@
 
 require 'faraday'
 require 'webmock'
-require_relative '../../test__helper'
 require_relative '../../../lib/fbe'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/rate_limit'
+require_relative '../../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

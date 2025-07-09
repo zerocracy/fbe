@@ -4,11 +4,11 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'factbase/cached/cached_factbase'
+require 'factbase/indexed/indexed_factbase'
 require 'factbase/logged'
 require 'factbase/pre'
 require 'factbase/rules'
-require 'factbase/cached/cached_factbase'
-require 'factbase/indexed/indexed_factbase'
 require 'factbase/sync/sync_factbase'
 require 'judges'
 require 'loog'

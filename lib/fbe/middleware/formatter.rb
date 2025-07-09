@@ -3,9 +3,9 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'ellipsized'
 require 'faraday'
 require 'faraday/logging/formatter'
-require 'ellipsized'
 require_relative '../../fbe'
 require_relative '../../fbe/middleware'
 

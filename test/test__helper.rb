@@ -32,8 +32,8 @@ require 'minitest/reporters'
 Minitest::Reporters.use! [Minitest::Reporters::SpecReporter.new]
 
 require 'loog'
-require 'minitest/stub_const'
 require 'minitest/autorun'
+require 'minitest/stub_const'
 require 'webmock/minitest'
 require_relative '../lib/fbe'
 
