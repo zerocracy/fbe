@@ -53,8 +53,10 @@ class Fbe::Middleware::SqliteStore
   # @param loog [Loog] Logger instance (optional, defaults to Loog::NULL)
   # @param maxsize [Integer] Maximum database size in bytes (optional, defaults to 10MB)
   # @param maxvsize [Integer] Maximum size in bytes of a single value (optional, defaults to 10Kb)
-  # @raise [ArgumentError] If path is nil/empty, directory doesn't exist, or version is nil/empty
-  def initialize(path, version, loog: Loog::NULL, maxsize: '10Mb', maxvsize: '10Kb')
+  # @param ttl [Integer, nil] lifetime of keys in hours
+  # @raise [ArgumentError] If path is nil/empty, directory doesn't exist, version is nil/empty,
+  # or ttl is not nil or not Integer or not positive
+  def initialize(path, version, loog: Loog::NULL, maxsize: '10Mb', maxvsize: '10Kb', ttl: nil)
     raise ArgumentError, 'Database path cannot be nil or empty' if path.nil? || path.empty?
     dir = File.dirname(path)
     raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
@@ -64,6 +66,8 @@ class Fbe::Middleware::SqliteStore
     @loog = loog
     @maxsize = Filesize.from(maxsize.to_s).to_i
     @maxvsize = Filesize.from(maxvsize.to_s).to_i
+    raise ArgumentError, 'TTL can be nil or Integer > 0' if !ttl.nil? && !(ttl.is_a?(Integer) && ttl.positive?)
+    @ttl = ttl
   end
 
   # Read a value from the cache.
@@ -106,8 +110,8 @@ class Fbe::Middleware::SqliteStore
     return if value.bytesize > @maxvsize
     perform do |t|
       t.execute(<<~SQL, [key, value, Time.now.utc.iso8601])
-        INSERT INTO cache(key, value, touched_at) VALUES(?1, ?2, ?3)
-        ON CONFLICT(key) DO UPDATE SET value = ?2, touched_at = ?3
+        INSERT INTO cache(key, value, touched_at, created_at) VALUES(?1, ?2, ?3, ?3)
+        ON CONFLICT(key) DO UPDATE SET value = ?2, touched_at = ?3, created_at = ?3
       SQL
     end
     nil
@@ -153,7 +157,26 @@ class Fbe::Middleware::SqliteStore
             SQL
             t.execute 'INSERT INTO cache SELECT * FROM cache_old;'
             t.execute 'DROP TABLE cache_old;'
+            t.execute 'CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);'
             t.execute 'CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);'
+          end
+          d.execute 'VACUUM;'
+        end
+        if d.execute("SELECT 1 FROM pragma_table_info('cache') WHERE name = 'created_at';").dig(0, 0) != 1
+          d.transaction do |t|
+            t.execute 'ALTER TABLE cache ADD COLUMN created_at TEXT;'
+            t.execute 'UPDATE cache set created_at = ?;', [Time.now.utc.iso8601]
+            t.execute 'ALTER TABLE cache RENAME TO cache_old;'
+            t.execute <<~SQL
+              CREATE TABLE IF NOT EXISTS cache(
+                key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL, created_at TEXT NOT NULL
+              );
+            SQL
+            t.execute 'INSERT INTO cache SELECT * FROM cache_old;'
+            t.execute 'DROP TABLE cache_old;'
+            t.execute 'CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);'
+            t.execute 'CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);'
+            t.execute 'CREATE INDEX IF NOT EXISTS cache_created_at_idx ON cache(created_at);'
           end
           d.execute 'VACUUM;'
         end
@@ -163,6 +186,15 @@ class Fbe::Middleware::SqliteStore
           d.transaction do |t|
             t.execute 'DELETE FROM cache;'
             t.execute "UPDATE meta SET value = ? WHERE key = 'version';", [@version]
+          end
+          d.execute 'VACUUM;'
+        end
+        unless @ttl.nil?
+          d.transaction do |t|
+            t.execute <<~SQL, [(Time.now.utc - (@ttl * 60 * 60)).iso8601]
+              DELETE FROM cache
+              WHERE key IN (SELECT key FROM cache WHERE (created_at < ?));
+            SQL
           end
           d.execute 'VACUUM;'
         end

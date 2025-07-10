@@ -93,7 +93,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             if options.sqlite_cache
               maxsize = Filesize.from(options.sqlite_cache_maxsize || '100M').to_i
               maxvsize = Filesize.from(options.sqlite_cache_maxvsize || '100K').to_i
-              store = Fbe::Middleware::SqliteStore.new(options.sqlite_cache, Fbe::VERSION, loog:, maxsize:, maxvsize:)
+              store = Fbe::Middleware::SqliteStore.new(
+                options.sqlite_cache, Fbe::VERSION, loog:, maxsize:, maxvsize:, ttl: 24
+              )
               loog.info(
                 "Using HTTP cache in SQLite file: #{store.path} (" \
                 "#{File.exist?(store.path) ? Filesize.from(File.size(store.path).to_s).pretty : 'file is absent'}, " \

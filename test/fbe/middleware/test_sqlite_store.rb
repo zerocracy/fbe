@@ -237,6 +237,99 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_upgrade_sqlite_schema_for_add_created_at_column
+    with_tmpfile('a.db') do |f|
+      SQLite3::Database.new(f).tap do |d|
+        d.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL);'
+        [
+          ['key1', Zlib::Deflate.deflate(JSON.dump('value1')), Time.now.utc.iso8601],
+          ['key2', Zlib::Deflate.deflate(JSON.dump('value2')), Time.now.utc.iso8601]
+        ].each { d.execute 'INSERT INTO cache(key, value, touched_at) VALUES(?1, ?2, ?3);', _1 }
+        d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
+        d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
+      end
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        assert_equal('value1', store.read('key1'))
+        assert_equal('value2', store.read('key2'))
+      rescue SQLite3::SQLException => e
+        assert_nil(e)
+      end
+    end
+  end
+
+  def test_set_correct_ttl
+    with_tmpfile('c.db') do |f|
+      s = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: nil)
+      refute_nil(s)
+      s = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24)
+      refute_nil(s)
+    end
+  end
+
+  def test_set_incorrect_ttl
+    with_tmpfile('c.db') do |f|
+      ex =
+        assert_raises(ArgumentError) do
+          Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 0)
+        end
+      assert_equal('TTL can be nil or Integer > 0', ex.message)
+      ex =
+        assert_raises(ArgumentError) do
+          Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: -10)
+        end
+      assert_equal('TTL can be nil or Integer > 0', ex.message)
+      ex =
+        assert_raises(ArgumentError) do
+          Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 10.0)
+        end
+      assert_equal('TTL can be nil or Integer > 0', ex.message)
+      ex =
+        assert_raises(ArgumentError) do
+          Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: '10')
+        end
+      assert_equal('TTL can be nil or Integer > 0', ex.message)
+      ex =
+        assert_raises(ArgumentError) do
+          Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: Object.new)
+        end
+      assert_equal('TTL can be nil or Integer > 0', ex.message)
+    end
+  end
+
+  def test_delete_keys_if_ttl_expired
+    with_tmpfile('c.db') do |f|
+      now = Time.now
+      Time.stub(:now, now) do
+        Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24).then do |s|
+          s.write('test1', 'value1')
+          s.write('test2', 'value2')
+        end
+      end
+      Time.stub(:now, now + (12 * 60 * 60)) do
+        Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24).then do |s|
+          s.write('test3', 'value3')
+          s.write('test4', 'value4')
+        end
+      end
+      Time.stub(:now, now + (24 * 60 * 60)) do
+        Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24).then do |s|
+          assert_equal('value1', s.read('test1'))
+          assert_equal('value2', s.read('test2'))
+          assert_equal('value3', s.read('test3'))
+          assert_equal('value4', s.read('test4'))
+        end
+      end
+      Time.stub(:now, now + (24 * 60 * 60) + 1) do
+        Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24).then do |s|
+          assert_nil(s.read('test1'))
+          assert_nil(s.read('test2'))
+          assert_equal('value3', s.read('test3'))
+          assert_equal('value4', s.read('test4'))
+        end
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
