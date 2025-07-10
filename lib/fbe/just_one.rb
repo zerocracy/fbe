@@ -3,8 +3,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'time'
 require 'others'
+require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 

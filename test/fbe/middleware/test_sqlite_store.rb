@@ -3,11 +3,11 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'securerandom'
 require 'qbash'
-require_relative '../../test__helper'
+require 'securerandom'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/sqlite_store'
+require_relative '../../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

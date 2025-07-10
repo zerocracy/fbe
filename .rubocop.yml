@@ -56,3 +56,5 @@ Metrics/ParameterLists:
   Enabled: false
 Layout/MultilineAssignmentLayout:
   Enabled: true
+Style/RequireOrder:
+  Enabled: true

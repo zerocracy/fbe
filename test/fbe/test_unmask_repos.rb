@@ -5,8 +5,8 @@
 
 require 'judges/options'
 require 'loog'
-require_relative '../test__helper'
 require_relative '../../lib/fbe/unmask_repos'
+require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

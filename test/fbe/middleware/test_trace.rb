@@ -6,10 +6,10 @@
 require 'faraday'
 require 'faraday/http_cache'
 require 'webmock'
-require_relative '../../test__helper'
 require_relative '../../../lib/fbe'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/trace'
+require_relative '../../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)

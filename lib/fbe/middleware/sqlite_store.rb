@@ -3,12 +3,12 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'zlib'
 require 'filesize'
 require 'json'
 require 'loog'
 require 'sqlite3'
 require 'time'
+require 'zlib'
 require_relative '../../fbe'
 require_relative '../../fbe/middleware'
 

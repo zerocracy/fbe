@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'ellipsized'
 require 'faraday'
 require 'faraday/logging/formatter'
 require_relative '../../fbe'
@@ -63,6 +64,21 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
           '/',
           JSON.parse(http.response_body)['message']
         ].join(' ')
+      )
+      return
+    end
+    if http.status >= 500 && http.response_headers['content-type']&.start_with?('text')
+      error(
+        [
+          "#{@req.method.upcase} #{apply_filters(@req.url.to_s)} HTTP/1.1",
+          shifted(apply_filters(dump_headers(@req.request_headers))),
+          '',
+          shifted(apply_filters(@req.request_body)),
+          "HTTP/1.1 #{http.status}",
+          shifted(apply_filters(dump_headers(http.response_headers))),
+          '',
+          shifted(apply_filters(http.response_body&.ellipsized(100, :right)))
+        ].join("\n")
       )
       return
     end
