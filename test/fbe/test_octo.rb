@@ -709,4 +709,53 @@ class TestOcto < Fbe::Test
       end
     end
   end
+
+  def test_octo_with_set_sqlite_cache_min_age
+    WebMock.disable_net_connect!
+    now = Time.now
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+      )
+    Dir.mktmpdir do |dir|
+      sqlite_cache = File.expand_path('t.db', dir)
+      options = Judges::Options.new({ 'sqlite_cache' => sqlite_cache, 'sqlite_cache_min_age' => 120 })
+      o = Fbe.octo(loog: fake_loog, global: {}, options:)
+      stub_request(:get, 'https://api.github.com/repositories/798641472').to_return(
+        status: 200,
+        body: { id: 798_641_472, name: 'factbase' }.to_json,
+        headers: {
+          'Date' => now.httpdate,
+          'Content-Type' => 'application/json; charset=utf-8',
+          'Cache-Control' => 'public, max-age=60, s-maxage=60',
+          'Etag' => 'W/"f5f1ea995fd7266816f681aca5a81f539420c469070a47568bebdaa3055487bc"',
+          'Last-Modified' => 'Fri, 04 Jul 2025 13:39:42 GMT'
+        }
+      ).times(1).then.to_raise('no more request to /repositories/798641472')
+      Time.stub(:now, now) do
+        assert_equal('factbase', o.repo(798_641_472)['name'])
+      end
+      Time.stub(:now, now + 50) do
+        assert_equal('factbase', o.repo(798_641_472)['name'])
+      end
+      Time.stub(:now, now + 100) do
+        assert_equal('factbase', o.repo(798_641_472)['name'])
+      end
+      stub_request(:get, 'https://api.github.com/repositories/798641472').to_return(
+        status: 200,
+        body: { id: 798_641_472, name: 'factbase_changed' }.to_json,
+        headers: {
+          'Date' => (now + 120).httpdate,
+          'Content-Type' => 'application/json; charset=utf-8',
+          'Cache-Control' => 'public, max-age=60, s-maxage=60',
+          'Etag' => 'W/"f5f1ea995fd7266816f681aca5a81f539420c469070a47568bebdaa3055487bc"',
+          'Last-Modified' => 'Fri, 04 Jul 2025 13:39:42 GMT'
+        }
+      )
+      Time.stub(:now, now + 120) do
+        assert_equal('factbase_changed', o.repo(798_641_472)['name'])
+      end
+    end
+  end
 end

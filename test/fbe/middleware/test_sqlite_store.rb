@@ -330,11 +330,117 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_set_correct_cache_min_age
+    with_tmpfile('c.db') do |f|
+      s = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: nil)
+      refute_nil(s)
+      s = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 600)
+      refute_nil(s)
+    end
+  end
+
+  def test_set_incorrect_cache_min_age
+    with_tmpfile('c.db') do |f|
+      msg = 'Cache min age can be nil or Integer > 0'
+      [0, -50, 120.0, '120', Object.new].each do |cache_min_age|
+        ex =
+          assert_raises(ArgumentError) do
+            Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age:)
+          end
+        assert_equal(msg, ex.message)
+      end
+    end
+  end
+
+  def test_not_overwrite_cache_control
+    with_tmpfile('t.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 30).then do |store|
+        store.write(
+          'test1',
+          faraday_value(resp: { 'response_headers' => { 'cache-control' => 'public, max-age=60, s-maxage=60' } })
+        )
+        store.write(
+          'test2',
+          faraday_value(resp: { 'response_headers' => { 'cache-control' => 'public, max-age=30, s-maxage=30' } })
+        )
+        store.write(
+          'test3',
+          faraday_value(resp: { 'response_headers' => { 'content-type' => 'application/json; charset=utf-8' } })
+        )
+        store.write('test4', faraday_value(resp: { 'status' => 200, 'body' => '{"some":"value"}' }))
+        store.write('test5', faraday_value(resp: {}))
+        store.write('test6', [[JSON.dump({ 'method' => 'get' }), 1]])
+        store.write('test7', faraday_value(resp: 'some string'))
+        store.write('test8', faraday_value(resp: nil))
+      end
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        assert_equal(
+          'public, max-age=60, s-maxage=60',
+          JSON.parse(store.read('test1')[0][1]).dig('response_headers', 'cache-control')
+        )
+        assert_equal(
+          'public, max-age=30, s-maxage=30',
+          JSON.parse(store.read('test2')[0][1]).dig('response_headers', 'cache-control')
+        )
+        assert_nil(JSON.parse(store.read('test3')[0][1]).dig('response_headers', 'cache-control'))
+        assert_nil(JSON.parse(store.read('test4')[0][1]).dig('response_headers', 'cache-control'))
+        assert_nil(JSON.parse(store.read('test5')[0][1]).dig('response_headers', 'cache-control'))
+        assert_equal(1, store.read('test6')[0][1])
+        assert_equal(JSON.dump('some string'), store.read('test7')[0][1])
+        assert_nil(store.read('test8')[0][1])
+      end
+    end
+  end
+
+  def test_overwrite_cache_control
+    with_tmpfile('t.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300).then do |store|
+        store.write(
+          'test1',
+          faraday_value(resp: { 'response_headers' => { 'cache-control' => 'public, max-age=60, s-maxage=60' } })
+        )
+      end
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 1555).then do |store|
+        store.write(
+          'test2',
+          faraday_value(resp: { 'response_headers' => { 'cache-control' => 'public, max-age=60, s-maxage=60' } })
+        )
+      end
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog)
+      assert_equal(
+        'public, max-age=300, s-maxage=300',
+        JSON.parse(store.read('test1')[0][1]).dig('response_headers', 'cache-control')
+      )
+      assert_equal(
+        'public, max-age=1555, s-maxage=1555',
+        JSON.parse(store.read('test2')[0][1]).dig('response_headers', 'cache-control')
+      )
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
     Dir.mktmpdir do |dir|
       yield File.expand_path(name, dir)
     end
+  end
+
+  def faraday_value(
+    req: {
+      'method' => 'get',
+      'url' => 'https://example.com/test',
+      'headers' => { 'Content-Type' => 'application/json' }
+    },
+    resp: {
+      'status' => 200,
+      'body' => '{"some":"value"}',
+      'response_headers' => { 'content-type' => 'application/json; charset=utf-8' }
+    }
+  )
+    value = []
+    value << JSON.dump(req) if req
+    value << JSON.dump(resp) if resp
+    [value]
   end
 end

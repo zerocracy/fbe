@@ -54,9 +54,10 @@ class Fbe::Middleware::SqliteStore
   # @param maxsize [Integer] Maximum database size in bytes (optional, defaults to 10MB)
   # @param maxvsize [Integer] Maximum size in bytes of a single value (optional, defaults to 10Kb)
   # @param ttl [Integer, nil] lifetime of keys in hours
+  # @param cache_min_age [Integer, nil] age which will could be overwritten in cache-control header
   # @raise [ArgumentError] If path is nil/empty, directory doesn't exist, version is nil/empty,
   # or ttl is not nil or not Integer or not positive
-  def initialize(path, version, loog: Loog::NULL, maxsize: '10Mb', maxvsize: '10Kb', ttl: nil)
+  def initialize(path, version, loog: Loog::NULL, maxsize: '10Mb', maxvsize: '10Kb', ttl: nil, cache_min_age: nil)
     raise ArgumentError, 'Database path cannot be nil or empty' if path.nil? || path.empty?
     dir = File.dirname(path)
     raise ArgumentError, "Directory #{dir} does not exist" unless File.directory?(dir)
@@ -68,6 +69,10 @@ class Fbe::Middleware::SqliteStore
     @maxvsize = Filesize.from(maxvsize.to_s).to_i
     raise ArgumentError, 'TTL can be nil or Integer > 0' if !ttl.nil? && !(ttl.is_a?(Integer) && ttl.positive?)
     @ttl = ttl
+    if !cache_min_age.nil? && !(cache_min_age.is_a?(Integer) && cache_min_age.positive?)
+      raise ArgumentError, 'Cache min age can be nil or Integer > 0'
+    end
+    @cache_min_age = cache_min_age
   end
 
   # Read a value from the cache.
@@ -105,6 +110,26 @@ class Fbe::Middleware::SqliteStore
     return if value.is_a?(Array) && value.any? do |vv|
       req = JSON.parse(vv[0])
       req['method'] != 'get'
+    end
+    if @cache_min_age && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
+      begin
+        resp = JSON.parse(value[0][1])
+      rescue TypeError, JSON::ParserError => e
+        @loog.info("Failed to parse response to rewrite the cache age: #{e.message}")
+        resp = nil
+      end
+      cache_control = resp.dig('response_headers', 'cache-control') if resp.is_a?(Hash)
+      if cache_control && !cache_control.empty?
+        %w[max-age s-maxage].each do |key|
+          age = cache_control.scan(/#{key}=(\d+)/i).first&.first&.to_i
+          if age
+            age = [age, @cache_min_age].max
+            cache_control = cache_control.sub(/#{key}=(\d+)/, "#{key}=#{age}")
+          end
+        end
+        resp['response_headers']['cache-control'] = cache_control
+        value[0][1] = JSON.dump(resp)
+      end
     end
     value = Zlib::Deflate.deflate(JSON.dump(value))
     return if value.bytesize > @maxvsize
