@@ -342,6 +342,7 @@ class TestOcto < Fbe::Test
         id: 655,
         number: 142,
         user: { login: 'yegor256', id: 526_301, type: 'User' },
+        state: 'closed',
         created_at: Time,
         updated_at: Time,
         closed_at: Time
@@ -354,6 +355,7 @@ class TestOcto < Fbe::Test
         id: 656,
         number: 143,
         user: { login: 'yegor256', id: 526_301, type: 'User' },
+        state: 'closed',
         pull_request: { merged_at: nil },
         created_at: Time,
         updated_at: Time,
