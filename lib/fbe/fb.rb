@@ -5,6 +5,7 @@
 
 require 'factbase'
 require 'factbase/cached/cached_factbase'
+require 'factbase/impatient'
 require 'factbase/indexed/indexed_factbase'
 require 'factbase/logged'
 require 'factbase/pre'
@@ -46,15 +47,18 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
           f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{options.action_version}"
           f._job = options.job_id unless options.job_id.nil?
         end
-      Factbase::Logged.new(
-        Factbase::SyncFactbase.new(
-          Factbase::IndexedFactbase.new(
-            Factbase::CachedFactbase.new(
-              fbe
+      Factbase::Impatient.new(
+        Factbase::Logged.new(
+          Factbase::SyncFactbase.new(
+            Factbase::IndexedFactbase.new(
+              Factbase::CachedFactbase.new(
+                fbe
+              )
             )
-          )
+          ),
+          loog
         ),
-        loog
+        timeout: 60
       )
     end
 end
