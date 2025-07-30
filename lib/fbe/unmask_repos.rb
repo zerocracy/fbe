@@ -49,11 +49,12 @@ end
 # @param [Judges::Options] options Options containing 'repositories' field with masks
 # @param [Hash] global Global cache for storing API responses
 # @param [Loog] loog Logger for debug output
+# @param [quota_aware] Boolean Should we stop if quota is off?
 # @return [Array<String>] Shuffled list of repository full names (e.g., 'org/repo')
 # @raise [RuntimeError] If no repositories match the provided masks
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
-def Fbe.unmask_repos(options: $options, global: $global, loog: $loog)
+def Fbe.unmask_repos(options: $options, global: $global, loog: $loog, quota_aware: true)
   raise 'Repositories mask is not specified' unless options.repositories
   raise 'Repositories mask is empty' if options.repositories.empty?
   repos = []
@@ -77,5 +78,12 @@ def Fbe.unmask_repos(options: $options, global: $global, loog: $loog)
   raise "No repos found matching: #{options.repositories.inspect}" if repos.empty?
   repos.shuffle!
   loog.debug("Scanning #{repos.size} repositories: #{repos.joined}...")
-  repos
+  return repos unless block_given?
+  repos.each do |repo|
+    if quota_aware && octo.off_quota?
+      $loog.info("No GitHub quota left, it is time to stop at #{repo}")
+      break
+    end
+    yield repo
+  end
 end

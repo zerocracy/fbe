@@ -25,6 +25,15 @@ class TestUnmaskRepos < Fbe::Test
     refute_includes(list, 'zerocracy/datum')
   end
 
+  def test_iterates_them
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/tacit,zerocracy/*' })
+    list = []
+    Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL) do |n|
+      list << n
+    end
+    assert_predicate(list.size, :positive?)
+  end
+
   def test_finds_case_insensitive
     opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'Yegor256/*' })
     list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
