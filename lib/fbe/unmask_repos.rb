@@ -78,6 +78,7 @@ def Fbe.unmask_repos(options: $options, global: $global, loog: $loog, quota_awar
   raise "No repos found matching: #{options.repositories.inspect}" if repos.empty?
   repos.shuffle!
   loog.debug("Scanning #{repos.size} repositories: #{repos.joined}...")
+  repos.each { |repo| octo.repository(repo) }
   return repos unless block_given?
   repos.each do |repo|
     if quota_aware && octo.off_quota?

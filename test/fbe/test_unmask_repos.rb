@@ -34,6 +34,16 @@ class TestUnmaskRepos < Fbe::Test
     assert_predicate(list.size, :positive?)
   end
 
+  def test_fails_on_broken_names
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(status: 404)
+    options = Judges::Options.new({ 'repositories' => 'foo/bar' })
+    assert_raises(StandardError) { Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL).each.to_a }
+  end
+
   def test_finds_case_insensitive
     opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'Yegor256/*' })
     list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
