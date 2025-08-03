@@ -202,7 +202,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
       o =
         intercepted(o) do |e, m, _args, _r|
           if e == :before && m != :off_quota? && m != :print_trace! && m != :rate_limit && o.off_quota?
-            raise "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{name}()"
+            raise "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()"
           end
         end
       o
