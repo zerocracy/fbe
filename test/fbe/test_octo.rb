@@ -77,6 +77,16 @@ class TestOcto < Fbe::Test
     assert_equal(42, id)
   end
 
+  def test_reads_lost_repo_id_by_name
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(status: 404)
+    assert_raises(StandardError) { o.repo_id_by_name('foo/bar') }
+  end
+
   def test_fails_user_request_when_off_quota
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
