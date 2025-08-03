@@ -185,6 +185,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             raise 'The name of the repo is nil' if name.nil?
             json = @origin.repository(name)
             id = json[:id]
+            raise "Repository #{name} not found" if id.nil?
             @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
             id
           end
