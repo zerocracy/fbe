@@ -586,9 +586,11 @@ class Fbe::FakeOctokit
   #   # => {:id=>1296269, :full_name=>"octocat/Hello-World", ...}
   def repository(name)
     raise Octokit::NotFound if [404_123, 404_124].include?(name)
+    full_name = name.is_a?(Integer) ? 'yegor256/test' : name
+    full_name = 'zerocracy/baza' if name == 1439
     {
       id: name_to_number(name),
-      full_name: name.is_a?(Integer) ? 'yegor256/test' : name,
+      full_name:,
       default_branch: 'master',
       private: false,
       owner: { login: name.to_s.split('/')[0], id: 526_301, site_admin: false },

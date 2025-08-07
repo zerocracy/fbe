@@ -337,6 +337,11 @@ class TestOcto < Fbe::Test
     assert_raises(Octokit::NotFound) { o.repository(404_124) }
   end
 
+  def test_fetches_fake_zerocracy_baza_repo
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal('zerocracy/baza', o.repository(1439)[:full_name])
+  end
+
   def test_fetches_fake_issue_events_has_assigned_event
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.issue_events('foo/foo', 123)
