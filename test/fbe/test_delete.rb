@@ -50,4 +50,24 @@ class TestDelete < Fbe::Test
     assert_equal([1], f2['_id'])
     assert_equal([42], f2['_job'])
   end
+
+  def test_deletes_id
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 44
+    Fbe.delete(f, '_id', fb:)
+    f2 = fb.query('(always)').each.to_a.first
+    assert_nil(f2['_id'])
+    assert_empty(f2.all_properties)
+  end
+
+  def test_deletes_when_duplicate_id
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 44
+    f._id = 45
+    Fbe.delete(f, '_id', fb:)
+    f2 = fb.query('(always)').each.to_a.first
+    assert_nil(f2['_id'])
+  end
 end

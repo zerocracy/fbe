@@ -34,6 +34,7 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
       before[k] = v
     end
   end
+  before.delete(id)
   fb.query("(eq #{id} #{i})").delete!
   c = fb.insert
   before.each do |k, v|
