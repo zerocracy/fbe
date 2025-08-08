@@ -21,7 +21,9 @@ class TestCopy < Fbe::Test
     f2._id = 2
     Fbe.copy(f1, f2)
     assert_equal(2, f2._id)
+    assert_equal([2], f2['_id'])
     assert_equal(42, f2.foo)
+    assert_equal([42], f2['foo'])
   end
 
   def test_with_except
