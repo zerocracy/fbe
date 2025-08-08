@@ -26,6 +26,19 @@ class TestOverwrite < Fbe::Test
     assert_equal(2, fb.query('(always)').each.to_a.first['many'].size)
   end
 
+  def test_avoids_duplicates
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f._job = 42
+    f.foo = 'hello'
+    Fbe.overwrite(f, 'foo', 'bye', fb:)
+    f2 = fb.query('(exists foo)').each.to_a.first
+    assert_equal([1], f2['_id'])
+    assert_equal([42], f2['_job'])
+    assert_equal(['bye'], f2['foo'])
+  end
+
   def test_overwrite_twice
     fb = Factbase.new
     f = fb.insert

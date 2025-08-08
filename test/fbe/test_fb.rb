@@ -67,9 +67,8 @@ class TestFb < Fbe::Test
     $global = {}
     $options = Judges::Options.new(job_id: 42)
     $loog = Loog::Buffer.new
-    Fbe.fb.insert.then do |f|
-      f.what = 'hello'
-    end
+    f = Fbe.fb.insert
+    f.what = 'hello'
     f = Fbe.fb.query('(eq what "hello")').each.to_a.first
     assert_equal([42], f['_job'])
   end
