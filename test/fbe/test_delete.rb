@@ -5,7 +5,9 @@
 
 require 'factbase'
 require 'judges/options'
+require 'loog'
 require_relative '../../lib/fbe/delete'
+require_relative '../../lib/fbe/fb'
 require_relative '../test__helper'
 
 # Test.
