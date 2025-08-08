@@ -33,7 +33,7 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
   raise 'The $loog is not set' if loog.nil?
   global[:fb] ||=
     begin
-      rules = Dir.glob(File.join('rules', '*.fe')).map { |f| File.read(f) }
+      rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }
       fbe = Factbase::Rules.new(
         fb,
         "(and \n#{rules.join("\n")}\n)",

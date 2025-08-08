@@ -64,6 +64,12 @@
     (eq "Time" (type _time)))))
 
 (explain (when
+  (exists _job)
+  (and
+    (one _job)
+    (eq "Integer" (type _job)))))
+
+(explain (when
   (exists _version)
   (and
     (one _version)

@@ -49,6 +49,19 @@ class TestFb < Fbe::Test
     end
   end
 
+  def test_defends_against_duplicates
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::Buffer.new
+    assert_raises(StandardError) do
+      Fbe.fb.insert.then do |f|
+        f._id = 42
+        f._id = 43
+      end
+    end
+  end
+
   def test_increment_id_in_transaction
     $fb = Factbase.new
     $global = {}
