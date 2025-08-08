@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'judges/options'
 require_relative '../../lib/fbe/delete'
 require_relative '../test__helper'
 
@@ -36,14 +37,15 @@ class TestDelete < Fbe::Test
   end
 
   def test_deletes_safely
-    fb = Factbase.new
-    f = fb.insert
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new(job_id: 42)
+    $loog = Loog::Buffer.new
+    f = Fbe.fb.insert
     f.foo = 'hello'
-    f._id = 55
-    f._job = 44
-    Fbe.delete(f, 'foo', fb:)
-    f2 = fb.query('(always)').each.to_a.first
-    assert_equal([55], f2['_id'])
-    assert_equal([44], f2['_job'])
+    Fbe.delete(f, 'foo')
+    f2 = Fbe.fb.query('(always)').each.to_a.first
+    assert_equal([1], f2['_id'])
+    assert_equal([42], f2['_job'])
   end
 end
