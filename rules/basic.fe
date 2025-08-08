@@ -55,7 +55,7 @@
   (and
     (one where)
     (eq "String" (type where))
-    (eq "github" where))))
+    (or (eq "github" where) (eq "gitlab" where)))))
 
 (explain (when
   (exists _time)
