@@ -62,6 +62,18 @@ class TestFb < Fbe::Test
     end
   end
 
+  def test_sets_job
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new(job_id: 42)
+    $loog = Loog::Buffer.new
+    Fbe.fb.insert.then do |f|
+      f.what = 'hello'
+    end
+    f = Fbe.fb.query('(eq what "hello")').each.to_a.first
+    assert_equal([42], f['_job'])
+  end
+
   def test_increment_id_in_transaction
     $fb = Factbase.new
     $global = {}

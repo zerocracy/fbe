@@ -176,7 +176,7 @@ class TestOcto < Fbe::Test
       { body: '', headers: { 'X-RateLimit-Remaining' => '5555' } },
       { body: '', headers: { 'X-RateLimit-Remaining' => '5' } }
     )
-    o = Fbe.octo(loog: Loog::VERBOSE, global: {}, options: Judges::Options.new)
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     refute_predicate(o, :off_quota?)
     o.user(42)
     refute_predicate(o, :off_quota?)
