@@ -61,6 +61,27 @@ class TestDelete < Fbe::Test
     assert_empty(f2.all_properties)
   end
 
+  def test_deletes_in_transaction
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new(job_id: 42)
+    $loog = Loog::Buffer.new
+    Fbe.fb.txn do |fbt|
+      fbt.insert.then do |f|
+        f.issue = 444
+        f.where = 'github'
+        f.repository = 555
+        f.who = 887
+        f.when = Time.now
+        f.foo = 1
+      end
+    end
+    f1 = Fbe.fb.query('(always)').each.to_a.first
+    Fbe.delete(f1, 'foo')
+    f2 = Fbe.fb.query('(always)').each.to_a.first
+    assert_nil(f2['foo'])
+  end
+
   def test_deletes_when_duplicate_id
     fb = Factbase.new
     f = fb.insert

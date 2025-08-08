@@ -36,9 +36,12 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
   end
   before.delete(id)
   fb.query("(eq #{id} #{i})").delete!
-  c = fb.insert
-  before.each do |k, v|
-    c.send(:"#{k}=", v) if c[k].nil?
+  c = nil
+  fb.txn do |fbt|
+    c = fbt.insert
+    before.each do |k, v|
+      c.send(:"#{k}=", v) if c[k].nil?
+    end
   end
   c
 end
