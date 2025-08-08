@@ -34,4 +34,16 @@ class TestDelete < Fbe::Test
     assert_equal(1, fb.size)
     assert_equal(0, fb.query('(exists hey)').each.to_a.size)
   end
+
+  def test_deletes_safely
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 'hello'
+    f._id = 55
+    f._job = 44
+    Fbe.delete(f, 'foo', fb:)
+    f2 = fb.query('(always)').each.to_a.first
+    assert_equal([55], f2['_id'])
+    assert_equal([44], f2['_job'])
+  end
 end
