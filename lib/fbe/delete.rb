@@ -16,7 +16,7 @@ require_relative 'fb'
 # @param [Array<String>] props List of property names to delete
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] id The property name used as unique identifier (defaults to '_id')
-# @return [Factbase::Fact] New fact without the deleted properties
+# @return [nil] Nothing
 # @raise [RuntimeError] If fact is nil, has no ID, or ID property doesn't exist
 # @example Delete multiple properties from a fact
 #   fact = fb.query('(eq type "user")').first
@@ -36,12 +36,11 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
   end
   before.delete(id)
   fb.query("(eq #{id} #{i})").delete!
-  c = nil
   fb.txn do |fbt|
     c = fbt.insert
     before.each do |k, v|
       c.send(:"#{k}=", v) if c[k].nil?
     end
   end
-  c
+  nil
 end

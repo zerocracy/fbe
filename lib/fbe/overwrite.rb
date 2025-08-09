@@ -19,7 +19,7 @@ require_relative 'fb'
 # @param [String] property The name of the property to set
 # @param [Any] value The value to set (can be any type)
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
-# @return [Factbase::Fact] Returns new fact if recreated, or original if unchanged
+# @return [nil] Nothing
 # @raise [RuntimeError] If fact is nil, has no _id, or property is not a String
 # @note This operation preserves all other properties during recreation
 # @note If property already has the same single value, no changes are made
@@ -39,13 +39,15 @@ def Fbe.overwrite(fact, property, value, fb: Fbe.fb)
   id = fact['_id']&.first
   raise 'There is no _id in the fact, cannot use Fbe.overwrite' if id.nil?
   raise "No facts by _id = #{id}" if fb.query("(eq _id #{id})").delete!.zero?
-  n = fb.insert
-  before[property.to_s] = [value]
-  before.each do |k, vv|
-    next unless n[k].nil?
-    vv.each do |v|
-      n.send(:"#{k}=", v)
+  fb.txn do |fbt|
+    n = fbt.insert
+    before[property.to_s] = [value]
+    before.each do |k, vv|
+      next unless n[k].nil?
+      vv.each do |v|
+        n.send(:"#{k}=", v)
+      end
     end
   end
-  n
+  nil
 end

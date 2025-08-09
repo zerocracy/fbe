@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'judges/options'
+require 'loog'
 require_relative '../../lib/fbe/overwrite'
 require_relative '../test__helper'
 
@@ -37,15 +39,6 @@ class TestOverwrite < Fbe::Test
     assert_equal([1], f2['_id'])
     assert_equal([42], f2['_job'])
     assert_equal(['bye'], f2['foo'])
-  end
-
-  def test_overwrite_twice
-    fb = Factbase.new
-    f = fb.insert
-    f._id = 1
-    f2 = Fbe.overwrite(f, 'foo', 42, fb:)
-    Fbe.overwrite(f2, 'bar', 7, fb:)
-    assert_equal(42, fb.query('(exists foo)').each.to_a.first.foo)
   end
 
   def test_no_need_to_overwrite
@@ -85,5 +78,26 @@ class TestOverwrite < Fbe::Test
     f3._id = 1
     Fbe.overwrite(f3, 'foo', 42, fb:)
     assert_equal(3, fb.size)
+  end
+
+  def test_overwrites_in_transaction
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new(job_id: 42)
+    $loog = Loog::Buffer.new
+    Fbe.fb.txn do |fbt|
+      fbt.insert.then do |f|
+        f.issue = 444
+        f.where = 'github'
+        f.repository = 555
+        f.who = 887
+        f.when = Time.now
+        f.foo = 1
+      end
+    end
+    f1 = Fbe.fb.query('(always)').each.to_a.first
+    Fbe.overwrite(f1, 'foo', 'bar')
+    f2 = Fbe.fb.query('(always)').each.to_a.first
+    assert_equal('bar', f2.foo)
   end
 end
