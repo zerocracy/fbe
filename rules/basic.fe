@@ -47,7 +47,7 @@
   (and
     (one details)
     (not (matches details "  "))
-    (not (matches details "^.{,48}$"))
+    (not (matches details "^.{,24}$"))
     (not (matches details "[^.]$")))))
 
 (explain (when
