@@ -155,7 +155,6 @@ class SqliteStoreTest < Fbe::Test
   def test_shrink_cache_if_more_then_10_mb
     with_tmpfile('large.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
-        key = 'aaa'
         store.write('a', 'aa')
         Time.stub(:now, (Time.now - (5 * 60 * 60)).round) do
           store.write('b', 'bb')
@@ -163,8 +162,9 @@ class SqliteStoreTest < Fbe::Test
         end
         assert_equal('cc', store.read('c'))
         Time.stub(:now, rand((Time.now - (5 * 60 * 60))..Time.now).round) do
-          value = SecureRandom.alphanumeric(2048)
-          10_240.times do
+          key = 'a' * 65_536
+          value = SecureRandom.alphanumeric(8_192)
+          52.times do
             store.write(key, value)
             key = key.next
           end
