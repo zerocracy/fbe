@@ -204,16 +204,16 @@ class Fbe::Iterate
       @loog.debug('We are off GitHub quota, cannot even start, sorry')
       return
     end
-    repos = Fbe.unmask_repos(loog: @loog, options: @options, global: @global)
+    repos = Fbe.unmask_repos(loog: @loog, options: @options, global: @global, quota_aware: @quota_aware)
     restarted = []
     start = Time.now
     loop do
-      if oct.off_quota?
+      if @quota_aware && oct.off_quota?
         @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
         break
       end
       repos.each do |repo|
-        if oct.off_quota?
+        if @quota_aware && oct.off_quota?
           @loog.debug("We are off GitHub quota, we must skip #{repo}")
           break
         end
@@ -264,10 +264,6 @@ class Fbe::Iterate
       end
       if restarted.size == repos.size
         @loog.debug("All #{repos.size} repos restarted, quitting after #{start.ago}")
-        break
-      end
-      if Time.now - start > timeout
-        @loog.info("We are iterating for #{start.ago} already, time to give up")
         break
       end
     end
