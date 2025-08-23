@@ -34,8 +34,9 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   fb.txn do |fbt|
     c = fbt.insert
     before.each do |k, vv|
+      next unless c[k].nil?
       vv.each do |v|
-        c.send(:"#{k}=", v) if c[k].nil?
+        c.send(:"#{k}=", v)
       end
     end
   end
