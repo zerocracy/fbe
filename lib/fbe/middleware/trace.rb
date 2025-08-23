@@ -52,7 +52,7 @@ class Fbe::Middleware::Trace < Faraday::Middleware
     @app.call(env).on_complete do |response_env|
       next if !@ignores.empty? &&
               response_env[:http_cache_trace] &&
-              (response_env[:http_cache_trace] & @ignores).size.positive?
+              response_env[:http_cache_trace].intersect?(@ignores)
       finished = Time.now
       duration = finished - entry[:started_at]
       entry[:status] = response_env.status
