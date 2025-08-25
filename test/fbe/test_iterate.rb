@@ -31,6 +31,21 @@ class TestIterate < Fbe::Test
     assert_equal(4, fb.size)
   end
 
+  def test_stops_on_timeout
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    fb.insert.foo = 42
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'labels-were-scanned'
+      by '(agg (always) (max foo))'
+      repeats 2
+      over(timeout: 0.1) do
+        sleep 0.2
+      end
+    end
+    assert_equal(2, fb.size)
+  end
+
   def test_many_repeats
     opts = Judges::Options.new(['repositories=foo/bar,foo/second', 'testing=true'])
     cycles = 0

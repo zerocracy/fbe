@@ -212,6 +212,10 @@ class Fbe::Iterate
         @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
         break
       end
+      if Time.now - start > timeout
+        @loog.info('We are over time, it is time to stop')
+        break
+      end
       repos.each do |repo|
         if @quota_aware && oct.off_quota?
           @loog.debug("We are off GitHub quota, we must skip #{repo}")
