@@ -23,7 +23,7 @@ class Fbe::Tombstone
 
   # Put it there.
   # @param [Integer] repo ID of repository
-  # @param [Integer] issue ID of issue
+  # @param [Integer] issue ID of issue (or array of them)
   def bury!(repo, issue)
     f =
       Fbe.if_absent(fb: @fb, always: true) do |n|
@@ -32,7 +32,10 @@ class Fbe::Tombstone
       end
     f.send(:"#{@fid}=", SecureRandom.random_number(99_999)) if f[@fid].nil?
     nn = f['issues']&.map { |ii| ii.split('-').map(&:to_i) } || []
-    nn << [issue, issue]
+    issue = [issue] unless issue.is_a?(Array)
+    issue.each do |i|
+      nn << [i, i]
+    end
     nn = nn.sort_by(&:first)
     merged = []
     nn.each do |a, b|
