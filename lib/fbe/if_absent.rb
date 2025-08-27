@@ -30,6 +30,7 @@ require_relative 'fb'
 # time of its first creation.
 #
 # @param [Factbase] fb The factbase to check and insert into (defaults to Fbe.fb)
+# @param [Boolean] always If true, return the object in any case
 # @yield [Factbase::Fact] A proxy fact object to set properties on
 # @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
 # @note String values are properly escaped in queries
@@ -45,7 +46,7 @@ require_relative 'fb'
 #   else
 #     puts "User already exists"
 #   end
-def Fbe.if_absent(fb: Fbe.fb)
+def Fbe.if_absent(fb: Fbe.fb, always: false)
   attrs = {}
   f =
     others(map: attrs) do |*args|
@@ -71,7 +72,8 @@ def Fbe.if_absent(fb: Fbe.fb)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.to_a.first
+  before = fb.query(q).each.first
+  return before if before && always
   return nil if before
   n = fb.insert
   attrs.each { |k, v| n.send(:"#{k}=", v) }
