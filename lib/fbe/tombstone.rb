@@ -22,13 +22,15 @@ class Fbe::Tombstone
   end
 
   # Put it there.
+  # @param [String] where The place, e.g. "github"
   # @param [Integer] repo ID of repository
   # @param [Integer] issue ID of issue (or array of them)
-  def bury!(repo, issue)
+  def bury!(where, repo, issue)
     f =
       Fbe.if_absent(fb: @fb, always: true) do |n|
         n.what = 'tombstone'
-        n.repository = repo
+        n.where = where
+        n.repo = repo
       end
     f.send(:"#{@fid}=", SecureRandom.random_number(99_999)) if f[@fid].nil?
     nn = f['issues']&.map { |ii| ii.split('-').map(&:to_i) } || []
@@ -54,12 +56,13 @@ class Fbe::Tombstone
   end
 
   # Is it there?
+  # @param [String] where The place, e.g. "github"
   # @param [Integer] repo ID of repository
   # @param [Integer] issue ID of issue (or array of them)
   # @return [Boolean] True if it's there
-  def has?(repo, issue)
+  def has?(where, repo, issue)
     f = @fb.query(
-      "(and (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
+      "(and (eq where '#{where}') (eq what 'tombstone') (eq repo #{repo}) (exists issues))"
     ).each.first
     return false if f.nil?
     issue = [issue] unless issue.is_a?(Array)
