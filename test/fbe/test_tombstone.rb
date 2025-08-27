@@ -24,4 +24,23 @@ class TestTombstone < Fbe::Test
     refute(ts.has?(43, 999))
     refute(ts.has?(43, 990))
   end
+
+  def test_on_empty
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    refute(ts.has?(8, 7))
+  end
+
+  def test_merges_them
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    ts.bury!(42, 13)
+    ts.bury!(42, 18)
+    ts.bury!(42, 14)
+    ts.bury!(42, 17)
+    ts.bury!(42, 15)
+    ts.bury!(42, 16)
+    assert(ts.has?(42, 16))
+    refute(ts.has?(42, 22))
+  end
 end
