@@ -46,6 +46,7 @@ class TestTombstone < Fbe::Test
     ts.bury!(42, 14)
     ts.bury!(42, [17, 15, 16])
     assert(ts.has?(42, 16))
+    assert(ts.has?(42, [16, 18]))
     refute(ts.has?(42, 22))
   end
 end

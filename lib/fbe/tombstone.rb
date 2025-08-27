@@ -55,16 +55,19 @@ class Fbe::Tombstone
 
   # Is it there?
   # @param [Integer] repo ID of repository
-  # @param [Integer] issue ID of issue
+  # @param [Integer] issue ID of issue (or array of them)
   # @return [Boolean] True if it's there
   def has?(repo, issue)
     f = @fb.query(
       "(and (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
     ).each.first
     return false if f.nil?
-    f['issues'].any? do |ii|
-      a, b = ii.split('-').map(&:to_i)
-      (a..b).cover?(issue)
+    issue = [issue] unless issue.is_a?(Array)
+    issue.all? do |i|
+      f['issues'].any? do |ii|
+        a, b = ii.split('-').map(&:to_i)
+        (a..b).cover?(i)
+      end
     end
   end
 end
