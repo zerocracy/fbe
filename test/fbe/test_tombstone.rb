@@ -31,6 +31,13 @@ class TestTombstone < Fbe::Test
     refute(ts.has?(8, 7))
   end
 
+  def test_bury_twice
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    2.times { ts.bury!(42, 7) }
+    assert(ts.has?(42, 7))
+  end
+
   def test_merges_them
     fb = Factbase.new
     ts = Fbe::Tombstone.new(fb:)
