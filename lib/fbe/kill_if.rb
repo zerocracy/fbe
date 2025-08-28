@@ -19,7 +19,5 @@ def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
     end
     ids << f[fid].first
   end
-  killed = fb.query("(or #{ids.map { |id| "(eq #{fid} #{id})" }.join})").delete!
-  $loog.debug("Deleted #{killed} fact(s)")
-  killed
+  fb.query("(or #{ids.map { |id| "(eq #{fid} #{id})" }.join})").delete!
 end
