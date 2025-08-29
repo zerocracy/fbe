@@ -69,7 +69,7 @@ end
 #   iterator.over(timeout: 600) do |repo_id, pr_number|
 #     # Process pull request
 #     fetch_and_store_pr(repo_id, pr_number)
-#     pr_number  # Return next PR number to process
+#     pr_number + 1  # Return next PR number to process
 #   end
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
@@ -253,10 +253,12 @@ class Fbe::Iterate
             restarted << repo
             @since
           else
-            @loog.debug("Next is ##{nxt}, starting from it...")
+            @loog.debug("Next is ##{nxt}, starting from it")
             yield(repo, nxt)
           end
-        raise "Iterator must return an Integer, while #{before[repo].class} returned" unless before[repo].is_a?(Integer)
+        unless before[repo].is_a?(Integer)
+          raise "Iterator must return an Integer, but #{before[repo].class} was returned"
+        end
         seen[repo] += 1
       end
       unless seen.any? { |r, v| v < @repeats && !restarted.include?(r) }

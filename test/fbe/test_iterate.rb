@@ -80,4 +80,173 @@ class TestIterate < Fbe::Test
     end
     assert_equal(1, cycles)
   end
+
+  def test_quota_aware_continues_when_quota_available
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    cycles = 0
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      as 'quota-test'
+      by '(plus 1 1)'
+      quota_aware
+      repeats 5
+      over do |_, nxt|
+        cycles += 1
+        nxt + 1
+      end
+    end
+    assert_equal(5, cycles)
+  end
+
+  def test_raises_when_label_not_set
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        by '(plus 1 1)'
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_raises_when_query_not_set
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        as 'no-query-test'
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_raises_when_block_returns_non_integer
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        as 'non-integer-test'
+        by '(plus 1 1)'
+        over { |_, _| 'not-an-integer' }
+      end
+    end
+  end
+
+  def test_raises_when_label_set_twice
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        as 'first-label'
+        as 'second-label'
+      end
+    end
+  end
+
+  def test_raises_when_query_set_twice
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        by '(plus 1 1)'
+        by '(plus 2 2)'
+      end
+    end
+  end
+
+  def test_raises_when_repeats_is_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        as 'nil-repeats-test'
+        by '(plus 1 1)'
+        repeats nil
+      end
+    end
+  end
+
+  def test_raises_when_repeats_is_not_positive
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        as 'zero-repeats-test'
+        by '(plus 1 1)'
+        repeats 0
+      end
+    end
+  end
+
+  def test_raises_when_label_is_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        as nil
+      end
+    end
+  end
+
+  def test_raises_when_query_is_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        by nil
+      end
+    end
+  end
+
+  def test_persists_marker_facts
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    fb.insert.num = 10
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      as 'marker-test'
+      by '(agg (always) (max num))'
+      repeats 1
+      over do |_, nxt|
+        nxt + 5
+      end
+    end
+    markers = fb.query("(and (eq what 'marker-test') (eq where 'github'))").each.to_a
+    assert_equal(1, markers.size)
+    assert_equal(15, markers.first.latest)
+  end
+
+  def test_multiple_repositories_with_different_progress
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Factbase.new
+    results = []
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      as 'multi-repo-test'
+      by '(plus 1 1)'
+      repeats 2
+      over do |repo, nxt|
+        results << [repo, nxt]
+        nxt + 1
+      end
+    end
+    assert_equal(4, results.size)
+  end
+
+  def test_all_repos_restart_causes_exit
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Factbase.new
+    cycles = 0
+    restarts = 0
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      as 'all-restart-test'
+      by '(agg (eq foo 123) (first foo))'
+      repeats 10
+      over do |_, nxt|
+        cycles += 1
+        restarts += 1 if nxt.nil?
+        nxt || 0
+      end
+    end
+    assert_equal(0, cycles)
+    assert_equal(0, restarts)
+  end
 end
