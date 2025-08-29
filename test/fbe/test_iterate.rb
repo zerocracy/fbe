@@ -39,11 +39,12 @@ class TestIterate < Fbe::Test
       as 'labels-were-scanned'
       by '(agg (always) (max foo))'
       repeats 2
-      over(timeout: 0.1) do
+      over(timeout: 0.1) do |i|
         sleep 0.2
+        i
       end
     end
-    assert_equal(1, fb.size)
+    assert_equal(2, fb.size)
   end
 
   def test_many_repeats
