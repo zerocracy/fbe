@@ -204,9 +204,24 @@ class Fbe::Iterate
       @loog.debug('We are off GitHub quota, cannot even start, sorry')
       return
     end
-    repos = Fbe.unmask_repos(loog: @loog, options: @options, global: @global, quota_aware: @quota_aware)
+    repos = Fbe.unmask_repos(
+      loog: @loog, options: @options, global: @global, quota_aware: @quota_aware
+    ).map { |n| oct.repo_id_by_name(n) }
     restarted = []
     start = Time.now
+    before =
+      repos.to_h do |repo|
+        [
+          repo,
+          @fb.query(
+            "(agg (and
+              (eq what '#{@label}')
+              (eq where 'github')
+              (eq repository #{repo}))
+            (first latest))"
+          ).one&.first || @since
+        ]
+      end
     loop do
       if @quota_aware && oct.off_quota?
         @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
@@ -231,35 +246,17 @@ class Fbe::Iterate
           @loog.debug("We've seen too many (#{seen[repo]}) in #{repo}, let's see next one")
           next
         end
-        rid = oct.repo_id_by_name(repo)
-        before = @fb.query(
-          "(agg (and (eq what '#{@label}') (eq where 'github') (eq repository #{rid})) (first latest))"
-        ).one
-        @fb.query("(and (eq what '#{@label}') (eq where 'github') (eq repository #{rid}))").delete!
-        before = before.nil? ? @since : before.first
-        nxt = @fb.query(@query).one(@fb, before:, repository: rid)
-        after =
+        nxt = @fb.query(@query).one(@fb, before: before[repo], repository: repo)
+        before[repo] =
           if nxt.nil?
-            @loog.debug("Next element after ##{before} not suggested, re-starting from ##{@since}: #{@query}")
+            @loog.debug("Next element after ##{before[repo]} not suggested, re-starting from ##{@since}: #{@query}")
             restarted << repo
             @since
           else
             @loog.debug("Next is ##{nxt}, starting from it...")
-            yield(rid, nxt)
+            yield(repo, nxt)
           end
-        raise "Iterator must return an Integer, while #{after.class} returned" unless after.is_a?(Integer)
-        f = @fb.insert
-        f.where = 'github'
-        f.repository = rid
-        f.latest =
-          if after.nil?
-            @loog.debug("After is nil at #{repo}, setting the 'latest' to ##{nxt}")
-            nxt
-          else
-            @loog.debug("After is ##{after} at #{repo}, setting the 'latest' to it")
-            after
-          end
-        f.what = @label
+        raise "Iterator must return an Integer, while #{before[repo].class} returned" unless before[repo].is_a?(Integer)
         seen[repo] += 1
       end
       unless seen.any? { |r, v| v < @repeats && !restarted.include?(r) }
@@ -270,6 +267,19 @@ class Fbe::Iterate
         @loog.debug("All #{repos.size} repos restarted, quitting after #{start.ago}")
         break
       end
+    end
+    repos.each do |repo|
+      @fb.query(
+        "(and
+          (eq what '#{@label}')
+          (eq where 'github')
+          (eq repository #{repo}))"
+      ).delete!
+      f = @fb.insert
+      f.where = 'github'
+      f.repository = repo
+      f.latest = before[repo]
+      f.what = @label
     end
     @loog.debug("Finished scanning #{repos.size} repos in #{start.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
   end
