@@ -222,6 +222,7 @@ class Fbe::Iterate
           ).one&.first || @since
         ]
       end
+    starts = before.dup
     loop do
       if @quota_aware && oct.off_quota?
         @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
@@ -271,6 +272,7 @@ class Fbe::Iterate
       end
     end
     repos.each do |repo|
+      next if before[repo] == starts[repo]
       @fb.query(
         "(and
           (eq what '#{@label}')

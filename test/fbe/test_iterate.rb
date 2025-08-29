@@ -43,7 +43,7 @@ class TestIterate < Fbe::Test
         sleep 0.2
       end
     end
-    assert_equal(2, fb.size)
+    assert_equal(1, fb.size)
   end
 
   def test_many_repeats
