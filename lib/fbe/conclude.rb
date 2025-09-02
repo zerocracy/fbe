@@ -17,13 +17,16 @@ require_relative 'octo'
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Loog] loog The logging facility
 # @yield [Factbase::Fact] The fact
-def Fbe.conclude(fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global, time: Time, &)
+def Fbe.conclude(
+  fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
+  start: $start, time: Time, &
+)
   raise 'The fb is nil' if fb.nil?
   raise 'The $judge is not set' if judge.nil?
   raise 'The $global is not set' if global.nil?
   raise 'The $options is not set' if options.nil?
   raise 'The $loog is not set' if loog.nil?
-  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, time:)
+  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, start:, time:)
   c.instance_eval(&)
 end
 
@@ -59,28 +62,38 @@ class Fbe::Conclude
   # @param [Judges::Options] options The options coming from the +judges+ tool
   # @param [Loog] loog The logging facility
   # @param [Time] time The time
-  def initialize(fb:, judge:, global:, options:, loog:, time: Time)
+  def initialize(fb:, judge:, global:, options:, loog:, start:, time: Time)
     @fb = fb
     @judge = judge
     @loog = loog
     @options = options
     @global = global
+    @start = start
     @query = nil
     @follows = []
-    @quota_aware = false
+    @lifetime_aware = true
+    @quota_aware = true
     @timeout = 60
     @time = time
   end
 
-  # Make this block aware of GitHub API quota.
+  # Make this block not aware of GitHub API quota.
   #
-  # When the quota is reached, the loop will gracefully stop to avoid
-  # hitting GitHub API rate limits. This helps prevent interruptions
-  # in long-running operations.
+  # When the quota is reached, the loop will NOT gracefully stop to avoid
+  # hitting GitHub API rate limits.
   #
   # @return [nil] Nothing is returned
-  def quota_aware
-    @quota_aware = true
+  def quota_unaware
+    @quota_aware = false
+  end
+
+  # Make this block NOT aware of lifetime limitations.
+  #
+  # When the lifetime is over, the loop will NOT gracefully stop.
+  #
+  # @return [nil] Nothing is returned
+  def lifetime_aware
+    @lifetime_aware = false
   end
 
   # Make sure this block runs for less than allowed amount of seconds.
@@ -187,6 +200,10 @@ class Fbe::Conclude
     @fb.query(@query).each do |a|
       if @quota_aware && oct.off_quota?
         @loog.debug('We ran out of GitHub quota, must stop here')
+        break
+      end
+      if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
+        @loog.debug('We ran out of lifetime, must stop here')
         break
       end
       now = @time.now

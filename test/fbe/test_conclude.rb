@@ -18,11 +18,13 @@ require_relative '../test__helper'
 class TestConclude < Fbe::Test
   def test_with_defaults
     $fb = Factbase.new
+    $start = Time.now
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
     $judge = ''
     Fbe.conclude do
+      quota_unaware
       # nothing
     end
   end
@@ -30,11 +32,13 @@ class TestConclude < Fbe::Test
   def test_draw
     $fb = Factbase.new
     $global = {}
+    $start = Time.now
     $loog = Loog::NULL
     $options = Judges::Options.new
     $fb.insert.foo = 1
     $fb.insert.bar = 2
     Fbe.conclude(judge: 'judge-one') do
+      quota_unaware
       on '(exists foo)'
       draw do |n, prev|
         n.sum = prev.foo + 1
@@ -50,10 +54,12 @@ class TestConclude < Fbe::Test
   def test_draw_with_rollback
     $fb = Factbase.new
     $global = {}
+    $start = Time.now
     $loog = Loog::NULL
     $options = Judges::Options.new
     $fb.insert.foo = 1
     Fbe.conclude(judge: 'judge-one') do
+      quota_unaware
       on '(exists foo)'
       draw do |n, prev|
         n.hello = prev.foo
@@ -64,10 +70,12 @@ class TestConclude < Fbe::Test
   end
 
   def test_consider
+    $start = Time.now
     fb = Factbase.new
     fb.insert.foo = 1
     options = Judges::Options.new
     Fbe.conclude(fb:, judge: 'issue-was-closed', loog: Loog::NULL, options:, global: {}) do
+      quota_unaware
       on '(exists foo)'
       consider do |_prev|
         fb.insert.bar = 42
@@ -78,6 +86,7 @@ class TestConclude < Fbe::Test
   end
 
   def test_considers_until_quota
+    $start = Time.now
     WebMock.disable_net_connect!
     fb = Factbase.new
     5.times do
@@ -100,7 +109,6 @@ class TestConclude < Fbe::Test
     global = {}
     o = Fbe.octo(loog: Loog::NULL, options:, global:)
     Fbe.conclude(fb:, judge: 'boom', loog: Loog::NULL, options:, global:) do
-      quota_aware
       on '(exists foo)'
       consider do |f|
         f.bar = o.user("user-#{rand(100)}")[:id]
@@ -111,12 +119,14 @@ class TestConclude < Fbe::Test
 
   def test_ignores_globals
     $fb = nil
+    $start = Time.now
     $loog = nil
     $options = nil
     $global = nil
     fb = Factbase.new
     fb.insert.foo = 1
     Fbe.conclude(fb:, judge: 'judge-xxx', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
+      quota_unaware
       on '(exists foo)'
       draw do |n, prev|
         n.sum = prev.foo + 1
@@ -127,6 +137,7 @@ class TestConclude < Fbe::Test
   end
 
   def test_stop_if_timeout_exceeded
+    $start = Time.now
     $fb = Factbase.new
     $fb.insert.then do |f|
       f._id = 1
@@ -160,6 +171,7 @@ class TestConclude < Fbe::Test
     time.expect(:now, now + 8)
     time.expect(:now, now + 12)
     Fbe.conclude(time: time) do
+      quota_unaware
       on '(exists foo)'
       timeout 10
       consider do |f|
