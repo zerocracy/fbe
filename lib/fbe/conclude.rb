@@ -199,7 +199,7 @@ class Fbe::Conclude
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     @fb.query(@query).each do |a|
       if @quota_aware && oct.off_quota?
-        @loog.debug('We ran out of GitHub quota, must stop here')
+        @loog.info('We ran out of GitHub quota, must stop here')
         break
       end
       if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10

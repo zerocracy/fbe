@@ -201,7 +201,7 @@ class Fbe::Iterate
     seen = {}
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     if oct.off_quota?
-      @loog.debug('We are off GitHub quota, cannot even start, sorry')
+      @loog.info('We are off GitHub quota, cannot even start, sorry')
       return
     end
     repos = Fbe.unmask_repos(
@@ -234,7 +234,7 @@ class Fbe::Iterate
       end
       repos.each do |repo|
         if @quota_aware && oct.off_quota?
-          @loog.debug("We are off GitHub quota, we must skip #{repo}")
+          @loog.info("We are off GitHub quota, we must skip #{repo}")
           break
         end
         if Time.now - start > timeout
