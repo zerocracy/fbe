@@ -49,12 +49,17 @@ end
 # @param [Judges::Options] options Options containing 'repositories' field with masks
 # @param [Hash] global Global cache for storing API responses
 # @param [Loog] loog Logger for debug output
+# @param [Time] start When did we start the entire pipeline
 # @param [quota_aware] Boolean Should we stop if quota is off?
+# @param [lifetime_aware] Boolean Should we stop if lifetime is over?
 # @return [Array<String>] Shuffled list of repository full names (e.g., 'org/repo')
 # @raise [RuntimeError] If no repositories match the provided masks
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
-def Fbe.unmask_repos(options: $options, global: $global, loog: $loog, quota_aware: true)
+def Fbe.unmask_repos(
+  options: $options, global: $global, loog: $loog, start: $start,
+  quota_aware: true, lifetime_aware: true
+)
   raise 'Repositories mask is not specified' unless options.repositories
   raise 'Repositories mask is empty' if options.repositories.empty?
   repos = []
@@ -82,7 +87,11 @@ def Fbe.unmask_repos(options: $options, global: $global, loog: $loog, quota_awar
   return repos unless block_given?
   repos.each do |repo|
     if quota_aware && octo.off_quota?
-      $loog.info("No GitHub quota left, it is time to stop at #{repo}")
+      loog.info("No GitHub quota left, it is time to stop at #{repo}")
+      break
+    end
+    if lifetime_aware && options.lifetime && Time.now - start > options.lifetime - 10
+      loog.info("No time left, it is time to stop at #{repo}")
       break
     end
     yield repo
