@@ -712,29 +712,40 @@ class Fbe::FakeOctokit
   #   client.pull_request('octocat/Hello-World', 1)
   #   # => {:id=>42, :number=>1, :additions=>12, ...}
   def pull_request(repo, number)
-    {
-      id: 42,
-      number:,
-      repo: {
-        full_name: repo
-      },
-      base: {
+    if number == 29
+      {
+        id: 42,
+        number:,
+        user: { id: 421, login: 'user' },
+        created_at: Time.parse('2024-08-20 15:35:30 UTC'),
+        additions: 12,
+        deletions: 5
+      }
+    else
+      {
+        id: 42,
+        number:,
         repo: {
           full_name: repo
-        }
-      },
-      state: 'closed',
-      user: { login: 'yegor256', id: 526_301, type: 'User' },
-      head: { ref: 'master', sha: '6dcb09b5b57875f334f61aebed695e2e4193db5e' },
-      additions: 12,
-      deletions: 5,
-      changed_files: 3,
-      comments: 2,
-      review_comments: 2,
-      closed_at: Time.parse('2024-12-20'),
-      merged_at: Time.parse('2024-12-20'),
-      created_at: Time.parse('2024-09-20')
-    }
+        },
+        base: {
+          repo: {
+            full_name: repo
+          }
+        },
+        state: 'closed',
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        head: { ref: 'master', sha: '6dcb09b5b57875f334f61aebed695e2e4193db5e' },
+        additions: 12,
+        deletions: 5,
+        changed_files: 3,
+        comments: 2,
+        review_comments: 2,
+        closed_at: Time.parse('2024-12-20'),
+        merged_at: Time.parse('2024-12-20'),
+        created_at: Time.parse('2024-09-20')
+      }
+    end
   end
 
   # Lists pull requests for a repository.
@@ -828,6 +839,13 @@ class Fbe::FakeOctokit
         submitted_at: Time.parse('2024-08-21 22:00:00 UTC'),
         commit_id: 'a15c2893f1b5453'
       }
+    ]
+  end
+
+  def pull_request_review_comments(_repo, _number, _review, _options = {})
+    [
+      { id: 22_447_120, user: { login: 'yegor256', id: 526_301, type: 'User' } },
+      { id: 22_447_121, user: { login: 'yegor256', id: 526_301, type: 'User' } }
     ]
   end
 
