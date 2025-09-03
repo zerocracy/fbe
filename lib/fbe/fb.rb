@@ -44,7 +44,11 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
           max = fbt.query('(max _id)').one
           f._id = (max.nil? ? 0 : max) + 1
           f._time = Time.now
-          f._version = "#{Factbase::VERSION}/#{Judges::VERSION}/#{options.action_version}"
+          f._version = [
+            Factbase::VERSION,
+            Judges::VERSION,
+            options.action_version
+          ].compact.join('/')
           f._job = options.job_id unless options.job_id.nil?
         end
       Factbase::Impatient.new(
