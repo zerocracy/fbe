@@ -49,7 +49,7 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
             Judges::VERSION,
             options.action_version
           ].compact.join('/')
-          f._job = options.job_id unless options.job_id.nil?
+          f._job = options.job_id.to_i if options.job_id
         end
       Factbase::Impatient.new(
         Factbase::Logged.new(
