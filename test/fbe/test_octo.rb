@@ -392,6 +392,32 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fetch_fake_pull_request
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.pull_request('yegor256/test', 29).then do |pr|
+      assert_pattern do
+        pr => {
+          id: 42,
+          number: 29,
+          user: { login: 'user', id: 421 },
+          created_at: Time,
+          additions: 12,
+          deletions: 5
+        }
+      end
+    end
+  end
+
+  def test_fetch_fake_pull_request_review_comments
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.pull_request_review_comments('yegor256/test', 100, 100_001).then do |comments|
+      assert_kind_of(Array, comments)
+      comments.each do |comment|
+        assert_pattern { comment => { id: Integer, user: { login: String, id: Integer, type: String } } }
+      end
+    end
+  end
+
   def test_print_trace
     loog = Loog::Buffer.new
     WebMock.disable_net_connect!
