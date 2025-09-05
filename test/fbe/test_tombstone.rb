@@ -53,4 +53,24 @@ class TestTombstone < Fbe::Test
     assert(ts.has?(where, 42, [16, 18]))
     refute(ts.has?(where, 42, 22))
   end
+
+  def test_merge_complex_ranges
+    where = 'github'
+    repo = 42
+    fb = Factbase.new
+    fb.insert.then do |f|
+      f._id = 1
+      f.what = 'tombstone'
+      f.where = where
+      f.repo = repo
+      Fbe.overwrite(f, 'issues', %w[4-4 4-5 5-6 5-5 4-6 10-14], fb:)
+    end
+    ts = Fbe::Tombstone.new(fb:)
+    ts.bury!(where, repo, 5)
+    f = fb.query('(always)').each.to_a.first
+    assert_equal(%w[4-6 10-14], f['issues'])
+    Fbe.overwrite(f, 'issues', %w[14-15 8-8 4-5 4-4 5-6 5-5 4-6 10-13], fb:)
+    ts.bury!(where, repo, 20)
+    assert_equal(%w[4-6 8-8 10-15 20-20], fb.query('(always)').each.to_a.first['issues'])
+  end
 end
