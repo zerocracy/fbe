@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'securerandom'
 require_relative '../fbe'
 require_relative 'fb'
 require_relative 'if_absent'
@@ -38,20 +39,14 @@ class Fbe::Tombstone
     issue.each do |i|
       nn << [i, i]
     end
-    nn = nn.sort_by(&:first)
-    merged = []
-    nn.each do |a, b|
-      if merged.empty?
-        merged << [a, b]
-      else
-        last = merged[-1]
-        if last[1] == a - 1
-          last[1] = b
+    merged =
+      nn.sort.each_with_object([]) do |(a, b), merged|
+        if !merged.empty? && merged[-1][0] <= a && a <= merged[-1][1] + 1
+          merged[-1][1] = b if b > merged[-1][1]
         else
           merged << [a, b]
         end
       end
-    end
     Fbe.overwrite(f, 'issues', merged.map { |ii| "#{ii[0]}-#{ii[1]}" }, fb: @fb, fid: @fid)
   end
 
