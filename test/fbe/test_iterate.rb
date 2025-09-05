@@ -212,8 +212,10 @@ class TestIterate < Fbe::Test
       end
     end
     markers = fb.query("(and (eq what 'marker-test') (eq where 'github'))").each.to_a
+    assert_empty(markers)
+    markers = fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a
     assert_equal(1, markers.size)
-    assert_equal(15, markers.first.latest)
+    assert_equal(15, markers.first.marker_test)
   end
 
   def test_multiple_repositories_with_different_progress
@@ -249,5 +251,87 @@ class TestIterate < Fbe::Test
     end
     assert_equal(0, cycles)
     assert_equal(0, restarts)
+  end
+
+  def test_all_markers_in_one_fact
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    fb.insert.foo = 42
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'first_marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        f = fb.insert
+        f.foo = foo + 1
+        f.foo
+      end
+    end
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'second_marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        f = fb.insert
+        f.foo = foo + 1
+        f.foo
+      end
+    end
+    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+      refute_nil(f)
+      assert_equal('github', f.where)
+      assert_equal(680, f.repository)
+      assert_equal(43, f.first_marker)
+      assert_equal(44, f.second_marker)
+    end
+  end
+
+  def test_all_markers_in_one_fact_together_with_separate_marker
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    fb.insert.then do |f|
+      f.what = 'first_marker'
+      f.where = 'github'
+      f.repository = 680
+      f.latest = 40
+    end
+    fb.insert.foo = 42
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'first_marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        f = fb.insert
+        f.foo = foo + 1
+        f.foo
+      end
+    end
+    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+      refute_nil(f)
+      assert_equal('github', f.where)
+      assert_equal(680, f.repository)
+      assert_equal(43, f.first_marker)
+    end
+    assert_nil(fb.query("(eq what 'first_marker')").each.to_a.first)
+    fb.insert.then do |f|
+      f.what = 'second_marker'
+      f.where = 'github'
+      f.repository = 680
+      f.latest = 40
+    end
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'second_marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        f = fb.insert
+        f.foo = foo + 1
+        f.foo
+      end
+    end
+    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+      refute_nil(f)
+      assert_equal('github', f.where)
+      assert_equal(680, f.repository)
+      assert_equal(43, f.first_marker)
+      assert_equal(44, f.second_marker)
+    end
+    assert_nil(fb.query("(eq what 'second_marker')").each.to_a.first)
   end
 end

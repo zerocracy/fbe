@@ -8,6 +8,7 @@ require 'tago'
 require 'time'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'if_absent'
 require_relative 'octo'
 require_relative 'unmask_repos'
 
@@ -155,6 +156,10 @@ class Fbe::Iterate
   def as(label)
     raise 'Label is already set' unless @label.nil?
     raise 'Cannot set "label" to nil' if label.nil?
+    if label.include?('-')
+      @loog.warn('Use snake_case instead of kebab-case for label in Fbe::Iterate, ' \
+                 "label #{label} will be converted into #{label.tr('-', '_')}")
+    end
     @label = label
   end
 
@@ -214,6 +219,12 @@ class Fbe::Iterate
         [
           repo,
           @fb.query(
+            "(agg (and
+              (eq what 'iterate')
+              (eq where 'github')
+              (eq repository #{repo}))
+            (first #{@label.tr('-', '_')}))"
+          ).one&.first || @fb.query(
             "(agg (and
               (eq what '#{@label}')
               (eq where 'github')
@@ -279,11 +290,13 @@ class Fbe::Iterate
           (eq where 'github')
           (eq repository #{repo}))"
       ).delete!
-      f = @fb.insert
-      f.where = 'github'
-      f.repository = repo
-      f.latest = before[repo]
-      f.what = @label
+      f =
+        Fbe.if_absent(fb: @fb, always: true) do |n|
+          n.what = 'iterate'
+          n.where = 'github'
+          n.repository = repo
+        end
+      f.send("#{@label.tr('-', '_')}=", before[repo])
     end
     @loog.debug("Finished scanning #{repos.size} repos in #{start.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
   end
