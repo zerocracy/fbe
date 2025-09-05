@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'securerandom'
 require_relative '../fbe'
 require_relative 'fb'
 require_relative 'if_absent'
