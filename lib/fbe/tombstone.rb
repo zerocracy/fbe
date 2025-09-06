@@ -34,7 +34,7 @@ class Fbe::Tombstone
         n.repo = repo
       end
     f.send(:"#{@fid}=", SecureRandom.random_number(99_999)) if f[@fid].nil?
-    nn = f['issues']&.map { |ii| ii.split('-').map(&:to_i) } || []
+    nn = f['issues']&.map { |ii| ii.split('-').map(&:to_i).then { |ii| ii.size == 1 ? ii << ii[0] : ii } } || []
     issue = [issue] unless issue.is_a?(Array)
     issue.each do |i|
       nn << [i, i]
@@ -47,7 +47,9 @@ class Fbe::Tombstone
           merged << [a, b]
         end
       end
-    Fbe.overwrite(f, 'issues', merged.map { |ii| "#{ii[0]}-#{ii[1]}" }, fb: @fb, fid: @fid)
+    Fbe.overwrite(
+      f, 'issues', merged.map { |ii| ii[0] == ii[1] ? ii[0].to_s : "#{ii[0]}-#{ii[1]}" }, fb: @fb, fid: @fid
+    )
   end
 
   # Is it there?
