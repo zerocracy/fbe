@@ -66,7 +66,7 @@ class Fbe::Tombstone
     issue.all? do |i|
       f['issues'].any? do |ii|
         a, b = ii.split('-').map(&:to_i)
-        (a..b).cover?(i)
+        b.nil? ? a == i : (a..b).cover?(i)
       end
     end
   end

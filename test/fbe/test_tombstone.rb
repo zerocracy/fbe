@@ -89,5 +89,13 @@ class TestTombstone < Fbe::Test
     ts.bury!(where, repo, 226)
     f = fb.query('(always)').each.to_a.first
     assert_equal(%w[207 209 211 214 216-220 224 226-227 230], f['issues'])
+    assert(ts.has?(where, repo, 216))
+    assert(ts.has?(where, repo, 217))
+    assert(ts.has?(where, repo, 218))
+    assert(ts.has?(where, repo, 220))
+    refute(ts.has?(where, repo, 206))
+    refute(ts.has?(where, repo, 215))
+    refute(ts.has?(where, repo, 221))
+    refute(ts.has?(where, repo, 231))
   end
 end
