@@ -28,7 +28,7 @@ require_relative 'unmask_repos'
 # @raise [RuntimeError] If required globals are not set
 # @example Iterate through repositories processing issues
 #   Fbe.iterate do
-#     as 'issues-iterator'
+#     as 'issues_iterator'
 #     by '(and (eq what "issue") (gt created_at $before))'
 #     repeats 5
 #     quota_aware
@@ -64,7 +64,7 @@ end
 #
 # @example Processing pull requests with state management
 #   iterator = Fbe::Iterate.new(fb: fb, loog: loog, options: options, global: global)
-#   iterator.as('pull-requests')
+#   iterator.as('pull_requests')
 #   iterator.by('(and (eq what "pull_request") (gt number $before))')
 #   iterator.repeats(10)
 #   iterator.quota_aware
@@ -153,11 +153,11 @@ class Fbe::Iterate
   # @return [nil] Nothing is returned
   # @raise [RuntimeError] If label is already set or nil
   # @example Set label for issue processing
-  #   iterator.as('issue-processor')
+  #   iterator.as('issue_processor')
   def as(label)
     raise 'Label is already set' unless @label.nil?
     raise 'Cannot set "label" to nil' if label.nil?
-    raise "Use snake_case instead of kebab-case for label '#{label}' in Fbe::Iterate" if label.include?('-')
+    raise "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*" unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
     @label = label
   end
 
