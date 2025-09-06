@@ -8,7 +8,9 @@ require 'tago'
 require 'time'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'if_absent'
 require_relative 'octo'
+require_relative 'overwrite'
 require_relative 'unmask_repos'
 
 # Creates an instance of {Fbe::Iterate} and evaluates it with the provided block.
@@ -26,7 +28,7 @@ require_relative 'unmask_repos'
 # @raise [RuntimeError] If required globals are not set
 # @example Iterate through repositories processing issues
 #   Fbe.iterate do
-#     as 'issues-iterator'
+#     as 'issues_iterator'
 #     by '(and (eq what "issue") (gt created_at $before))'
 #     repeats 5
 #     quota_aware
@@ -62,7 +64,7 @@ end
 #
 # @example Processing pull requests with state management
 #   iterator = Fbe::Iterate.new(fb: fb, loog: loog, options: options, global: global)
-#   iterator.as('pull-requests')
+#   iterator.as('pull_requests')
 #   iterator.by('(and (eq what "pull_request") (gt number $before))')
 #   iterator.repeats(10)
 #   iterator.quota_aware
@@ -151,10 +153,11 @@ class Fbe::Iterate
   # @return [nil] Nothing is returned
   # @raise [RuntimeError] If label is already set or nil
   # @example Set label for issue processing
-  #   iterator.as('issue-processor')
+  #   iterator.as('issue_processor')
   def as(label)
     raise 'Label is already set' unless @label.nil?
     raise 'Cannot set "label" to nil' if label.nil?
+    raise "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*" unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
     @label = label
   end
 
@@ -215,10 +218,10 @@ class Fbe::Iterate
           repo,
           @fb.query(
             "(agg (and
-              (eq what '#{@label}')
+              (eq what 'iterate')
               (eq where 'github')
               (eq repository #{repo}))
-            (first latest))"
+            (first #{@label}))"
           ).one&.first || @since
         ]
       end
@@ -273,17 +276,13 @@ class Fbe::Iterate
     end
     repos.each do |repo|
       next if before[repo] == starts[repo]
-      @fb.query(
-        "(and
-          (eq what '#{@label}')
-          (eq where 'github')
-          (eq repository #{repo}))"
-      ).delete!
-      f = @fb.insert
-      f.where = 'github'
-      f.repository = repo
-      f.latest = before[repo]
-      f.what = @label
+      f =
+        Fbe.if_absent(fb: @fb, always: true) do |n|
+          n.what = 'iterate'
+          n.where = 'github'
+          n.repository = repo
+        end
+      Fbe.overwrite(f, @label, before[repo], fb: @fb)
     end
     @loog.debug("Finished scanning #{repos.size} repos in #{start.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
   end

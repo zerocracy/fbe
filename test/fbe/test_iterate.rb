@@ -16,10 +16,10 @@ require_relative '../test__helper'
 class TestIterate < Fbe::Test
   def test_simple
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
-      as 'labels-were-scanned'
+      as 'labels_were_scanned'
       by '(agg (always) (max foo))'
       repeats 2
       over do |_repository, foo|
@@ -33,10 +33,10 @@ class TestIterate < Fbe::Test
 
   def test_stops_on_timeout
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
-      as 'labels-were-scanned'
+      as 'labels_were_scanned'
       by '(agg (always) (max foo))'
       repeats 2
       over(timeout: 0.1) do |i|
@@ -51,8 +51,9 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar,foo/second', 'testing=true'])
     cycles = 0
     reps = 5
-    Fbe.iterate(fb: Factbase.new, loog: Loog::NULL, global: {}, options: opts) do
-      as 'labels-were-scanned'
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      as 'labels_were_scanned'
       by '(plus 1 1)'
       repeats reps
       over do |_, nxt|
@@ -66,11 +67,11 @@ class TestIterate < Fbe::Test
   def test_with_restart
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     cycles = 0
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     f = fb.insert
     f.foo = 42
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-      as 'labels-were-scanned'
+      as 'labels_were_scanned'
       by '(agg (and (eq foo 42) (not (exists bar))) (max foo))'
       repeats 10
       over do |_, nxt|
@@ -84,10 +85,10 @@ class TestIterate < Fbe::Test
 
   def test_quota_aware_continues_when_quota_available
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     cycles = 0
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-      as 'quota-test'
+      as 'quota_test'
       by '(plus 1 1)'
       quota_aware
       repeats 5
@@ -101,9 +102,21 @@ class TestIterate < Fbe::Test
 
   def test_raises_when_label_not_set
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        by '(plus 1 1)'
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_raises_when_label_not_in_snake_case
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(StandardError) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+        as 'kebab-case'
         by '(plus 1 1)'
         over { |_, nxt| nxt }
       end
@@ -112,10 +125,10 @@ class TestIterate < Fbe::Test
 
   def test_raises_when_query_not_set
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-        as 'no-query-test'
+        as 'no_query_test'
         over { |_, nxt| nxt }
       end
     end
@@ -123,10 +136,10 @@ class TestIterate < Fbe::Test
 
   def test_raises_when_block_returns_non_integer
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-        as 'non-integer-test'
+        as 'non_integer_test'
         by '(plus 1 1)'
         over { |_, _| 'not-an-integer' }
       end
@@ -135,18 +148,18 @@ class TestIterate < Fbe::Test
 
   def test_raises_when_label_set_twice
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-        as 'first-label'
-        as 'second-label'
+        as 'first_label'
+        as 'second_label'
       end
     end
   end
 
   def test_raises_when_query_set_twice
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
         by '(plus 1 1)'
@@ -157,10 +170,10 @@ class TestIterate < Fbe::Test
 
   def test_raises_when_repeats_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-        as 'nil-repeats-test'
+        as 'nil_repeats_test'
         by '(plus 1 1)'
         repeats nil
       end
@@ -169,10 +182,10 @@ class TestIterate < Fbe::Test
 
   def test_raises_when_repeats_is_not_positive
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-        as 'zero-repeats-test'
+        as 'zero_repeats_test'
         by '(plus 1 1)'
         repeats 0
       end
@@ -181,7 +194,7 @@ class TestIterate < Fbe::Test
 
   def test_raises_when_label_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
         as nil
@@ -191,7 +204,7 @@ class TestIterate < Fbe::Test
 
   def test_raises_when_query_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
         by nil
@@ -201,27 +214,27 @@ class TestIterate < Fbe::Test
 
   def test_persists_marker_facts
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.num = 10
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-      as 'marker-test'
+      as 'marker_test'
       by '(agg (always) (max num))'
       repeats 1
       over do |_, nxt|
         nxt + 5
       end
     end
-    markers = fb.query("(and (eq what 'marker-test') (eq where 'github'))").each.to_a
+    markers = fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a
     assert_equal(1, markers.size)
-    assert_equal(15, markers.first.latest)
+    assert_equal(15, markers.first.marker_test)
   end
 
   def test_multiple_repositories_with_different_progress
     opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     results = []
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-      as 'multi-repo-test'
+      as 'multi_repo_test'
       by '(plus 1 1)'
       repeats 2
       over do |repo, nxt|
@@ -234,11 +247,11 @@ class TestIterate < Fbe::Test
 
   def test_all_repos_restart_causes_exit
     opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
-    fb = Factbase.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     cycles = 0
     restarts = 0
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
-      as 'all-restart-test'
+      as 'all_restart_test'
       by '(agg (eq foo 123) (first foo))'
       repeats 10
       over do |_, nxt|
@@ -249,5 +262,79 @@ class TestIterate < Fbe::Test
     end
     assert_equal(0, cycles)
     assert_equal(0, restarts)
+  end
+
+  def test_all_markers_in_one_fact
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.foo = 42
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'first_marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        f = fb.insert
+        f.foo = foo + 1
+        f.foo
+      end
+    end
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'second_marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        f = fb.insert
+        f.foo = foo + 1
+        f.foo
+      end
+    end
+    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+      refute_nil(f)
+      assert_equal('github', f.where)
+      assert_equal(680, f.repository)
+      assert_equal(43, f.first_marker)
+      assert_equal(44, f.second_marker)
+    end
+  end
+
+  def test_all_markers_in_one_exists_fact
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.then do |f|
+      f.what = 'iterate'
+      f.where = 'github'
+      f.repository = 680
+      f.first_marker = 40
+      f.second_marker = 20
+    end
+    fb.insert.foo = 42
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'first_marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        f = fb.insert
+        f.foo = foo + 1
+        f.foo
+      end
+    end
+    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+      refute_nil(f)
+      assert_equal('github', f.where)
+      assert_equal(680, f.repository)
+      assert_equal(43, f.first_marker)
+      assert_equal(20, f.second_marker)
+    end
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+      as 'second_marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        foo + 7
+      end
+    end
+    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+      refute_nil(f)
+      assert_equal('github', f.where)
+      assert_equal(680, f.repository)
+      assert_equal(43, f.first_marker)
+      assert_equal(50, f.second_marker)
+    end
   end
 end
