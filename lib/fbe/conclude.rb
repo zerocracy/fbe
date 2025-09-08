@@ -90,7 +90,7 @@ class Fbe::Conclude
   # When the lifetime is over, the loop will NOT gracefully stop.
   #
   # @return [nil] Nothing is returned
-  def lifetime_aware
+  def lifetime_unaware
     @lifetime_aware = false
   end
 
