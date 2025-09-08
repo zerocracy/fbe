@@ -136,49 +136,17 @@ class TestConclude < Fbe::Test
     assert_equal(2, fb.size)
   end
 
-  def test_stop_if_timeout_exceeded
-    $start = Time.now
-    $fb = Factbase.new
-    $fb.insert.then do |f|
-      f._id = 1
-      f.foo = 5
-    end
-    $fb.insert.then do |f|
-      f._id = 2
-      f.foo = 4
-    end
-    $fb.insert.then do |f|
-      f._id = 3
-      f.bar = 3
-    end
-    $fb.insert.then do |f|
-      f._id = 4
-      f.foo = 2
-    end
-    $fb.insert.then do |f|
-      f._id = 5
-      f.foo = 1
-    end
-    $global = {}
-    $options = Judges::Options.new({ 'testing' => true })
-    $loog = Loog::NULL
-    $judge = ''
-    total = 0
-    now = Time.now
-    time = Minitest::Mock.new
-    time.expect(:now, now)
-    time.expect(:now, now + 4)
-    time.expect(:now, now + 8)
-    time.expect(:now, now + 12)
-    Fbe.conclude(time: time) do
+  def test_respects_lifetime
+    fb = Factbase.new
+    fb.insert.foo = 42
+    options = Judges::Options.new('lifetime=1')
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, start: Time.now + 10) do
       quota_unaware
       on '(exists foo)'
-      timeout 10
-      consider do |f|
-        total += f.foo
+      draw do
+        sleep 999
       end
     end
-    assert_equal(9, total)
-    time.verify
+    assert_equal(1, fb.size)
   end
 end

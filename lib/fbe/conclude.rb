@@ -19,14 +19,14 @@ require_relative 'octo'
 # @yield [Factbase::Fact] The fact
 def Fbe.conclude(
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
-  start: $start, time: Time, &
+  start: $start, &
 )
   raise 'The fb is nil' if fb.nil?
   raise 'The $judge is not set' if judge.nil?
   raise 'The $global is not set' if global.nil?
   raise 'The $options is not set' if options.nil?
   raise 'The $loog is not set' if loog.nil?
-  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, start:, time:)
+  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, start:)
   c.instance_eval(&)
 end
 
@@ -61,8 +61,7 @@ class Fbe::Conclude
   # @param [Hash] global The hash for global caching
   # @param [Judges::Options] options The options coming from the +judges+ tool
   # @param [Loog] loog The logging facility
-  # @param [Time] time The time
-  def initialize(fb:, judge:, global:, options:, loog:, start:, time: Time)
+  def initialize(fb:, judge:, global:, options:, loog:, start:)
     @fb = fb
     @judge = judge
     @loog = loog
@@ -74,7 +73,6 @@ class Fbe::Conclude
     @lifetime_aware = true
     @quota_aware = true
     @timeout = 60
-    @time = time
   end
 
   # Make this block not aware of GitHub API quota.
@@ -195,20 +193,18 @@ class Fbe::Conclude
   #   end
   def roll(&)
     passed = 0
-    start = @time.now
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     @fb.query(@query).each do |a|
       if @quota_aware && oct.off_quota?
         @loog.info('We ran out of GitHub quota, must stop here')
         break
       end
-      if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
+      if @lifetime_aware && @options.lifetime && Time.now - @start < @options.lifetime - 10
         @loog.debug('We ran out of lifetime, must stop here')
         break
       end
-      now = @time.now
-      if now > start + @timeout
-        @loog.debug("We've spent more than #{start.ago}, must stop here")
+      if Time.now > @start + @timeout
+        @loog.debug("We've spent more than #{@start.ago}, must stop here")
         break
       end
       @fb.txn do |fbt|
