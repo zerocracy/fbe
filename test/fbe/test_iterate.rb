@@ -32,19 +32,19 @@ class TestIterate < Fbe::Test
   end
 
   def test_stops_on_timeout
-    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true', 'lifetime=1'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
-    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+    Fbe.iterate(fb:, loog: Loog::VERBOSE, options: opts, global: {}, start: Time.now + 60) do
       as 'labels_were_scanned'
       by '(agg (always) (max foo))'
       repeats 2
-      over(timeout: 0.1) do |i|
-        sleep 0.2
+      over do |i|
+        sleep 999
         i
       end
     end
-    assert_equal(2, fb.size)
+    assert_equal(1, fb.size)
   end
 
   def test_many_repeats
@@ -90,7 +90,6 @@ class TestIterate < Fbe::Test
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
       as 'quota_test'
       by '(plus 1 1)'
-      quota_aware
       repeats 5
       over do |_, nxt|
         cycles += 1

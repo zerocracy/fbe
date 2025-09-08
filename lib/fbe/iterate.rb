@@ -37,12 +37,12 @@ require_relative 'unmask_repos'
 #       issue_id + 1
 #     end
 #   end
-def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, &)
+def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, start: $start, &)
   raise 'The fb is nil' if fb.nil?
   raise 'The $global is not set' if global.nil?
   raise 'The $options is not set' if options.nil?
   raise 'The $loog is not set' if loog.nil?
-  c = Fbe::Iterate.new(fb:, loog:, options:, global:)
+  c = Fbe::Iterate.new(fb:, loog:, options:, global:, start:)
   c.instance_eval(&)
 end
 
@@ -84,16 +84,18 @@ class Fbe::Iterate
   # @param [Loog] loog The logging facility for debug output
   # @param [Judges::Options] options The options containing repository configuration
   # @param [Hash] global The hash for global caching of API responses
-  def initialize(fb:, loog:, options:, global:)
+  def initialize(fb:, loog:, options:, global:, start:)
     @fb = fb
     @loog = loog
     @options = options
     @global = global
+    @start = start
     @label = nil
     @since = 0
     @query = nil
     @repeats = 1
-    @quota_aware = false
+    @quota_aware = true
+    @lifetime_aware = true
   end
 
   # Makes the iterator aware of GitHub API quota limits.
@@ -106,8 +108,15 @@ class Fbe::Iterate
   # @example Enable quota awareness
   #   iterator.quota_aware
   #   iterator.over { |repo, item| ... }  # Will stop if quota exhausted
-  def quota_aware
-    @quota_aware = true
+  def quota_unaware
+    @quota_aware = false
+  end
+
+  # Makes the iterator aware of litetime limits.
+  #
+  # @return [nil] Nothing is returned
+  def lifetime_unaware
+    @lifetime_aware = false
   end
 
   # Sets the maximum number of iterations per repository.
@@ -188,7 +197,6 @@ class Fbe::Iterate
   # 4. If query returns a value: call the block with (repo_id, query_result)
   # 5. Store the block's return value as the new "latest" for next iteration
   #
-  # @param [Float] timeout Maximum seconds to run (default: 120)
   # @yield [Integer, Object] Repository ID and the result from query execution
   # @yieldreturn [Integer] The value to store as "latest" for next iteration
   # @return [nil] Nothing is returned
@@ -198,7 +206,7 @@ class Fbe::Iterate
   #     fetch_and_process_issue(repo_id, issue_number)
   #     issue_number + 1  # Return next issue number to process
   #   end
-  def over(timeout: 2 * 60, &)
+  def over
     raise 'Use "as" first' if @label.nil?
     raise 'Use "by" first' if @query.nil?
     seen = {}
@@ -211,7 +219,7 @@ class Fbe::Iterate
       loog: @loog, options: @options, global: @global, quota_aware: @quota_aware
     ).map { |n| oct.repo_id_by_name(n) }
     restarted = []
-    start = Time.now
+    started = Time.now
     before =
       repos.to_h do |repo|
         [
@@ -228,10 +236,10 @@ class Fbe::Iterate
     starts = before.dup
     loop do
       if @quota_aware && oct.off_quota?
-        @loog.info("We are off GitHub quota, time to stop after #{start.ago}")
+        @loog.info("We are off GitHub quota, time to stop after #{started.ago}")
         break
       end
-      if Time.now - start > timeout
+      if @lifetime_aware && @options.lifetime && Time.now - @start < @options.lifetime - 10
         @loog.info('We are over time, it is time to stop')
         break
       end
@@ -240,8 +248,8 @@ class Fbe::Iterate
           @loog.info("We are off GitHub quota, we must skip #{repo}")
           break
         end
-        if Time.now - start > timeout
-          @loog.info("We are doing this for #{start.ago} already, won't check repository ##{repo}")
+        if @lifetime_aware && @options.lifetime && Time.now - @start < @options.lifetime - 10
+          @loog.info("We are working for #{started.ago} already, won't check repository ##{repo}")
           next
         end
         next if restarted.include?(repo)
@@ -266,11 +274,11 @@ class Fbe::Iterate
         seen[repo] += 1
       end
       unless seen.any? { |r, v| v < @repeats && !restarted.include?(r) }
-        @loog.debug("No more repos to scan (out of #{repos.size}), quitting after #{start.ago}")
+        @loog.debug("No more repos to scan (out of #{repos.size}), quitting after #{started.ago}")
         break
       end
       if restarted.size == repos.size
-        @loog.debug("All #{repos.size} repos restarted, quitting after #{start.ago}")
+        @loog.debug("All #{repos.size} repos restarted, quitting after #{started.ago}")
         break
       end
     end
@@ -284,6 +292,6 @@ class Fbe::Iterate
         end
       Fbe.overwrite(f, @label, before[repo], fb: @fb)
     end
-    @loog.debug("Finished scanning #{repos.size} repos in #{start.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
+    @loog.debug("Finished scanning #{repos.size} repos in #{started.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
   end
 end
