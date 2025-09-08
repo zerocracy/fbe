@@ -199,7 +199,7 @@ class Fbe::Conclude
         @loog.info('We ran out of GitHub quota, must stop here')
         break
       end
-      if @lifetime_aware && @options.lifetime && Time.now - @start < @options.lifetime - 10
+      if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
         @loog.debug('We ran out of lifetime, must stop here')
         break
       end

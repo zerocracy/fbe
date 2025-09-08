@@ -140,7 +140,7 @@ class TestConclude < Fbe::Test
     fb = Factbase.new
     fb.insert.foo = 42
     options = Judges::Options.new('lifetime=1')
-    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, start: Time.now + 10) do
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, start: Time.now - 60) do
       quota_unaware
       on '(exists foo)'
       draw do

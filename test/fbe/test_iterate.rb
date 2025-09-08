@@ -35,7 +35,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true', 'lifetime=1'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
-    Fbe.iterate(fb:, loog: Loog::VERBOSE, options: opts, global: {}, start: Time.now + 60) do
+    Fbe.iterate(fb:, loog: Loog::VERBOSE, options: opts, global: {}, start: Time.now - 60) do
       as 'labels_were_scanned'
       by '(agg (always) (max foo))'
       repeats 2

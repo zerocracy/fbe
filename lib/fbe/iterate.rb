@@ -112,7 +112,7 @@ class Fbe::Iterate
     @quota_aware = false
   end
 
-  # Makes the iterator aware of litetime limits.
+  # Makes the iterator aware of lifetime limits.
   #
   # @return [nil] Nothing is returned
   def lifetime_unaware
@@ -239,7 +239,7 @@ class Fbe::Iterate
         @loog.info("We are off GitHub quota, time to stop after #{started.ago}")
         break
       end
-      if @lifetime_aware && @options.lifetime && Time.now - @start < @options.lifetime - 10
+      if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
         @loog.info('We are over time, it is time to stop')
         break
       end
@@ -248,7 +248,7 @@ class Fbe::Iterate
           @loog.info("We are off GitHub quota, we must skip #{repo}")
           break
         end
-        if @lifetime_aware && @options.lifetime && Time.now - @start < @options.lifetime - 10
+        if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
           @loog.info("We are working for #{started.ago} already, won't check repository ##{repo}")
           next
         end
