@@ -27,6 +27,14 @@ class TestDelete < Fbe::Test
     assert_equal(4, fb.query('(exists hey)').each.first.hey)
   end
 
+  def test_deletes_that_is_absent
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    Fbe.delete(f, 'bar', fb:)
+    assert_equal(1, fb.size)
+  end
+
   def test_deletes_when_many
     fb = Factbase.new
     f = fb.insert

@@ -69,12 +69,17 @@ class TestOverwrite < Fbe::Test
   end
 
   def test_without_previous_property
-    f = Fbe.fb.insert
+    fb = Factbase.new
+    global = {}
+    options = Judges::Options.new
+    loog = Loog::NULL
+    fbx = Fbe.fb(fb:, global:, options:, loog:)
+    f = fbx.insert
     f.foo = 42
-    Fbe.fb.insert
+    fbx.insert
     before = f._id
-    Fbe.overwrite(f, 'bar', 44)
-    assert_equal(before, Fbe.fb.query('(eq bar 44)').each.first._id)
+    Fbe.overwrite(f, 'bar', 44, fb: fbx)
+    assert_equal(before, fbx.query('(eq bar 44)').each.first._id)
   end
 
   def test_safe_insert
