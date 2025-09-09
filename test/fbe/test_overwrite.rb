@@ -62,9 +62,19 @@ class TestOverwrite < Fbe::Test
   def test_without_id
     fb = Factbase.new
     f = fb.insert
+    f.foo = 43
     assert_raises(StandardError) do
       Fbe.overwrite(f, 'foo', 42, fb:)
     end
+  end
+
+  def test_without_previous_property
+    f = Fbe.fb.insert
+    f.foo = 42
+    Fbe.fb.insert
+    before = f._id
+    Fbe.overwrite(f, 'bar', 44)
+    assert_equal(before, Fbe.fb.query('(eq bar 44)').each.first._id)
   end
 
   def test_safe_insert

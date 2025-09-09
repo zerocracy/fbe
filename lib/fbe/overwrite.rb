@@ -17,7 +17,7 @@ require_relative 'fb'
 #
 # @param [Factbase::Fact] fact The fact to modify (must have _id property)
 # @param [String] property The name of the property to set
-# @param [Any] value The value to set (can be any type, including array)
+# @param [Any] values The value to set (can be any type, including array)
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @return [nil] Nothing
 # @raise [RuntimeError] If fact is nil, has no _id, or property is not a String
@@ -27,11 +27,19 @@ require_relative 'fb'
 #   user = fb.query('(eq login "john")').first
 #   updated_user = Fbe.overwrite(user, 'status', 'active')
 #   # All properties preserved, only 'status' is set to 'active'
-def Fbe.overwrite(fact, property, value, fb: Fbe.fb, fid: '_id')
+def Fbe.overwrite(fact, property, values, fb: Fbe.fb, fid: '_id')
   raise 'The fact is nil' if fact.nil?
   raise 'The fb is nil' if fb.nil?
   raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
-  return fact if !fact[property].nil? && fact[property].size == 1 && fact[property].first == value
+  raise 'The values is nil' if values.nil?
+  values = [values] unless values.is_a?(Array)
+  return fact if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
+  if fact[property].nil?
+    values.each do |v|
+      fact.send(:"#{property}=", v)
+    end
+    return
+  end
   before = {}
   fact.all_properties.each do |prop|
     before[prop.to_s] = fact[prop]
@@ -41,7 +49,7 @@ def Fbe.overwrite(fact, property, value, fb: Fbe.fb, fid: '_id')
   raise "No facts by #{fid} = #{id}" if fb.query("(eq #{fid} #{id})").delete!.zero?
   fb.txn do |fbt|
     n = fbt.insert
-    before[property.to_s] = value.is_a?(Array) ? value : [value]
+    before[property.to_s] = values
     before.each do |k, vv|
       next unless n[k].nil?
       vv.each do |v|
