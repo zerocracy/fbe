@@ -44,14 +44,16 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     loog.debug("#{$judge} statistics have recently been collected, skipping now")
     return
   end
-  f = fb.insert
-  f.what = judge
-  f.when = Time.now
-  unless p_since_days.nil?
-    days = pmp.nil? ? 28 : pmp[p_since_days].first
-    since = Time.now - (days * 24 * 60 * 60)
-    f.since = since
+  fb.txn do |fbt|
+    f = fbt.insert
+    f.what = judge
+    f.when = Time.now
+    unless p_since_days.nil?
+      days = pmp.nil? ? 28 : pmp[p_since_days].first
+      since = Time.now - (days * 24 * 60 * 60)
+      f.since = since
+    end
+    yield f
   end
-  yield f
   nil
 end
