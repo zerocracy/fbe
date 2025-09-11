@@ -37,14 +37,45 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
 
   # Handle Hash input (new API)
   if property_or_hash.is_a?(Hash)
+    # Collect all properties to update
+    before = {}
+    fact.all_properties.each do |prop|
+      before[prop.to_s] = fact[prop]
+    end
+    
+    # Update the properties in the before hash
     property_or_hash.each do |property, val|
-      Fbe.overwrite(fact, property.to_s, val, fb: fb, fid: fid)
+      before[property.to_s] = val.is_a?(Array) ? val : [val]
+    end
+    
+    # Get the fact ID
+    id = fact[fid]&.first
+    raise "There is no #{fid} in the fact, cannot use Fbe.overwrite" if id.nil?
+    raise "No facts by #{fid} = #{id}" if fb.query("(eq #{fid} #{id})").delete!.zero?
+    
+    # Create new fact with all properties
+    fb.txn do |fbt|
+      n = fbt.insert
+      before.each do |k, vv|
+        next unless n[k].nil?
+        vv.each do |v|
+          n.send(:"#{k}=", v)
+        end
+      end
     end
     return
   end
 
   # Handle String input (original API)
   property = property_or_hash
+  raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
+  raise 'The values is nil' if values.nil?
+  Fbe.overwrite_single(fact, property, values, fb, fid)
+end
+
+def Fbe.overwrite_single(fact, property, values, fb, fid)
+  raise 'The fact is nil' if fact.nil?
+  raise 'The fb is nil' if fb.nil?
   raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
   raise 'The values is nil' if values.nil?
   values = [values] unless values.is_a?(Array)

@@ -115,4 +115,99 @@ class TestOverwrite < Fbe::Test
     f2 = Fbe.fb.query('(always)').each.to_a.first
     assert_equal('bar', f2.foo)
   end
+
+  def test_overwrite_with_hash_single_property
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    f.bar = 'hey you друг'
+    Fbe.overwrite(f, {foo: 55}, fb:)
+    assert_equal(55, fb.query('(always)').each.to_a.first['foo'].first)
+    assert_equal('hey you друг', fb.query('(always)').each.to_a.first['bar'].first)
+  end
+
+  def test_overwrite_with_hash_multiple_properties
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    f.bar = 'hey you друг'
+    f.baz = 'old_value'
+    Fbe.overwrite(f, { foo: 55, bar: 'hello', baz: 'new_value' }, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(55, result['foo'].first)
+    assert_equal('hello', result['bar'].first)
+    assert_equal('new_value', result['baz'].first)
+  end
+
+  def test_overwrite_with_hash_symbol_keys
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, { foo: 100, bar: 'new_property' }, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(100, result['foo'].first)
+    assert_equal('new_property', result['bar'].first)
+  end
+
+  def test_overwrite_with_hash_string_keys
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, { 'foo' => 200, 'bar' => 'string_key' }, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(200, result['foo'].first)
+    assert_equal('string_key', result['bar'].first)
+  end
+
+  def test_overwrite_with_hash_preserves_other_properties
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    f.bar = 'hey you друг'
+    f.many = 3
+    f.many = 3.14
+    Fbe.overwrite(f, { foo: 55 }, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(55, result['foo'].first)
+    assert_equal('hey you друг', result['bar'].first)
+    assert_equal(2, result['many'].size)
+  end
+
+  def test_overwrite_with_hash_empty_hash
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, {}, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(42, result['foo'].first)
+  end
+
+  def test_overwrite_with_hash_mixed_key_types
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, { foo: 100, 'bar' => 'mixed', baz: 'symbol' }, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(100, result['foo'].first)
+    assert_equal('mixed', result['bar'].first)
+    assert_equal('symbol', result['baz'].first)
+  end
+
+  def test_overwrite_with_hash_arrays_as_values
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, { foo: [1, 2, 3], bar: ['a', 'b'] }, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal([1, 2, 3], result['foo'])
+    assert_equal(['a', 'b'], result['bar'])
+  end
 end
