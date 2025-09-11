@@ -31,7 +31,7 @@ class Fbe::Tombstone
       Fbe.if_absent(fb: @fb, always: true) do |n|
         n.what = 'tombstone'
         n.where = where
-        n.repo = repo
+        n.repository = repo
       end
     f.send(:"#{@fid}=", SecureRandom.random_number(99_999)) if f[@fid].nil?
     nn = f['issues']&.map { |ii| ii.split('-').map(&:to_i).then { |ii| ii.size == 1 ? ii << ii[0] : ii } } || []
@@ -59,7 +59,7 @@ class Fbe::Tombstone
   # @return [Boolean] True if it's there
   def has?(where, repo, issue)
     f = @fb.query(
-      "(and (eq where '#{where}') (eq what 'tombstone') (eq repo #{repo}) (exists issues))"
+      "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
     ).each.first
     return false if f.nil?
     issue = [issue] unless issue.is_a?(Array)

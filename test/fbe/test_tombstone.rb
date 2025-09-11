@@ -62,7 +62,7 @@ class TestTombstone < Fbe::Test
       f._id = 1
       f.what = 'tombstone'
       f.where = where
-      f.repo = repo
+      f.repository = repo
       Fbe.overwrite(f, 'issues', %w[4-4 4-5 5-6 5-5 4-6 10-14], fb:)
     end
     ts = Fbe::Tombstone.new(fb:)
@@ -82,7 +82,7 @@ class TestTombstone < Fbe::Test
       f._id = 1
       f.what = 'tombstone'
       f.where = where
-      f.repo = repo
+      f.repository = repo
       Fbe.overwrite(f, 'issues', %w[207 209-209 211-211 214-214 216-220 224-224 227-227 230], fb:)
     end
     ts = Fbe::Tombstone.new(fb:)
