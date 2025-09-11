@@ -122,7 +122,7 @@ class TestOverwrite < Fbe::Test
     f._id = 1
     f.foo = 42
     f.bar = 'hey you друг'
-    Fbe.overwrite(f, {foo: 55}, fb:)
+    Fbe.overwrite(f, { foo: 55 }, fb:)
     assert_equal(55, fb.query('(always)').each.to_a.first['foo'].first)
     assert_equal('hey you друг', fb.query('(always)').each.to_a.first['bar'].first)
   end
@@ -205,9 +205,9 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-    Fbe.overwrite(f, { foo: [1, 2, 3], bar: ['a', 'b'] }, fb:)
+    Fbe.overwrite(f, { foo: [1, 2, 3], bar: %w[a b] }, fb:)
     result = fb.query('(always)').each.to_a.first
     assert_equal([1, 2, 3], result['foo'])
-    assert_equal(['a', 'b'], result['bar'])
+    assert_equal(%w[a b], result['bar'])
   end
 end

@@ -42,17 +42,17 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
     fact.all_properties.each do |prop|
       before[prop.to_s] = fact[prop]
     end
-    
+
     # Update the properties in the before hash
     property_or_hash.each do |property, val|
       before[property.to_s] = val.is_a?(Array) ? val : [val]
     end
-    
+
     # Get the fact ID
     id = fact[fid]&.first
     raise "There is no #{fid} in the fact, cannot use Fbe.overwrite" if id.nil?
     raise "No facts by #{fid} = #{id}" if fb.query("(eq #{fid} #{id})").delete!.zero?
-    
+
     # Create new fact with all properties
     fb.txn do |fbt|
       n = fbt.insert
