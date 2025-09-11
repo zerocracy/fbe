@@ -34,7 +34,7 @@ require_relative 'fb'
 def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
   raise 'The fact is nil' if fact.nil?
   raise 'The fb is nil' if fb.nil?
-  
+
   # Handle Hash input (new API)
   if property_or_hash.is_a?(Hash)
     property_or_hash.each do |property, val|
@@ -42,7 +42,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
     end
     return
   end
-  
+
   # Handle String input (original API)
   property = property_or_hash
   raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
