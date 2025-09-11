@@ -16,8 +16,8 @@ require_relative 'fb'
 # an exception will be raised.
 #
 # @param [Factbase::Fact] fact The fact to modify (must have _id property)
-# @param [String] property The name of the property to set
-# @param [Any] values The value to set (can be any type, including array)
+# @param [String, Hash] property_or_hash The name of the property to set, or a hash of properties
+# @param [Any] values The value to set (can be any type, including array) - ignored if first param is Hash
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @return [nil] Nothing
 # @raise [RuntimeError] If fact is nil, has no _id, or property is not a String
@@ -25,11 +25,26 @@ require_relative 'fb'
 # @note If property already has the same single value, no changes are made
 # @example Update a user's status
 #   user = fb.query('(eq login "john")').first
-#   updated_user = Fbe.overwrite(user, 'status', 'active')
+#   Fbe.overwrite(user, 'status', 'active')
 #   # All properties preserved, only 'status' is set to 'active'
-def Fbe.overwrite(fact, property, values, fb: Fbe.fb, fid: '_id')
+# @example Update multiple properties at once
+#   user = fb.query('(eq login "john")').first
+#   Fbe.overwrite(user, status: 'active', role: 'admin')
+#   # All properties preserved, 'status' and 'role' are updated
+def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
   raise 'The fact is nil' if fact.nil?
   raise 'The fb is nil' if fb.nil?
+  
+  # Handle Hash input (new API)
+  if property_or_hash.is_a?(Hash)
+    property_or_hash.each do |property, val|
+      Fbe.overwrite(fact, property.to_s, val, fb: fb, fid: fid)
+    end
+    return
+  end
+  
+  # Handle String input (original API)
+  property = property_or_hash
   raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
   raise 'The values is nil' if values.nil?
   values = [values] unless values.is_a?(Array)
