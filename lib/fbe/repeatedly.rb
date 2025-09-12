@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
 require_relative 'overwrite'
@@ -38,12 +39,13 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   raise 'The $loog is not set' if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_hours}))").each.to_a.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
-  unless fb.query(
+  recent = fb.query(
     "(and
       (eq what '#{judge}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
-  ).each.to_a.empty?
-    loog.debug("#{$judge} has recently been executed, skipping now")
+  ).each.to_a.first
+  if recent
+    loog.info("#{$judge} has been executed #{recent.when.ago}, skipping now")
     return
   end
   f = fb.query("(and (eq what '#{judge}'))").each.to_a.first
