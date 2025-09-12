@@ -77,7 +77,7 @@ class TestDelete < Fbe::Test
     f = Fbe.fb.insert
     f.foo = 'hello'
     Fbe.delete(f, 'foo')
-    f2 = Fbe.fb.query('(always)').each.to_a.first
+    f2 = Fbe.fb.query('(always)').each.first
     assert_equal([1], f2['_id'])
     assert_equal([42], f2['_job'])
   end
@@ -87,7 +87,7 @@ class TestDelete < Fbe::Test
     f = fb.insert
     f._id = 44
     Fbe.delete(f, '_id', fb:)
-    f2 = fb.query('(always)').each.to_a.first
+    f2 = fb.query('(always)').each.first
     assert_nil(f2['_id'])
     assert_empty(f2.all_properties)
   end
@@ -107,9 +107,9 @@ class TestDelete < Fbe::Test
         f.foo = 1
       end
     end
-    f1 = Fbe.fb.query('(always)').each.to_a.first
+    f1 = Fbe.fb.query('(always)').each.first
     Fbe.delete(f1, 'foo')
-    f2 = Fbe.fb.query('(always)').each.to_a.first
+    f2 = Fbe.fb.query('(always)').each.first
     assert_nil(f2['foo'])
   end
 
@@ -119,7 +119,7 @@ class TestDelete < Fbe::Test
     f._id = 44
     f._id = 45
     Fbe.delete(f, '_id', fb:)
-    f2 = fb.query('(always)').each.to_a.first
+    f2 = fb.query('(always)').each.first
     assert_nil(f2['_id'])
   end
 end

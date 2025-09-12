@@ -48,7 +48,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
     end
     others do |*args2|
       param = args2.first
-      f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.to_a.first
+      f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.first
       raise "Unknown area #{area.inspect}" if f.nil?
       r = f[param]
       raise "Unknown property #{param.inspect} in the #{area.inspect} area" if r.nil?

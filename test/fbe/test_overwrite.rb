@@ -23,9 +23,9 @@ class TestOverwrite < Fbe::Test
     f.many = 3
     f.many = 3.14
     Fbe.overwrite(f, 'foo', 55, fb:)
-    assert_equal(55, fb.query('(always)').each.to_a.first['foo'].first)
-    assert_equal('hey you друг', fb.query('(always)').each.to_a.first['bar'].first)
-    assert_equal(2, fb.query('(always)').each.to_a.first['many'].size)
+    assert_equal(55, fb.query('(always)').each.first['foo'].first)
+    assert_equal('hey you друг', fb.query('(always)').each.first['bar'].first)
+    assert_equal(2, fb.query('(always)').each.first['many'].size)
   end
 
   def test_avoids_duplicates
@@ -35,7 +35,7 @@ class TestOverwrite < Fbe::Test
     f._job = 42
     f.foo = 'hello'
     Fbe.overwrite(f, 'foo', 'bye', fb:)
-    f2 = fb.query('(exists foo)').each.to_a.first
+    f2 = fb.query('(exists foo)').each.first
     assert_equal([1], f2['_id'])
     assert_equal([42], f2['_job'])
     assert_equal(['bye'], f2['foo'])
@@ -48,7 +48,7 @@ class TestOverwrite < Fbe::Test
     f.foo = 42
     fb.insert._id = 2
     Fbe.overwrite(f, 'foo', 42, fb:)
-    assert_equal(1, fb.query('(always)').each.to_a.first._id)
+    assert_equal(1, fb.query('(always)').each.first._id)
   end
 
   def test_simple_insert
@@ -56,7 +56,7 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     Fbe.overwrite(f, 'foo', 42, fb:)
-    assert_equal(42, fb.query('(always)').each.to_a.first['foo'].first)
+    assert_equal(42, fb.query('(always)').each.first['foo'].first)
   end
 
   def test_without_id
@@ -110,9 +110,9 @@ class TestOverwrite < Fbe::Test
         f.foo = 1
       end
     end
-    f1 = Fbe.fb.query('(always)').each.to_a.first
+    f1 = Fbe.fb.query('(always)').each.first
     Fbe.overwrite(f1, 'foo', 'bar')
-    f2 = Fbe.fb.query('(always)').each.to_a.first
+    f2 = Fbe.fb.query('(always)').each.first
     assert_equal('bar', f2.foo)
   end
 end

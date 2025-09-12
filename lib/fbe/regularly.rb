@@ -35,7 +35,7 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   raise 'The fb is nil' if fb.nil?
   raise 'The $judge is not set' if judge.nil?
   raise 'The $loog is not set' if loog.nil?
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_days}))").each.to_a.first
+  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_days}))").each.first
   interval = pmp.nil? ? 7 : pmp[p_every_days].first
   recent = fb.query(
     "(and

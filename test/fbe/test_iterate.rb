@@ -285,7 +285,7 @@ class TestIterate < Fbe::Test
         f.foo
       end
     end
-    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+    fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
       assert_equal(680, f.repository)
@@ -314,7 +314,7 @@ class TestIterate < Fbe::Test
         f.foo
       end
     end
-    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+    fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
       assert_equal(680, f.repository)
@@ -328,7 +328,7 @@ class TestIterate < Fbe::Test
         foo + 7
       end
     end
-    fb.query("(eq what 'iterate')").each.to_a.first.then do |f|
+    fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
       assert_equal(680, f.repository)

@@ -69,7 +69,7 @@ class TestFb < Fbe::Test
     $loog = Loog::Buffer.new
     f = Fbe.fb.insert
     f.what = 'hello'
-    f = Fbe.fb.query('(eq what "hello")').each.to_a.first
+    f = Fbe.fb.query('(eq what "hello")').each.first
     assert_equal([42], f['_job'])
   end
 
@@ -93,7 +93,7 @@ class TestFb < Fbe::Test
     $options = Judges::Options.new('JOB_ID' => 42)
     $loog = Loog::Buffer.new
     Fbe.fb.insert
-    f = Fbe.fb.query('(always)').each.to_a.first
+    f = Fbe.fb.query('(always)').each.first
     refute_nil(f._id)
     refute_nil(f._time)
     refute_nil(f._version)

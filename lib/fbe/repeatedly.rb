@@ -37,23 +37,23 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   raise 'The fb is nil' if fb.nil?
   raise 'The $judge is not set' if judge.nil?
   raise 'The $loog is not set' if loog.nil?
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_hours}))").each.to_a.first
+  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_hours}))").each.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
   recent = fb.query(
     "(and
       (eq what '#{judge}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
-  ).each.to_a.first
+  ).each.first
   if recent
     loog.info("#{$judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
     return
   end
-  f = fb.query("(and (eq what '#{judge}'))").each.to_a.first
+  f = fb.query("(and (eq what '#{judge}'))").each.first
   if f.nil?
     f = fb.insert
     f.what = judge
   end
   Fbe.overwrite(f, 'when', Time.now)
-  yield fb.query("(and (eq what '#{judge}'))").each.to_a.first
+  yield fb.query("(and (eq what '#{judge}'))").each.first
   nil
 end

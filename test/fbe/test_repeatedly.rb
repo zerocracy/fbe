@@ -26,6 +26,6 @@ class TestRepeatedly < Fbe::Test
       end
     end
     assert_equal(1, $fb.size)
-    assert_equal(42, $fb.query('(always)').each.to_a.first.foo)
+    assert_equal(42, $fb.query('(always)').each.first.foo)
   end
 end
