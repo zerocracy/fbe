@@ -43,7 +43,10 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
   ).each.first
   if recent
-    loog.debug("#{$judge} statistics were collected #{recent.when.ago} ago, skipping now")
+    loog.debug(
+      "#{$judge} statistics were collected #{recent.when.ago} ago, " \
+      "skipping now (we run it every #{interval} days)"
+    )
     return
   end
   fb.txn do |fbt|
