@@ -16,8 +16,8 @@ require_relative 'fb'
 # an exception will be raised.
 #
 # @param [Factbase::Fact] fact The fact to modify (must have _id property)
-# @param [String] property The name of the property to set
-# @param [Any] values The value to set (can be any type, including array)
+# @param [String, Hash] property_or_hash The name of the property to set, or a hash of properties
+# @param [Any] values The value to set (can be any type, including array) - ignored if first param is Hash
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @return [nil] Nothing
 # @raise [RuntimeError] If fact is nil, has no _id, or property is not a String
@@ -25,9 +25,55 @@ require_relative 'fb'
 # @note If property already has the same single value, no changes are made
 # @example Update a user's status
 #   user = fb.query('(eq login "john")').first
-#   updated_user = Fbe.overwrite(user, 'status', 'active')
+#   Fbe.overwrite(user, 'status', 'active')
 #   # All properties preserved, only 'status' is set to 'active'
-def Fbe.overwrite(fact, property, values, fb: Fbe.fb, fid: '_id')
+# @example Update multiple properties at once
+#   user = fb.query('(eq login "john")').first
+#   Fbe.overwrite(user, status: 'active', role: 'admin')
+#   # All properties preserved, 'status' and 'role' are updated
+def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
+  raise 'The fact is nil' if fact.nil?
+  raise 'The fb is nil' if fb.nil?
+
+  # Handle Hash input (new API)
+  if property_or_hash.is_a?(Hash)
+    # Collect all properties to update
+    before = {}
+    fact.all_properties.each do |prop|
+      before[prop.to_s] = fact[prop]
+    end
+
+    # Update the properties in the before hash
+    property_or_hash.each do |property, val|
+      before[property.to_s] = val.is_a?(Array) ? val : [val]
+    end
+
+    # Get the fact ID
+    id = fact[fid]&.first
+    raise "There is no #{fid} in the fact, cannot use Fbe.overwrite" if id.nil?
+    raise "No facts by #{fid} = #{id}" if fb.query("(eq #{fid} #{id})").delete!.zero?
+
+    # Create new fact with all properties
+    fb.txn do |fbt|
+      n = fbt.insert
+      before.each do |k, vv|
+        next unless n[k].nil?
+        vv.each do |v|
+          n.send(:"#{k}=", v)
+        end
+      end
+    end
+    return
+  end
+
+  # Handle String input (original API)
+  property = property_or_hash
+  raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
+  raise 'The values is nil' if values.nil?
+  Fbe.overwrite_single(fact, property, values, fb, fid)
+end
+
+def Fbe.overwrite_single(fact, property, values, fb, fid)
   raise 'The fact is nil' if fact.nil?
   raise 'The fb is nil' if fb.nil?
   raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
