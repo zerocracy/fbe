@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
 
@@ -36,12 +37,13 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   raise 'The $loog is not set' if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_days}))").each.to_a.first
   interval = pmp.nil? ? 7 : pmp[p_every_days].first
-  unless fb.query(
+  recent = fb.query(
     "(and
       (eq what '#{judge}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
-  ).each.to_a.empty?
-    loog.debug("#{$judge} statistics have recently been collected, skipping now")
+  ).each.first
+  if recent
+    loog.debug("#{$judge} statistics were collected #{recent.when.ago} ago, skipping now")
     return
   end
   fb.txn do |fbt|
