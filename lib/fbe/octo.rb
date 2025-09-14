@@ -200,12 +200,11 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           end
 
           def with_disable_auto_paginate
-            @origin.auto_paginate.then do |ap|
-              @origin.auto_paginate = false
-              yield @origin if block_given?
-            ensure
-              @origin.auto_paginate = ap
-            end
+            ap = @origin.auto_paginate
+            @origin.auto_paginate = false
+            yield self if block_given?
+          ensure
+            @origin.auto_paginate = ap
           end
         end
       o =
