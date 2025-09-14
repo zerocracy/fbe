@@ -199,6 +199,16 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             name
           end
 
+          # Disable auto pagination for octokit client called in block
+          #
+          # @yield [octo] Give octokit client with disabled auto pagination
+          # @yieldparam [Octokit::Client, Fbe::FakeOctokit] Octokit client
+          # @return [Object] Last value in block
+          # @example
+          #   issue =
+          #      Fbe.octo.with_disable_auto_paginate do |octo|
+          #        octo.list_issue('zerocracy/fbe', per_page: 1).first
+          #      end
           def with_disable_auto_paginate
             ap = @origin.auto_paginate
             @origin.auto_paginate = false
