@@ -340,6 +340,7 @@ class TestOcto < Fbe::Test
   def test_fetches_fake_zerocracy_baza_repo
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_equal('zerocracy/baza', o.repository(1439)[:full_name])
+    assert_equal('foo/bazz', o.repository(810)[:full_name])
   end
 
   def test_fetches_fake_issue_events_has_assigned_event
@@ -416,6 +417,69 @@ class TestOcto < Fbe::Test
         assert_pattern { comment => { id: Integer, user: { login: String, id: Integer, type: String } } }
       end
     end
+  end
+
+  def test_fake_list_issues
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.list_issues('foo/bazz').first.then do |issue|
+      assert_pattern do
+        issue => {
+          id: Integer,
+          number: 144,
+          repo: { full_name: 'foo/bazz' },
+          user: { id: 526_301, ** },
+          pull_request: Hash
+        }
+      end
+    end
+  end
+
+  def test_fake_respond_to_auto_paginate
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_respond_to(o, :auto_paginate)
+    assert_respond_to(o, :auto_paginate=)
+  end
+
+  def test_with_disable_auto_paginate
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+      )
+    stub_request(:get, 'https://api.github.com/repos/foo/bar/issues?per_page=100')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: [{ number: 25, title: 'some title' }].to_json
+      )
+      .times(1)
+    o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
+    assert(o.auto_paginate)
+    issues =
+      o.with_disable_auto_paginate do
+        refute(o.auto_paginate)
+        o.list_issues('foo/bar')
+      end
+    assert_kind_of(Array, issues)
+    assert(o.auto_paginate)
+  end
+
+  def test_with_disable_auto_paginate_after_exception_leave_original_value
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+      )
+    o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
+    assert(o.auto_paginate)
+    assert_raises(RuntimeError) do
+      o.with_disable_auto_paginate do
+        refute(o.auto_paginate)
+        raise 'some error'
+      end
+    end
+    assert(o.auto_paginate)
   end
 
   def test_print_trace

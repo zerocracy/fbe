@@ -198,6 +198,15 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             @loog.debug("GitHub repository ##{id} has a name: #{name}")
             name
           end
+
+          def with_disable_auto_paginate
+            @origin.auto_paginate.then do |ap|
+              @origin.auto_paginate = false
+              yield @origin if block_given?
+            ensure
+              @origin.auto_paginate = ap
+            end
+          end
         end
       o =
         intercepted(o) do |e, m, _args, _r|
@@ -250,6 +259,10 @@ class Fbe::FakeOctokit
     return name unless name.is_a?(String)
     name.chars.sum(&:ord)
   end
+
+  def auto_paginate=(_); end
+
+  def auto_paginate; end
 
   # Returns a mock rate limit object.
   #
@@ -588,6 +601,7 @@ class Fbe::FakeOctokit
     raise Octokit::NotFound if [404_123, 404_124].include?(name)
     full_name = name.is_a?(Integer) ? 'yegor256/test' : name
     full_name = 'zerocracy/baza' if name == 1439
+    full_name = 'foo/bazz' if name == 810
     {
       id: name_to_number(name),
       full_name:,
@@ -651,7 +665,9 @@ class Fbe::FakeOctokit
     [
       issue(repo, 42),
       issue(repo, 43)
-    ]
+    ].tap do |list|
+      list.prepend(issue(repo, 144)) if repo == 'foo/bazz'
+    end
   end
 
   # Gets a single issue.
@@ -663,7 +679,8 @@ class Fbe::FakeOctokit
   #   client.issue('octocat/Hello-World', 42)
   #   # => {:id=>42, :number=>42, :created_at=>...}
   def issue(repo, number)
-    if number == 142
+    case number
+    when 142
       {
         id: 655,
         number:,
@@ -675,7 +692,7 @@ class Fbe::FakeOctokit
         closed_at: Time.parse('2025-06-02 15:00:00 UTC'),
         closed_by: { id: 526_301, login: 'yegor256' }
       }
-    elsif number == 143
+    when 143
       {
         id: 656,
         number:,
@@ -687,6 +704,15 @@ class Fbe::FakeOctokit
         updated_at: Time.parse('2025-05-29 19:00:00 UTC'),
         closed_at: Time.parse('2025-06-01 18:20:00 UTC'),
         closed_by: { id: 526_301, login: 'yegor256' }
+      }
+    when 144
+      {
+        id: 657,
+        number:,
+        repo: { full_name: repo },
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        pull_request: { merged_at: nil },
+        created_at: Time.parse('2025-05-29 17:00:55 UTC')
       }
     else
       {
