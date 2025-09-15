@@ -45,6 +45,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
 
     # Update the properties in the before hash
     property_or_hash.each do |property, val|
+      raise "The value for #{property} is nil" if val.nil?
       before[property.to_s] = val.is_a?(Array) ? val : [val]
     end
 
@@ -70,14 +71,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
   property = property_or_hash
   raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
   raise 'The values is nil' if values.nil?
-  Fbe.overwrite_single(fact, property, values, fb, fid)
-end
 
-def Fbe.overwrite_single(fact, property, values, fb, fid)
-  raise 'The fact is nil' if fact.nil?
-  raise 'The fb is nil' if fb.nil?
-  raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
-  raise 'The values is nil' if values.nil?
   values = [values] unless values.is_a?(Array)
   return fact if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
   if fact[property].nil?
