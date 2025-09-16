@@ -192,18 +192,18 @@ class Fbe::Conclude
   def roll(&)
     passed = 0
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
-    start = Time.now
+    started = Time.now
     @fb.query(@query).each do |a|
       if @quota_aware && oct.off_quota?
         @loog.info('We ran out of GitHub quota, must stop here')
         break
       end
       if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
-        @loog.debug('We ran out of lifetime, must stop here')
+        @loog.debug("We ran out of lifetime (#{@start.ago} already), must stop here")
         break
       end
-      if @timeout_aware && @options.timeout && Time.now - start > @options.timeout - 5
-        @loog.debug("We've spent more than #{@start.ago}, must stop here")
+      if @timeout_aware && @options.timeout && Time.now - started > @options.timeout - 5
+        @loog.debug("We've spent more than #{started.ago}, must stop here")
         break
       end
       @fb.txn do |fbt|

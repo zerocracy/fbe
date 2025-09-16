@@ -32,7 +32,7 @@ require_relative 'unmask_repos'
 #     by '(and (eq what "issue") (gt created_at $before))'
 #     repeats 5
 #     quota_aware
-#     over(timeout: 300) do |repository_id, issue_id|
+#     over do |repository_id, issue_id|
 #       process_issue(repository_id, issue_id)
 #       issue_id + 1
 #     end
@@ -96,6 +96,7 @@ class Fbe::Iterate
     @repeats = 1
     @quota_aware = true
     @lifetime_aware = true
+    @timeout_aware = true
   end
 
   # Makes the iterator aware of GitHub API quota limits.
@@ -117,6 +118,13 @@ class Fbe::Iterate
   # @return [nil] Nothing is returned
   def lifetime_unaware
     @lifetime_aware = false
+  end
+
+  # Makes the iterator aware of timeout limits.
+  #
+  # @return [nil] Nothing is returned
+  def timeout_unaware
+    @timeout_aware = false
   end
 
   # Sets the maximum number of iterations per repository.
@@ -202,7 +210,7 @@ class Fbe::Iterate
   # @return [nil] Nothing is returned
   # @raise [RuntimeError] If block doesn't return an Integer
   # @example Process issues incrementally
-  #   iterator.over(timeout: 300) do |repo_id, issue_number|
+  #   iterator.over do |repo_id, issue_number|
   #     fetch_and_process_issue(repo_id, issue_number)
   #     issue_number + 1  # Return next issue number to process
   #   end
@@ -240,7 +248,11 @@ class Fbe::Iterate
         break
       end
       if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
-        @loog.info('We are over time, it is time to stop')
+        @loog.debug("We ran out of lifetime (#{@start.ago} already), must stop here")
+        break
+      end
+      if @timeout_aware && @options.timeout && Time.now - started > @options.timeout - 5
+        @loog.debug("We've spent more than #{started.ago}, must stop here")
         break
       end
       repos.each do |repo|
@@ -249,8 +261,12 @@ class Fbe::Iterate
           break
         end
         if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
-          @loog.info("We are working for #{started.ago} already, won't check repository ##{repo}")
+          @loog.info("We are working for #{@start.ago} already, won't check repository ##{repo}")
           next
+        end
+        if @timeout_aware && @options.timeout && Time.now - started > @options.timeout - 5
+          @loog.debug("We've spent more than #{started.ago}, won't check repository ##{repo}")
+          break
         end
         next if restarted.include?(repo)
         seen[repo] = 0 if seen[repo].nil?
