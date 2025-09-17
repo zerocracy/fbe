@@ -22,7 +22,7 @@ class TestConsider < Fbe::Test
     )
     $fb = Factbase.new
     $fb.insert.foo = 42
-    $start = Time.now
+    $epoch = Time.now
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL

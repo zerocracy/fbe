@@ -18,7 +18,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
-    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
       as 'labels_were_scanned'
       by '(agg (always) (max foo))'
       repeats 2
@@ -35,7 +35,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true', 'lifetime=1'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
-    Fbe.iterate(fb:, loog: Loog::VERBOSE, options: opts, global: {}, start: Time.now - 60) do
+    Fbe.iterate(fb:, loog: Loog::VERBOSE, options: opts, global: {}, epoch: Time.now - 60, kickoff: Time.now) do
       as 'labels_were_scanned'
       by '(agg (always) (max foo))'
       repeats 2
@@ -52,7 +52,7 @@ class TestIterate < Fbe::Test
     cycles = 0
     reps = 5
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
-    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
       as 'labels_were_scanned'
       by '(plus 1 1)'
       repeats reps
@@ -70,7 +70,7 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     f = fb.insert
     f.foo = 42
-    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
       as 'labels_were_scanned'
       by '(agg (and (eq foo 42) (not (exists bar))) (max foo))'
       repeats 10
@@ -87,7 +87,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     cycles = 0
-    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
       as 'quota_test'
       by '(plus 1 1)'
       repeats 5
@@ -103,7 +103,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         by '(plus 1 1)'
         over { |_, nxt| nxt }
       end
@@ -114,7 +114,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         as 'kebab-case'
         by '(plus 1 1)'
         over { |_, nxt| nxt }
@@ -126,7 +126,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         as 'no_query_test'
         over { |_, nxt| nxt }
       end
@@ -137,7 +137,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         as 'non_integer_test'
         by '(plus 1 1)'
         over { |_, _| 'not-an-integer' }
@@ -149,7 +149,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         as 'first_label'
         as 'second_label'
       end
@@ -160,7 +160,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         by '(plus 1 1)'
         by '(plus 2 2)'
       end
@@ -171,7 +171,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         as 'nil_repeats_test'
         by '(plus 1 1)'
         repeats nil
@@ -183,7 +183,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         as 'zero_repeats_test'
         by '(plus 1 1)'
         repeats 0
@@ -195,7 +195,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         as nil
       end
     end
@@ -205,7 +205,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
         by nil
       end
     end
@@ -215,7 +215,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.num = 10
-    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
       as 'marker_test'
       by '(agg (always) (max num))'
       repeats 1
@@ -232,7 +232,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     results = []
-    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
       as 'multi_repo_test'
       by '(plus 1 1)'
       repeats 2
@@ -249,7 +249,7 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     cycles = 0
     restarts = 0
-    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts) do
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
       as 'all_restart_test'
       by '(agg (eq foo 123) (first foo))'
       repeats 10
@@ -267,7 +267,7 @@ class TestIterate < Fbe::Test
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
-    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
       as 'first_marker'
       by '(agg (always) (max foo))'
       over do |_repository, foo|
@@ -276,7 +276,7 @@ class TestIterate < Fbe::Test
         f.foo
       end
     end
-    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
       as 'second_marker'
       by '(agg (always) (max foo))'
       over do |_repository, foo|
@@ -305,7 +305,7 @@ class TestIterate < Fbe::Test
       f.second_marker = 20
     end
     fb.insert.foo = 42
-    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
       as 'first_marker'
       by '(agg (always) (max foo))'
       over do |_repository, foo|
@@ -321,7 +321,7 @@ class TestIterate < Fbe::Test
       assert_equal(43, f.first_marker)
       assert_equal(20, f.second_marker)
     end
-    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}) do
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
       as 'second_marker'
       by '(agg (always) (max foo))'
       over do |_repository, foo|

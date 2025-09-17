@@ -18,7 +18,7 @@ require_relative '../test__helper'
 class TestConclude < Fbe::Test
   def test_with_defaults
     $fb = Factbase.new
-    $start = Time.now
+    $epoch = Time.now
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
@@ -32,7 +32,7 @@ class TestConclude < Fbe::Test
   def test_draw
     $fb = Factbase.new
     $global = {}
-    $start = Time.now
+    $epoch = Time.now
     $loog = Loog::NULL
     $options = Judges::Options.new
     $fb.insert.foo = 1
@@ -54,7 +54,7 @@ class TestConclude < Fbe::Test
   def test_draw_with_rollback
     $fb = Factbase.new
     $global = {}
-    $start = Time.now
+    $epoch = Time.now
     $loog = Loog::NULL
     $options = Judges::Options.new
     $fb.insert.foo = 1
@@ -70,7 +70,7 @@ class TestConclude < Fbe::Test
   end
 
   def test_consider
-    $start = Time.now
+    $epoch = Time.now
     fb = Factbase.new
     fb.insert.foo = 1
     options = Judges::Options.new
@@ -86,7 +86,7 @@ class TestConclude < Fbe::Test
   end
 
   def test_considers_until_quota
-    $start = Time.now
+    $epoch = Time.now
     WebMock.disable_net_connect!
     fb = Factbase.new
     5.times do
@@ -119,7 +119,7 @@ class TestConclude < Fbe::Test
 
   def test_ignores_globals
     $fb = nil
-    $start = Time.now
+    $epoch = Time.now
     $loog = nil
     $options = nil
     $global = nil
@@ -140,7 +140,7 @@ class TestConclude < Fbe::Test
     fb = Factbase.new
     fb.insert.foo = 42
     options = Judges::Options.new('lifetime=1')
-    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, start: Time.now - 60) do
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, epoch: Time.now - 60) do
       quota_unaware
       on '(exists foo)'
       draw do

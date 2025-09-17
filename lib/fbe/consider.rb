@@ -15,13 +15,15 @@ require_relative 'fb'
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Loog] loog The logging facility
+# @param [Time] epoch When the entire update started
+# @param [Time] kickoff When the particular judge started
 # @yield [Factbase::Fact] The fact
 def Fbe.consider(
   query,
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
-  start: $start, &
+  epoch: $epoch, kickoff: $kickoff, &
 )
-  Fbe.conclude(fb:, judge:, loog:, options:, global:, start:) do
+  Fbe.conclude(fb:, judge:, loog:, options:, global:, epoch:, kickoff:) do
     on query
     consider(&)
   end

@@ -37,12 +37,15 @@ require_relative 'unmask_repos'
 #       issue_id + 1
 #     end
 #   end
-def Fbe.iterate(fb: Fbe.fb, loog: $loog, options: $options, global: $global, start: $start, &)
+def Fbe.iterate(
+  fb: Fbe.fb, loog: $loog, options: $options, global: $global,
+  epoch: $epoch, kickoff: $kickoff, &
+)
   raise 'The fb is nil' if fb.nil?
   raise 'The $global is not set' if global.nil?
   raise 'The $options is not set' if options.nil?
   raise 'The $loog is not set' if loog.nil?
-  c = Fbe::Iterate.new(fb:, loog:, options:, global:, start:)
+  c = Fbe::Iterate.new(fb:, loog:, options:, global:, epoch:, kickoff:)
   c.instance_eval(&)
 end
 
@@ -84,12 +87,13 @@ class Fbe::Iterate
   # @param [Loog] loog The logging facility for debug output
   # @param [Judges::Options] options The options containing repository configuration
   # @param [Hash] global The hash for global caching of API responses
-  def initialize(fb:, loog:, options:, global:, start:)
+  def initialize(fb:, loog:, options:, global:, epoch:, kickoff:)
     @fb = fb
     @loog = loog
     @options = options
     @global = global
-    @start = start
+    @epoch = epoch
+    @kickoff = kickoff
     @label = nil
     @since = 0
     @query = nil
@@ -227,7 +231,6 @@ class Fbe::Iterate
       loog: @loog, options: @options, global: @global, quota_aware: @quota_aware
     ).map { |n| oct.repo_id_by_name(n) }
     restarted = []
-    started = Time.now
     before =
       repos.to_h do |repo|
         [
@@ -247,12 +250,12 @@ class Fbe::Iterate
         @loog.info("We are off GitHub quota, time to stop after #{started.ago}")
         break
       end
-      if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
-        @loog.debug("We ran out of lifetime (#{@start.ago} already), must stop here")
+      if @lifetime_aware && @options.lifetime && Time.now - @epoch > @options.lifetime * 0.9
+        @loog.debug("We ran out of lifetime (#{@epoch.ago} already), must stop here")
         break
       end
-      if @timeout_aware && @options.timeout && Time.now - started > @options.timeout - 5
-        @loog.debug("We've spent more than #{started.ago}, must stop here")
+      if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
+        @loog.debug("We've spent more than #{@kickoff.ago}, must stop here")
         break
       end
       repos.each do |repo|
@@ -260,12 +263,12 @@ class Fbe::Iterate
           @loog.info("We are off GitHub quota, we must skip #{repo}")
           break
         end
-        if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
-          @loog.info("We are working for #{@start.ago} already, won't check repository ##{repo}")
+        if @lifetime_aware && @options.lifetime && Time.now - @epoch > @options.lifetime * 0.9
+          @loog.info("We are working for #{@epoch.ago} already, won't check repository ##{repo}")
           next
         end
-        if @timeout_aware && @options.timeout && Time.now - started > @options.timeout - 5
-          @loog.debug("We've spent more than #{started.ago}, won't check repository ##{repo}")
+        if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
+          @loog.debug("We've spent more than #{@kickoff.ago}, won't check repository ##{repo}")
           break
         end
         next if restarted.include?(repo)
@@ -290,11 +293,11 @@ class Fbe::Iterate
         seen[repo] += 1
       end
       unless seen.any? { |r, v| v < @repeats && !restarted.include?(r) }
-        @loog.debug("No more repos to scan (out of #{repos.size}), quitting after #{started.ago}")
+        @loog.debug("No more repos to scan (out of #{repos.size}), quitting after #{@kickoff.ago}")
         break
       end
       if restarted.size == repos.size
-        @loog.debug("All #{repos.size} repos restarted, quitting after #{started.ago}")
+        @loog.debug("All #{repos.size} repos restarted, quitting after #{@kickoff.ago}")
         break
       end
     end
@@ -308,6 +311,6 @@ class Fbe::Iterate
         end
       Fbe.overwrite(f, @label, before[repo], fb: @fb)
     end
-    @loog.debug("Finished scanning #{repos.size} repos in #{started.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
+    @loog.debug("Finished scanning #{repos.size} repos in #{@kickoff.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
   end
 end

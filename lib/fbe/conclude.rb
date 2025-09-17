@@ -16,17 +16,19 @@ require_relative 'octo'
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Loog] loog The logging facility
+# @param [Time] epoch When the entire update started
+# @param [Time] kickoff When the particular judge started
 # @yield [Factbase::Fact] The fact
 def Fbe.conclude(
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
-  start: $start, &
+  epoch: $epoch, kickoff: $kickoff, &
 )
   raise 'The fb is nil' if fb.nil?
   raise 'The $judge is not set' if judge.nil?
   raise 'The $global is not set' if global.nil?
   raise 'The $options is not set' if options.nil?
   raise 'The $loog is not set' if loog.nil?
-  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, start:)
+  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, epoch:, kickoff:)
   c.instance_eval(&)
 end
 
@@ -61,13 +63,16 @@ class Fbe::Conclude
   # @param [Hash] global The hash for global caching
   # @param [Judges::Options] options The options coming from the +judges+ tool
   # @param [Loog] loog The logging facility
-  def initialize(fb:, judge:, global:, options:, loog:, start:)
+  # @param [Time] epoch When the entire update started
+  # @param [Time] kickoff When the particular judge started
+  def initialize(fb:, judge:, global:, options:, loog:, epoch:, kickoff:)
     @fb = fb
     @judge = judge
     @loog = loog
     @options = options
     @global = global
-    @start = start
+    @epoch = epoch
+    @kickoff = kickoff
     @query = nil
     @follows = []
     @lifetime_aware = true
@@ -192,18 +197,17 @@ class Fbe::Conclude
   def roll(&)
     passed = 0
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
-    started = Time.now
     @fb.query(@query).each do |a|
       if @quota_aware && oct.off_quota?
         @loog.info('We ran out of GitHub quota, must stop here')
         break
       end
-      if @lifetime_aware && @options.lifetime && Time.now - @start > @options.lifetime - 10
-        @loog.debug("We ran out of lifetime (#{@start.ago} already), must stop here")
+      if @lifetime_aware && @options.lifetime && Time.now - @epoch > @options.lifetime * 0.9
+        @loog.debug("We ran out of lifetime (#{@epoch.ago} already), must stop here")
         break
       end
-      if @timeout_aware && @options.timeout && Time.now - started > @options.timeout - 5
-        @loog.debug("We've spent more than #{started.ago}, must stop here")
+      if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
+        @loog.debug("We've spent more than #{kickoff.ago}, must stop here")
         break
       end
       @fb.txn do |fbt|
