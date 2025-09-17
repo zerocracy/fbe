@@ -21,7 +21,7 @@ require_relative 'fb'
 def Fbe.consider(
   query,
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
-  epoch: $epoch, kickoff: $kickoff, &
+  epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
 )
   Fbe.conclude(fb:, judge:, loog:, options:, global:, epoch:, kickoff:) do
     on query

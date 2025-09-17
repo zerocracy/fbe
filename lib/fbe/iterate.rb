@@ -39,7 +39,7 @@ require_relative 'unmask_repos'
 #   end
 def Fbe.iterate(
   fb: Fbe.fb, loog: $loog, options: $options, global: $global,
-  epoch: $epoch, kickoff: $kickoff, &
+  epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
 )
   raise 'The fb is nil' if fb.nil?
   raise 'The $global is not set' if global.nil?

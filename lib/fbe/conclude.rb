@@ -21,7 +21,7 @@ require_relative 'octo'
 # @yield [Factbase::Fact] The fact
 def Fbe.conclude(
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
-  epoch: $epoch, kickoff: $kickoff, &
+  epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
 )
   raise 'The fb is nil' if fb.nil?
   raise 'The $judge is not set' if judge.nil?

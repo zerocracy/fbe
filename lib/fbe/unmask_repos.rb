@@ -59,7 +59,7 @@ end
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
 def Fbe.unmask_repos(
-  options: $options, global: $global, loog: $loog, epoch: $epoch, kickoff: $kickoff,
+  options: $options, global: $global, loog: $loog, epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
 )
   raise 'Repositories mask is not specified' unless options.repositories
