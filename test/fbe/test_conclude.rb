@@ -149,4 +149,18 @@ class TestConclude < Fbe::Test
     end
     assert_equal(1, fb.size)
   end
+
+  def test_respects_timeout
+    fb = Factbase.new
+    fb.insert.foo = 42
+    options = Judges::Options.new('timeout=1')
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, kickoff: Time.now - 60) do
+      quota_unaware
+      on '(exists foo)'
+      draw do
+        sleep 999
+      end
+    end
+    assert_equal(1, fb.size)
+  end
 end

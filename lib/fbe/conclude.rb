@@ -207,7 +207,7 @@ class Fbe::Conclude
         break
       end
       if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
-        @loog.debug("We've spent more than #{kickoff.ago}, must stop here")
+        @loog.debug("We've spent more than #{@kickoff.ago}, must stop here")
         break
       end
       @fb.txn do |fbt|

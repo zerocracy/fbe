@@ -21,10 +21,13 @@ require_relative 'fb'
 def Fbe.consider(
   query,
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
-  epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
+  epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
+  lifetime_aware: true, timeout_aware: true, &
 )
   Fbe.conclude(fb:, judge:, loog:, options:, global:, epoch:, kickoff:) do
     on query
+    timeout_unaware unless timeout_aware
+    lifetime_unaware unless lifetime_aware
     consider(&)
   end
 end
