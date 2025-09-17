@@ -44,6 +44,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
   raise 'The $loog is not set' if loog.nil?
   global[:octo] ||=
     begin
+      loog.info("Fbe version is #{Fbe::VERSION}")
       trace = []
       if options.testing.nil?
         o = Octokit::Client.new
