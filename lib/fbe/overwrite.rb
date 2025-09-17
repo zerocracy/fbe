@@ -36,12 +36,12 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
   raise 'The fb is nil' if fb.nil?
   if property_or_hash.is_a?(Hash)
     before = {}
-    fact.all_properties.each do |prop|
-      before[prop.to_s] = fact[prop]
+    fact.all_properties.each do |k|
+      before[k.to_s] = fact[k]
     end
-    property_or_hash.each do |property, val|
-      raise "The value for #{property} is nil" if val.nil?
-      before[property.to_s] = val.is_a?(Array) ? val : [val]
+    property_or_hash.each do |k, v|
+      raise "The value for #{k} is nil" if v.nil?
+      before[k.to_s] = v.is_a?(Array) ? v : [v]
     end
     id = fact[fid]&.first
     raise "There is no #{fid} in the fact, cannot use Fbe.overwrite" if id.nil?
@@ -69,8 +69,8 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
     return
   end
   before = {}
-  fact.all_properties.each do |prop|
-    before[prop.to_s] = fact[prop]
+  fact.all_properties.each do |k|
+    before[k.to_s] = fact[k]
   end
   id = fact[fid]&.first
   raise "There is no #{fid} in the fact, cannot use Fbe.overwrite" if id.nil?

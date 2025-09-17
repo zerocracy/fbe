@@ -284,18 +284,14 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-
-    # Test with various data types that factbase supports
     complex_data = {
       string: 'hello',
       number: 42,
       float: 3.14,
       array: [1, 2, 3]
     }
-
     Fbe.overwrite(f, complex_data, fb:)
     result = fb.query('(always)').each.to_a.first
-
     assert_equal('hello', result['string'].first)
     assert_equal(42, result['number'].first)
     assert_in_delta(3.14, result['float'].first)
@@ -307,15 +303,10 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-
-    # Create a large hash with many properties
     large_hash = {}
     100.times { |i| large_hash["prop_#{i}"] = "value_#{i}" }
-
     Fbe.overwrite(f, large_hash, fb:)
     result = fb.query('(always)').each.to_a.first
-
-    # Verify a few properties were set correctly
     assert_equal('value_0', result['prop_0'].first)
     assert_equal('value_50', result['prop_50'].first)
     assert_equal('value_99', result['prop_99'].first)
@@ -326,8 +317,6 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-
-    # Test with valid property names (factbase has restrictions on property names)
     special_keys = {
       'key_with_underscores' => 'value1',
       'key_with_dashes' => 'value2',
@@ -335,10 +324,8 @@ class TestOverwrite < Fbe::Test
       'key_with_slashes' => 'value4',
       'key123' => 'value5'
     }
-
     Fbe.overwrite(f, special_keys, fb:)
     result = fb.query('(always)').each.to_a.first
-
     assert_equal('value1', result['key_with_underscores'].first)
     assert_equal('value2', result['key_with_dashes'].first)
     assert_equal('value3', result['key_with_dots'].first)
