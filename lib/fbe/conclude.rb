@@ -195,6 +195,14 @@ class Fbe::Conclude
   #     end
   #   end
   def roll(&)
+    if @lifetime_aware && @options.lifetime && Time.now - @epoch > @options.lifetime * 0.9
+      @loog.debug("We ran out of lifetime (#{@epoch.ago} already), can't even start")
+      return
+    end
+    if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
+      @loog.debug("We've spent more than #{@kickoff.ago}, won't even start")
+      return
+    end
     passed = 0
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     @fb.query(@query).each do |a|
