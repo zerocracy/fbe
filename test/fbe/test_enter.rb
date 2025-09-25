@@ -22,7 +22,7 @@ class TestEnter < Fbe::Test
     stub_request(:get, 'https://api.zerocracy.com/valves/result?badge=foo')
       .to_return(status: 204)
     stub_request(:post, 'https://api.zerocracy.com/valves/add?job=0')
-      .with(body: '_csrf=token&badge=foo&name&result=hi&why=no%20reason')
+      .with(body: '_csrf=token&badge=foo&name&pname&result=hi&why=no%20reason')
       .to_return(status: 302)
     assert_equal('hi', Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { 'hi' })
   end
