@@ -97,6 +97,7 @@ class Fbe::Iterate
     @label = nil
     @since = 0
     @query = nil
+    @sort_by = nil
     @repeats = 1
     @quota_aware = true
     @lifetime_aware = true
@@ -162,6 +163,24 @@ class Fbe::Iterate
     raise 'Query is already set' unless @query.nil?
     raise 'Cannot set query to nil' if query.nil?
     @query = query
+  end
+
+  # Sets the field to sort results by in ascending order.
+  #
+  # When set, all matching results will be fetched, sorted by the specified
+  # field, and iterated in order. This executes the query once per repository
+  # instead of calling one() repeatedly.
+  #
+  # @param [String] prop The fact attribute to sort by
+  # @return [nil] Nothing is returned
+  # @raise [RuntimeError] If prop is nil, already set, or not a valid field name
+  # @example Sort issues by number
+  #   iterator.sort_by('issue')
+  def sort_by(prop)
+    raise 'Sort field is already set' unless @sort_by.nil?
+    raise 'Cannot set sort field to nil' if prop.nil?
+    raise 'Sort field must be a String' unless prop.is_a?(String)
+    @sort_by = prop
   end
 
   # Sets the label for tracking iteration state.
@@ -245,6 +264,7 @@ class Fbe::Iterate
         ]
       end
     starts = before.dup
+    values = {}
     loop do
       if @quota_aware && oct.off_quota?
         @loog.info("We are off GitHub quota, time to stop after #{started.ago}")
@@ -277,11 +297,24 @@ class Fbe::Iterate
           @loog.debug("We've seen too many (#{seen[repo]}) in #{repo}, let's see next one")
           next
         end
-        nxt = @fb.query(@query).one(@fb, before: before[repo], repository: repo)
+        nxt =
+          if @sort_by
+            values[repo] ||= @fb.query(@query).each(
+              @fb, before: before[repo], repository: repo
+            ).map { _1[@sort_by]&.first }.compact.sort.each
+            begin
+              values[repo].next
+            rescue StopIteration
+              nil
+            end
+          else
+            @fb.query(@query).one(@fb, before: before[repo], repository: repo)
+          end
         before[repo] =
           if nxt.nil?
             @loog.debug("Next element after ##{before[repo]} not suggested, re-starting from ##{@since}: #{@query}")
             restarted << repo
+            values.delete(repo) if @sort_by
             @since
           else
             @loog.debug("Next is ##{nxt}, starting from it")

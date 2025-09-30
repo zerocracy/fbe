@@ -336,4 +336,95 @@ class TestIterate < Fbe::Test
       assert_equal(50, f.second_marker)
     end
   end
+
+  def test_sort_by_configuration
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    global = {}
+    fb = Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL)
+    fb.insert.then do |f|
+      f.what = 'iterate'
+      f.where = 'github'
+      f.repository = 680
+      f.marker = 3
+    end
+    20.times do |i|
+      fb.insert.then do |f|
+        f.where = 'github'
+        f.what = 'judge'
+        f.repository = 680
+        f.issue = i + 1
+        f.prop = 'prop' if i.even?
+      end
+    end
+    ex =
+      assert_raises(RuntimeError) do
+        Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
+          sort_by nil
+        end
+      end
+    assert_equal('Cannot set sort field to nil', ex.message)
+    ex =
+      assert_raises(RuntimeError) do
+        Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
+          sort_by :issue
+        end
+      end
+    assert_equal('Sort field must be a String', ex.message)
+    ex =
+      assert_raises(RuntimeError) do
+        Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
+          sort_by 'issue'
+          sort_by 'item'
+        end
+      end
+    assert_equal('Sort field is already set', ex.message)
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
+      as 'marker'
+      sort_by 'issue'
+      by "(and
+            (gt issue $before)
+            (eq repository $repository)
+            (eq where 'github')
+            (eq what 'judge')
+            (empty (and (exists prop) (eq issue $issue))))"
+      repeats 100
+      over do |repository, issue|
+        f =
+          Fbe.if_absent(fb:, always: true) do |n|
+            n.where = 'github'
+            n.what = 'judge'
+            n.issue = issue
+            n.repository = repository
+          end
+        f.prop2 = 'prop2'
+        issue
+      end
+    end
+    assert_equal(9, fb.query('(and (eq what "judge") (exists prop2))').each.to_a.size)
+    assert_equal(0, fb.query('(eq what "iterate")').each.to_a.first.marker)
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
+      as 'marker'
+      sort_by 'issue'
+      by "(and
+            (gt issue $before)
+            (eq repository $repository)
+            (eq where 'github')
+            (eq what 'judge')
+            (empty (and (exists prop) (eq issue $issue))))"
+      repeats 5
+      over do |repository, issue|
+        f =
+          Fbe.if_absent(fb:, always: true) do |n|
+            n.where = 'github'
+            n.what = 'judge'
+            n.issue = issue
+            n.repository = repository
+          end
+        f.prop3 = 'prop3'
+        issue
+      end
+    end
+    assert_equal(5, fb.query('(and (eq what "judge") (exists prop3))').each.to_a.size)
+    assert_equal(10, fb.query('(eq what "iterate")').each.to_a.first.marker)
+  end
 end
