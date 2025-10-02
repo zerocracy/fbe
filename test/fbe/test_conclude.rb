@@ -104,7 +104,7 @@ class TestConclude < Fbe::Test
       }
     )
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      { body: '{"rate":{"remaining":51}}', headers: { 'X-RateLimit-Remaining' => '51' } }
+      { body: '{"rate":{"remaining":101}}', headers: { 'X-RateLimit-Remaining' => '101' } }
     )
     global = {}
     o = Fbe.octo(loog: Loog::NULL, options:, global:)

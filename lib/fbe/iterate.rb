@@ -266,7 +266,7 @@ class Fbe::Iterate
     starts = before.dup
     values = {}
     loop do
-      if @quota_aware && oct.off_quota?
+      if @quota_aware && oct.off_quota?(threshold: 100)
         @loog.info("We are off GitHub quota, time to stop after #{started.ago}")
         break
       end
@@ -279,7 +279,7 @@ class Fbe::Iterate
         break
       end
       repos.each do |repo|
-        if @quota_aware && oct.off_quota?
+        if @quota_aware && oct.off_quota?(threshold: 100)
           @loog.info("We are off GitHub quota, we must skip #{repo}")
           break
         end
