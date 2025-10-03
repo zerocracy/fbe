@@ -24,6 +24,9 @@ require_relative 'middleware/rate_limit'
 require_relative 'middleware/sqlite_store'
 require_relative 'middleware/trace'
 
+# When we are off quota.
+class Fbe::OffQuota < StandardError; end
+
 # Makes a call to the GitHub API.
 #
 # It is supposed to be used instead of +Octokit::Client+, because it
@@ -221,7 +224,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
       o =
         intercepted(o) do |e, m, _args, _r|
           if e == :before && m != :off_quota? && m != :print_trace! && m != :rate_limit && o.off_quota?
-            raise "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()"
+            raise Fbe::OffQuota, "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()"
           end
         end
       o
