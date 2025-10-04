@@ -232,6 +232,132 @@ class Fbe::Graph
     }
   end
 
+  # Get pulls id and number with review from since
+  #
+  # @param [String] owner The repository owner (username or organization)
+  # @param [String] name The repository name
+  # @param [Time] since The datetime from
+  # @param [String, nil] cursor Github cursor for next page
+  # @return [Hash] A hash with pulls
+  # @example
+  #   graph = Fbe::Graph.new(token: 'github_token')
+  #   cursor = nil
+  #   pulls = []
+  #   loop do
+  #     json = graph.pull_requests_with_reviews(
+  #       'zerocracy', 'judges-action', Time.parse('2025-08-01T18:00:00Z'), cursor:
+  #     )
+  #     json['pulls_with_reviews'].each do |p|
+  #       pulls.push(p['number'])
+  #     end
+  #     break unless json['has_next_page']
+  #     cursor = json['next_cursor']
+  #   end
+  def pull_requests_with_reviews(owner, name, since, cursor: nil)
+    result = query(
+      <<~GRAPHQL
+        {
+          repository(owner: "#{owner}", name: "#{name}") {
+            pullRequests(first: 100, after: "#{cursor}") {
+              nodes {
+                id
+                number
+                timelineItems(first: 1, itemTypes: [PULL_REQUEST_REVIEW], since: "#{since.utc.iso8601}") {
+                  nodes {
+                    ... on PullRequestReview { id }
+                  }
+                }
+              }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+            }
+          }
+        }
+      GRAPHQL
+    ).to_h
+    {
+      'pulls_with_reviews' => result
+        .dig('repository', 'pullRequests', 'nodes')
+        .reject { _1.dig('timelineItems', 'nodes').empty? }
+        .map do |pull|
+          {
+            'id' => pull['id'],
+            'number' => pull['number']
+          }
+        end,
+      'has_next_page' => result.dig('repository', 'pullRequests', 'pageInfo', 'hasNextPage'),
+      'next_cursor' => result.dig('repository', 'pullRequests', 'pageInfo', 'endCursor')
+    }
+  end
+
+  # Get reviews by pull numbers
+  #
+  # @param [String] owner The repository owner (username or organization)
+  # @param [String] name The repository name
+  # @param [Array<Array<Integer, (String, nil)>>] pulls Array of pull number and Github cursor
+  # @return [Hash] A hash with reviews
+  # @example
+  #   graph = Fbe::Graph.new(token: 'github_token')
+  #   queue = [[1108, nil], [1105, nil]]
+  #   until queue.empty?
+  #     pulls = graph.pull_request_reviews('zerocracy', 'judges-action', pulls: queue.shift(10))
+  #     pulls.each do |pull|
+  #       puts pull['id'], pull['number']
+  #       pull['reviews'].each do |r|
+  #         puts r['id'], r['submitted_at']
+  #       end
+  #     end
+  #     pulls.select { _1['reviews_has_next_page'] }.each do |p|
+  #       queue.push([p['number'], p['reviews_next_cursor']])
+  #     end
+  #   end
+  def pull_request_reviews(owner, name, pulls: [])
+    requests =
+      pulls.map do |number, cursor|
+        <<~GRAPHQL
+          pr_#{number}: pullRequest(number: #{number}) {
+            id
+            number
+            reviews(first: 100, after: "#{cursor}") {
+              nodes {
+                id
+                submittedAt
+              }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+            }
+          }
+        GRAPHQL
+      end
+    result = query(
+      <<~GRAPHQL
+        {
+          repository(owner: "#{owner}", name: "#{name}") {
+            #{requests.join("\n")}
+          }
+        }
+      GRAPHQL
+    ).to_h
+    result['repository'].map do |_k, v|
+      {
+        'id' => v['id'],
+        'number' => v['number'],
+        'reviews' => v.dig('reviews', 'nodes').map do |r|
+          {
+            'id' => r['id'],
+            'submitted_at' => Time.parse(r['submittedAt'])
+          }
+        end,
+        'reviews_has_next_page' => v.dig('reviews', 'pageInfo', 'hasNextPage'),
+        'reviews_next_cursor' => v.dig('reviews', 'pageInfo', 'endCursor')
+      }
+    end
+  end
+
   private
 
   # Creates or returns a cached GraphQL client instance.
@@ -401,6 +527,47 @@ class Fbe::Graph
           }
         }
       end
+    end
+
+    def pull_requests_with_reviews(_owner, _name, _since, **)
+      {
+        'pulls_with_reviews' => [
+          { 'id' => 'PR_kwDOL6J6Ss6iprCx', 'number' => 2 },
+          { 'id' => 'PR_kwDOL6J6Ss6rhJ7T', 'number' => 5 },
+          { 'id' => 'PR_kwDOL6J6Ss6r13fG', 'number' => 21 }
+        ],
+        'has_next_page' => false,
+        'next_cursor' => 'Y3Vyc29yOnYyOpHOdh_xUw=='
+      }
+    end
+
+    def pull_request_reviews(_owner, _name, **)
+      [
+        {
+          'id' => 'PR_kwDOL6J6Ss6iprCx',
+          'number' => 2,
+          'reviews' => [
+            { 'id' => 'PRR_kwDOL6J6Ss647NCl', 'submitted_at' => Time.parse('2025-10-02 12:58:42 UTC') },
+            { 'id' => 'PRR_kwDOL6J6Ss647NC8', 'submitted_at' => Time.parse('2025-10-02 15:58:42 UTC') }
+          ],
+          'reviews_has_next_page' => false,
+          'reviews_next_cursor' => 'yc29yOnYyO1'
+        },
+        {
+          'id' => 'PR_kwDOL6J6Ss6rhJ7T',
+          'number' => 5,
+          'reviews' => [{ 'id' => 'PRR_kwDOL6J6Ss64_mnn', 'submitted_at' => Time.parse('2025-10-03 15:58:42 UTC') }],
+          'reviews_has_next_page' => false,
+          'reviews_next_cursor' => 'yc29yOnYyO2'
+        },
+        {
+          'id' => 'PR_kwDOL6J6Ss6r13fG',
+          'number' => 21,
+          'reviews' => [{ 'id' => 'PRR_kwDOL6J6Ss65AbIA', 'submitted_at' => Time.parse('2025-10-04 15:58:42 UTC') }],
+          'reviews_has_next_page' => false,
+          'reviews_next_cursor' => 'yc29yOnYyO3'
+        }
+      ]
     end
 
     private
