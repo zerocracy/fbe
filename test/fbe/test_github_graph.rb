@@ -166,4 +166,36 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(526_301, remove_type_event.dig('actor', 'id'))
     assert_equal('yegor256', remove_type_event.dig('actor', 'login'))
   end
+
+  def test_fake_pull_requests_with_reviews
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.pull_requests_with_reviews('foo', 'foo', Time.parse('2025-08-01T18:00:00Z'), cursor: nil)
+    h = h.transform_keys(&:to_sym)
+    assert_pattern do
+      h => {
+        pulls_with_reviews: Array,
+        has_next_page: TrueClass | FalseClass,
+        next_cursor: String
+      }
+    end
+  end
+
+  def test_fake_pull_request_reviews
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    pulls = graph.pull_request_reviews('foo', 'foo', pulls: [[2, nil], [5, nil], [21, nil]])
+    pulls.each do |pull|
+      pull = pull.transform_keys(&:to_sym)
+      assert_pattern do
+        pull => {
+          id: String,
+          number: Integer,
+          reviews: Array,
+          reviews_has_next_page: TrueClass | FalseClass,
+          reviews_next_cursor: String
+        }
+      end
+    end
+  end
 end
