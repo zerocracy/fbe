@@ -10,6 +10,7 @@ require_relative '../fbe'
 require_relative 'fb'
 require_relative 'if_absent'
 require_relative 'octo'
+require_relative 'over'
 require_relative 'overwrite'
 require_relative 'unmask_repos'
 
@@ -267,29 +268,19 @@ class Fbe::Iterate
     starts = before.dup
     values = {}
     loop do
-      if @quota_aware && oct.off_quota?(threshold: 100)
-        @loog.info("We are off GitHub quota, time to stop after #{started.ago}")
-        break
-      end
-      if @lifetime_aware && @options.lifetime && Time.now - @epoch > @options.lifetime * 0.9
-        @loog.debug("We ran out of lifetime (#{@epoch.ago} already), must stop here")
-        break
-      end
-      if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
-        @loog.debug("We've spent more than #{@kickoff.ago}, must stop here")
+      if Fbe.over?(
+        global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
+        quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+      )
+        @loog.info("Time to stop after #{started.ago}")
         break
       end
       repos.each do |repo|
-        if @quota_aware && oct.off_quota?(threshold: 100)
-          @loog.info("We are off GitHub quota, we must skip #{repo}")
-          break
-        end
-        if @lifetime_aware && @options.lifetime && Time.now - @epoch > @options.lifetime * 0.9
-          @loog.info("We are working for #{@epoch.ago} already, won't check repository ##{repo}")
-          next
-        end
-        if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
-          @loog.debug("We've spent more than #{@kickoff.ago}, won't check repository ##{repo}")
+        if Fbe.over?(
+          global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
+          quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+        )
+          @loog.info("Won't check repository ##{repo}")
           break
         end
         next if restarted.include?(repo)

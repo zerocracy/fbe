@@ -8,6 +8,7 @@ require_relative '../fbe'
 require_relative 'fb'
 require_relative 'if_absent'
 require_relative 'octo'
+require_relative 'over'
 
 # Creates an instance of {Fbe::Conclude} and evals it with the block provided.
 #
@@ -195,29 +196,16 @@ class Fbe::Conclude
   #     end
   #   end
   def roll(&)
-    if @lifetime_aware && @options.lifetime && Time.now - @epoch > @options.lifetime * 0.9
-      @loog.debug("We ran out of lifetime (#{@epoch.ago} already), can't even start")
-      return
-    end
-    if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
-      @loog.debug("We've spent more than #{@kickoff.ago}, won't even start")
-      return
-    end
+    return 0 if Fbe.over?(
+      global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
+      quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+    )
     passed = 0
-    oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     @fb.query(@query).each do |a|
-      if @quota_aware && oct.off_quota?(threshold: 100)
-        @loog.info('We ran out of GitHub quota, must stop here')
-        break
-      end
-      if @lifetime_aware && @options.lifetime && Time.now - @epoch > @options.lifetime * 0.9
-        @loog.debug("We ran out of lifetime (#{@epoch.ago} already), must stop here")
-        break
-      end
-      if @timeout_aware && @options.timeout && Time.now - @kickoff > @options.timeout * 0.9
-        @loog.debug("We've spent more than #{@kickoff.ago}, must stop here")
-        break
-      end
+      break if Fbe.over?(
+        global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
+        quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+      )
       @fb.txn do |fbt|
         n = yield fbt, a
         @loog.info("#{n.what}: #{n.details}") unless n.nil?
