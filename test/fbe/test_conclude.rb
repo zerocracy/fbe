@@ -163,4 +163,31 @@ class TestConclude < Fbe::Test
     end
     assert_equal(1, fb.size)
   end
+
+  def test_catch_fbe_off_quota_exception_correctly
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{"rate":{"remaining":100}}', headers: { 'X-RateLimit-Remaining' => '100' } }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/baz').to_return(
+      body: { id: 43 }.to_json, headers: { 'Content-Type': 'application/json' }
+    ).times(1000).then.to_raise(StandardError.new('No more https://api.github.com/repos/foo/baz'))
+    global = {}
+    loog = Loog::NULL
+    options = Judges::Options.new(['repositories=foo/bar'])
+    octo = Fbe.octo(options:, global:, loog:)
+    fb = Fbe.fb(fb: Factbase.new, global:, options:, loog:)
+    fb.insert.foo = 42
+    count = 0
+    Fbe.conclude(fb:, loog:, global:, options:, epoch: Time.now, kickoff: Time.now, judge: 'judge') do
+      on '(exists foo)'
+      consider do |_|
+        1000.times do
+          octo.repository('foo/baz')
+          count += 1
+        end
+      end
+    end
+    assert_equal(51, count)
+  end
 end

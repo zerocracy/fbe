@@ -214,6 +214,9 @@ class Fbe::Conclude
     end
     @loog.debug("Found and processed #{passed} facts by: #{@query}")
     passed
+  rescue Fbe::OffQuota => e
+    @loog.info(e.message)
+    passed
   end
 
   # Populates a new fact based on a previous fact and a processing block.

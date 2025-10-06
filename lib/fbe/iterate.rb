@@ -337,5 +337,7 @@ class Fbe::Iterate
       Fbe.overwrite(f, @label, before[repo], fb: @fb)
     end
     @loog.debug("Finished scanning #{repos.size} repos in #{@kickoff.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
+  rescue Fbe::OffQuota => e
+    @loog.info(e.message)
   end
 end
