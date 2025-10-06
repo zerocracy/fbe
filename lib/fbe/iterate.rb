@@ -326,16 +326,21 @@ class Fbe::Iterate
         break
       end
     end
-    repos.each do |repo|
-      next if before[repo] == starts[repo]
-      f =
-        Fbe.if_absent(fb: @fb, always: true) do |n|
-          n.what = 'iterate'
-          n.where = 'github'
-          n.repository = repo
-        end
-      Fbe.overwrite(f, @label, before[repo], fb: @fb)
-    end
     @loog.debug("Finished scanning #{repos.size} repos in #{@kickoff.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
+  rescue Fbe::OffQuota => e
+    @loog.info(e.message)
+  ensure
+    if defined?(repos) && defined?(before) && defined?(starts)
+      repos.each do |repo|
+        next if before[repo] == starts[repo]
+        f =
+          Fbe.if_absent(fb: @fb, always: true) do |n|
+            n.what = 'iterate'
+            n.where = 'github'
+            n.repository = repo
+          end
+        Fbe.overwrite(f, @label, before[repo], fb: @fb)
+      end
+    end
   end
 end
