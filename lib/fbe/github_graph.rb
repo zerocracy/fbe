@@ -95,16 +95,32 @@ class Fbe::Graph
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [String] branch The branch name (e.g., "master" or "main")
-  # @return [Integer] The total number of commits in the branch
+  # @param [Array<Array<String, String, String>> repos List of owner, name, branch
+  # @return [Integer, Array<Hash>] The total number of commits in the branch or array with hash
   # @example
   #   graph = Fbe::Graph.new(token: 'github_token')
   #   count = graph.total_commits('octocat', 'Hello-World', 'main')
   #   puts count #=> 42
-  def total_commits(owner, name, branch)
-    result = query(
-      <<~GRAPHQL
-        {
-          repository(owner: "#{owner}", name: "#{name}") {
+  # @example
+  #   result = Fbe.github_graph.total_commits(
+  #     repos: [
+  #       ['zerocracy', 'fbe', 'master'],
+  #       ['zerocracy', 'judges-action', 'master']
+  #     ]
+  #   )
+  #   puts result #=>
+  #   [{"owner"=>"zerocracy", "name"=>"fbe", "branch"=>"master", "total_commits"=>754},
+  #    {"owner"=>"zerocracy", "name"=>"judges-action", "branch"=>"master", "total_commits"=>2251}]
+  def total_commits(owner = nil, name = nil, branch = nil, repos: nil)
+    raise 'Need owner, name and branch or repos' if owner.nil? && name.nil? && branch.nil? && repos.nil?
+    raise 'Owner, name and branch is required' if (owner.nil? || name.nil? || branch.nil?) && repos.nil?
+    raise 'Repos list cannot be empty' if owner.nil? && name.nil? && branch.nil? && repos&.empty?
+    raise 'Need only owner, name and branch or repos' if (!owner.nil? || !name.nil? || !branch.nil?) && !repos.nil?
+    repos ||= [[owner, name, branch]]
+    requests =
+      repos.each_with_index.map do |(owner, name, branch), i|
+        <<~GRAPHQL
+          repo_#{i}: repository(owner: "#{owner}", name: "#{name}") {
             ref(qualifiedName: "#{branch}") {
               target {
                 ... on Commit {
@@ -115,10 +131,25 @@ class Fbe::Graph
               }
             }
           }
+        GRAPHQL
+      end
+    result = query("{\n#{requests.join("\n")}\n}")
+    if owner && name && branch
+      ref = result.repo_0&.ref
+      raise "Repository '#{owner}/#{name}' or branch '#{branch}' not found" unless ref&.target&.history
+      ref.target.history.total_count
+    else
+      repos.each_with_index.map do |(owner, name, branch), i|
+        ref = result.send(:"repo_#{i}")&.ref
+        raise "Repository '#{owner}/#{name}' or branch '#{branch}' not found" unless ref&.target&.history
+        {
+          'owner' => owner,
+          'name' => name,
+          'branch' => branch,
+          'total_commits' => ref.target.history.total_count
         }
-      GRAPHQL
-    )
-    result.repository.ref.target.history.total_count
+      end
+    end
   end
 
   # Gets the total number of issues and pull requests in a repository.
@@ -451,12 +482,28 @@ class Fbe::Graph
 
     # Returns mock total commit count.
     #
-    # @param [String] _owner Repository owner (ignored)
-    # @param [String] _name Repository name (ignored)
-    # @param [String] _branch Branch name (ignored)
-    # @return [Integer] Always returns 1484
-    def total_commits(_owner, _name, _branch)
-      1484
+    # @param [String] owner Repository owner
+    # @param [String] name Repository name
+    # @param [String] branch Branch name
+    # @param [Array<Array<String, String, String>> repos List of owner, name, branch
+    # @return [Integer, Array<Hash>] Returns 1484 for single repo or array of hashes
+    def total_commits(owner = nil, name = nil, branch = nil, repos: nil)
+      raise 'Need owner, name and branch or repos' if owner.nil? && name.nil? && branch.nil? && repos.nil?
+      raise 'Owner, name and branch is required' if (owner.nil? || name.nil? || branch.nil?) && repos.nil?
+      raise 'Repos list cannot be empty' if owner.nil? && name.nil? && branch.nil? && repos&.empty?
+      raise 'Need only owner, name and branch or repos' if (!owner.nil? || !name.nil? || !branch.nil?) && !repos.nil?
+      if owner && name && branch
+        1484
+      else
+        repos.each_with_index.map do |(owner, name, branch), _i|
+          {
+            'owner' => owner,
+            'name' => name,
+            'branch' => branch,
+            'total_commits' => 1484
+          }
+        end
+      end
     end
 
     # Returns mock issue type event data.

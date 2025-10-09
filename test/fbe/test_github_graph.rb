@@ -107,8 +107,24 @@ class TestGitHubGraph < Fbe::Test
     global = {}
     options = Judges::Options.new
     g = Fbe.github_graph(options:, loog: Loog::NULL, global:)
-    result = g.total_commits('zerocracy', 'baza', 'master')
+    result = g.total_commits('zerocracy', 'baza.rb', 'master')
     assert_predicate(result, :positive?)
+    g.total_commits(
+      repos: [
+        %w[zerocracy fbe master],
+        %w[zerocracy judges-action master]
+      ]
+    ).each do |h|
+      h = h.transform_keys(&:to_sym)
+      assert_pattern do
+        h => {
+          owner: String,
+          name: String,
+          branch: String,
+          total_commits: 1..
+        }
+      end
+    end
   end
 
   def test_get_fake_empty_conversations
@@ -138,6 +154,22 @@ class TestGitHubGraph < Fbe::Test
     WebMock.disable_net_connect!
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
     assert_equal(1484, graph.total_commits('zerocracy', 'fbe', 'master'))
+    graph.total_commits(
+      repos: [
+        %w[zerocracy fbe master],
+        %w[zerocracy judges-action master]
+      ]
+    ).each do |h|
+      h = h.transform_keys(&:to_sym)
+      assert_pattern do
+        h => {
+          owner: String,
+          name: String,
+          branch: String,
+          total_commits: 1484
+        }
+      end
+    end
   end
 
   def test_fake_issue_type_event
