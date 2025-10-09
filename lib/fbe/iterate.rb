@@ -330,7 +330,9 @@ class Fbe::Iterate
   rescue Fbe::OffQuota => e
     @loog.info(e.message)
   ensure
-    if defined?(repos) && defined?(before) && defined?(starts)
+    if defined?(repos) && !repos.nil? &&
+       defined?(before) && !before.nil? &&
+       defined?(starts) && !starts.nil?
       repos.each do |repo|
         next if before[repo] == starts[repo]
         f =

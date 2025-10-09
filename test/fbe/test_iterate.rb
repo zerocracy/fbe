@@ -459,4 +459,28 @@ class TestIterate < Fbe::Test
     end
     assert_equal(51, count)
   end
+
+  def test_with_exhausted_rate_limit
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{"rate":{"remaining":0}}', headers: { 'X-RateLimit-Remaining' => '0' } }
+    )
+    global = {}
+    loog = Loog::NULL
+    options = Judges::Options.new(['repositories=foo/bar'])
+    octo = Fbe.octo(options:, global:, loog:)
+    fb = Fbe.fb(fb: Factbase.new, global:, options:, loog:)
+    fb.insert.foo = 42
+    count = 0
+    Fbe.iterate(fb:, loog:, global:, options:, epoch: Time.now, kickoff: Time.now) do
+      as 'marker'
+      by '(agg (always) (max foo))'
+      over do |_repository, foo|
+        octo.repository('foo/baz')
+        count += 1
+        foo
+      end
+    end
+    assert_equal(0, count)
+  end
 end
