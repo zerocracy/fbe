@@ -337,6 +337,18 @@ class TestOcto < Fbe::Test
     assert_raises(Octokit::NotFound) { o.repository(404_124) }
   end
 
+  def test_fetches_fake_empty_repo
+    Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true })).then do |o|
+      assert_equal(0, o.repository('yegor256/empty-repo')[:size])
+    end
+  end
+
+  def test_fetches_fake_nil_size_repo
+    Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true })).then do |o|
+      assert_nil(o.repository('yegor256/nil-size-repo')[:size])
+    end
+  end
+
   def test_fetches_fake_zerocracy_baza_repo
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_equal('zerocracy/baza', o.repository(1439)[:full_name])
