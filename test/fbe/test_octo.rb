@@ -362,6 +362,37 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fetches_fake_issue_events_has_assigned_and_unassigned_events
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    events = o.issue_events('foo/foo', 120)
+    assert_instance_of(Array, events)
+    assert_equal(2, events.size)
+    events.first.then do |event|
+      assert_pattern do
+        event => {
+          id: 1010,
+          actor: { login: 'user2', id: 422, type: 'User' },
+          event: 'assigned',
+          created_at: Time,
+          assignee: { login: 'user2', id: 422, type: 'User' },
+          assigner: { login: 'user', id: 411, type: 'User' }
+        }
+      end
+    end
+    events.last.then do |event|
+      assert_pattern do
+        event => {
+          id: 1011,
+          actor: { login: 'user2', id: 422, type: 'User' },
+          event: 'unassigned',
+          created_at: Time,
+          assignee: { login: 'user2', id: 422, type: 'User' },
+          assigner: { login: 'user', id: 411, type: 'User' }
+        }
+      end
+    end
+  end
+
   def test_fetch_fake_issue_and_pr
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.issue('yegor256/test', 142)
