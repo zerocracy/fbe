@@ -463,6 +463,18 @@ class TestOcto < Fbe::Test
         }
       end
     end
+    o.list_issues('foo/bazz').slice(1..).each do |issue|
+      assert_pattern do
+        issue => {
+          id: Integer,
+          number: Integer,
+          repo: { full_name: String },
+          user: { id: Integer },
+          pull_request: Hash,
+          created_at: Time
+        }
+      end
+    end
   end
 
   def test_fake_respond_to_auto_paginate
