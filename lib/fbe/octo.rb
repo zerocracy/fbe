@@ -693,6 +693,18 @@ class Fbe::FakeOctokit
   #   # => {:id=>42, :number=>42, :created_at=>...}
   def issue(repo, number)
     case number
+    when 94
+      {
+        id: 42,
+        number:,
+        repo: {
+          full_name: repo
+        },
+        pull_request: {
+          merged_at: nil
+        },
+        created_at: Time.parse('2024-09-20 19:00:00 UTC')
+      }
     when 142
       {
         id: 655,

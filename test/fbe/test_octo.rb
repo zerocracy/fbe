@@ -424,6 +424,21 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fetch_fake_issue_without_user
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.issue('yegor256/test', 94)
+    refute_includes(result.keys, :user)
+    assert_pattern do
+      result => {
+        id: Integer,
+        number: 94,
+        repo: Hash,
+        pull_request: Hash,
+        created_at: Time
+      }
+    end
+  end
+
   def test_fetch_fake_pull_request
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_request('yegor256/test', 29).then do |pr|
