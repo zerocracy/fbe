@@ -734,6 +734,7 @@ class Fbe::FakeOctokit
         repo: {
           full_name: repo
         },
+        user: { login: 'yegor256', id: 526_301, type: 'User' },
         pull_request: {
           merged_at: nil
         },
