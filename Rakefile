@@ -7,6 +7,7 @@ require 'qbash'
 require 'rake'
 require 'rake/clean'
 require 'rubygems'
+require 'shellwords'
 
 def name
   @name ||= File.basename(Dir['*.gemspec'].first, '.*')

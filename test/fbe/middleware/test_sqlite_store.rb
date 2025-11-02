@@ -5,6 +5,7 @@
 
 require 'qbash'
 require 'securerandom'
+require 'shellwords'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/sqlite_store'
 require_relative '../../test__helper'
