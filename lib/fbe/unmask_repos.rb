@@ -6,6 +6,7 @@
 require 'joined'
 require_relative '../fbe'
 require_relative 'octo'
+require_relative 'over'
 
 # Converts a repository mask pattern to a regular expression.
 #
@@ -64,6 +65,9 @@ def Fbe.unmask_repos(
 )
   raise 'Repositories mask is not specified' unless options.repositories
   raise 'Repositories mask is empty' if options.repositories.empty?
+  return if block_given? && Fbe.over?(
+    global:, options:, loog:, epoch:, kickoff:, quota_aware:, lifetime_aware:, timeout_aware:
+  )
   repos = []
   octo = Fbe.octo(loog:, global:, options:)
   masks = (options.repositories || '').split(',')
@@ -88,18 +92,7 @@ def Fbe.unmask_repos(
   repos.each { |repo| octo.repository(repo) }
   return repos unless block_given?
   repos.each do |repo|
-    if quota_aware && octo.off_quota?
-      loog.info("No GitHub quota left, it is time to stop at #{repo}")
-      break
-    end
-    if lifetime_aware && options.lifetime && Time.now - epoch > options.lifetime * 0.9
-      loog.info("No time left, it is time to stop at #{repo}")
-      break
-    end
-    if timeout_aware && options.timeout && Time.now - kickoff > options.timeout * 0.9
-      loog.info("No time left, it is time to stop at #{repo}")
-      break
-    end
+    break if Fbe.over?(global:, options:, loog:, epoch:, kickoff:, quota_aware:, lifetime_aware:, timeout_aware:)
     yield repo
   end
 end

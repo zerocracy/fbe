@@ -243,10 +243,10 @@ class Fbe::Iterate
     raise 'Use "by" first' if @query.nil?
     seen = {}
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
-    if oct.off_quota?
-      @loog.info('We are off GitHub quota, cannot even start, sorry')
-      return
-    end
+    return if Fbe.over?(
+      global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
+      quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+    )
     repos = Fbe.unmask_repos(
       loog: @loog, options: @options, global: @global, quota_aware: @quota_aware
     ).map { |n| oct.repo_id_by_name(n) }
