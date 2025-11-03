@@ -39,6 +39,7 @@ require 'yard'
 desc 'Build Yard documentation'
 YARD::Rake::YardocTask.new do |t|
   t.files = ['lib/**/*.rb']
+  t.options = ['--fail-on-warning']
 end
 
 require 'rubocop/rake_task'
