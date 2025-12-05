@@ -95,7 +95,7 @@ class Fbe::Graph
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [String] branch The branch name (e.g., "master" or "main")
-  # @param [Array<Array<String, String, String>> repos List of owner, name, branch
+  # @param [Array<Array<String, String, String>>] repos List of owner, name, branch
   # @return [Integer, Array<Hash>] The total number of commits in the branch or array with hash
   # @example
   #   graph = Fbe::Graph.new(token: 'github_token')
@@ -485,7 +485,7 @@ class Fbe::Graph
     # @param [String] owner Repository owner
     # @param [String] name Repository name
     # @param [String] branch Branch name
-    # @param [Array<Array<String, String, String>> repos List of owner, name, branch
+    # @param [Array<Array<String, String, String>>] repos List of owner, name, branch
     # @return [Integer, Array<Hash>] Returns 1484 for single repo or array of hashes
     def total_commits(owner = nil, name = nil, branch = nil, repos: nil)
       raise 'Need owner, name and branch or repos' if owner.nil? && name.nil? && branch.nil? && repos.nil?

@@ -16,6 +16,7 @@ require 'octokit'
 require 'others'
 require 'tago'
 require 'uri'
+require 'veil'
 require 'verbose'
 require_relative '../fbe'
 require_relative 'middleware'
@@ -284,12 +285,9 @@ class Fbe::FakeOctokit
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.rate_limit.remaining #=> 100
   def rate_limit
-    o = Object.new
-    def o.remaining
-      100
-    end
-    o
+    Veil.new(nil, remaining: 100)
   end
+
   alias rate_limit! rate_limit
 
   # Lists repositories for a user or organization.

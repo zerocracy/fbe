@@ -52,9 +52,9 @@ end
 # @param [Loog] loog Logger for debug output
 # @param [Time] epoch When the entire update started
 # @param [Time] kickoff When the particular judge started
-# @param [quota_aware] Boolean Should we stop if quota is off?
-# @param [lifetime_aware] Boolean Should we stop if lifetime is over?
-# @param [timeout_aware] Boolean Should we stop if timeout is over?
+# @param [Boolean] quota_aware Should we stop if quota is off?
+# @param [Boolean] lifetime_aware Should we stop if lifetime is over?
+# @param [Boolean] timeout_aware Should we stop if timeout is over?
 # @return [Array<String>] Shuffled list of repository full names (e.g., 'org/repo')
 # @raise [RuntimeError] If no repositories match the provided masks
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')

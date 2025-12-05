@@ -43,6 +43,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'others', '~>0.1'
   s.add_dependency 'sqlite3', '~> 2.6'
   s.add_dependency 'tago', '~>0.1'
+  s.add_dependency 'veils', '~>0.4'
   s.add_dependency 'verbose', '~>0.0'
   s.metadata['rubygems_mfa_required'] = 'true'
 end
