@@ -41,15 +41,22 @@ class TestOverwrite < Fbe::Test
     assert_equal(['bye'], f2['foo'])
   end
 
-  def test_no_need_to_overwrite
-    fb = Factbase.new
+  def test_skips_overwrite_with_hash
+    c = 0
+    fb =
+      Factbase::Pre.new(Factbase.new) do |f, _fbt|
+        f.pos = c
+        c += 1
+      end
     f = fb.insert
+    assert_equal(0, f.pos)
     f._id = 1
     f.foo = 42
-    fb.insert._id = 2
     Fbe.overwrite(f, 'foo', 42, fb:)
-    assert_equal(1, fb.query('(always)').each.first._id)
+    f = fb.query('(always)').each.to_a.first
+    assert_equal(0, f.pos)
   end
+
 
   def test_simple_insert
     fb = Factbase.new
@@ -161,6 +168,22 @@ class TestOverwrite < Fbe::Test
     result = fb.query('(always)').each.to_a.first
     assert_equal(200, result['foo'].first)
     assert_equal('string_key', result['bar'].first)
+  end
+
+  def test_skips_overwrite_with_hash
+    c = 0
+    fb =
+      Factbase::Pre.new(Factbase.new) do |f, _fbt|
+        f.pos = c
+        c += 1
+      end
+    f = fb.insert
+    assert_equal(0, f.pos)
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, { 'foo' => 42 }, fb:)
+    f = fb.query('(always)').each.to_a.first
+    assert_equal(0, f.pos)
   end
 
   def test_overwrite_with_hash_preserves_other_properties
