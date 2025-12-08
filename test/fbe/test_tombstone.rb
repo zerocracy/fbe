@@ -41,6 +41,21 @@ class TestTombstone < Fbe::Test
     assert(ts.has?(where, 42, 7))
   end
 
+  def test_list_all_issues
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    where = 'github'
+    ts.bury!(where, 42, 7)
+    ts.bury!(where, 42, 8)
+    ts.bury!(where, 42, 66)
+    all = ts.issues(where, 42)
+    assert_equal(3, all.size)
+    assert_includes(all, 7)
+    assert_includes(all, 8)
+    assert_includes(all, 66)
+    refute_includes(all, 9)
+  end
+
   def test_merges_them
     fb = Factbase.new
     ts = Fbe::Tombstone.new(fb:)

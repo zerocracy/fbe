@@ -22,11 +22,30 @@ class Fbe::Tombstone
     @fid = fid
   end
 
+  # See all issues in the tombstone, as array of numbers.
+  # @param [String] where The place, e.g. "github"
+  # @param [Integer] repo ID of repository
+  # @return [Array<Integer>] IDs of issue
+  def issues(where, repo)
+    f = @fb.query(
+      "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
+    ).each.first
+    return [] if f.nil?
+    f['issues'].map do |ii|
+      a, b = ii.split('-').map(&:to_i)
+      b = a if b.nil?
+      (a..b).map { |i| i }
+    end.flatten
+  end
+
   # Put it there.
   # @param [String] where The place, e.g. "github"
   # @param [Integer] repo ID of repository
-  # @param [Integer] issue ID of issue (or array of them)
+  # @param [Integer, Array<Integer>] issue ID of issue (or array of them)
   def bury!(where, repo, issue)
+    raise 'The type of "where" is not String' unless where.is_a?(String)
+    raise 'The type of "repo" is not Integer' unless repo.is_a?(Integer)
+    raise 'The type of "issue" is neither Integer nor Array' unless issue.is_a?(Integer) || issue.is_a?(Array)
     f =
       Fbe.if_absent(fb: @fb, always: true) do |n|
         n.what = 'tombstone'
@@ -55,9 +74,12 @@ class Fbe::Tombstone
   # Is it there?
   # @param [String] where The place, e.g. "github"
   # @param [Integer] repo ID of repository
-  # @param [Integer] issue ID of issue (or array of them)
+  # @param [Integer, Array<Integer>] issue ID of issue (or array of them)
   # @return [Boolean] True if it's there
   def has?(where, repo, issue)
+    raise 'The type of "where" is not String' unless where.is_a?(String)
+    raise 'The type of "repo" is not Integer' unless repo.is_a?(Integer)
+    raise 'The type of "issue" is neither Integer nor Array' unless issue.is_a?(Integer) || issue.is_a?(Array)
     f = @fb.query(
       "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
     ).each.first
