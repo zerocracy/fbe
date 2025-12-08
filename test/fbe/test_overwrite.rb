@@ -57,7 +57,6 @@ class TestOverwrite < Fbe::Test
     assert_equal(0, f.pos)
   end
 
-
   def test_simple_insert
     fb = Factbase.new
     f = fb.insert
@@ -170,7 +169,7 @@ class TestOverwrite < Fbe::Test
     assert_equal('string_key', result['bar'].first)
   end
 
-  def test_skips_overwrite_with_hash
+  def test_skips_overwrite_with_single_value
     c = 0
     fb =
       Factbase::Pre.new(Factbase.new) do |f, _fbt|
@@ -181,7 +180,7 @@ class TestOverwrite < Fbe::Test
     assert_equal(0, f.pos)
     f._id = 1
     f.foo = 42
-    Fbe.overwrite(f, { 'foo' => 42 }, fb:)
+    Fbe.overwrite(f, { foo: 42 }, fb:)
     f = fb.query('(always)').each.to_a.first
     assert_equal(0, f.pos)
   end
