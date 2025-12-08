@@ -27,6 +27,8 @@ class Fbe::Tombstone
   # @param [Integer] repo ID of repository
   # @return [Array<Integer>] IDs of issue
   def issues(where, repo)
+    raise 'The type of "where" is not String' unless where.is_a?(String)
+    raise 'The type of "repo" is not Integer' unless repo.is_a?(Integer)
     f = @fb.query(
       "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
     ).each.first
@@ -67,7 +69,8 @@ class Fbe::Tombstone
         end
       end
     Fbe.overwrite(
-      f, 'issues', merged.map { |ii| ii[0] == ii[1] ? ii[0].to_s : "#{ii[0]}-#{ii[1]}" }, fb: @fb, fid: @fid
+      f, 'issues', merged.map { |ii| ii[0] == ii[1] ? ii[0].to_s : "#{ii[0]}-#{ii[1]}" },
+      fb: @fb, fid: @fid
     )
   end
 
