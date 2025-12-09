@@ -26,6 +26,18 @@ class TestPmp < Fbe::Test
     assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_reads_other_props
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.something_else = 42
+    $loog = Loog::NULL
+    assert_equal(42, Fbe.pmp(loog: Loog::NULL).hr.something_else)
+  end
+
   def test_fail_on_wrong_area
     $global = {}
     $loog = Loog::NULL
