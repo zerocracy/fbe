@@ -1,0 +1,89 @@
+<?xml version='1.0'?>
+<!--
+SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
+SPDX-License-Identifier: MIT
+-->
+<pmp>
+    <area name="hr">
+        <p>
+            <name>anger</name>
+            <default>2</default>
+            <type>int</type>
+            <memo>The level of anger</memo>
+        </p>
+        <p>
+            <name>days_to_reward</name>
+            <default>14</default>
+            <type>int</type>
+            <memo>How many days ago an event must happen so that we reward it?</memo>
+        </p>
+        <p>
+            <name>days_of_running_score</name>
+            <default>56</default>
+            <type>int</type>
+            <memo>How many days to include into the score of a person?</memo>
+        </p>
+        <p>
+            <name>master_punish_days</name>
+            <default>4</default>
+            <type>int</type>
+            <memo>Every X days to punish for direct push to master</memo>
+        </p>
+    </area>
+    <area name="integration">
+        <p>
+            <name>eva_interval</name>
+            <default>10</default>
+            <type>int</type>
+            <memo>Every X days to collect EVA statistics</memo>
+        </p>
+        <p>
+            <name>eva_learn_hours</name>
+            <default>8</default>
+            <type>int</type>
+            <memo>Every X hours to collect EVA numbers and learn the model using them</memo>
+        </p>
+    </area>
+    <area name="quality">
+        <p>
+            <name>paranoia</name>
+            <default>2</default>
+            <type>int</type>
+            <memo>The level of paranoia</memo>
+        </p>
+        <p>
+            <name>qos_days</name>
+            <default>32</default>
+            <type>int</type>
+            <memo>For how many days to collect QoS data</memo>
+        </p>
+    </area>
+    <area name="scope">
+        <p>
+            <name>qod_days</name>
+            <default>32</default>
+            <type>int</type>
+            <memo>For how many days to collect QoD data</memo>
+        </p>
+    </area>
+    <area name="cost">
+        <p>
+            <name>love</name>
+            <default>2</default>
+            <type>int</type>
+            <memo>The level of love</memo>
+        </p>
+        <p>
+            <name>award_price</name>
+            <default>0.0</default>
+            <type>float</type>
+            <memo>How many USD to pay for each award point</memo>
+        </p>
+        <p>
+            <name>slaves</name>
+            <default>torvalds</default>
+            <type>string</type>
+            <memo>List of people, who are not supposed to be paid real cash</memo>
+        </p>
+    </area>
+</pmp>

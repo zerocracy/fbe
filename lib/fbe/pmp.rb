@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'delegate'
+require 'nokogiri'
 require 'others'
 require_relative '../fbe'
 require_relative 'fb'
@@ -41,18 +43,47 @@ require_relative 'fb'
 #   # Get deadline from time area
 #   deadline = Fbe.pmp.time.deadline
 def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
-  others do |*args1|
-    area = args1.first
-    unless %w[cost scope hr time procurement risk integration quality communication].include?(area.to_s)
-      raise "Invalid area #{area.inspect} (not part of PMBOK)"
+  xml = Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
+  pmpv =
+    Class.new(SimpleDelegator) do
+      def initialize(value, dv)
+        super(value)
+        @dv = dv
+      end
+
+      def default
+        @dv
+      end
     end
-    others do |*args2|
-      param = args2.first
-      f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.first
-      raise "Unknown area #{area.inspect}" if f.nil?
-      r = f[param]
-      raise "Unknown property #{param.inspect} in the #{area.inspect} area" if r.nil?
-      r.first
+  Class.new do
+    define_method(:areas) do
+      xml.xpath('/pmp/area/@name').map(&:value)
     end
-  end
+    others do |*args1|
+      area = args1.first.to_s
+      node = xml.at_xpath("/pmp/area[@name='#{area}']")
+      raise "Unknown area #{area.inspect}" if node.nil?
+      Class.new do
+        define_method(:properties) do
+          node.xpath('p/name').map(&:text)
+        end
+        others do |*args2|
+          param = args2.first.to_s
+          prop = node.at_xpath("p[name='#{param}']")
+          raise "Unknown property #{param.inspect} in the #{area.inspect} area" if prop.nil?
+          f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.first
+          r = f&.[](param)&.first
+          d = prop.at_xpath('default').text
+          t = prop.at_xpath('type').text
+          dv =
+            case t
+            when 'int' then d.to_i
+            when 'float' then d.to_f
+            else d
+            end
+          pmpv.new(r || dv, dv)
+        end
+      end.new
+    end
+  end.new
 end
