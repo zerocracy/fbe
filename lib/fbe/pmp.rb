@@ -69,18 +69,20 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
         end
         others do |*args2|
           param = args2.first.to_s
-          prop = node.at_xpath("p[name='#{param}']")
-          raise "Unknown property #{param.inspect} in the #{area.inspect} area" if prop.nil?
           f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.first
           r = f&.[](param)&.first
-          d = prop.at_xpath('default').text
-          t = prop.at_xpath('type').text
-          dv =
-            case t
-            when 'int' then d.to_i
-            when 'float' then d.to_f
-            else d
-            end
+          prop = node.at_xpath("p[name='#{param}']")
+          dv = nil
+          if prop
+            d = prop.at_xpath('default').text
+            t = prop.at_xpath('type').text
+            dv =
+              case t
+              when 'int' then d.to_i
+              when 'float' then d.to_f
+              else d
+              end
+          end
           pmpv.new(r || dv, dv)
         end
       end.new
