@@ -46,13 +46,13 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
   xml = Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
   pmpv =
     Class.new(SimpleDelegator) do
-      def initialize(value, dv)
-        super(value)
-        @dv = dv
-      end
+      attr_reader :default, :type, :memo
 
-      def default
-        @dv
+      def initialize(value, default, type, memo)
+        super(value)
+        @default = default
+        @type = type
+        @memo = memo
       end
     end
   Class.new do
@@ -72,18 +72,21 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
           f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.first
           r = f&.[](param)&.first
           prop = node.at_xpath("p[name='#{param}']")
-          dv = nil
+          default = nil
+          type = nil
+          memo = nil
           if prop
-            d = prop.at_xpath('default').text
-            t = prop.at_xpath('type').text
-            dv =
+            default = prop.at_xpath('default').text
+            type = prop.at_xpath('type').text
+            memo = prop.at_xpath('memo').text
+            default =
               case t
-              when 'int' then d.to_i
-              when 'float' then d.to_f
-              else d
+              when 'int' then default.to_i
+              when 'float' then default.to_f
+              else default
               end
           end
-          pmpv.new(r || dv, dv)
+          pmpv.new(r || default, default, type, memo)
         end
       end.new
     end

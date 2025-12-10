@@ -26,6 +26,17 @@ class TestPmp < Fbe::Test
     assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_reads_meta_info
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    v = Fbe.pmp(loog: Loog::NULL).hr.days_to_reward
+    assert(v.default)
+    assert(v.type)
+    assert(v.memo)
+  end
+
   def test_reads_other_props
     $fb = Factbase.new
     $global = {}
