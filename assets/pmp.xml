@@ -9,25 +9,25 @@ SPDX-License-Identifier: MIT
             <name>anger</name>
             <default>2</default>
             <type>int</type>
-            <memo>The level of anger</memo>
+            <memo>Intensity of penalties for rule violations</memo>
         </p>
         <p>
             <name>days_to_reward</name>
             <default>14</default>
             <type>int</type>
-            <memo>How many days ago an event must happen so that we reward it?</memo>
+            <memo>Minimum age in days for an event to qualify for a reward</memo>
         </p>
         <p>
             <name>days_of_running_score</name>
             <default>56</default>
             <type>int</type>
-            <memo>How many days to include into the score of a person?</memo>
+            <memo>Number of days to include in a contributor's running score</memo>
         </p>
         <p>
             <name>master_punish_days</name>
             <default>4</default>
             <type>int</type>
-            <memo>Every X days to punish for direct push to master</memo>
+            <memo>Interval in days between penalties for direct pushes to master</memo>
         </p>
     </area>
     <area name="integration">
@@ -35,13 +35,13 @@ SPDX-License-Identifier: MIT
             <name>eva_interval</name>
             <default>10</default>
             <type>int</type>
-            <memo>Every X days to collect EVA statistics</memo>
+            <memo>Interval in days between EVA statistics collection</memo>
         </p>
         <p>
             <name>eva_learn_hours</name>
             <default>8</default>
             <type>int</type>
-            <memo>Every X hours to collect EVA numbers and learn the model using them</memo>
+            <memo>Interval in hours between EVA data collection and model training</memo>
         </p>
     </area>
     <area name="quality">
@@ -49,13 +49,13 @@ SPDX-License-Identifier: MIT
             <name>paranoia</name>
             <default>2</default>
             <type>int</type>
-            <memo>The level of paranoia</memo>
+            <memo>Strictness level for quality checks</memo>
         </p>
         <p>
             <name>qos_days</name>
             <default>32</default>
             <type>int</type>
-            <memo>For how many days to collect QoS data</memo>
+            <memo>Number of days to include in QoS data collection</memo>
         </p>
     </area>
     <area name="scope">
@@ -63,7 +63,7 @@ SPDX-License-Identifier: MIT
             <name>qod_days</name>
             <default>32</default>
             <type>int</type>
-            <memo>For how many days to collect QoD data</memo>
+            <memo>Number of days to include in QoD data collection</memo>
         </p>
     </area>
     <area name="cost">
@@ -71,19 +71,27 @@ SPDX-License-Identifier: MIT
             <name>love</name>
             <default>2</default>
             <type>int</type>
-            <memo>The level of love</memo>
+            <memo>Generosity level for rewards</memo>
         </p>
         <p>
             <name>award_price</name>
             <default>0.0</default>
             <type>float</type>
-            <memo>How many USD to pay for each award point</memo>
+            <memo>Amount in USD paid per award point</memo>
         </p>
         <p>
             <name>slaves</name>
             <default>torvalds</default>
             <type>string</type>
-            <memo>List of people, who are not supposed to be paid real cash</memo>
+            <memo>List of contributors exempt from cash payments</memo>
+        </p>
+    </area>
+    <area name="communications">
+        <p>
+            <name>stealth</name>
+            <default>false</default>
+            <type>bool</type>
+            <memo>Suppress all notifications to contributors about awards and penalties</memo>
         </p>
     </area>
 </pmp>
