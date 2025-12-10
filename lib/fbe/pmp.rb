@@ -83,10 +83,19 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
               case t
               when 'int' then default.to_i
               when 'float' then default.to_f
+              when 'bool' then default == 'true'
               else default
               end
           end
-          pmpv.new(r || default, default, type, memo)
+          r ||= default
+          r =
+            case t
+            when 'int' then r.to_i
+            when 'float' then r.to_f
+            when 'bool' then r == 'true'
+            else r
+            end
+          pmpv.new(r, default, type, memo)
         end
       end.new
     end
