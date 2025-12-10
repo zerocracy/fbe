@@ -70,7 +70,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
         others do |*args2|
           param = args2.first.to_s
           f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.first
-          r = f&.[](param)&.first
+          result = f&.[](param)&.first
           prop = node.at_xpath("p[name='#{param}']")
           default = nil
           type = nil
@@ -80,22 +80,22 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
             type = prop.at_xpath('type').text
             memo = prop.at_xpath('memo').text
             default =
-              case t
+              case type
               when 'int' then default.to_i
               when 'float' then default.to_f
               when 'bool' then default == 'true'
               else default
               end
           end
-          r ||= default
-          r =
-            case t
-            when 'int' then r.to_i
-            when 'float' then r.to_f
-            when 'bool' then r == 'true'
-            else r
+          result ||= default
+          result =
+            case type
+            when 'int' then result.to_i
+            when 'float' then result.to_f
+            when 'bool' then result == 'true'
+            else result
             end
-          pmpv.new(r, default, type, memo)
+          pmpv.new(result, default, type, memo)
         end
       end.new
     end
