@@ -453,6 +453,22 @@ class TestOcto < Fbe::Test
         }
       end
     end
+    o.pull_request('yegor256/test', 172).then do |pr|
+      assert_pattern do
+        pr => {
+          id: 1_990_323_142,
+          number: 172,
+          user: { login: 'test', id: 88_084_038 },
+          merged_at: Time,
+          comments: 2,
+          review_comments: 2,
+          commits: 1,
+          additions: 3,
+          deletions: 3,
+          changed_files: 2
+        }
+      end
+    end
   end
 
   def test_fetch_fake_pull_request_review_comments
