@@ -83,7 +83,7 @@ SPDX-License-Identifier: MIT
             <name>slaves</name>
             <default>torvalds</default>
             <type>string</type>
-            <memo>List of contributors exempt from cash payments</memo>
+            <memo>Comma-separated list of contributors exempt from cash payments</memo>
         </p>
     </area>
     <area name="communications">
