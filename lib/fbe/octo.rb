@@ -771,6 +771,39 @@ class Fbe::FakeOctokit
         additions: 12,
         deletions: 5
       }
+    elsif number == 172
+      {
+        id: 1_990_323_142,
+        number: 172,
+        url: 'https://api.github.com/repos/yegor256/judges/pulls/93',
+        node_id: 'PR_kwDOL6GCO852oevG',
+        state: 'closed',
+        locked: false,
+        title: '#999 new feature',
+        user: {
+          login: 'test',
+          id: 88_084_038,
+          node_id: 'MDQ6VXNlcjE2NDYwMjA=',
+          type: 'User',
+          site_admin: false
+        },
+        base: {
+          ref: 'master',
+          sha: '125f234967de0f690805c6943e78db42a294c1a',
+          repo: { id: repo, name: 'judges' }
+        },
+        head: {
+          ref: 'zerocracy/judges',
+          sha: '74d0c234967de0f690805c6943e78db42a294c1a'
+        },
+        merged_at: Time.now,
+        comments: 2,
+        review_comments: 2,
+        commits: 1,
+        additions: 3,
+        deletions: 3,
+        changed_files: 2
+      }
     else
       {
         id: 42,
@@ -1159,8 +1192,6 @@ class Fbe::FakeOctokit
         payload: {
           push_id: 42,
           ref: 'refs/heads/master',
-          size: 1,
-          distinct_size: 0,
           head: 'b7089c51cc2526a0d2619d35379f921d53c72731',
           before: '12d3bff1a55bad50ee2e8f29ade7f1c1e07bb025'
         },
@@ -1225,49 +1256,22 @@ class Fbe::FakeOctokit
         payload: {
           action: 'closed',
           number: 172,
-          ref_type: 'tag',
-          ref: 'foo',
           pull_request: {
             url: 'https://api.github.com/repos/yegor256/judges/pulls/93',
             id: 1_990_323_142,
-            node_id: 'PR_kwDOL6GCO852oevG',
             number: 172,
-            state: 'closed',
-            locked: false,
-            title: '#999 new feature',
-            user: {
-              login: 'test',
-              id: 88_084_038,
-              node_id: 'MDQ6VXNlcjE2NDYwMjA=',
-              type: 'User',
-              site_admin: false
-            },
             base: {
-              label: 'zerocracy:master',
               ref: 'master',
-              user: {
-                login: 'zerocracy',
-                id: 24_234_201
-              },
+              sha: '93fe488b9967de0f690805c6943e78db42a294c1a',
               repo: {
                 id: repo,
-                node_id: 'R_kgDOK2_4Aw',
-                name: 'baza',
-                full_name: 'zerocracy/baza',
-                private: false
+                name: 'baza'
               }
             },
             head: {
               ref: 'zerocracy/baza',
               sha: '74d0c234967de0f690805c6943e78db42a294c1a'
-            },
-            merged_at: Time.now,
-            comments: 2,
-            review_comments: 2,
-            commits: 1,
-            additions: 3,
-            deletions: 3,
-            changed_files: 2
+            }
           }
         }
       },
@@ -1280,49 +1284,22 @@ class Fbe::FakeOctokit
         payload: {
           action: 'closed',
           number: 172,
-          ref_type: 'tag',
-          ref: 'foo',
           pull_request: {
             url: 'https://api.github.com/repos/yegor256/judges/pulls/93',
             id: 1_990_323_142,
-            node_id: 'PR_kwDOL6GCO852oevG',
             number: 172,
-            state: 'closed',
-            locked: false,
-            title: '#999 new feature',
-            user: {
-              login: 'test',
-              id: 88_084_038,
-              node_id: 'MDQ6VXNlcjE2NDYwMjA=',
-              type: 'User',
-              site_admin: false
-            },
             base: {
-              label: 'zerocracy:master',
               ref: 'master',
-              user: {
-                login: 'zerocracy',
-                id: 24_234_201
-              },
+              sha: '125f234967de0f690805c6943e78db42a294c1a',
               repo: {
                 id: repo,
-                node_id: 'R_kgDOK2_4Aw',
-                name: 'judges-action',
-                full_name: 'zerocracy/judges-action',
-                private: false
+                name: 'judges-action'
               }
             },
             head: {
               ref: 'zerocracy/judges-action',
               sha: '74d0c234967de0f690805c6943e78db42a294c1a'
-            },
-            merged_at: Time.now,
-            comments: 2,
-            review_comments: 2,
-            commits: 1,
-            additions: 3,
-            deletions: 3,
-            changed_files: 2
+            }
           }
         }
       }
