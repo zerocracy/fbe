@@ -5,7 +5,6 @@
 
 require 'judges/options'
 require 'loog'
-require 'webmock/minitest'
 require_relative '../../lib/fbe/github_graph'
 require_relative '../test__helper'
 
@@ -228,6 +227,19 @@ class TestGitHubGraph < Fbe::Test
           reviews_next_cursor: String
         }
       end
+    end
+  end
+
+  def test_fake_total_commits_pushed
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.total_commits_pushed('foo', 'foo', Time.parse('2025-12-11T15:00:00Z'))
+    h = h.transform_keys(&:to_sym)
+    assert_pattern do
+      h => {
+        commits: 29,
+        hoc: 1857
+      }
     end
   end
 end
