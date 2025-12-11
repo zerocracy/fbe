@@ -389,6 +389,48 @@ class Fbe::Graph
     end
   end
 
+  # Get total commits pushed to default branch
+  #
+  # @param [String] owner The repository owner (username or organization)
+  # @param [String] name The repository name
+  # @param [Time] since The datetime from
+  # @return [Hash] A hash with total commits and hocs
+  def total_commits_pushed(owner, name, since)
+    # @todo #1223:60min Missing pagination could cause performance issues or API failures. You need add
+    # pagination for commit history, for more info see
+    # https://github.com/zerocracy/fbe/pull/366#discussion_r2610751758
+    result = query(
+      <<~GRAPHQL
+        {
+          repository(owner: "#{owner}", name: "#{name}") {
+            defaultBranchRef {
+              target {
+                ... on Commit {
+                  history(since: "#{since.utc.iso8601}") {
+                    totalCount
+                    nodes {
+                      oid
+                      parents {
+                        totalCount
+                      }
+                      additions
+                      deletions
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      GRAPHQL
+    ).to_h
+    commits = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'nodes')
+    {
+      'commits' => result.dig('repository', 'defaultBranchRef', 'target', 'history', 'totalCount') || 0,
+      'hoc' => commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
+    }
+  end
+
   private
 
   # Creates or returns a cached GraphQL client instance.
@@ -615,6 +657,13 @@ class Fbe::Graph
           'reviews_next_cursor' => 'yc29yOnYyO3'
         }
       ]
+    end
+
+    def total_commits_pushed(_owner, _name, _since)
+      {
+        'commits' => 29,
+        'hoc' => 1857
+      }
     end
 
     private
