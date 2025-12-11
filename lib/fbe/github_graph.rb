@@ -396,6 +396,9 @@ class Fbe::Graph
   # @param [Time] since The datetime from
   # @return [Hash] A hash with total commits and hocs
   def total_commits_pushed(owner, name, since)
+    # @todo #1223:60min Missing pagination could cause performance issues or API failures. You need add
+    # pagination for commit history, for more info see
+    # https://github.com/zerocracy/fbe/pull/366#discussion_r2610751758
     result = query(
       <<~GRAPHQL
         {
