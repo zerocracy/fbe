@@ -431,6 +431,37 @@ class Fbe::Graph
     }
   end
 
+  # Get total count issues and pulls created from the specified date
+  #
+  # @param [String] owner The repository owner (username or organization)
+  # @param [String] name The repository name
+  # @param [Time] since The datetime from
+  # @return [Hash] A hash with total issues and pulls
+  def total_issues_created(owner, name, since)
+    result = query(
+      <<~GRAPHQL
+        {
+          issues: search(
+            query: "repo:#{owner}/#{name} type:issue created:>#{since.utc.iso8601}",
+            type: ISSUE
+          ) {
+            issueCount
+          },
+          pulls: search(
+            query: "repo:#{owner}/#{name} type:pr created:>#{since.utc.iso8601}",
+            type: ISSUE
+          ) {
+            issueCount
+          }
+        }
+      GRAPHQL
+    ).to_h
+    {
+      'issues' => result.dig('issues', 'issueCount') || 0,
+      'pulls' => result.dig('pulls', 'issueCount') || 0
+    }
+  end
+
   private
 
   # Creates or returns a cached GraphQL client instance.
@@ -663,6 +694,13 @@ class Fbe::Graph
       {
         'commits' => 29,
         'hoc' => 1857
+      }
+    end
+
+    def total_issues_created(_owner, _name, _since)
+      {
+        'issues' => 17,
+        'pulls' => 8
       }
     end
 

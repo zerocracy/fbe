@@ -242,4 +242,17 @@ class TestGitHubGraph < Fbe::Test
       }
     end
   end
+
+  def test_fake_total_issues_created
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.total_issues_created('foo', 'foo', Time.parse('2025-12-12T15:00:00Z'))
+    h = h.transform_keys(&:to_sym)
+    assert_pattern do
+      h => {
+        issues: 17,
+        pulls: 8
+      }
+    end
+  end
 end
