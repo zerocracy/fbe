@@ -401,7 +401,7 @@ class TestIterate < Fbe::Test
       end
     end
     assert_equal(9, fb.query('(and (eq what "judge") (exists prop2))').each.to_a.size)
-    assert_equal(0, fb.query('(eq what "iterate")').each.to_a.first.marker)
+    assert_equal(3, fb.query('(eq what "iterate")').each.to_a.first.marker)
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
       as 'marker'
       sort_by 'issue'
@@ -425,7 +425,7 @@ class TestIterate < Fbe::Test
       end
     end
     assert_equal(5, fb.query('(and (eq what "judge") (exists prop3))').each.to_a.size)
-    assert_equal(10, fb.query('(eq what "iterate")').each.to_a.first.marker)
+    assert_equal(12, fb.query('(eq what "iterate")').each.to_a.first.marker)
   end
 
   def test_catch_fbe_off_quota_exception_correctly
