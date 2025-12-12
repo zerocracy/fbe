@@ -334,7 +334,7 @@ class Fbe::Iterate
        defined?(before) && !before.nil? &&
        defined?(starts) && !starts.nil?
       repos.each do |repo|
-        next if before[repo] == starts[repo]
+        next if before[repo] == starts[repo] || before[repo] == @since
         f =
           Fbe.if_absent(fb: @fb, always: true) do |n|
             n.what = 'iterate'
