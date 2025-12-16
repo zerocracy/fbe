@@ -462,6 +462,44 @@ class Fbe::Graph
     }
   end
 
+  # Get total count releases from the specified date
+  #
+  # @param [String] owner The repository owner (username or organization)
+  # @param [String] name The repository name
+  # @param [Time] since The datetime from
+  # @return [Hash] A hash with total releases
+  def total_releases_published(owner, name, since)
+    total = 0
+    cursor = nil
+    loop do
+      result = query(
+        <<~GRAPHQL
+          {
+            repository(owner: "#{owner}", name: "#{name}") {
+              releases(first: 25, after: "#{cursor}", orderBy: { field: CREATED_AT, direction: DESC }) {
+                nodes {
+                  isDraft
+                  publishedAt
+                }
+                pageInfo {
+                  endCursor
+                  hasNextPage
+                }
+              }
+            }
+          }
+        GRAPHQL
+      ).to_h
+      releases = result.dig('repository', 'releases', 'nodes')
+      break if releases.nil? || releases.empty?
+      total += releases.count { !_1['isDraft'] && _1['publishedAt'] && Time.parse(_1['publishedAt']) > since }
+      break if releases.all? { _1['publishedAt'] && Time.parse(_1['publishedAt']) < since }
+      break unless result.dig('repository', 'releases', 'pageInfo', 'hasNextPage')
+      cursor = result.dig('repository', 'releases', 'pageInfo', 'endCursor')
+    end
+    { 'releases' => total }
+  end
+
   private
 
   # Creates or returns a cached GraphQL client instance.
@@ -702,6 +740,10 @@ class Fbe::Graph
         'issues' => 17,
         'pulls' => 8
       }
+    end
+
+    def total_releases_published(_owner, _name, _since)
+      { 'releases' => 7 }
     end
 
     private
