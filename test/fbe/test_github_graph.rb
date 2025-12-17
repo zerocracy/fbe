@@ -255,4 +255,16 @@ class TestGitHubGraph < Fbe::Test
       }
     end
   end
+
+  def test_fake_total_releases_published
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.total_releases_published('foo', 'foo', Time.parse('2025-12-16T15:00:00Z'))
+    h = h.transform_keys(&:to_sym)
+    assert_pattern do
+      h => {
+        releases: 7
+      }
+    end
+  end
 end
