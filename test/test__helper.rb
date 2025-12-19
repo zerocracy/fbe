@@ -34,6 +34,7 @@ Minitest.load :minitest_reporter
 
 require 'loog'
 require 'minitest/autorun'
+require 'minitest/mock'
 require 'minitest/stub_const'
 require 'webmock/minitest'
 require_relative '../lib/fbe'

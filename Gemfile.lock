@@ -148,7 +148,9 @@ GEM
     logger (1.7.0)
     loog (0.6.1)
       logger (~> 1.0)
-    minitest (5.27.0)
+    minitest (6.0.0)
+      prism (~> 1.5)
+    minitest-mock (5.27.0)
     minitest-reporters (1.7.1)
       ansi
       builder
@@ -278,7 +280,8 @@ PLATFORMS
 
 DEPENDENCIES
   fbe!
-  minitest (~> 5.25)
+  minitest (~> 6.0)
+  minitest-mock (~> 5.27)
   minitest-reporters (~> 1.7)
   minitest-stub-const (~> 0.6)
   os (~> 1.1)
