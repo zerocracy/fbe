@@ -13,7 +13,7 @@ gem 'minitest-stub-const', '~>0.6', require: false
 gem 'os', '~>1.1', require: false
 gem 'qbash', '~>0.4', require: false
 gem 'rake', '~>13.3', require: false
-gem 'rdoc', '~>6.17', require: false
+gem 'rdoc', '~>7.0', require: false
 gem 'rubocop', '~>1.75', require: false
 gem 'rubocop-minitest', '~>0.38', require: false
 gem 'rubocop-performance', '~>1.25', require: false
