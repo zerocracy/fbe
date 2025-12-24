@@ -67,7 +67,7 @@ GEM
     crack (1.0.1)
       bigdecimal
       rexml
-    date (3.5.0)
+    date (3.5.1)
     decoor (0.1.0)
     docile (1.4.1)
     drb (2.2.3)
@@ -75,7 +75,7 @@ GEM
       loog (~> 0.6)
       tago (~> 0.1)
     ellipsized (0.3.0)
-    erb (6.0.0)
+    erb (6.0.1)
     ethon (0.15.0)
       ffi (>= 1.15.0)
     factbase (0.17.1)
@@ -181,7 +181,7 @@ GEM
       ast (~> 2.4.1)
       racc
     prism (1.6.0)
-    psych (5.2.6)
+    psych (5.3.1)
       date
       stringio
     public_suffix (7.0.0)
@@ -193,7 +193,7 @@ GEM
     racc (1.8.1)
     rainbow (3.1.1)
     rake (13.3.1)
-    rdoc (6.17.0)
+    rdoc (7.0.2)
       erb
       psych (>= 4.0.0)
       tsort
@@ -243,7 +243,7 @@ GEM
     sqlite3 (2.8.1-x64-mingw-ucrt)
     sqlite3 (2.8.1-x86_64-darwin)
     sqlite3 (2.8.1-x86_64-linux-gnu)
-    stringio (3.1.9)
+    stringio (3.2.0)
     strscan (3.1.5)
     tago (0.4.0)
     timeout (0.5.0)
@@ -287,7 +287,7 @@ DEPENDENCIES
   os (~> 1.1)
   qbash (~> 0.4)
   rake (~> 13.3)
-  rdoc (~> 6.17)
+  rdoc (~> 7.0)
   rubocop (~> 1.75)
   rubocop-minitest (~> 0.38)
   rubocop-performance (~> 1.25)
