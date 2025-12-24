@@ -396,38 +396,49 @@ class Fbe::Graph
   # @param [Time] since The datetime from
   # @return [Hash] A hash with total commits and hocs
   def total_commits_pushed(owner, name, since)
-    # @todo #1223:60min Missing pagination could cause performance issues or API failures. You need add
-    # pagination for commit history, for more info see
-    # https://github.com/zerocracy/fbe/pull/366#discussion_r2610751758
-    result = query(
-      <<~GRAPHQL
-        {
-          repository(owner: "#{owner}", name: "#{name}") {
-            defaultBranchRef {
-              target {
-                ... on Commit {
-                  history(since: "#{since.utc.iso8601}") {
-                    totalCount
-                    nodes {
-                      oid
-                      parents {
-                        totalCount
+    cursor = nil
+    total = 0
+    hoc = 0
+    loop do
+      after = "after: \"#{cursor}\", " unless cursor.nil?
+      result = query(
+        <<~GRAPHQL
+          {
+            repository(owner: "#{owner}", name: "#{name}") {
+              defaultBranchRef {
+                target {
+                  ... on Commit {
+                    history(#{after}first: 100, since: "#{since.utc.iso8601}") {
+                      totalCount
+                      nodes {
+                        oid
+                        parents {
+                          totalCount
+                        }
+                        additions
+                        deletions
                       }
-                      additions
-                      deletions
+                      pageInfo {
+                        endCursor
+                        hasNextPage
+                      }
                     }
                   }
                 }
               }
             }
           }
-        }
-      GRAPHQL
-    ).to_h
-    commits = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'nodes')
+        GRAPHQL
+      ).to_h
+      commits = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'nodes')
+      hoc += commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
+      total = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'totalCount') || 0
+      break unless result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'hasNextPage')
+      cursor = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
+    end
     {
-      'commits' => result.dig('repository', 'defaultBranchRef', 'target', 'history', 'totalCount') || 0,
-      'hoc' => commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
+      'commits' => total,
+      'hoc' => hoc
     }
   end
 
