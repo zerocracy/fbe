@@ -613,6 +613,12 @@ class Fbe::FakeOctokit
     full_name = name.is_a?(Integer) ? 'yegor256/test' : name
     full_name = 'zerocracy/baza' if name == 1439
     full_name = 'foo/bazz' if name == 810
+    size =
+      case name
+      when 'yegor256/empty-repo' then 0
+      when 'yegor256/nil-size-repo' then nil
+      else 470
+      end
     {
       id: name_to_number(name),
       full_name:,
@@ -626,7 +632,7 @@ class Fbe::FakeOctokit
       created_at: random_time,
       updated_at: random_time,
       pushed_at: random_time,
-      size: name == 'yegor256/empty-repo' ? 0 : 470,
+      size:,
       stargazers_count: 1,
       watchers_count: 1,
       language: 'Ruby',
