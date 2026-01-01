@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
@@ -12,7 +12,7 @@ require_relative '../test__helper'
 
 # Test.
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2024-2025 Zerocracy
+# Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestFb < Fbe::Test
   def test_simple

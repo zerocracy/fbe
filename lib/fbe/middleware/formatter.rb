@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
 require 'ellipsized'
@@ -36,7 +36,7 @@ require_relative '../../fbe/middleware'
 #   #   Internal Server Error
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2024-2025 Zerocracy
+# Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   # Captures HTTP request details for later use in error logging.

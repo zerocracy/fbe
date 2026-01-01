@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
 require 'filesize'
@@ -42,7 +42,7 @@ require_relative '../../fbe/middleware'
 # deleted based on their last access time to maintain the configured size limit.
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2024-2025 Zerocracy
+# Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class Fbe::Middleware::SqliteStore
   attr_reader :path

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# SPDX-FileCopyrightText: Copyright (c) 2024-2025 Zerocracy
+# SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
 require 'faraday'
@@ -21,7 +21,7 @@ require_relative '../../fbe/middleware'
 #   end
 #
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
-# Copyright:: Copyright (c) 2024-2025 Zerocracy
+# Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class Fbe::Middleware::RateLimit < Faraday::Middleware
   # Initializes the rate limit middleware.
