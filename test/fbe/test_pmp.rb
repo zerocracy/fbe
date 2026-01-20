@@ -26,6 +26,17 @@ class TestPmp < Fbe::Test
     assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_some_defaults
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_equal(14, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
+    assert_equal(56, Fbe.pmp(loog: Loog::NULL).hr.days_of_running_score)
+    assert_equal(10, Fbe.pmp(loog: Loog::NULL).integration.eva_interval)
+    refute(Fbe.pmp(loog: Loog::NULL).communications.stealth)
+  end
+
   def test_converts_to_correct_type
     $fb = Factbase.new
     $global = {}
