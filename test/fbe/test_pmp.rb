@@ -61,7 +61,7 @@ class TestPmp < Fbe::Test
     assert_equal(42, Fbe.pmp(loog: Loog::NULL).hr.something_else)
   end
 
-  def test_reads_boolean
+  def test_reads_false_boolean
     $fb = Factbase.new
     $global = {}
     $options = Judges::Options.new
@@ -71,6 +71,18 @@ class TestPmp < Fbe::Test
     f.stealth = 'false'
     $loog = Loog::NULL
     refute(Fbe.pmp(loog: Loog::NULL).communications.stealth)
+  end
+
+  def test_reads_true_boolean
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'communications'
+    f.stealth = 'true'
+    $loog = Loog::NULL
+    assert(Fbe.pmp(loog: Loog::NULL).communications.stealth)
   end
 
   def test_fail_on_wrong_area
