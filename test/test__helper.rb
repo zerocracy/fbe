@@ -39,6 +39,10 @@ require 'minitest/stub_const'
 require 'webmock/minitest'
 require_relative '../lib/fbe'
 
+$judge = 'fake'
+$kickoff = Time.now
+$epoch = Time.now
+
 # Parent class for all tests.
 class Fbe::Test < Minitest::Test
   def fake_loog
