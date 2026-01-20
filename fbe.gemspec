@@ -26,7 +26,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'baza.rb', '~>0.9'
   s.add_dependency 'decoor', '~>0.1'
   s.add_dependency 'ellipsized', '~>0.3'
-  s.add_dependency 'factbase', '0.17.1'
+  s.add_dependency 'factbase', '0.18.0'
   s.add_dependency 'faraday', '~>2.0'
   s.add_dependency 'faraday-http-cache', '~>2.5'
   s.add_dependency 'faraday-multipart', '~>1.1'
