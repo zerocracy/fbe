@@ -46,10 +46,11 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
   xml = Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
   pmpv =
     Class.new(SimpleDelegator) do
-      attr_reader :default, :type, :memo
+      attr_reader :default, :type, :memo, :value
 
       def initialize(value, default, type, memo)
         super(value)
+        @value = value
         @default = default
         @type = type
         @memo = memo
