@@ -71,7 +71,7 @@ GEM
     decoor (0.1.0)
     docile (1.4.1)
     drb (2.2.3)
-    elapsed (0.2.2)
+    elapsed (0.3.1)
       loog (~> 0.6)
       tago (~> 0.1)
     ellipsized (0.3.0)
@@ -146,7 +146,7 @@ GEM
       bigdecimal
       strscan (>= 3.1.1)
     logger (1.7.0)
-    loog (0.7.2)
+    loog (0.8.0)
       ellipsized
       logger (~> 1.0)
     minitest (6.0.1)
@@ -186,7 +186,7 @@ GEM
       date
       stringio
     public_suffix (7.0.2)
-    qbash (0.6.0)
+    qbash (0.8.0)
       backtrace (> 0)
       elapsed (> 0)
       loog (> 0)
@@ -246,7 +246,7 @@ GEM
     sqlite3 (2.9.0-x86_64-linux-gnu)
     stringio (3.2.0)
     strscan (3.1.7)
-    tago (0.6.0)
+    tago (0.7.0)
     timeout (0.6.0)
     total (0.4.2)
     tsort (0.2.0)
