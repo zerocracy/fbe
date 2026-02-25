@@ -31,7 +31,7 @@ end
 desc 'Run them via Ruby, one by one'
 task :picks do
   (Dir['test/**/*.rb'] + Dir['lib/**/*.rb']).each do |f|
-    qbash("bundle exec ruby #{Shellwords.escape(f)} -- --no-cov", log: $stdout)
+    qbash("bundle exec ruby #{Shellwords.escape(f)} -- --no-cov", stdout: $stdout)
   end
 end
 

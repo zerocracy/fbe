@@ -282,7 +282,7 @@ class Fbe::Award
           raise "Failure in #{o}: #{e.message}"
         end
         bylaw.revert(@operands.size - 1)
-        bylaw.line(to_p(@operands[@operands.size - 1]))
+        bylaw.line(to_p(@operands[-1]))
       when :explain
         bylaw.intro(to_p(@operands[0]))
       when :in
