@@ -247,9 +247,10 @@ class Fbe::Iterate
       global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
       quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
     )
-    repos = Fbe.unmask_repos(
-      loog: @loog, options: @options, global: @global, quota_aware: @quota_aware
-    ).map { |n| oct.repo_id_by_name(n) }
+    repos =
+      Fbe.unmask_repos(
+        loog: @loog, options: @options, global: @global, quota_aware: @quota_aware
+      ).map { |n| oct.repo_id_by_name(n) }
     started = Time.now
     restarted = []
     before =

@@ -225,9 +225,9 @@ class Fbe::Award
       when :if
         "if #{to_p(@operands[0])} then #{to_p(@operands[1])} else #{to_p(@operands[2])}"
       when :and
-        @operands.map(&:to_s).join(' and ')
+        @operands.join(' and ')
       when :or
-        @operands.map(&:to_s).join(' or ')
+        @operands.join(' or ')
       when :not
         "not #{@operands[0]}"
       when :eq
