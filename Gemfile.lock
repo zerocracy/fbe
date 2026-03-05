@@ -192,7 +192,7 @@ GEM
     psych (5.3.1)
       date
       stringio
-    public_suffix (7.0.2)
+    public_suffix (7.0.5)
     qbash (0.8.0)
       backtrace (> 0)
       elapsed (> 0)
@@ -208,7 +208,7 @@ GEM
     regexp_parser (2.11.3)
     retries (0.0.5)
     rexml (3.4.4)
-    rubocop (1.85.0)
+    rubocop (1.85.1)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
