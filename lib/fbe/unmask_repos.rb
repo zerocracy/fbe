@@ -21,7 +21,7 @@ require_relative 'over'
 # @param [String] mask Repository mask in format 'org/repo' where repo can contain '*'
 # @return [Regexp] Case-insensitive regular expression for matching repositories
 # @raise [RuntimeError] If organization part contains asterisk
-def Fbe.mask_to_regex(mask) # rubocop:disable Elegant/GoodMethodName
+def Fbe.mask_to_regex(mask)
   org, repo = mask.split('/')
   raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
   Regexp.compile("#{org}/#{repo.gsub('*', '.*')}", Regexp::IGNORECASE)
@@ -59,7 +59,7 @@ end
 # @raise [RuntimeError] If no repositories match the provided masks
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
-def Fbe.unmask_repos( # rubocop:disable Elegant/GoodMethodName, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   options: $options, global: $global, loog: $loog, epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
 )

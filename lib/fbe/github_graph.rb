@@ -14,7 +14,7 @@ require_relative '../fbe'
 # @param [Hash] global Hash of global options
 # @param [Loog] loog Logging facility
 # @return [Fbe::Graph] The instance of the class
-def Fbe.github_graph(options: $options, global: $global, loog: $loog) # rubocop:disable Elegant/GoodMethodName
+def Fbe.github_graph(options: $options, global: $global, loog: $loog)
   global[:github_graph] ||=
     if options.testing.nil?
       Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
@@ -58,7 +58,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   graph = Fbe::Graph.new(token: 'github_token')
   #   threads = graph.resolved_conversations('octocat', 'Hello-World', 42)
   #   threads.first['comments']['nodes'].first['body'] #=> "Great work!"
-  def resolved_conversations(owner, name, number) # rubocop:disable Elegant/GoodMethodName
+  def resolved_conversations(owner, name, number)
     result = query(
       <<~GRAPHQL
         {
@@ -111,7 +111,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   puts result #=>
   #   [{"owner"=>"zerocracy", "name"=>"fbe", "branch"=>"master", "total_commits"=>754},
   #    {"owner"=>"zerocracy", "name"=>"judges-action", "branch"=>"master", "total_commits"=>2251}]
-  def total_commits(owner = nil, name = nil, branch = nil, repos: nil) # rubocop:disable Elegant/GoodMethodName, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+  def total_commits(owner = nil, name = nil, branch = nil, repos: nil) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     raise(Fbe::Error, 'Need owner, name and branch or repos') if owner.nil? && name.nil? && branch.nil? && repos.nil?
     raise(Fbe::Error, 'Owner, name and branch is required') if (owner.nil? || name.nil? || branch.nil?) && repos.nil?
     raise(Fbe::Error, 'Repos list cannot be empty') if owner.nil? && name.nil? && branch.nil? && repos&.empty?
@@ -163,7 +163,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   graph = Fbe::Graph.new(token: 'github_token')
   #   counts = graph.total_issues_and_pulls('octocat', 'Hello-World')
   #   puts counts #=> {"issues"=>42, "pulls"=>17}
-  def total_issues_and_pulls(owner, name) # rubocop:disable Elegant/GoodMethodName
+  def total_issues_and_pulls(owner, name)
     result = query(
       <<~GRAPHQL
         {
@@ -188,7 +188,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #
   # @param [String] node_id ID of the event object
   # @return [Hash] A hash with issue type event
-  def issue_type_event(node_id) # rubocop:disable Elegant/GoodMethodName
+  def issue_type_event(node_id)
     result = query(
       <<~GRAPHQL
         {
@@ -286,7 +286,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #     break unless json['has_next_page']
   #     cursor = json['next_cursor']
   #   end
-  def pull_requests_with_reviews(owner, name, since, cursor: nil) # rubocop:disable Elegant/GoodMethodName
+  def pull_requests_with_reviews(owner, name, since, cursor: nil)
     result = query(
       <<~GRAPHQL
         {
@@ -346,7 +346,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #       queue.push([p['number'], p['reviews_next_cursor']])
   #     end
   #   end
-  def pull_request_reviews(owner, name, pulls: []) # rubocop:disable Elegant/GoodMethodName
+  def pull_request_reviews(owner, name, pulls: [])
     requests =
       pulls.map do |number, cursor|
         <<~GRAPHQL
@@ -397,7 +397,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] name The repository name
   # @param [Time] since The datetime from
   # @return [Hash] A hash with total commits and hocs
-  def total_commits_pushed(owner, name, since) # rubocop:disable Elegant/GoodMethodName
+  def total_commits_pushed(owner, name, since)
     cursor = nil
     total = 0
     hoc = 0
@@ -450,7 +450,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] name The repository name
   # @param [Time] since The datetime from
   # @return [Hash] A hash with total issues and pulls
-  def total_issues_created(owner, name, since) # rubocop:disable Elegant/GoodMethodName
+  def total_issues_created(owner, name, since)
     result = query(
       <<~GRAPHQL
         {
@@ -481,7 +481,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] name The repository name
   # @param [Time] since The datetime from
   # @return [Hash] A hash with total releases
-  def total_releases_published(owner, name, since) # rubocop:disable Elegant/GoodMethodName
+  def total_releases_published(owner, name, since)
     total = 0
     cursor = nil
     loop do
@@ -580,7 +580,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     # @example
     #   fake.resolved_conversations('zerocracy', 'baza', 42)
     #   # => [conversation data for zerocracy_baza]
-    def resolved_conversations(owner, name, _number) # rubocop:disable Elegant/GoodMethodName
+    def resolved_conversations(owner, name, _number)
       data = { zerocracy_baza: [conversation('PRRT_kwDOK2_4A85BHZAR')] }
       data[:"#{owner}_#{name}"] || []
     end
@@ -593,7 +593,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     # @example
     #   fake.total_issues_and_pulls('owner', 'repo')
     #   # => {"issues"=>23, "pulls"=>19}
-    def total_issues_and_pulls(_owner, _name) # rubocop:disable Elegant/GoodMethodName
+    def total_issues_and_pulls(_owner, _name)
       {
         'issues' => 23,
         'pulls' => 19
@@ -607,7 +607,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     # @param [String] branch Branch name
     # @param [Array<Array<String, String, String>>] repos List of owner, name, branch
     # @return [Integer, Array<Hash>] Returns 1484 for single repo or array of hashes
-    def total_commits(owner = nil, name = nil, branch = nil, repos: nil) # rubocop:disable Elegant/GoodMethodName, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+    def total_commits(owner = nil, name = nil, branch = nil, repos: nil) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       raise(Fbe::Error, 'Need owner, name and branch or repos') if owner.nil? && name.nil? && branch.nil? && repos.nil?
       raise(Fbe::Error, 'Owner, name and branch is required') if (owner.nil? || name.nil? || branch.nil?) && repos.nil?
       raise(Fbe::Error, 'Repos list cannot be empty') if owner.nil? && name.nil? && branch.nil? && repos&.empty?
@@ -635,7 +635,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     # @example
     #   fake.issue_type_event('ITAE_examplevq862Ga8lzwAAAAQZanzv')
     #   # => {'type'=>'IssueTypeAddedEvent', ...}
-    def issue_type_event(node_id) # rubocop:disable Elegant/GoodMethodName
+    def issue_type_event(node_id)
       case node_id
       when 'ITAE_examplevq862Ga8lzwAAAAQZanzv'
         {
@@ -698,7 +698,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       end
     end
 
-    def pull_requests_with_reviews(_owner, _name, _since, **) # rubocop:disable Elegant/GoodMethodName
+    def pull_requests_with_reviews(_owner, _name, _since, **)
       {
         'pulls_with_reviews' => [
           { 'id' => 'PR_kwDOL6J6Ss6iprCx', 'number' => 2 },
@@ -710,7 +710,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       }
     end
 
-    def pull_request_reviews(_owner, _name, **) # rubocop:disable Elegant/GoodMethodName
+    def pull_request_reviews(_owner, _name, **)
       [
         {
           'id' => 'PR_kwDOL6J6Ss6iprCx',
@@ -739,21 +739,21 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       ]
     end
 
-    def total_commits_pushed(_owner, _name, _since) # rubocop:disable Elegant/GoodMethodName
+    def total_commits_pushed(_owner, _name, _since)
       {
         'commits' => 29,
         'hoc' => 1857
       }
     end
 
-    def total_issues_created(_owner, _name, _since) # rubocop:disable Elegant/GoodMethodName
+    def total_issues_created(_owner, _name, _since)
       {
         'issues' => 17,
         'pulls' => 8
       }
     end
 
-    def total_releases_published(_owner, _name, _since) # rubocop:disable Elegant/GoodMethodName
+    def total_releases_published(_owner, _name, _since)
       { 'releases' => 7 }
     end
 

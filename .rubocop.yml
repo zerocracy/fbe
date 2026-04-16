@@ -19,6 +19,78 @@ Style/GlobalVars:
   Enabled: false
 Style/TopLevelMethodDefinition:
   Enabled: false
+Elegant/GoodMethodName:
+  AllowedNames:
+    - accept_repository_invitation
+    - add_comment
+    - auto_paginate
+    - auto_paginate=
+    - bill_to
+    - check_runs_for_ref
+    - commit_pulls
+    - commits_since
+    - create_commit_comment
+    - create_connection
+    - delete_one
+    - dump_headers
+    - extract_remaining_count
+    - faraday_value
+    - github_graph
+    - handle_rate_limit_request
+    - if_absent
+    - issue_comment_reactions
+    - issue_comments
+    - issue_events
+    - issue_timeline
+    - issue_type_event
+    - just_one
+    - kill_if
+    - lifetime_unaware
+    - list_issues
+    - log_it
+    - mask_to_regex
+    - name_to_number
+    - off_quota?
+    - organization_memberships
+    - print_trace!
+    - publish_to
+    - pull_request
+    - pull_request_comments
+    - pull_request_review_comment_reactions
+    - pull_request_review_comments
+    - pull_request_reviews
+    - pull_requests
+    - pull_requests_with_reviews
+    - quota_unaware
+    - random_time
+    - rate_limit
+    - remove_organization_membership
+    - repo_id_by_name
+    - repo_name_by_id
+    - repository_events
+    - repository_workflow_runs
+    - resolved_conversations
+    - response_env
+    - review_comments
+    - search_commits
+    - search_issues
+    - sort_by
+    - timeout_unaware
+    - total_commits
+    - total_commits_pushed
+    - total_issues_and_pulls
+    - total_issues_created
+    - total_releases_published
+    - track_request
+    - unmask_repos
+    - update_organization_membership
+    - update_remaining_count
+    - user_name_by_id
+    - user_repository_invitations
+    - with_disable_auto_paginate
+    - workflow_run
+    - workflow_run_job
+    - workflow_run_usage
 Naming/MethodParameterName:
   AllowedNames:
     - as

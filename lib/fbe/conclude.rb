@@ -87,7 +87,7 @@ class Fbe::Conclude
   # hitting GitHub API rate limits.
   #
   # @return [nil] Nothing is returned
-  def quota_unaware # rubocop:disable Elegant/GoodMethodName
+  def quota_unaware
     @quota = false
   end
 
@@ -96,7 +96,7 @@ class Fbe::Conclude
   # When the lifetime is over, the loop will NOT gracefully stop.
   #
   # @return [nil] Nothing is returned
-  def lifetime_unaware # rubocop:disable Elegant/GoodMethodName
+  def lifetime_unaware
     @lifetime = false
   end
 
@@ -105,7 +105,7 @@ class Fbe::Conclude
   # When the timeout is over, the loop will NOT gracefully stop.
   #
   # @return [nil] Nothing is returned
-  def timeout_unaware # rubocop:disable Elegant/GoodMethodName
+  def timeout_unaware
     @timeout = false
   end
 

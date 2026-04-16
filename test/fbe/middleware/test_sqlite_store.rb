@@ -427,7 +427,7 @@ class SqliteStoreTest < Fbe::Test # rubocop:disable Metrics/ClassLength
     end
   end
 
-  def faraday_value( # rubocop:disable Elegant/GoodMethodName
+  def faraday_value(
     req: {
       'method' => 'get',
       'url' => 'https://example.com/test',

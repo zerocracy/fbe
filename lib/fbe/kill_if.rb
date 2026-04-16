@@ -10,7 +10,7 @@ require_relative 'fb'
 #
 # @param [Array] facts List of facts to kill
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
-def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id') # rubocop:disable Elegant/GoodMethodName
+def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
   ids = []
   facts.each do |f|
     if block_given?

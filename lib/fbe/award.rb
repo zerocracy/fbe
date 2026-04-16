@@ -103,7 +103,7 @@ class Fbe::Award
     #   bill = Fbe::Award::Bill.new
     #   term.bill_to(bill)
     #   bill.points #=> 100
-    def bill_to(bill) # rubocop:disable Elegant/GoodMethodName
+    def bill_to(bill)
       case @op
       when :award
         @operands.each do |o|
@@ -267,7 +267,7 @@ class Fbe::Award
       false
     end
 
-    def publish_to(bylaw) # rubocop:disable Elegant/GoodMethodName
+    def publish_to(bylaw)
       case @op
       when :award
         @operands.each do |o|

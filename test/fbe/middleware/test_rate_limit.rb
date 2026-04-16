@@ -106,7 +106,7 @@ class RateLimitTest < Fbe::Test
 
   private
 
-  def create_connection # rubocop:disable Elegant/GoodMethodName
+  def create_connection
     Faraday.new(url: 'https://api.github.com') do |f|
       f.use(Fbe::Middleware::RateLimit)
       f.response(:json)

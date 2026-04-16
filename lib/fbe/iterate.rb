@@ -115,21 +115,21 @@ class Fbe::Iterate
   # @example Enable quota awareness
   #   iterator.quota_aware
   #   iterator.over { |repo, item| ... }  # Will stop if quota exhausted
-  def quota_unaware # rubocop:disable Elegant/GoodMethodName
+  def quota_unaware
     @quota = false
   end
 
   # Makes the iterator aware of lifetime limits.
   #
   # @return [nil] Nothing is returned
-  def lifetime_unaware # rubocop:disable Elegant/GoodMethodName
+  def lifetime_unaware
     @lifetime = false
   end
 
   # Makes the iterator aware of timeout limits.
   #
   # @return [nil] Nothing is returned
-  def timeout_unaware # rubocop:disable Elegant/GoodMethodName
+  def timeout_unaware
     @timeout = false
   end
 
@@ -177,7 +177,7 @@ class Fbe::Iterate
   # @raise [RuntimeError] If prop is nil, already set, or not a valid field name
   # @example Sort issues by number
   #   iterator.sort_by('issue')
-  def sort_by(prop) # rubocop:disable Elegant/GoodMethodName
+  def sort_by(prop)
     raise(Fbe::Error, 'Sort field is already set') unless @sorting.nil?
     raise(Fbe::Error, 'Cannot set sort field to nil') if prop.nil?
     raise(Fbe::Error, 'Sort field must be a String') unless prop.is_a?(String)

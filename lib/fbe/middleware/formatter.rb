@@ -117,7 +117,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   # @example
   #   dump_headers({"Content-Type" => "application/json", "Authorization" => "Bearer token"})
   #   #=> "Content-Type: \"application/json\"\nAuthorization: \"Bearer token\""
-  def dump_headers(headers) # rubocop:disable Elegant/GoodMethodName
+  def dump_headers(headers)
     return '' if headers.nil?
     headers.map { |k, v| "#{k}: #{v.inspect}" }.join("\n")
   end

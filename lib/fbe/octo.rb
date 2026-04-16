@@ -123,7 +123,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
       end
       o =
         decoor(o, loog:, trace:) do # rubocop:disable Metrics/BlockLength
-          def print_trace!(all: false, max: 5) # rubocop:disable Elegant/GoodMethodName
+          def print_trace!(all: false, max: 5)
             if @trace.empty?
               @loog.debug('GitHub API trace is empty')
             else
@@ -154,7 +154,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               @trace.clear
             end
           end
-          def off_quota?(threshold: 50) # rubocop:disable Elegant/GoodMethodName, Layout/EmptyLineBetweenDefs
+          def off_quota?(threshold: 50) # rubocop:disable Layout/EmptyLineBetweenDefs
             left = @origin.rate_limit!.remaining
             if left < threshold
               @loog.info("Too much GitHub API quota consumed already (#{left} < #{threshold})")
@@ -164,7 +164,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               false
             end
           end
-          def user_name_by_id(id) # rubocop:disable Elegant/GoodMethodName, Layout/EmptyLineBetweenDefs
+          def user_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
             raise(Fbe::Error, 'The ID of the user is nil') if id.nil?
             raise(Fbe::Error, 'The ID of the user must be an Integer') unless id.is_a?(Integer)
             json = @origin.user(id)
@@ -172,7 +172,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             @loog.debug("GitHub user ##{id} has a name: @#{name}")
             name
           end
-          def repo_id_by_name(name) # rubocop:disable Elegant/GoodMethodName, Layout/EmptyLineBetweenDefs
+          def repo_id_by_name(name) # rubocop:disable Layout/EmptyLineBetweenDefs
             raise(Fbe::Error, 'The name of the repo is nil') if name.nil?
             json = @origin.repository(name)
             id = json[:id]
@@ -180,7 +180,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
             id
           end
-          def repo_name_by_id(id) # rubocop:disable Elegant/GoodMethodName, Layout/EmptyLineBetweenDefs
+          def repo_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
             raise(Fbe::Error, 'The ID of the repo is nil') if id.nil?
             raise(Fbe::Error, 'The ID of the repo must be an Integer') unless id.is_a?(Integer)
             json = @origin.repository(id)
@@ -198,7 +198,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
           #      Fbe.octo.with_disable_auto_paginate do |octo|
           #        octo.list_issue('zerocracy/fbe', per_page: 1).first
           #      end
-          def with_disable_auto_paginate # rubocop:disable Elegant/GoodMethodName, Layout/EmptyLineBetweenDefs
+          def with_disable_auto_paginate # rubocop:disable Layout/EmptyLineBetweenDefs
             ap = @origin.auto_paginate
             @origin.auto_paginate = false
             yield(self) if block_given?
@@ -241,7 +241,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   time = fake_client.random_time #=> 2024-09-04 12:34:56 -0700
-  def random_time # rubocop:disable Elegant/GoodMethodName
+  def random_time
     Time.now - rand(10_000)
   end
 
@@ -253,14 +253,14 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.name_to_number("octocat") #=> 728
   #   fake_client.name_to_number(42) #=> 42
-  def name_to_number(name) # rubocop:disable Elegant/GoodMethodName
+  def name_to_number(name)
     return name unless name.is_a?(String)
     name.chars.sum(&:ord)
   end
 
-  def auto_paginate=(_); end # rubocop:disable Elegant/GoodMethodName
+  def auto_paginate=(_); end
 
-  def auto_paginate; end # rubocop:disable Elegant/GoodMethodName
+  def auto_paginate; end
 
   # Returns a mock rate limit object.
   #
@@ -268,7 +268,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.rate_limit.remaining #=> 100
-  def rate_limit # rubocop:disable Elegant/GoodMethodName
+  def rate_limit
     Veil.new(nil, remaining: 100)
   end
 
@@ -295,7 +295,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.user_repository_invitations #=> [{:id=>1, :node_id=>"INV_", ...}]
-  def user_repository_invitations(_options = {}) # rubocop:disable Elegant/GoodMethodName
+  def user_repository_invitations(_options = {})
     [
       {
         id: 1,
@@ -331,7 +331,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.organization_memberships #=> [{:url=>"https://api.github.com/orgs/...", ...}]
-  def organization_memberships(_options = {}) # rubocop:disable Elegant/GoodMethodName
+  def organization_memberships(_options = {})
     [
       {
         url: 'https://api.github.com/orgs/zerocracy/memberships/yegor256',
@@ -408,7 +408,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.update_organization_membership('zerocracy', state: 'active')
-  def update_organization_membership(org, _options = {}) # rubocop:disable Elegant/GoodMethodName
+  def update_organization_membership(org, _options = {})
     {
       url: "https://api.github.com/orgs/#{org}/memberships/yegor256",
       state: 'active',
@@ -452,7 +452,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.remove_organization_membership('zerocracy') #=> true
   # rubocop:disable Naming/PredicateMethod
-  def remove_organization_membership(_org, _user = nil) # rubocop:disable Elegant/GoodMethodName
+  def remove_organization_membership(_org, _user = nil)
     true
   end
   # rubocop:enable Naming/PredicateMethod
@@ -465,7 +465,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.accept_repository_invitation(1) #=> true
   # rubocop:disable Naming/PredicateMethod
-  def accept_repository_invitation(id) # rubocop:disable Elegant/GoodMethodName
+  def accept_repository_invitation(id)
     raise(Octokit::NotFound) if id == 404_000
     true
   end
@@ -511,7 +511,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   #   fake_client = Fbe::FakeOctokit.new
   #   result = fake_client.repository_workflow_runs('octocat/Hello-World')
   #   result[:total_count] #=> 2
-  def repository_workflow_runs(repo, _opts = {}) # rubocop:disable Elegant/GoodMethodName
+  def repository_workflow_runs(repo, _opts = {})
     {
       total_count: 2,
       workflow_runs: [
@@ -530,7 +530,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   #   fake_client = Fbe::FakeOctokit.new
   #   usage = fake_client.workflow_run_usage('octocat/Hello-World', 42)
   #   usage[:run_duration_ms] #=> 53000
-  def workflow_run_usage(_repo, _id) # rubocop:disable Elegant/GoodMethodName
+  def workflow_run_usage(_repo, _id)
     {
       billable: {
         UBUNTU: {
@@ -642,7 +642,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   client.commit_pulls('octocat/Hello-World', 'abc123')
   #   # => [{:number=>42, :state=>"open", ...}]
-  def commit_pulls(repo, _sha) # rubocop:disable Elegant/GoodMethodName
+  def commit_pulls(repo, _sha)
     [
       pull_request(repo, 42)
     ]
@@ -656,7 +656,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   client.list_issues('octocat/Hello-World', state: 'open')
   #   # => [{:number=>42, :title=>"Found a bug", ...}, ...]
-  def list_issues(repo, _options = {}) # rubocop:disable Elegant/GoodMethodName
+  def list_issues(repo, _options = {})
     [
       issue(repo, 42),
       issue(repo, 43)
@@ -745,7 +745,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   client.pull_request('octocat/Hello-World', 1)
   #   # => {:id=>42, :number=>1, :additions=>12, ...}
-  def pull_request(repo, number) # rubocop:disable Elegant/GoodMethodName
+  def pull_request(repo, number)
     if number == 29
       {
         id: 42,
@@ -823,7 +823,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
   # @example
   #   client.pull_requests('octocat/Hello-World', state: 'open')
   #   # => [{:number=>100, :state=>"closed", :title=>"#90: some title", ...}]
-  def pull_requests(_repo, _options = {}) # rubocop:disable Elegant/GoodMethodName
+  def pull_requests(_repo, _options = {})
     [
       {
         id: 2_072_543_250,
@@ -886,7 +886,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def pull_request_reviews(_repo, _number) # rubocop:disable Elegant/GoodMethodName
+  def pull_request_reviews(_repo, _number)
     [
       {
         id: 22_449_327,
@@ -909,14 +909,14 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def pull_request_review_comments(_repo, _number, _review, _options = {}) # rubocop:disable Elegant/GoodMethodName
+  def pull_request_review_comments(_repo, _number, _review, _options = {})
     [
       { id: 22_447_120, user: { login: 'yegor256', id: 526_301, type: 'User' } },
       { id: 22_447_121, user: { login: 'yegor256', id: 526_301, type: 'User' } }
     ]
   end
 
-  def review_comments(_repo, _number) # rubocop:disable Elegant/GoodMethodName
+  def review_comments(_repo, _number)
     [
       {
         pull_request_review_id: 22_687_249,
@@ -945,13 +945,13 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def add_comment(_repo, _issue, _text) # rubocop:disable Elegant/GoodMethodName
+  def add_comment(_repo, _issue, _text)
     {
       id: 42
     }
   end
 
-  def create_commit_comment(_repo, sha, text) # rubocop:disable Elegant/GoodMethodName
+  def create_commit_comment(_repo, sha, text)
     {
       commit_id: sha,
       id: 42,
@@ -962,7 +962,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     }
   end
 
-  def search_issues(query, _options = {}) # rubocop:disable Elegant/GoodMethodName
+  def search_issues(query, _options = {})
     if query.include?('type:pr') && query.include?('is:unmerged')
       {
         total_count: 1,
@@ -1028,7 +1028,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     end
   end
 
-  def commits_since(repo, _since) # rubocop:disable Elegant/GoodMethodName
+  def commits_since(repo, _since)
     [
       commit(repo, 'a1b2c3d4e5f6a1b2c3d4e5f6'),
       commit(repo, 'a1b2c3d4e5fff1b2c3d4e5f6')
@@ -1044,7 +1044,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     }
   end
 
-  def search_commits(_query, _options = {}) # rubocop:disable Elegant/GoodMethodName
+  def search_commits(_query, _options = {})
     {
       total_count: 3,
       incomplete_results: false,
@@ -1101,7 +1101,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     }
   end
 
-  def issue_timeline(_repo, _issue, _options = {}) # rubocop:disable Elegant/GoodMethodName
+  def issue_timeline(_repo, _issue, _options = {})
     [
       {
         event: 'renamed',
@@ -1163,7 +1163,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def repository_events(repo, _options = {}) # rubocop:disable Elegant/GoodMethodName, Metrics/MethodLength
+  def repository_events(repo, _options = {}) # rubocop:disable Metrics/MethodLength
     [
       {
         id: '123',
@@ -1290,7 +1290,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def issue_events(_repo, number) # rubocop:disable Elegant/GoodMethodName
+  def issue_events(_repo, number)
     if number == 120
       [
         {
@@ -1346,7 +1346,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     end
   end
 
-  def pull_request_comments(_name, _number) # rubocop:disable Elegant/GoodMethodName
+  def pull_request_comments(_name, _number)
     [
       {
         pull_request_review_id: 2_227_372_510,
@@ -1406,7 +1406,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def issue_comments(_name, _number) # rubocop:disable Elegant/GoodMethodName
+  def issue_comments(_name, _number)
     [
       {
         pull_request_review_id: 2_227_372_510,
@@ -1466,7 +1466,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def issue_comment_reactions(_name, _comment) # rubocop:disable Elegant/GoodMethodName
+  def issue_comment_reactions(_name, _comment)
     [
       {
         id: 248_923_574,
@@ -1479,7 +1479,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def pull_request_review_comment_reactions(_name, _comment) # rubocop:disable Elegant/GoodMethodName
+  def pull_request_review_comment_reactions(_name, _comment)
     [
       {
         id: 248_923_574,
@@ -1492,7 +1492,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
-  def check_runs_for_ref(repo, sha) # rubocop:disable Elegant/GoodMethodName, Metrics/MethodLength
+  def check_runs_for_ref(repo, sha) # rubocop:disable Metrics/MethodLength
     data = {
       'zerocracy/baza' => {
         total_count: 7,
@@ -1650,7 +1650,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     end
   end
 
-  def workflow_run_job(_repo, job) # rubocop:disable Elegant/GoodMethodName
+  def workflow_run_job(_repo, job)
     [
       {
         id: 28_907_016_501,
@@ -1710,7 +1710,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     }
   end
 
-  def workflow_run(repo, id) # rubocop:disable Elegant/GoodMethodName
+  def workflow_run(repo, id)
     [
       {
         id: 10_438_531_072,

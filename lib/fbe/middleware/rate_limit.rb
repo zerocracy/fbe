@@ -53,7 +53,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   #
   # @param [Faraday::Env] env The request environment
   # @return [Faraday::Response] Cached or fresh response
-  def handle_rate_limit_request(env) # rubocop:disable Elegant/GoodMethodName
+  def handle_rate_limit_request(env)
     if @cached.nil? || @counter >= 100
       response = @app.call(env)
       @cached = response.dup
@@ -68,7 +68,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   end
 
   # Tracks non-rate_limit requests and decrements counter.
-  def track_request # rubocop:disable Elegant/GoodMethodName
+  def track_request
     return if @remaining.nil?
     @remaining -= 1 if @remaining.positive?
     @counter += 1
@@ -78,7 +78,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   #
   # @param [Faraday::Response] response The API response
   # @return [Integer] The remaining requests count
-  def extract_remaining_count(response) # rubocop:disable Elegant/GoodMethodName
+  def extract_remaining_count(response)
     body = response.body
     if body.is_a?(String)
       begin
@@ -94,7 +94,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # Updates the remaining count in the response body.
   #
   # @param [Faraday::Response] response The cached response to update
-  def update_remaining_count(response) # rubocop:disable Elegant/GoodMethodName
+  def update_remaining_count(response)
     body = response.body
     stringed = body.is_a?(String)
     if stringed
@@ -115,7 +115,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Env] env The original request environment
   # @param [Faraday::Response] response The cached response
   # @return [Hash] Response environment hash
-  def response_env(env, response) # rubocop:disable Elegant/GoodMethodName
+  def response_env(env, response)
     headers = response.headers.dup
     headers['x-ratelimit-remaining'] = @remaining.to_s if @remaining
     {

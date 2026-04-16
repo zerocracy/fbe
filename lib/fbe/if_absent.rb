@@ -46,7 +46,7 @@ require_relative 'fb'
 #   else
 #     puts "User already exists"
 #   end
-def Fbe.if_absent(fb: Fbe.fb, always: false) # rubocop:disable Elegant/GoodMethodName
+def Fbe.if_absent(fb: Fbe.fb, always: false)
   attrs = {}
   f =
     others(map: attrs) do |*args|
