@@ -17,3 +17,23 @@ plugins:
   - rubocop-elegant
 Style/GlobalVars:
   Enabled: false
+Style/TopLevelMethodDefinition:
+  Enabled: false
+Naming/MethodParameterName:
+  AllowedNames:
+    - as
+    - at
+    - by
+    - cc
+    - db
+    - fb
+    - id
+    - if
+    - in
+    - io
+    - ip
+    - of
+    - 'on'
+    - os
+    - pp
+    - to

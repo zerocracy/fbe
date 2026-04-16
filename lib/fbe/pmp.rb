@@ -42,11 +42,11 @@ require_relative 'fb'
 #
 #   # Get deadline from time area
 #   deadline = Fbe.pmp.time.deadline
-def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
+def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize
   xml = Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
   pmpv =
     Class.new(SimpleDelegator) do
-      attr_reader :default, :type, :memo, :value
+      attr_reader :default, :type, :memo, :value # rubocop:disable Layout/EmptyLinesAroundAttributeAccessor
       def initialize(value, default, type, memo)
         super(value)
         @value = value
@@ -62,7 +62,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
     others do |*args1|
       area = args1.first.to_s
       node = xml.at_xpath("/pmp/area[@name='#{area}']")
-      raise "Unknown area #{area.inspect}" if node.nil?
+      raise Fbe::Error, "Unknown area #{area.inspect}" if node.nil?
       Class.new do
         define_method(:properties) do
           node.xpath('p/name').map(&:text)

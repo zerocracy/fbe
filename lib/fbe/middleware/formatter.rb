@@ -53,7 +53,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   # @return [void]
   # @note Only logs when status >= 400
   # @note Special handling for 403 JSON responses to show compact error message
-  def response(http)
+  def response(http) # rubocop:disable Metrics/AbcSize
     return if http.status < 400
     if http.status == 403 && http.response_headers['content-type'].start_with?('application/json')
       warn(
@@ -117,7 +117,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   # @example
   #   dump_headers({"Content-Type" => "application/json", "Authorization" => "Bearer token"})
   #   #=> "Content-Type: \"application/json\"\nAuthorization: \"Bearer token\""
-  def dump_headers(headers)
+  def dump_headers(headers) # rubocop:disable Elegant/GoodMethodName
     return '' if headers.nil?
     headers.map { |k, v| "#{k}: #{v.inspect}" }.join("\n")
   end

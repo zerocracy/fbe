@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class TestOverwrite < Fbe::Test
+class TestOverwrite < Fbe::Test # rubocop:disable Metrics/ClassLength
   def test_simple_overwrite
     fb = Factbase.new
     f = fb.insert
@@ -35,10 +35,10 @@ class TestOverwrite < Fbe::Test
     f._job = 42
     f.foo = 'hello'
     Fbe.overwrite(f, 'foo', 'bye', fb:)
-    f2 = fb.query('(exists foo)').each.first
-    assert_equal([1], f2['_id'])
-    assert_equal([42], f2['_job'])
-    assert_equal(['bye'], f2['foo'])
+    fact = fb.query('(exists foo)').each.first
+    assert_equal([1], fact['_id'])
+    assert_equal([42], fact['_job'])
+    assert_equal(['bye'], fact['foo'])
   end
 
   def test_skips_overwrite_with_hash
@@ -90,14 +90,14 @@ class TestOverwrite < Fbe::Test
 
   def test_safe_insert
     fb = Factbase.new
-    f1 = fb.insert
-    f1.bar = 'a'
-    f2 = fb.insert
-    f2.bar = 'b'
-    f2._id = 2
-    f3 = fb.insert
-    f3._id = 1
-    Fbe.overwrite(f3, 'foo', 42, fb:)
+    first = fb.insert
+    first.bar = 'a'
+    second = fb.insert
+    second.bar = 'b'
+    second._id = 2
+    third = fb.insert
+    third._id = 1
+    Fbe.overwrite(third, 'foo', 42, fb:)
     assert_equal(3, fb.size)
   end
 
@@ -116,10 +116,10 @@ class TestOverwrite < Fbe::Test
         f.foo = 1
       end
     end
-    f1 = Fbe.fb.query('(always)').each.first
-    Fbe.overwrite(f1, 'foo', 'bar')
-    f2 = Fbe.fb.query('(always)').each.first
-    assert_equal('bar', f2.foo)
+    before = Fbe.fb.query('(always)').each.first
+    Fbe.overwrite(before, 'foo', 'bar')
+    after = Fbe.fb.query('(always)').each.first
+    assert_equal('bar', after.foo)
   end
 
   def test_overwrite_with_hash_single_property
@@ -238,14 +238,14 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-    assert_raises(RuntimeError, 'The value for bar is nil') do
+    assert_raises(Fbe::Error, 'The value for bar is nil') do
       Fbe.overwrite(f, { foo: 55, bar: nil }, fb:)
     end
   end
 
   def test_overwrite_with_hash_nil_fact
     fb = Factbase.new
-    assert_raises(RuntimeError, 'The fact is nil') do
+    assert_raises(Fbe::Error, 'The fact is nil') do
       Fbe.overwrite(nil, { foo: 42 }, fb:)
     end
   end
@@ -255,7 +255,7 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-    assert_raises(RuntimeError, 'The fb is nil') do
+    assert_raises(Fbe::Error, 'The fb is nil') do
       Fbe.overwrite(f, { foo: 55 }, fb: nil)
     end
   end
@@ -274,7 +274,7 @@ class TestOverwrite < Fbe::Test
     fb = Factbase.new
     f = fb.insert
     f.foo = 42
-    assert_raises(RuntimeError, 'There is no custom_id in the fact, cannot use Fbe.overwrite') do
+    assert_raises(Fbe::Error, 'There is no custom_id in the fact, cannot use Fbe.overwrite') do
       Fbe.overwrite(f, { foo: 55 }, fb:, fid: 'custom_id')
     end
   end
@@ -290,7 +290,7 @@ class TestOverwrite < Fbe::Test
       n.foo = 42
     end
     fb.query('(eq _id 999)').delete!
-    assert_raises(RuntimeError, 'No facts by _id = 999') do
+    assert_raises(Fbe::Error, 'No facts by _id = 999') do
       Fbe.overwrite(f, { foo: 55 }, fb:)
     end
   end
@@ -300,8 +300,8 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-    complex_data = { string: 'hello', number: 42, float: 3.14, array: [1, 2, 3] }
-    Fbe.overwrite(f, complex_data, fb:)
+    data = { string: 'hello', number: 42, float: 3.14, array: [1, 2, 3] }
+    Fbe.overwrite(f, data, fb:)
     result = fb.query('(always)').each.to_a.first
     assert_equal('hello', result['string'].first)
     assert_equal(42, result['number'].first)
@@ -314,9 +314,9 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-    large_hash = {}
-    100.times { |i| large_hash["prop_#{i}"] = "value_#{i}" }
-    Fbe.overwrite(f, large_hash, fb:)
+    props = {}
+    100.times { |i| props["prop_#{i}"] = "value_#{i}" }
+    Fbe.overwrite(f, props, fb:)
     result = fb.query('(always)').each.to_a.first
     assert_equal('value_0', result['prop_0'].first)
     assert_equal('value_50', result['prop_50'].first)
@@ -328,14 +328,14 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-    special_keys = {
+    keys = {
       'key_with_underscores' => 'value1',
       'key_with_dashes' => 'value2',
       'key_with_dots' => 'value3',
       'key_with_slashes' => 'value4',
       'key123' => 'value5'
     }
-    Fbe.overwrite(f, special_keys, fb:)
+    Fbe.overwrite(f, keys, fb:)
     result = fb.query('(always)').each.to_a.first
     assert_equal('value1', result['key_with_underscores'].first)
     assert_equal('value2', result['key_with_dashes'].first)
@@ -349,8 +349,8 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-    unicode_data = { emoji: '🚀', chinese: '你好世界', arabic: 'مرحبا بالعالم', russian: 'Привет мир', japanese: 'こんにちは世界' }
-    Fbe.overwrite(f, unicode_data, fb:)
+    data = { emoji: '🚀', chinese: '你好世界', arabic: 'مرحبا بالعالم', russian: 'Привет мир', japanese: 'こんにちは世界' }
+    Fbe.overwrite(f, data, fb:)
     result = fb.query('(always)').each.to_a.first
     assert_equal('🚀', result['emoji'].first)
     assert_equal('你好世界', result['chinese'].first)

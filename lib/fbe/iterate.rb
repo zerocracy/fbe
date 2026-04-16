@@ -42,10 +42,10 @@ def Fbe.iterate(
   fb: Fbe.fb, loog: $loog, options: $options, global: $global,
   epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
 )
-  raise('The fb is nil') if fb.nil?
-  raise('The $global is not set') if global.nil?
-  raise('The $options is not set') if options.nil?
-  raise('The $loog is not set') if loog.nil?
+  raise(Fbe::Error, 'The fb is nil') if fb.nil?
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   c = Fbe::Iterate.new(fb:, loog:, options:, global:, epoch:, kickoff:)
   c.instance_eval(&)
 end
@@ -98,11 +98,11 @@ class Fbe::Iterate
     @label = nil
     @since = 0
     @query = nil
-    @sort_by = nil
+    @sorting = nil
     @repeats = 1
-    @quota_aware = true
-    @lifetime_aware = true
-    @timeout_aware = true
+    @quota = true
+    @lifetime = true
+    @timeout = true
   end
 
   # Makes the iterator aware of GitHub API quota limits.
@@ -115,22 +115,22 @@ class Fbe::Iterate
   # @example Enable quota awareness
   #   iterator.quota_aware
   #   iterator.over { |repo, item| ... }  # Will stop if quota exhausted
-  def quota_unaware
-    @quota_aware = false
+  def quota_unaware # rubocop:disable Elegant/GoodMethodName
+    @quota = false
   end
 
   # Makes the iterator aware of lifetime limits.
   #
   # @return [nil] Nothing is returned
-  def lifetime_unaware
-    @lifetime_aware = false
+  def lifetime_unaware # rubocop:disable Elegant/GoodMethodName
+    @lifetime = false
   end
 
   # Makes the iterator aware of timeout limits.
   #
   # @return [nil] Nothing is returned
-  def timeout_unaware
-    @timeout_aware = false
+  def timeout_unaware # rubocop:disable Elegant/GoodMethodName
+    @timeout = false
   end
 
   # Sets the maximum number of iterations per repository.
@@ -144,8 +144,8 @@ class Fbe::Iterate
   # @example Process up to 100 items per repository
   #   iterator.repeats(100)
   def repeats(repeats)
-    raise('Cannot set "repeats" to nil') if repeats.nil?
-    raise('The "repeats" must be a positive integer') unless repeats.positive?
+    raise(Fbe::Error, 'Cannot set "repeats" to nil') if repeats.nil?
+    raise(Fbe::Error, 'The "repeats" must be a positive integer') unless repeats.positive?
     @repeats = repeats
   end
 
@@ -161,8 +161,8 @@ class Fbe::Iterate
   # @example Query for issues after a certain ID
   #   iterator.by('(and (eq what "issue") (gt id $before) (eq repo $repository))')
   def by(query)
-    raise('Query is already set') unless @query.nil?
-    raise('Cannot set query to nil') if query.nil?
+    raise(Fbe::Error, 'Query is already set') unless @query.nil?
+    raise(Fbe::Error, 'Cannot set query to nil') if query.nil?
     @query = query
   end
 
@@ -177,11 +177,11 @@ class Fbe::Iterate
   # @raise [RuntimeError] If prop is nil, already set, or not a valid field name
   # @example Sort issues by number
   #   iterator.sort_by('issue')
-  def sort_by(prop)
-    raise('Sort field is already set') unless @sort_by.nil?
-    raise('Cannot set sort field to nil') if prop.nil?
-    raise('Sort field must be a String') unless prop.is_a?(String)
-    @sort_by = prop
+  def sort_by(prop) # rubocop:disable Elegant/GoodMethodName
+    raise(Fbe::Error, 'Sort field is already set') unless @sorting.nil?
+    raise(Fbe::Error, 'Cannot set sort field to nil') if prop.nil?
+    raise(Fbe::Error, 'Sort field must be a String') unless prop.is_a?(String)
+    @sorting = prop
   end
 
   # Sets the label for tracking iteration state.
@@ -196,9 +196,11 @@ class Fbe::Iterate
   # @example Set label for issue processing
   #   iterator.as('issue_processor')
   def as(label)
-    raise('Label is already set') unless @label.nil?
-    raise('Cannot set "label" to nil') if label.nil?
-    raise("Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*") unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
+    raise(Fbe::Error, 'Label is already set') unless @label.nil?
+    raise(Fbe::Error, 'Cannot set "label" to nil') if label.nil?
+    unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
+      raise(Fbe::Error, "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*")
+    end
     @label = label
   end
 
@@ -238,18 +240,18 @@ class Fbe::Iterate
   #     fetch_and_process_issue(repo_id, issue_number)
   #     issue_number + 1  # Return next issue number to process
   #   end
-  def over
-    raise('Use "as" first') if @label.nil?
-    raise('Use "by" first') if @query.nil?
+  def over # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+    raise(Fbe::Error, 'Use "as" first') if @label.nil?
+    raise(Fbe::Error, 'Use "by" first') if @query.nil?
     seen = {}
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     return if Fbe.over?(
       global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
-      quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+      quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
     )
     repos =
       Fbe.unmask_repos(
-        loog: @loog, options: @options, global: @global, quota_aware: @quota_aware
+        loog: @loog, options: @options, global: @global, quota_aware: @quota
       ).map { |n| oct.repo_id_by_name(n) }
     started = Time.now
     restarted = []
@@ -268,10 +270,10 @@ class Fbe::Iterate
       end
     starts = before.dup
     values = {}
-    loop do
+    loop do # rubocop:disable Metrics/BlockLength
       if Fbe.over?(
         global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
-        quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+        quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
       )
         @loog.info("Time to stop after #{started.ago}")
         break
@@ -279,7 +281,7 @@ class Fbe::Iterate
       repos.each do |repo|
         if Fbe.over?(
           global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
-          quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+          quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
         )
           @loog.info("Won't check repository ##{repo}")
           break
@@ -291,10 +293,10 @@ class Fbe::Iterate
           next
         end
         nxt =
-          if @sort_by
+          if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).map { _1[@sort_by]&.first }.compact.sort.each
+            ).filter_map { _1[@sorting]&.first }.sort.each
             begin
               values[repo].next
             rescue StopIteration
@@ -307,14 +309,14 @@ class Fbe::Iterate
           if nxt.nil?
             @loog.debug("Next element after ##{before[repo]} not suggested, re-starting from ##{@since}: #{@query}")
             restarted << repo
-            values.delete(repo) if @sort_by
+            values.delete(repo) if @sorting
             @since
           else
             @loog.debug("Next is ##{nxt}, starting from it")
             yield(repo, nxt)
           end
         unless before[repo].is_a?(Integer)
-          raise("Iterator must return an Integer, but #{before[repo].class} was returned")
+          raise(Fbe::Error, "Iterator must return an Integer, but #{before[repo].class} was returned")
         end
         seen[repo] += 1
       end

@@ -103,6 +103,7 @@ class TestBylaws < Fbe::Test
         b = a.bill(args)
         next if b.points == points
         raise(
+          Fbe::Error,
           "Wrong reward of #{b.points} points from #{title}, " \
           "while #{points} expected (#{args}): #{b.greeting}\n\n#{help}"
         )

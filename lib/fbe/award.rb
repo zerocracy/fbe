@@ -37,7 +37,7 @@ class Fbe::Award
   # @param [Judges::Options] options The options coming from the +judges+ tool
   # @param [Loog] loog The logging facility
   def initialize(query = nil, judge: $judge, global: $global, options: $options, loog: $loog)
-    query = Fbe.pmp(fb: Fbe.fb, global:, options:, loog:).hr.send(judge.tr('-', '_')) if query.nil?
+    query = Fbe.pmp(fb: Fbe.fb, global:, options:, loog:).hr.public_send(judge.tr('-', '_')) if query.nil?
     @query = query
   end
 
@@ -103,31 +103,32 @@ class Fbe::Award
     #   bill = Fbe::Award::Bill.new
     #   term.bill_to(bill)
     #   bill.points #=> 100
-    def bill_to(bill)
+    def bill_to(bill) # rubocop:disable Elegant/GoodMethodName
       case @op
       when :award
         @operands.each do |o|
           o.bill_to(bill)
         rescue StandardError => e
-          raise("Failure in #{o}: #{e.message}")
+          raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
       when :aka
         @operands[0..-2].each do |o|
           o.bill_to(bill)
         rescue StandardError => e
-          raise("Failure in #{o}: #{e.message}")
+          raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
       when :let, :set
         v = to_val(@operands[1], bill)
-        raise("Can't #{@op.inspect} #{@operands[0].inspect} to nil") if v.nil?
+        raise(Fbe::Error, "Can't #{@op.inspect} #{@operands[0].inspect} to nil") if v.nil?
         bill.set(@operands[0], v)
       when :give
         text = @operands[1]
         text = '' if text.nil?
         bill.line(to_val(@operands[0], bill), text)
       when :explain, :in
+        nil
       else
-        raise("Unknown term '#{@op}'")
+        raise(Fbe::Error, "Unknown term '#{@op}'")
       end
     end
 
@@ -146,7 +147,7 @@ class Fbe::Award
         any.calc(bill)
       elsif any.is_a?(Symbol)
         v = bill.vars[any]
-        raise("Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}") if v.nil?
+        raise(Fbe::Error, "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}") if v.nil?
         v
       else
         any
@@ -168,7 +169,7 @@ class Fbe::Award
     #   term = Factbase::Syntax.new('(times x y)').to_term
     #   term.redress!(Fbe::Award::BTerm)
     #   term.calc(bill) #=> 50
-    def calc(bill)
+    def calc(bill) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
       case @op
       when :total
         bill.points
@@ -210,14 +211,14 @@ class Fbe::Award
         return 0 if (!v.negative? && v < min) || (!v.positive? && v > max)
         v.clamp(min, max)
       else
-        raise("Unknown term '#{@op}'")
+        raise(Fbe::Error, "Unknown term '#{@op}'")
       end
     end
   end
 
   # A term for bylaw.
   module PTerm
-    def to_s
+    def to_s # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
       case @op
       when :total
         'total'
@@ -254,7 +255,7 @@ class Fbe::Award
       when :between
         "at least #{to_p(@operands[0])} and at most #{to_p(@operands[1])}"
       else
-        raise("Unknown term '#{@op}'")
+        raise(Fbe::Error, "Unknown term '#{@op}'")
       end
     end
 
@@ -266,19 +267,19 @@ class Fbe::Award
       false
     end
 
-    def publish_to(bylaw)
+    def publish_to(bylaw) # rubocop:disable Elegant/GoodMethodName
       case @op
       when :award
         @operands.each do |o|
           o.publish_to(bylaw)
         rescue StandardError => e
-          raise("Failure in #{o}: #{e.message}")
+          raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
       when :aka
         @operands[0..-2].each do |o|
           o.publish_to(bylaw)
         rescue StandardError => e
-          raise("Failure in #{o}: #{e.message}")
+          raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
         bylaw.revert(@operands.size - 1)
         bylaw.line(to_p(@operands[-1]))
@@ -294,7 +295,7 @@ class Fbe::Award
       when :give
         bylaw.line("award #{to_p(@operands[0])}")
       else
-        raise("Unknown term '#{@op}'")
+        raise(Fbe::Error, "Unknown term '#{@op}'")
       end
     end
 

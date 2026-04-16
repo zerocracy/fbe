@@ -77,9 +77,9 @@ class TestDelete < Fbe::Test
     f = Fbe.fb.insert
     f.foo = 'hello'
     Fbe.delete(f, 'foo')
-    f2 = Fbe.fb.query('(always)').each.first
-    assert_equal([1], f2['_id'])
-    assert_equal([42], f2['_job'])
+    fact = Fbe.fb.query('(always)').each.first
+    assert_equal([1], fact['_id'])
+    assert_equal([42], fact['_job'])
   end
 
   def test_deletes_id
@@ -87,9 +87,9 @@ class TestDelete < Fbe::Test
     f = fb.insert
     f._id = 44
     Fbe.delete(f, '_id', fb:)
-    f2 = fb.query('(always)').each.first
-    assert_nil(f2['_id'])
-    assert_empty(f2.all_properties)
+    fact = fb.query('(always)').each.first
+    assert_nil(fact['_id'])
+    assert_empty(fact.all_properties)
   end
 
   def test_deletes_in_transaction
@@ -107,10 +107,10 @@ class TestDelete < Fbe::Test
         f.foo = 1
       end
     end
-    f1 = Fbe.fb.query('(always)').each.first
-    Fbe.delete(f1, 'foo')
-    f2 = Fbe.fb.query('(always)').each.first
-    assert_nil(f2['foo'])
+    before = Fbe.fb.query('(always)').each.first
+    Fbe.delete(before, 'foo')
+    after = Fbe.fb.query('(always)').each.first
+    assert_nil(after['foo'])
   end
 
   def test_deletes_when_duplicate_id
@@ -119,7 +119,7 @@ class TestDelete < Fbe::Test
     f._id = 44
     f._id = 45
     Fbe.delete(f, '_id', fb:)
-    f2 = fb.query('(always)').each.first
-    assert_nil(f2['_id'])
+    fact = fb.query('(always)').each.first
+    assert_nil(fact['_id'])
   end
 end

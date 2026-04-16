@@ -27,34 +27,36 @@ class Fbe::Tombstone
   # @param [Integer] repo ID of repository
   # @return [Array<Integer>] IDs of issue
   def issues(where, repo)
-    raise('The type of "where" is not String') unless where.is_a?(String)
-    raise('The type of "repo" is not Integer') unless repo.is_a?(Integer)
+    raise(Fbe::Error, 'The type of "where" is not String') unless where.is_a?(String)
+    raise(Fbe::Error, 'The type of "repo" is not Integer') unless repo.is_a?(Integer)
     f = @fb.query(
       "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
     ).each.first
     return [] if f.nil?
-    f['issues'].map do |ii|
+    f['issues'].flat_map do |ii|
       a, b = ii.split('-').map { |i| Integer(i, 10) }
       b = a if b.nil?
-      (a..b).map { |i| i }
-    end.flatten
+      (a..b).to_a
+    end
   end
 
   # Put it there.
   # @param [String] where The place, e.g. "github"
   # @param [Integer] repo ID of repository
   # @param [Integer, Array<Integer>] issue ID of issue (or array of them)
-  def bury!(where, repo, issue)
-    raise('The type of "where" is not String') unless where.is_a?(String)
-    raise('The type of "repo" is not Integer') unless repo.is_a?(Integer)
-    raise('The type of "issue" is neither Integer nor Array') unless issue.is_a?(Integer) || issue.is_a?(Array)
+  def bury!(where, repo, issue) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+    raise(Fbe::Error, 'The type of "where" is not String') unless where.is_a?(String)
+    raise(Fbe::Error, 'The type of "repo" is not Integer') unless repo.is_a?(Integer)
+    unless issue.is_a?(Integer) || issue.is_a?(Array)
+      raise(Fbe::Error, 'The type of "issue" is neither Integer nor Array')
+    end
     f =
       Fbe.if_absent(fb: @fb, always: true) do |n|
         n.what = 'tombstone'
         n.where = where
         n.repository = repo
       end
-    f.send(:"#{@fid}=", SecureRandom.random_number(99_999)) if f[@fid].nil?
+    f.public_send(:"#{@fid}=", SecureRandom.random_number(99_999)) if f[@fid].nil?
     nn = f['issues']&.map do |ii|
       ii.split('-').map do |i|
         Integer(i, 10)
@@ -84,9 +86,11 @@ class Fbe::Tombstone
   # @param [Integer, Array<Integer>] issue ID of issue (or array of them)
   # @return [Boolean] True if it's there
   def has?(where, repo, issue)
-    raise('The type of "where" is not String') unless where.is_a?(String)
-    raise('The type of "repo" is not Integer') unless repo.is_a?(Integer)
-    raise('The type of "issue" is neither Integer nor Array') unless issue.is_a?(Integer) || issue.is_a?(Array)
+    raise(Fbe::Error, 'The type of "where" is not String') unless where.is_a?(String)
+    raise(Fbe::Error, 'The type of "repo" is not Integer') unless repo.is_a?(Integer)
+    unless issue.is_a?(Integer) || issue.is_a?(Array)
+      raise(Fbe::Error, 'The type of "issue" is neither Integer nor Array')
+    end
     f = @fb.query(
       "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
     ).each.first

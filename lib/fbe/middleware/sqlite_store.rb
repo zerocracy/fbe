@@ -72,7 +72,7 @@ class Fbe::Middleware::SqliteStore
     if !cache_min_age.nil? && !(cache_min_age.is_a?(Integer) && cache_min_age.positive?)
       raise(ArgumentError, 'Cache min age can be nil or Integer > 0')
     end
-    @cache_min_age = cache_min_age
+    @minage = cache_min_age
   end
 
   # Read a value from the cache.
@@ -106,29 +106,29 @@ class Fbe::Middleware::SqliteStore
   # @return [nil]
   # @note Values larger than 10KB are not cached
   # @note Non-GET requests and URLs with query parameters are not cached
-  def write(key, value)
+  def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     return if value.is_a?(Array) && value.any? do |vv|
       req = JSON.parse(vv[0])
       req['method'] != 'get'
     end
-    if @cache_min_age && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
+    if @minage && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
       begin
         resp = JSON.parse(value[0][1])
       rescue TypeError, JSON::ParserError => e
         @loog.info("Failed to parse response to rewrite the cache age: #{e.message}")
         resp = nil
       end
-      cache_control = resp.dig('response_headers', 'cache-control') if resp.is_a?(Hash)
-      if cache_control && !cache_control.empty?
+      control = resp.dig('response_headers', 'cache-control') if resp.is_a?(Hash)
+      if control && !control.empty?
         %w[max-age s-maxage].each do |key|
-          matched = cache_control.scan(/#{key}=(\d+)/i).first&.first
+          matched = control.scan(/#{key}=(\d+)/i).first&.first
           age = matched.nil? ? nil : Integer(matched, 10)
           if age
-            age = [age, @cache_min_age].max
-            cache_control = cache_control.sub(/#{key}=(\d+)/, "#{key}=#{age}")
+            age = [age, @minage].max
+            control = control.sub(/#{key}=(\d+)/, "#{key}=#{age}")
           end
         end
-        resp['response_headers']['cache-control'] = cache_control
+        resp['response_headers']['cache-control'] = control
         value[0][1] = JSON.dump(resp)
       end
     end
@@ -161,9 +161,9 @@ class Fbe::Middleware::SqliteStore
 
   private
 
-  def perform(&)
+  def perform(&) # rubocop:disable Metrics/AbcSize
     @db ||=
-      SQLite3::Database.new(@path).tap do |d|
+      SQLite3::Database.new(@path).tap do |d| # rubocop:disable Metrics/BlockLength
         d.transaction do |t|
           t.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')
           t.execute('CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);')

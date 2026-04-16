@@ -14,19 +14,19 @@ require_relative '../../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class SqliteStoreTest < Fbe::Test
-  def test_simple_caching_algorithm
+class SqliteStoreTest < Fbe::Test # rubocop:disable Metrics/ClassLength
+  def test_simple_caching_algorithm # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('x.db') do |f|
       store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')
       k = 'some-key'
       assert_nil(store.read(k))
       assert_nil(store.delete(k))
-      v1 = 'first value to save'
-      assert_nil(store.write(k, v1))
-      assert_equal(v1, store.read(k))
-      v2 = 'another value to save'
-      assert_nil(store.write(k, v2))
-      assert_equal(v2, store.read(k))
+      first = 'first value to save'
+      assert_nil(store.write(k, first))
+      assert_equal(first, store.read(k))
+      second = 'another value to save'
+      assert_nil(store.write(k, second))
+      assert_equal(second, store.read(k))
       assert_nil(store.delete(k))
       assert_nil(store.read(k))
       assert_path_exists(f)
@@ -109,7 +109,7 @@ class SqliteStoreTest < Fbe::Test
     assert_match('closed sqlite after process exit', out)
   end
 
-  def test_different_versions
+  def test_different_versions # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('d.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         store.write('kkk1', 'some value')
@@ -138,7 +138,7 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_skip_write_if_value_more_then_10k_bytes
+  def test_skip_write_if_value_too_large # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('a.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         store.write('a', 'a' * 9_997)
@@ -153,7 +153,7 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_shrink_cache_if_more_then_10_mb
+  def test_shrink_cache_if_too_large # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('large.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         store.write('a', 'aa')
@@ -267,7 +267,7 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_set_incorrect_ttl
+  def test_set_incorrect_ttl # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('c.db') do |f|
       ex =
         assert_raises(ArgumentError) do
@@ -297,7 +297,7 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_delete_keys_if_ttl_expired
+  def test_delete_keys_if_ttl_expired # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('c.db') do |f|
       now = Time.now
       Time.stub(:now, now) do
@@ -353,7 +353,7 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_not_overwrite_cache_control
+  def test_not_overwrite_cache_control # rubocop:disable Metrics/AbcSize, Minitest/MultipleAssertions
     with_tmpfile('t.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 30).then do |store|
         store.write(
@@ -427,7 +427,7 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def faraday_value(
+  def faraday_value( # rubocop:disable Elegant/GoodMethodName
     req: {
       'method' => 'get',
       'url' => 'https://example.com/test',

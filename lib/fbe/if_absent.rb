@@ -46,7 +46,7 @@ require_relative 'fb'
 #   else
 #     puts "User already exists"
 #   end
-def Fbe.if_absent(fb: Fbe.fb, always: false)
+def Fbe.if_absent(fb: Fbe.fb, always: false) # rubocop:disable Elegant/GoodMethodName
   attrs = {}
   f =
     others(map: attrs) do |*args|
@@ -54,8 +54,8 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       if k.end_with?('=')
         k = k[0..-2].to_sym
         v = args[1]
-        raise("Can't set #{k} to nil") if v.nil?
-        raise("Can't set #{k} to empty string") if v.is_a?(String) && v.empty?
+        raise(Fbe::Error, "Can't set #{k} to nil") if v.nil?
+        raise(Fbe::Error, "Can't set #{k} to empty string") if v.is_a?(String) && v.empty?
         @map[k] = v
       else
         @map[k.to_sym]
@@ -76,6 +76,6 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
   return before if before && always
   return nil if before
   n = fb.insert
-  attrs.each { |k, v| n.send(:"#{k}=", v) }
+  attrs.each { |k, v| n.public_send(:"#{k}=", v) }
   n
 end

@@ -21,9 +21,9 @@ require_relative 'over'
 # @param [String] mask Repository mask in format 'org/repo' where repo can contain '*'
 # @return [Regexp] Case-insensitive regular expression for matching repositories
 # @raise [RuntimeError] If organization part contains asterisk
-def Fbe.mask_to_regex(mask)
+def Fbe.mask_to_regex(mask) # rubocop:disable Elegant/GoodMethodName
   org, repo = mask.split('/')
-  raise("Org '#{org}' can't have an asterisk") if org.include?('*')
+  raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
   Regexp.compile("#{org}/#{repo.gsub('*', '.*')}", Regexp::IGNORECASE)
 end
 
@@ -59,12 +59,12 @@ end
 # @raise [RuntimeError] If no repositories match the provided masks
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
-def Fbe.unmask_repos(
+def Fbe.unmask_repos( # rubocop:disable Elegant/GoodMethodName, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   options: $options, global: $global, loog: $loog, epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
 )
-  raise('Repositories mask is not specified') unless options.repositories
-  raise('Repositories mask is empty') if options.repositories.empty?
+  raise(Fbe::Error, 'Repositories mask is not specified') unless options.repositories
+  raise(Fbe::Error, 'Repositories mask is empty') if options.repositories.empty?
   return if block_given? && Fbe.over?(
     global:, options:, loog:, epoch:, kickoff:, quota_aware:, lifetime_aware:, timeout_aware:
   )
@@ -86,7 +86,7 @@ def Fbe.unmask_repos(
     repos.reject! { |r| re.match?(r) }
   end
   repos.reject! { |repo| octo.repository(repo)[:archived] }
-  raise("No repos found matching: #{options.repositories.inspect}") if repos.empty?
+  raise(Fbe::Error, "No repos found matching: #{options.repositories.inspect}") if repos.empty?
   repos.shuffle!
   loog.debug("Scanning #{repos.size} repositories: #{repos.joined}...")
   repos.each { |repo| octo.repository(repo) }

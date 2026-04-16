@@ -24,15 +24,15 @@ require_relative 'fb'
 #   count = Fbe.copy(source, target, except: ['_time', '_id'])
 #   puts "Copied #{count} property values"
 def Fbe.copy(source, target, except: [])
-  raise('The source is nil') if source.nil?
-  raise('The target is nil') if target.nil?
-  raise('The except is nil') if except.nil?
+  raise(Fbe::Error, 'The source is nil') if source.nil?
+  raise(Fbe::Error, 'The target is nil') if target.nil?
+  raise(Fbe::Error, 'The except is nil') if except.nil?
   copied = 0
   source.all_properties.each do |k|
     next unless target[k].nil?
     next if except.include?(k)
     source[k].each do |v|
-      target.send(:"#{k}=", v)
+      target.public_send(:"#{k}=", v)
       copied += 1
     end
   end

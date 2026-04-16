@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class TestIterate < Fbe::Test
+class TestIterate < Fbe::Test # rubocop:disable Metrics/ClassLength
   def test_simple
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -294,7 +294,7 @@ class TestIterate < Fbe::Test
     end
   end
 
-  def test_all_markers_in_one_exists_fact
+  def test_all_markers_in_one_exists_fact # rubocop:disable Metrics/AbcSize
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.then do |f|
@@ -337,7 +337,7 @@ class TestIterate < Fbe::Test
     end
   end
 
-  def test_sort_by_configuration
+  def test_sort_by_configuration # rubocop:disable Metrics/AbcSize
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     global = {}
     fb = Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL)
@@ -357,21 +357,21 @@ class TestIterate < Fbe::Test
       end
     end
     ex =
-      assert_raises(RuntimeError) do
+      assert_raises(Fbe::Error) do
         Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
           sort_by(nil)
         end
       end
     assert_equal('Cannot set sort field to nil', ex.message)
     ex =
-      assert_raises(RuntimeError) do
+      assert_raises(Fbe::Error) do
         Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
           sort_by(:issue)
         end
       end
     assert_equal('Sort field must be a String', ex.message)
     ex =
-      assert_raises(RuntimeError) do
+      assert_raises(Fbe::Error) do
         Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
           sort_by('issue')
           sort_by('item')

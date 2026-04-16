@@ -15,10 +15,10 @@ require_relative '../../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class RateLimitTest < Fbe::Test
-  def test_caches_rate_limit_response_on_first_call
-    rate_limit_response = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+  def test_caches_payload_on_first_call
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: rate_limit_response.to_json, headers: { 'Content-Type' => 'application/json' })
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
     conn = create_connection
     response = conn.get('/rate_limit')
     assert_equal(200, response.status)
@@ -26,9 +26,9 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_returns_cached_response_on_subsequent_calls
-    rate_limit_response = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: rate_limit_response.to_json, headers: { 'Content-Type' => 'application/json' })
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
       .times(1)
     conn = create_connection
     conn.get('/rate_limit')
@@ -39,10 +39,10 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_decrements_remaining_count_for_non_rate_limit_requests
-    rate_limit_response = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: rate_limit_response.to_json, headers: { 'Content-Type' => 'application/json',
-                                                                            'X-RateLimit-Remaining' => '4999' })
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json',
+                                                                'X-RateLimit-Remaining' => '4999' })
     stub_request(:get, 'https://api.github.com/user')
       .to_return(status: 200, body: '{"login": "test"}', headers: { 'Content-Type' => 'application/json' })
     conn = create_connection
@@ -54,12 +54,12 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_refreshes_cache_after_hundred_requests
-    rate_limit_response = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
-    refreshed_response = { 'rate' => { 'limit' => 5000, 'remaining' => 4950, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    refreshed = { 'rate' => { 'limit' => 5000, 'remaining' => 4950, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: rate_limit_response.to_json, headers: { 'Content-Type' => 'application/json' })
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
       .then
-      .to_return(status: 200, body: refreshed_response.to_json, headers: { 'Content-Type' => 'application/json' })
+      .to_return(status: 200, body: refreshed.to_json, headers: { 'Content-Type' => 'application/json' })
     stub_request(:get, 'https://api.github.com/user')
       .to_return(status: 200, body: '{"login": "test"}', headers: { 'Content-Type' => 'application/json' })
       .times(100)
@@ -90,9 +90,9 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_handles_zero_remaining_count
-    rate_limit_response = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: rate_limit_response.to_json, headers: { 'Content-Type' => 'application/json' })
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
     stub_request(:get, 'https://api.github.com/user')
       .to_return(status: 200, body: '{"login": "test"}', headers: { 'Content-Type' => 'application/json' })
       .times(2)
@@ -106,7 +106,7 @@ class RateLimitTest < Fbe::Test
 
   private
 
-  def create_connection
+  def create_connection # rubocop:disable Elegant/GoodMethodName
     Faraday.new(url: 'https://api.github.com') do |f|
       f.use(Fbe::Middleware::RateLimit)
       f.response(:json)

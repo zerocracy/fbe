@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class TestOcto < Fbe::Test
+class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
@@ -133,7 +133,7 @@ class TestOcto < Fbe::Test
       )
       .times(1)
       .then
-      .to_raise('second request should be cached, not passed to GitHub API!')
+      .to_raise(Fbe::Error, 'second request should be cached, not passed to GitHub API!')
     o.user('yegor256')
     o.user('yegor256')
   end
@@ -153,7 +153,7 @@ class TestOcto < Fbe::Test
     assert_equal(4, o.rate_limit.remaining)
   end
 
-  def test_off_quota?
+  def test_off_quota
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       { body: '{"rate":{"remaining":50}}', headers: { 'X-RateLimit-Remaining' => '50' } }
@@ -251,12 +251,12 @@ class TestOcto < Fbe::Test
     WebMock.disable_net_connect!
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_equal(42, o.search_issues('repo:zerocracy/fbe type:issue').dig(:items, 0, :number))
-    total_pr_count = 2
-    assert_equal(total_pr_count, o.search_issues('repo:zerocracy/fbe type:pr')[:total_count])
-    assert_equal(total_pr_count, o.search_issues('repo:zerocracy/fbe type:pr')[:items].count)
-    unmereged_pr_count = 1
-    assert_equal(unmereged_pr_count, o.search_issues('repo:zerocracy/fbe type:pr is:unmerged')[:total_count])
-    assert_equal(unmereged_pr_count, o.search_issues('repo:zerocracy/fbe type:pr is:unmerged')[:items].count)
+    total = 2
+    assert_equal(total, o.search_issues('repo:zerocracy/fbe type:pr')[:total_count])
+    assert_equal(total, o.search_issues('repo:zerocracy/fbe type:pr')[:items].count)
+    unmerged = 1
+    assert_equal(unmerged, o.search_issues('repo:zerocracy/fbe type:pr is:unmerged')[:total_count])
+    assert_equal(unmerged, o.search_issues('repo:zerocracy/fbe type:pr is:unmerged')[:items].count)
   end
 
   def test_pauses_when_quota_is_exceeded
@@ -547,10 +547,10 @@ class TestOcto < Fbe::Test
       )
     o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
     assert(o.auto_paginate)
-    assert_raises(RuntimeError) do
+    assert_raises(Fbe::Error) do
       o.with_disable_auto_paginate do
         refute(o.auto_paginate)
-        raise('some error')
+        raise(Fbe::Error, 'some error')
       end
     end
     assert(o.auto_paginate)
@@ -589,9 +589,9 @@ class TestOcto < Fbe::Test
     assert_includes(output, '/rate_limit: 1')
     assert_includes(output, '/user/123: 1')
     assert_includes(output, '/repos/foo/bar: 2')
-    repo_index = output.index('/repos/foo/bar: 2')
-    user_index = output.index('/user/123: 1')
-    assert_operator(repo_index, :<, user_index, 'URLs should be sorted by request count (highest first)')
+    repos = output.index('/repos/foo/bar: 2')
+    users = output.index('/user/123: 1')
+    assert_operator(repos, :<, users, 'URLs should be sorted by request count (highest first)')
   end
 
   def test_prints_only_real_requests
@@ -655,7 +655,7 @@ class TestOcto < Fbe::Test
         body: { id: 840_215_648, name: 'baza.rb' }.to_json
       )
       .times(1)
-      .then.to_raise('no more request to /repos/zerocracy/baza.rb')
+      .then.to_raise(Fbe::Error, 'no more request to /repos/zerocracy/baza.rb')
     loog = Loog::Buffer.new
     o = Fbe.octo(loog:, global: {}, options: Judges::Options.new({}))
     o.print_trace!(all: true)
@@ -688,12 +688,12 @@ class TestOcto < Fbe::Test
       body: '{"id":456,"login":"testuser"}',
       headers: { 'X-RateLimit-Remaining' => '222' }
     )
-    first_loog = Loog::Buffer.new
-    octo = Fbe.octo(loog: first_loog, global: {}, options: Judges::Options.new)
+    loog = Loog::Buffer.new
+    octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
     octo.user(456)
     octo.print_trace!
-    first_output = first_loog.to_s
-    assert_includes(first_output, 'GitHub API trace')
+    output = loog.to_s
+    assert_includes(output, 'GitHub API trace')
   end
 
   def test_works_via_sqlite_store
@@ -702,8 +702,8 @@ class TestOcto < Fbe::Test
       { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
     Dir.mktmpdir do |dir|
-      sqlite_cache = File.expand_path('test.db', dir)
-      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+      cache = File.expand_path('test.db', dir)
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
       stub = stub_request(:get, 'https://api.github.com/user/42').to_return(
         status: 200,
         body: { login: 'user1' }.to_json,
@@ -716,7 +716,7 @@ class TestOcto < Fbe::Test
       )
       assert_equal('user1', o.user_name_by_id(42))
       WebMock.remove_request_stub(stub)
-      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
       assert_equal('user1', o.user_name_by_id(42))
     end
   end
@@ -755,9 +755,9 @@ class TestOcto < Fbe::Test
               'Last-Modified' => 'Wed, 01 May 2025 20:00:00 GMT'
             }
           )
-      sqlite_cache = File.expand_path('test.db', dir)
+      cache = File.expand_path('test.db', dir)
       Fbe.stub_const(:VERSION, '0.0.1') do
-        o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+        o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
         assert_equal('user1', o.user_name_by_id(42))
       end
       WebMock.remove_request_stub(stub)
@@ -773,7 +773,7 @@ class TestOcto < Fbe::Test
           }
         )
       Fbe.stub_const(:VERSION, '0.0.2') do
-        o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+        o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
         assert_equal('user2', o.user_name_by_id(42))
       end
     end
@@ -807,7 +807,7 @@ class TestOcto < Fbe::Test
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4800' },
         body: { 'rate' => { 'limit' => 5000, 'remaining' => 4800, 'reset' => 1_672_531_200 } }.to_json
       )
-      .then.to_raise('no more request to /rate_limit')
+      .then.to_raise(Fbe::Error, 'no more request to /rate_limit')
     stub_request(:get, 'https://api.github.com/user/1')
       .to_return(
         status: 200, headers: { 'Content-Type' => 'application/json' },
@@ -819,7 +819,7 @@ class TestOcto < Fbe::Test
         body: { 'id' => 111, 'login' => 'user111' }.to_json
       )
       .times(201)
-      .then.to_raise('no more request to /user/111')
+      .then.to_raise(Fbe::Error, 'no more request to /user/111')
     loog = Loog::Buffer.new
     o = Fbe.octo(loog:, global: {}, options: Judges::Options.new({}))
     o.user(1)
@@ -867,8 +867,8 @@ class TestOcto < Fbe::Test
         body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
       )
     Dir.mktmpdir do |dir|
-      sqlite_cache = File.expand_path('t.db', dir)
-      o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({ 'sqlite_cache' => sqlite_cache }))
+      cache = File.expand_path('t.db', dir)
+      o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
       stub_request(:get, 'https://api.github.com/repositories/798641472').to_return(
         status: 200,
         body: { id: 798_641_472, name: 'factbase' }.to_json,
@@ -879,7 +879,7 @@ class TestOcto < Fbe::Test
           'Etag' => 'W/"f5f1ea995fd7266816f681aca5a81f539420c469070a47568bebdaa3055487bc"',
           'Last-Modified' => 'Fri, 04 Jul 2025 13:39:42 GMT'
         }
-      ).times(1).then.to_raise('no more request to /repositories/798641472')
+      ).times(1).then.to_raise(Fbe::Error, 'no more request to /repositories/798641472')
       assert_equal('factbase', o.repo(798_641_472)['name'])
       Time.stub(:now, now + age - 1) do
         assert_equal('factbase', o.repo(798_641_472)['name'])
@@ -894,7 +894,7 @@ class TestOcto < Fbe::Test
           'Etag' => 'W/"f5f1ea995fd7266816f681aca5a81f539420c469070a47568bebdaa3055487be"',
           'Last-Modified' => 'Fri, 04 Jul 2025 13:39:42 GMT'
         }
-      ).times(1).then.to_raise('no more request to /repositories/798641472')
+      ).times(1).then.to_raise(Fbe::Error, 'no more request to /repositories/798641472')
       Time.stub(:now, now + age) do
         assert_equal('factbase_changed', o.repo(798_641_472)['name'])
       end
@@ -913,8 +913,8 @@ class TestOcto < Fbe::Test
         body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
       )
     Dir.mktmpdir do |dir|
-      sqlite_cache = File.expand_path('t.db', dir)
-      options = Judges::Options.new({ 'sqlite_cache' => sqlite_cache, 'sqlite_cache_min_age' => 120 })
+      cache = File.expand_path('t.db', dir)
+      options = Judges::Options.new({ 'sqlite_cache' => cache, 'sqlite_cache_min_age' => 120 })
       o = Fbe.octo(loog: fake_loog, global: {}, options:)
       stub_request(:get, 'https://api.github.com/repositories/798641472').to_return(
         status: 200,
@@ -926,7 +926,7 @@ class TestOcto < Fbe::Test
           'Etag' => 'W/"f5f1ea995fd7266816f681aca5a81f539420c469070a47568bebdaa3055487bc"',
           'Last-Modified' => 'Fri, 04 Jul 2025 13:39:42 GMT'
         }
-      ).times(1).then.to_raise('no more request to /repositories/798641472')
+      ).times(1).then.to_raise(Fbe::Error, 'no more request to /repositories/798641472')
       Time.stub(:now, now) do
         assert_equal('factbase', o.repo(798_641_472)['name'])
       end

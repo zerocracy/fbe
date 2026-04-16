@@ -76,7 +76,7 @@ class LoggingFormatterTest < Fbe::Test
 
   private
 
-  def log_it(
+  def log_it( # rubocop:disable Elegant/GoodMethodName
     status:,
     method: :get,
     response_body: '{"message": "hello, world!"}',

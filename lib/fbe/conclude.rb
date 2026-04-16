@@ -24,11 +24,11 @@ def Fbe.conclude(
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
   epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
 )
-  raise('The fb is nil') if fb.nil?
-  raise('The $judge is not set') if judge.nil?
-  raise('The $global is not set') if global.nil?
-  raise('The $options is not set') if options.nil?
-  raise('The $loog is not set') if loog.nil?
+  raise(Fbe::Error, 'The fb is nil') if fb.nil?
+  raise(Fbe::Error, 'The $judge is not set') if judge.nil?
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, epoch:, kickoff:)
   c.instance_eval(&)
 end
@@ -76,9 +76,9 @@ class Fbe::Conclude
     @kickoff = kickoff
     @query = nil
     @follows = []
-    @lifetime_aware = true
-    @timeout_aware = true
-    @quota_aware = true
+    @lifetime = true
+    @timeout = true
+    @quota = true
   end
 
   # Make this block not aware of GitHub API quota.
@@ -87,8 +87,8 @@ class Fbe::Conclude
   # hitting GitHub API rate limits.
   #
   # @return [nil] Nothing is returned
-  def quota_unaware
-    @quota_aware = false
+  def quota_unaware # rubocop:disable Elegant/GoodMethodName
+    @quota = false
   end
 
   # Make this block NOT aware of lifetime limitations.
@@ -96,8 +96,8 @@ class Fbe::Conclude
   # When the lifetime is over, the loop will NOT gracefully stop.
   #
   # @return [nil] Nothing is returned
-  def lifetime_unaware
-    @lifetime_aware = false
+  def lifetime_unaware # rubocop:disable Elegant/GoodMethodName
+    @lifetime = false
   end
 
   # Make this block NOT aware of timeout limitations.
@@ -105,8 +105,8 @@ class Fbe::Conclude
   # When the timeout is over, the loop will NOT gracefully stop.
   #
   # @return [nil] Nothing is returned
-  def timeout_unaware
-    @timeout_aware = false
+  def timeout_unaware # rubocop:disable Elegant/GoodMethodName
+    @timeout = false
   end
 
   # Set the query that should find the facts in the factbase.
@@ -114,7 +114,7 @@ class Fbe::Conclude
   # @param [String] query The query to execute
   # @return [nil] Nothing is returned
   def on(query)
-    raise('Query is already set') unless @query.nil?
+    raise(Fbe::Error, 'Query is already set') unless @query.nil?
     @query = query
   end
 
@@ -198,13 +198,13 @@ class Fbe::Conclude
   def roll(&)
     return 0 if Fbe.over?(
       global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
-      quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+      quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
     )
     passed = 0
     @fb.query(@query).each do |a|
       break if Fbe.over?(
         global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
-        quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
+        quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
       )
       @fb.txn do |fbt|
         n = yield(fbt, a)
@@ -242,8 +242,8 @@ class Fbe::Conclude
   #   end
   def fill(fact, prev)
     @follows.each do |follow|
-      v = prev.send(follow)
-      fact.send(:"#{follow}=", v)
+      v = prev.public_send(follow)
+      fact.public_send(:"#{follow}=", v)
     end
     r = yield(fact, prev)
     return unless r.is_a?(String)

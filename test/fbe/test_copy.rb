@@ -14,26 +14,26 @@ require_relative '../test__helper'
 class TestCopy < Fbe::Test
   def test_simple_copy
     fb = Factbase.new
-    f1 = fb.insert
-    f1._id = 1
-    f1.foo = 42
-    f2 = fb.insert
-    f2._id = 2
-    Fbe.copy(f1, f2)
-    assert_equal(2, f2._id)
-    assert_equal([2], f2['_id'])
-    assert_equal(42, f2.foo)
-    assert_equal([42], f2['foo'])
+    source = fb.insert
+    source._id = 1
+    source.foo = 42
+    target = fb.insert
+    target._id = 2
+    Fbe.copy(source, target)
+    assert_equal(2, target._id)
+    assert_equal([2], target['_id'])
+    assert_equal(42, target.foo)
+    assert_equal([42], target['foo'])
   end
 
   def test_with_except
     fb = Factbase.new
-    f1 = fb.insert
-    f1._id = 1
-    f1.foo = 42
-    f2 = fb.insert
-    f2._id = 2
-    Fbe.copy(f1, f2, except: ['foo'])
-    assert_nil(f2['foo'])
+    source = fb.insert
+    source._id = 1
+    source.foo = 42
+    target = fb.insert
+    target._id = 2
+    Fbe.copy(source, target, except: ['foo'])
+    assert_nil(target['foo'])
   end
 end

@@ -71,12 +71,12 @@ class TestIfAbsent < Fbe::Test
 
   def test_complex_ignores
     fb = Factbase.new
-    f1 = fb.insert
-    f1.foo = 'hello, "dude"!'
-    f1.abc = 42
+    fact = fb.insert
+    fact.foo = 'hello, "dude"!'
+    fact.abc = 42
     t = Time.now
-    f1.z = t
-    f1.bar = 3.14
+    fact.z = t
+    fact.bar = 3.14
     n =
       Fbe.if_absent(fb:) do |f|
         f.foo = 'hello, "dude"!'
@@ -89,12 +89,12 @@ class TestIfAbsent < Fbe::Test
 
   def test_complex_injects
     fb = Factbase.new
-    f1 = fb.insert
-    f1.foo = 'hello, dude!'
-    f1.abc = 42
+    fact = fb.insert
+    fact.foo = 'hello, dude!'
+    fact.abc = 42
     t = Time.now
-    f1.z = t
-    f1.bar = 3.14
+    fact.z = t
+    fact.bar = 3.14
     n =
       Fbe.if_absent(fb:) do |f|
         f.foo = "hello, \\\"dude\\\" \\' \\' ( \n\n ) (!   '"

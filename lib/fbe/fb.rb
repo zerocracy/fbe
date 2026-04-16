@@ -27,10 +27,10 @@ require_relative '../fbe'
 # @param [Loog] loog The logging facility
 # @return [Factbase] The global factbase
 def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
-  raise('The fb is nil') if fb.nil?
-  raise('The $global is not set') if global.nil?
-  raise('The $options is not set') if options.nil?
-  raise('The $loog is not set') if loog.nil?
+  raise(Fbe::Error, 'The fb is nil') if fb.nil?
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   global[:fb] ||=
     begin
       rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }

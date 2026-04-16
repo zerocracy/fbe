@@ -32,7 +32,7 @@ require_relative 'fb'
 # @yield [Factbase::Fact] Block to set attributes on the fact
 # @return [Factbase::Fact] The existing or newly created fact
 # @note System attributes (_id, _time, _version) are ignored when matching
-def Fbe.just_one(fb: Fbe.fb)
+def Fbe.just_one(fb: Fbe.fb) # rubocop:disable Elegant/GoodMethodName
   attrs = {}
   f =
     others(map: attrs) do |*args|
@@ -57,6 +57,6 @@ def Fbe.just_one(fb: Fbe.fb)
   before = fb.query(q).each.first
   return before unless before.nil?
   n = fb.insert
-  attrs.each { |k, v| n.send(:"#{k}=", v) }
+  attrs.each { |k, v| n.public_send(:"#{k}=", v) }
   n
 end

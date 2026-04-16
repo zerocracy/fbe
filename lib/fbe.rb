@@ -10,4 +10,5 @@
 # License:: MIT
 module Fbe
   VERSION = '0.0.0' unless const_defined?(:VERSION)
+  class Error < StandardError; end
 end

@@ -16,7 +16,7 @@ require_relative '../../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TraceTest < Fbe::Test
-  def test_traces_successful_request
+  def test_traces_successful_request # rubocop:disable Minitest/MultipleAssertions
     trace = []
     stub_request(:get, 'http://example.com/test').to_return(status: 200, body: 'success')
     conn =
@@ -37,7 +37,7 @@ class TraceTest < Fbe::Test
     assert_operator(entry[:finished_at], :>=, entry[:started_at])
   end
 
-  def test_traces_multiple_requests
+  def test_traces_multiple_requests # rubocop:disable Minitest/MultipleAssertions
     trace = []
     stub_request(:get, 'http://example.com/endpoint1').to_return(status: 200)
     stub_request(:post, 'http://example.com/endpoint2').to_return(status: 201)
@@ -88,7 +88,7 @@ class TraceTest < Fbe::Test
     assert_equal(0, trace.size)
   end
 
-  def test_preserves_request_with_query_params
+  def test_preserves_request_with_query_params # rubocop:disable Minitest/MultipleAssertions
     trace = []
     stub_request(:get, 'http://example.com/search').with(query: { 'q' => 'test', 'page' => '2' }).to_return(status: 200)
     conn =
@@ -104,7 +104,7 @@ class TraceTest < Fbe::Test
     assert_includes(url, 'page=2')
   end
 
-  def test_trace_and_cache_middlewares_together
+  def test_trace_and_cache_middlewares_together # rubocop:disable Metrics/AbcSize, Minitest/MultipleAssertions
     WebMock.disable_net_connect!
     now = Time.now
     stub_request(:get, 'https://api.example.com/page')
@@ -130,14 +130,14 @@ class TraceTest < Fbe::Test
         body: 'some body 2'
       )
       .times(1)
-      .then.to_raise('no more request to /page')
-    trace_real = []
-    trace_full = []
+      .then.to_raise(Fbe::Error, 'no more request to /page')
+    actual = []
+    total = []
     builder =
       Faraday::RackBuilder.new do |f|
-        f.use(Fbe::Middleware::Trace, trace_full)
+        f.use(Fbe::Middleware::Trace, total)
         f.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
-        f.use(Fbe::Middleware::Trace, trace_real)
+        f.use(Fbe::Middleware::Trace, actual)
         f.adapter(:net_http)
       end
     conn = Faraday::Connection.new(builder: builder)
@@ -145,23 +145,23 @@ class TraceTest < Fbe::Test
       r = conn.get('https://api.example.com/page')
       assert_equal('some body 1', r.body)
     end
-    assert_equal(1, trace_real.size)
-    assert_equal(5, trace_full.size)
-    trace_real.clear
-    trace_full.clear
+    assert_equal(1, actual.size)
+    assert_equal(5, total.size)
+    actual.clear
+    total.clear
     5.times do
       r = conn.get('https://api.example.com/page')
       assert_equal('some body 1', r.body)
     end
-    assert_equal(0, trace_real.size)
-    assert_equal(5, trace_full.size)
+    assert_equal(0, actual.size)
+    assert_equal(5, total.size)
     Time.stub(:now, now + 70) do
       5.times do
         r = conn.get('https://api.example.com/page')
         assert_equal('some body 2', r.body)
       end
     end
-    assert_equal(1, trace_real.size)
-    assert_equal(10, trace_full.size)
+    assert_equal(1, actual.size)
+    assert_equal(10, total.size)
   end
 end

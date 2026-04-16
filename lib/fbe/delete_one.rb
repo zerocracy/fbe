@@ -18,10 +18,10 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] id The property name used as unique identifier (defaults to '_id')
 # @return [nil] Nothing
-def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
-  raise('The fact is nil') if fact.nil?
+def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id') # rubocop:disable Elegant/GoodMethodName
+  raise(Fbe::Error, 'The fact is nil') if fact.nil?
   i = fact[id]
-  raise("There is no #{id.inspect} in the fact") if i.nil?
+  raise(Fbe::Error, "There is no #{id.inspect} in the fact") if i.nil?
   i = i.first
   before = {}
   fact.all_properties.each do |k|
@@ -36,7 +36,7 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
     before.each do |k, vv|
       next unless c[k].nil?
       vv.each do |v|
-        c.send(:"#{k}=", v)
+        c.public_send(:"#{k}=", v)
       end
     end
   end
