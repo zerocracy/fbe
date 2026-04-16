@@ -52,6 +52,7 @@ Elegant/GoodMethodName:
     - name_to_number
     - off_quota?
     - organization_memberships
+    - organization_repositories
     - print_trace!
     - publish_to
     - pull_request

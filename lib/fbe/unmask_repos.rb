@@ -77,7 +77,14 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
       next
     end
     re = Fbe.mask_to_regex(mask)
-    octo.repositories(mask.split('/')[0]).each do |r|
+    org = mask.split('/')[0]
+    list =
+      begin
+        octo.organization_repositories(org, type: 'all')
+      rescue Octokit::NotFound
+        octo.repositories(org)
+      end
+    list.each do |r|
       repos << r[:full_name] if re.match?(r[:full_name])
     end
   end

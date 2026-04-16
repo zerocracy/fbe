@@ -288,6 +288,21 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerF
     ]
   end
 
+  # Lists organization repositories, including private ones when the token has access.
+  #
+  # @param [String] _org The organization name (ignored in mock)
+  # @param [Hash] _options Filters such as +type:+ (e.g. 'all', 'private', 'public')
+  # @return [Array<Hash>] Array of repository hashes
+  # @example
+  #   client.organization_repositories('zerocracy', type: 'all')
+  #   # => [{:id=>123, :full_name=>"yegor256/judges", ...}, ...]
+  def organization_repositories(_org, _options = {})
+    [
+      repository('yegor256/judges'),
+      repository('yegor256/factbase')
+    ]
+  end
+
   # Gets repository invitations for the authenticated user.
   #
   # @param [Hash] _options Additional options (not used in mock)
