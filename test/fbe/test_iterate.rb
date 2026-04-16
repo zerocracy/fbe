@@ -19,9 +19,9 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
-      as 'labels_were_scanned'
-      by '(agg (always) (max foo))'
-      repeats 2
+      as('labels_were_scanned')
+      by('(agg (always) (max foo))')
+      repeats(2)
       over do |_repository, foo|
         f = fb.insert
         f.foo = foo + 1
@@ -36,11 +36,11 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
     Fbe.iterate(fb:, loog: Loog::VERBOSE, options: opts, global: {}, epoch: Time.now - 60, kickoff: Time.now) do
-      as 'labels_were_scanned'
-      by '(agg (always) (max foo))'
-      repeats 2
+      as('labels_were_scanned')
+      by('(agg (always) (max foo))')
+      repeats(2)
       over do |i|
-        sleep 999
+        sleep(999)
         i
       end
     end
@@ -53,9 +53,9 @@ class TestIterate < Fbe::Test
     reps = 5
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-      as 'labels_were_scanned'
-      by '(plus 1 1)'
-      repeats reps
+      as('labels_were_scanned')
+      by('(plus 1 1)')
+      repeats(reps)
       over do |_, nxt|
         cycles += 1
         nxt
@@ -71,9 +71,9 @@ class TestIterate < Fbe::Test
     f = fb.insert
     f.foo = 42
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-      as 'labels_were_scanned'
-      by '(agg (and (eq foo 42) (not (exists bar))) (max foo))'
-      repeats 10
+      as('labels_were_scanned')
+      by('(agg (and (eq foo 42) (not (exists bar))) (max foo))')
+      repeats(10)
       over do |_, nxt|
         cycles += 1
         f.bar = 1
@@ -88,9 +88,9 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     cycles = 0
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-      as 'quota_test'
-      by '(plus 1 1)'
-      repeats 5
+      as('quota_test')
+      by('(plus 1 1)')
+      repeats(5)
       over do |_, nxt|
         cycles += 1
         nxt + 1
@@ -104,7 +104,7 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        by '(plus 1 1)'
+        by('(plus 1 1)')
         over { |_, nxt| nxt }
       end
     end
@@ -115,8 +115,8 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as 'kebab-case'
-        by '(plus 1 1)'
+        as('kebab-case')
+        by('(plus 1 1)')
         over { |_, nxt| nxt }
       end
     end
@@ -127,7 +127,7 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as 'no_query_test'
+        as('no_query_test')
         over { |_, nxt| nxt }
       end
     end
@@ -138,8 +138,8 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as 'non_integer_test'
-        by '(plus 1 1)'
+        as('non_integer_test')
+        by('(plus 1 1)')
         over { |_, _| 'not-an-integer' }
       end
     end
@@ -150,8 +150,8 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as 'first_label'
-        as 'second_label'
+        as('first_label')
+        as('second_label')
       end
     end
   end
@@ -161,8 +161,8 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        by '(plus 1 1)'
-        by '(plus 2 2)'
+        by('(plus 1 1)')
+        by('(plus 2 2)')
       end
     end
   end
@@ -172,9 +172,9 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as 'nil_repeats_test'
-        by '(plus 1 1)'
-        repeats nil
+        as('nil_repeats_test')
+        by('(plus 1 1)')
+        repeats(nil)
       end
     end
   end
@@ -184,9 +184,9 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as 'zero_repeats_test'
-        by '(plus 1 1)'
-        repeats 0
+        as('zero_repeats_test')
+        by('(plus 1 1)')
+        repeats(0)
       end
     end
   end
@@ -196,7 +196,7 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as nil
+        as(nil)
       end
     end
   end
@@ -206,7 +206,7 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     assert_raises(StandardError) do
       Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        by nil
+        by(nil)
       end
     end
   end
@@ -216,9 +216,9 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.num = 10
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-      as 'marker_test'
-      by '(agg (always) (max num))'
-      repeats 1
+      as('marker_test')
+      by('(agg (always) (max num))')
+      repeats(1)
       over do |_, nxt|
         nxt + 5
       end
@@ -233,9 +233,9 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     results = []
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-      as 'multi_repo_test'
-      by '(plus 1 1)'
-      repeats 2
+      as('multi_repo_test')
+      by('(plus 1 1)')
+      repeats(2)
       over do |repo, nxt|
         results << [repo, nxt]
         nxt + 1
@@ -250,9 +250,9 @@ class TestIterate < Fbe::Test
     cycles = 0
     restarts = 0
     Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-      as 'all_restart_test'
-      by '(agg (eq foo 123) (first foo))'
-      repeats 10
+      as('all_restart_test')
+      by('(agg (eq foo 123) (first foo))')
+      repeats(10)
       over do |_, nxt|
         cycles += 1
         restarts += 1 if nxt.nil?
@@ -268,8 +268,8 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
-      as 'first_marker'
-      by '(agg (always) (max foo))'
+      as('first_marker')
+      by('(agg (always) (max foo))')
       over do |_repository, foo|
         f = fb.insert
         f.foo = foo + 1
@@ -277,8 +277,8 @@ class TestIterate < Fbe::Test
       end
     end
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
-      as 'second_marker'
-      by '(agg (always) (max foo))'
+      as('second_marker')
+      by('(agg (always) (max foo))')
       over do |_repository, foo|
         f = fb.insert
         f.foo = foo + 1
@@ -306,8 +306,8 @@ class TestIterate < Fbe::Test
     end
     fb.insert.foo = 42
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
-      as 'first_marker'
-      by '(agg (always) (max foo))'
+      as('first_marker')
+      by('(agg (always) (max foo))')
       over do |_repository, foo|
         f = fb.insert
         f.foo = foo + 1
@@ -322,8 +322,8 @@ class TestIterate < Fbe::Test
       assert_equal(20, f.second_marker)
     end
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
-      as 'second_marker'
-      by '(agg (always) (max foo))'
+      as('second_marker')
+      by('(agg (always) (max foo))')
       over do |_repository, foo|
         foo + 7
       end
@@ -359,35 +359,35 @@ class TestIterate < Fbe::Test
     ex =
       assert_raises(RuntimeError) do
         Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
-          sort_by nil
+          sort_by(nil)
         end
       end
     assert_equal('Cannot set sort field to nil', ex.message)
     ex =
       assert_raises(RuntimeError) do
         Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
-          sort_by :issue
+          sort_by(:issue)
         end
       end
     assert_equal('Sort field must be a String', ex.message)
     ex =
       assert_raises(RuntimeError) do
         Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
-          sort_by 'issue'
-          sort_by 'item'
+          sort_by('issue')
+          sort_by('item')
         end
       end
     assert_equal('Sort field is already set', ex.message)
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
-      as 'marker'
-      sort_by 'issue'
-      by "(and
+      as('marker')
+      sort_by('issue')
+      by("(and
             (gt issue $before)
             (eq repository $repository)
             (eq where 'github')
             (eq what 'judge')
-            (empty (and (exists prop) (eq issue $issue))))"
-      repeats 100
+            (empty (and (exists prop) (eq issue $issue))))")
+      repeats(100)
       over do |repository, issue|
         f =
           Fbe.if_absent(fb:, always: true) do |n|
@@ -403,15 +403,15 @@ class TestIterate < Fbe::Test
     assert_equal(9, fb.query('(and (eq what "judge") (exists prop2))').each.to_a.size)
     assert_equal(3, fb.query('(eq what "iterate")').each.to_a.first.marker)
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
-      as 'marker'
-      sort_by 'issue'
-      by "(and
+      as('marker')
+      sort_by('issue')
+      by("(and
             (gt issue $before)
             (eq repository $repository)
             (eq where 'github')
             (eq what 'judge')
-            (empty (and (exists prop) (eq issue $issue))))"
-      repeats 5
+            (empty (and (exists prop) (eq issue $issue))))")
+      repeats(5)
       over do |repository, issue|
         f =
           Fbe.if_absent(fb:, always: true) do |n|
@@ -447,8 +447,8 @@ class TestIterate < Fbe::Test
     fb.insert.foo = 42
     count = 0
     Fbe.iterate(fb:, loog:, global:, options:, epoch: Time.now, kickoff: Time.now) do
-      as 'marker'
-      by '(agg (always) (max foo))'
+      as('marker')
+      by('(agg (always) (max foo))')
       over do |_repository, foo|
         1000.times do
           octo.repository('foo/baz')
@@ -473,8 +473,8 @@ class TestIterate < Fbe::Test
     fb.insert.foo = 42
     count = 0
     Fbe.iterate(fb:, loog:, global:, options:, epoch: Time.now, kickoff: Time.now) do
-      as 'marker'
-      by '(agg (always) (max foo))'
+      as('marker')
+      by('(agg (always) (max foo))')
       over do |_repository, foo|
         octo.repository('foo/baz')
         count += 1

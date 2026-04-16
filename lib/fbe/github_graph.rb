@@ -112,10 +112,10 @@ class Fbe::Graph
   #   [{"owner"=>"zerocracy", "name"=>"fbe", "branch"=>"master", "total_commits"=>754},
   #    {"owner"=>"zerocracy", "name"=>"judges-action", "branch"=>"master", "total_commits"=>2251}]
   def total_commits(owner = nil, name = nil, branch = nil, repos: nil)
-    raise 'Need owner, name and branch or repos' if owner.nil? && name.nil? && branch.nil? && repos.nil?
-    raise 'Owner, name and branch is required' if (owner.nil? || name.nil? || branch.nil?) && repos.nil?
-    raise 'Repos list cannot be empty' if owner.nil? && name.nil? && branch.nil? && repos&.empty?
-    raise 'Need only owner, name and branch or repos' if (!owner.nil? || !name.nil? || !branch.nil?) && !repos.nil?
+    raise('Need owner, name and branch or repos') if owner.nil? && name.nil? && branch.nil? && repos.nil?
+    raise('Owner, name and branch is required') if (owner.nil? || name.nil? || branch.nil?) && repos.nil?
+    raise('Repos list cannot be empty') if owner.nil? && name.nil? && branch.nil? && repos&.empty?
+    raise('Need only owner, name and branch or repos') if (!owner.nil? || !name.nil? || !branch.nil?) && !repos.nil?
     repos ||= [[owner, name, branch]]
     requests =
       repos.each_with_index.map do |(owner, name, branch), i|
@@ -136,12 +136,12 @@ class Fbe::Graph
     result = query("{\n#{requests.join("\n")}\n}")
     if owner && name && branch
       ref = result.repo_0&.ref
-      raise "Repository '#{owner}/#{name}' or branch '#{branch}' not found" unless ref&.target&.history
+      raise("Repository '#{owner}/#{name}' or branch '#{branch}' not found") unless ref&.target&.history
       ref.target.history.total_count
     else
       repos.each_with_index.map do |(owner, name, branch), i|
         ref = result.send(:"repo_#{i}")&.ref
-        raise "Repository '#{owner}/#{name}' or branch '#{branch}' not found" unless ref&.target&.history
+        raise("Repository '#{owner}/#{name}' or branch '#{branch}' not found") unless ref&.target&.history
         {
           'owner' => owner,
           'name' => name,
@@ -579,11 +579,7 @@ class Fbe::Graph
     #   fake.resolved_conversations('zerocracy', 'baza', 42)
     #   # => [conversation data for zerocracy_baza]
     def resolved_conversations(owner, name, _number)
-      data = {
-        zerocracy_baza: [
-          conversation('PRRT_kwDOK2_4A85BHZAR')
-        ]
-      }
+      data = { zerocracy_baza: [conversation('PRRT_kwDOK2_4A85BHZAR')] }
       data[:"#{owner}_#{name}"] || []
     end
 
@@ -610,10 +606,10 @@ class Fbe::Graph
     # @param [Array<Array<String, String, String>>] repos List of owner, name, branch
     # @return [Integer, Array<Hash>] Returns 1484 for single repo or array of hashes
     def total_commits(owner = nil, name = nil, branch = nil, repos: nil)
-      raise 'Need owner, name and branch or repos' if owner.nil? && name.nil? && branch.nil? && repos.nil?
-      raise 'Owner, name and branch is required' if (owner.nil? || name.nil? || branch.nil?) && repos.nil?
-      raise 'Repos list cannot be empty' if owner.nil? && name.nil? && branch.nil? && repos&.empty?
-      raise 'Need only owner, name and branch or repos' if (!owner.nil? || !name.nil? || !branch.nil?) && !repos.nil?
+      raise('Need owner, name and branch or repos') if owner.nil? && name.nil? && branch.nil? && repos.nil?
+      raise('Owner, name and branch is required') if (owner.nil? || name.nil? || branch.nil?) && repos.nil?
+      raise('Repos list cannot be empty') if owner.nil? && name.nil? && branch.nil? && repos&.empty?
+      raise('Need only owner, name and branch or repos') if (!owner.nil? || !name.nil? || !branch.nil?) && !repos.nil?
       if owner && name && branch
         1484
       else

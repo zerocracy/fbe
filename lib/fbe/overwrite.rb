@@ -32,8 +32,8 @@ require_relative 'fb'
 #   Fbe.overwrite(user, status: 'active', role: 'admin')
 #   # All properties preserved, 'status' and 'role' are updated
 def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
-  raise 'The fact is nil' if fact.nil?
-  raise 'The fb is nil' if fb.nil?
+  raise('The fact is nil') if fact.nil?
+  raise('The fb is nil') if fb.nil?
   if property_or_hash.is_a?(Hash)
     before = {}
     fact.all_properties.each do |k|
@@ -41,7 +41,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
     end
     modified = false
     property_or_hash.each do |k, vv|
-      raise "The value for #{k} is nil" if vv.nil?
+      raise("The value for #{k} is nil") if vv.nil?
       vv = [vv] unless vv.is_a?(Array)
       next if before[k.to_s] == vv
       before[k.to_s] = vv
@@ -49,8 +49,8 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
     end
     return fact unless modified
     id = fact[fid]&.first
-    raise "There is no #{fid} in the fact, cannot use Fbe.overwrite" if id.nil?
-    raise "No facts by #{fid} = #{id}" if fb.query("(eq #{fid} #{id})").delete!.zero?
+    raise("There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
+    raise("No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
     fb.txn do |fbt|
       n = fbt.insert
       before.each do |k, vv|
@@ -63,8 +63,8 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
     return
   end
   property = property_or_hash
-  raise "The property is not a String but #{property.class} (#{property})" unless property.is_a?(String)
-  raise 'The values is nil' if values.nil?
+  raise("The property is not a String but #{property.class} (#{property})") unless property.is_a?(String)
+  raise('The values is nil') if values.nil?
   values = [values] unless values.is_a?(Array)
   return fact if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
   if fact[property].nil?
@@ -78,8 +78,8 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id')
     before[k.to_s] = fact[k]
   end
   id = fact[fid]&.first
-  raise "There is no #{fid} in the fact, cannot use Fbe.overwrite" if id.nil?
-  raise "No facts by #{fid} = #{id}" if fb.query("(eq #{fid} #{id})").delete!.zero?
+  raise("There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
+  raise("No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
   fb.txn do |fbt|
     n = fbt.insert
     before[property.to_s] = values

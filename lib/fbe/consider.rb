@@ -25,7 +25,7 @@ def Fbe.consider(
   lifetime_aware: true, timeout_aware: true, &
 )
   Fbe.conclude(fb:, judge:, loog:, options:, global:, epoch:, kickoff:) do
-    on query
+    on(query)
     timeout_unaware unless timeout_aware
     lifetime_unaware unless lifetime_aware
     consider(&)

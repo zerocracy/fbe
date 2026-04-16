@@ -30,11 +30,11 @@ require_relative 'fb'
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
 def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
-  raise 'The area is nil' if area.nil?
-  raise 'The p_every_days is nil' if p_every_days.nil?
-  raise 'The fb is nil' if fb.nil?
-  raise 'The $judge is not set' if judge.nil?
-  raise 'The $loog is not set' if loog.nil?
+  raise('The area is nil') if area.nil?
+  raise('The p_every_days is nil') if p_every_days.nil?
+  raise('The fb is nil') if fb.nil?
+  raise('The $judge is not set') if judge.nil?
+  raise('The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_days}))").each.first
   interval = pmp.nil? ? 7 : pmp[p_every_days].first
   recent = fb.query(
@@ -59,7 +59,7 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
       since = Time.now - (days * 24 * 60 * 60)
       f.since = since
     end
-    yield f
+    yield(f)
   end
   nil
 end

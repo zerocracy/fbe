@@ -9,6 +9,5 @@
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 module Fbe
-  # Current version of the gem (changed by +.rultor.yml+ on every release)
   VERSION = '0.0.0' unless const_defined?(:VERSION)
 end

@@ -28,7 +28,7 @@ require_relative 'octo'
 #   puts Fbe.who(contributor, :author_id)  # => "@yegor256"
 def Fbe.who(fact, prop = :who, options: $options, global: $global, loog: $loog)
   id = fact[prop.to_s]
-  raise "There is no #{prop.inspect} property" if id.nil?
-  id = id.first.to_i
+  raise("There is no #{prop.inspect} property") if id.nil?
+  id = Integer(id.first.to_s, 10)
   "@#{Fbe.octo(options:, global:, loog:).user_name_by_id(id)}"
 end

@@ -23,10 +23,10 @@ require_relative 'fb'
 #   new_fact = Fbe.delete(fact, 'age', 'city')
 #   # new_fact will have all properties except 'age' and 'city'
 def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
-  raise 'The fact is nil' if fact.nil?
+  raise('The fact is nil') if fact.nil?
   return if props.all? { |k| fact[k].nil? }
   i = fact[id]
-  raise "There is no #{id.inspect} in the fact" if i.nil?
+  raise("There is no #{id.inspect} in the fact") if i.nil?
   i = i.first
   before = {}
   fact.all_properties.each do |k|

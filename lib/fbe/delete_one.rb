@@ -19,9 +19,9 @@ require_relative 'fb'
 # @param [String] id The property name used as unique identifier (defaults to '_id')
 # @return [nil] Nothing
 def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
-  raise 'The fact is nil' if fact.nil?
+  raise('The fact is nil') if fact.nil?
   i = fact[id]
-  raise "There is no #{id.inspect} in the fact" if i.nil?
+  raise("There is no #{id.inspect} in the fact") if i.nil?
   i = i.first
   before = {}
   fact.all_properties.each do |k|

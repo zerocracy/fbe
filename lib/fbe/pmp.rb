@@ -47,7 +47,6 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
   pmpv =
     Class.new(SimpleDelegator) do
       attr_reader :default, :type, :memo, :value
-
       def initialize(value, default, type, memo)
         super(value)
         @value = value
@@ -82,8 +81,8 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
             memo = prop.at_xpath('memo').text
             default =
               case type
-              when 'int' then default.to_i
-              when 'float' then default.to_f
+              when 'int' then Integer(default, 10)
+              when 'float' then Float(default)
               when 'bool' then default == 'true'
               else default
               end
@@ -91,8 +90,8 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog)
           result ||= default
           result =
             case type
-            when 'int' then result.to_i
-            when 'float' then result.to_f
+            when 'int' then Integer(Float(result).truncate)
+            when 'float' then Float(result)
             when 'bool' then result == 'true'
             else result
             end

@@ -284,18 +284,12 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 999
     f.foo = 42
-
-    # Insert the fact into the database first
     fb.txn do |fbt|
       n = fbt.insert
       n._id = 999
       n.foo = 42
     end
-
-    # Now delete it from the database
     fb.query('(eq _id 999)').delete!
-
-    # Now try to overwrite - should fail because fact no longer exists in DB
     assert_raises(RuntimeError, 'No facts by _id = 999') do
       Fbe.overwrite(f, { foo: 55 }, fb:)
     end
@@ -306,12 +300,7 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-    complex_data = {
-      string: 'hello',
-      number: 42,
-      float: 3.14,
-      array: [1, 2, 3]
-    }
+    complex_data = { string: 'hello', number: 42, float: 3.14, array: [1, 2, 3] }
     Fbe.overwrite(f, complex_data, fb:)
     result = fb.query('(always)').each.to_a.first
     assert_equal('hello', result['string'].first)
@@ -360,18 +349,9 @@ class TestOverwrite < Fbe::Test
     f = fb.insert
     f._id = 1
     f.foo = 42
-
-    unicode_data = {
-      emoji: '🚀',
-      chinese: '你好世界',
-      arabic: 'مرحبا بالعالم',
-      russian: 'Привет мир',
-      japanese: 'こんにちは世界'
-    }
-
+    unicode_data = { emoji: '🚀', chinese: '你好世界', arabic: 'مرحبا بالعالم', russian: 'Привет мир', japanese: 'こんにちは世界' }
     Fbe.overwrite(f, unicode_data, fb:)
     result = fb.query('(always)').each.to_a.first
-
     assert_equal('🚀', result['emoji'].first)
     assert_equal('你好世界', result['chinese'].first)
     assert_equal('مرحبا بالعالم', result['arabic'].first)

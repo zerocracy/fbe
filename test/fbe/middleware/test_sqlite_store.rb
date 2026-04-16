@@ -143,8 +143,8 @@ class SqliteStoreTest < Fbe::Test
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         store.write('a', 'a' * 9_997)
         store.write('b', 'b' * 9_998)
-        store.write('c', SecureRandom.alphanumeric((19_999 * 1.4).to_i))
-        store.write('d', SecureRandom.alphanumeric((30_000 * 1.4).to_i))
+        store.write('c', SecureRandom.alphanumeric(Integer(Float(19_999 * 1.4).round)))
+        store.write('d', SecureRandom.alphanumeric(Integer(Float(30_000 * 1.4).round)))
         assert_equal('a' * 9_997, store.read('a'))
         assert_equal('b' * 9_998, store.read('b'))
         assert_nil(store.read('c'))
@@ -184,13 +184,13 @@ class SqliteStoreTest < Fbe::Test
   def test_upgrade_sqlite_schema_for_add_touched_at_column
     with_tmpfile('a.db') do |f|
       SQLite3::Database.new(f).tap do |d|
-        d.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
+        d.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')
         [
           ['key1', Zlib::Deflate.deflate(JSON.dump('value1'))],
           ['key2', Zlib::Deflate.deflate(JSON.dump('value2'))]
-        ].each { d.execute 'INSERT INTO cache(key, value) VALUES(?1, ?2);', _1 }
-        d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
-        d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
+        ].each { d.execute('INSERT INTO cache(key, value) VALUES(?1, ?2);', _1) }
+        d.execute('CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);')
+        d.execute("INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1'])
       end
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_equal('value1', store.read('key1'))
@@ -224,12 +224,12 @@ class SqliteStoreTest < Fbe::Test
   def test_corrupted_compression_stored_data
     with_tmpfile('c.db') do |f|
       SQLite3::Database.new(f).tap do |d|
-        d.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);'
+        d.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')
         [
           ['my_key', JSON.dump('value1')]
-        ].each { d.execute 'INSERT INTO cache(key, value) VALUES(?1, ?2);', _1 }
-        d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
-        d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
+        ].each { d.execute('INSERT INTO cache(key, value) VALUES(?1, ?2);', _1) }
+        d.execute('CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);')
+        d.execute("INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1'])
       end
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_nil(store.read('my_key'))
@@ -241,13 +241,13 @@ class SqliteStoreTest < Fbe::Test
   def test_upgrade_sqlite_schema_for_add_created_at_column
     with_tmpfile('a.db') do |f|
       SQLite3::Database.new(f).tap do |d|
-        d.execute 'CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL);'
+        d.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL);')
         [
           ['key1', Zlib::Deflate.deflate(JSON.dump('value1')), Time.now.utc.iso8601],
           ['key2', Zlib::Deflate.deflate(JSON.dump('value2')), Time.now.utc.iso8601]
-        ].each { d.execute 'INSERT INTO cache(key, value, touched_at) VALUES(?1, ?2, ?3);', _1 }
-        d.execute 'CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);'
-        d.execute "INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1']
+        ].each { d.execute('INSERT INTO cache(key, value, touched_at) VALUES(?1, ?2, ?3);', _1) }
+        d.execute('CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);')
+        d.execute("INSERT INTO meta(key, value) VALUES('version', ?);", ['0.0.1'])
       end
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_equal('value1', store.read('key1'))
@@ -423,7 +423,7 @@ class SqliteStoreTest < Fbe::Test
 
   def with_tmpfile(name = 'test.db', &)
     Dir.mktmpdir do |dir|
-      yield File.expand_path(name, dir)
+      yield(File.expand_path(name, dir))
     end
   end
 

@@ -24,11 +24,11 @@ def Fbe.conclude(
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
   epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
 )
-  raise 'The fb is nil' if fb.nil?
-  raise 'The $judge is not set' if judge.nil?
-  raise 'The $global is not set' if global.nil?
-  raise 'The $options is not set' if options.nil?
-  raise 'The $loog is not set' if loog.nil?
+  raise('The fb is nil') if fb.nil?
+  raise('The $judge is not set') if judge.nil?
+  raise('The $global is not set') if global.nil?
+  raise('The $options is not set') if options.nil?
+  raise('The $loog is not set') if loog.nil?
   c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, epoch:, kickoff:)
   c.instance_eval(&)
 end
@@ -114,7 +114,7 @@ class Fbe::Conclude
   # @param [String] query The query to execute
   # @return [nil] Nothing is returned
   def on(query)
-    raise 'Query is already set' unless @query.nil?
+    raise('Query is already set') unless @query.nil?
     @query = query
   end
 
@@ -170,7 +170,7 @@ class Fbe::Conclude
   # @return [Integer] The count of the facts processed
   def consider(&)
     roll do |_fbt, a|
-      yield a
+      yield(a)
       nil
     end
   end
@@ -207,7 +207,7 @@ class Fbe::Conclude
         quota_aware: @quota_aware, lifetime_aware: @lifetime_aware, timeout_aware: @timeout_aware
       )
       @fb.txn do |fbt|
-        n = yield fbt, a
+        n = yield(fbt, a)
         @loog.info("#{n.what}: #{n.details}") unless n.nil?
       end
       passed += 1
@@ -245,7 +245,7 @@ class Fbe::Conclude
       v = prev.send(follow)
       fact.send(:"#{follow}=", v)
     end
-    r = yield fact, prev
+    r = yield(fact, prev)
     return unless r.is_a?(String)
     fact.details = r
     fact.what = @judge

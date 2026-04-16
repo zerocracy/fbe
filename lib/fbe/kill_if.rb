@@ -14,7 +14,7 @@ def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
   ids = []
   facts.each do |f|
     if block_given?
-      t = yield f
+      t = yield(f)
       next unless t
     end
     ids << f[fid].first

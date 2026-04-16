@@ -30,7 +30,7 @@ class TestRegularly < Fbe::Test
     loog = Loog::NULL
     judge = 'test'
     Fbe.regularly('pmp', 'interval', 'days', fb:, loog:, judge:) do |_f|
-      raise Factbase::Rollback
+      raise(Factbase::Rollback)
     end
     assert_equal(0, fb.size)
   end

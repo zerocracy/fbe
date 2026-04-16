@@ -26,11 +26,11 @@ require_relative '../fbe'
 #     validate_payment(data)
 #   end
 def Fbe.enter(badge, why, options: $options, loog: $loog, &)
-  raise 'The badge is nil' if badge.nil?
-  raise 'The why is nil' if why.nil?
-  raise 'The $options is not set' if options.nil?
-  raise 'The $loog is not set' if loog.nil?
+  raise('The badge is nil') if badge.nil?
+  raise('The why is nil') if why.nil?
+  raise('The $options is not set') if options.nil?
+  raise('The $loog is not set') if loog.nil?
   return yield unless options.testing.nil?
   baza = BazaRb.new('api.zerocracy.com', 443, options.zerocracy_token, loog:)
-  baza.enter(options.job_name, badge, why, options.job_id.to_i, &)
+  baza.enter(options.job_name, badge, why, options.job_id.nil? ? 0 : Integer(options.job_id.to_s, 10), &)
 end

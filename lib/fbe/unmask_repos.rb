@@ -23,7 +23,7 @@ require_relative 'over'
 # @raise [RuntimeError] If organization part contains asterisk
 def Fbe.mask_to_regex(mask)
   org, repo = mask.split('/')
-  raise "Org '#{org}' can't have an asterisk" if org.include?('*')
+  raise("Org '#{org}' can't have an asterisk") if org.include?('*')
   Regexp.compile("#{org}/#{repo.gsub('*', '.*')}", Regexp::IGNORECASE)
 end
 
@@ -63,8 +63,8 @@ def Fbe.unmask_repos(
   options: $options, global: $global, loog: $loog, epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
 )
-  raise 'Repositories mask is not specified' unless options.repositories
-  raise 'Repositories mask is empty' if options.repositories.empty?
+  raise('Repositories mask is not specified') unless options.repositories
+  raise('Repositories mask is empty') if options.repositories.empty?
   return if block_given? && Fbe.over?(
     global:, options:, loog:, epoch:, kickoff:, quota_aware:, lifetime_aware:, timeout_aware:
   )
@@ -86,13 +86,13 @@ def Fbe.unmask_repos(
     repos.reject! { |r| re.match?(r) }
   end
   repos.reject! { |repo| octo.repository(repo)[:archived] }
-  raise "No repos found matching: #{options.repositories.inspect}" if repos.empty?
+  raise("No repos found matching: #{options.repositories.inspect}") if repos.empty?
   repos.shuffle!
   loog.debug("Scanning #{repos.size} repositories: #{repos.joined}...")
   repos.each { |repo| octo.repository(repo) }
   return repos unless block_given?
   repos.each do |repo|
     break if Fbe.over?(global:, options:, loog:, epoch:, kickoff:, quota_aware:, lifetime_aware:, timeout_aware:)
-    yield repo
+    yield(repo)
   end
 end

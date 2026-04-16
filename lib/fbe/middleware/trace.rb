@@ -44,11 +44,7 @@ class Fbe::Middleware::Trace < Faraday::Middleware
   # @param [Faraday::Env] env The request environment
   # @return [Faraday::Response] The response from the next middleware
   def call(env)
-    entry = {
-      method: env.method,
-      url: env.url.to_s,
-      started_at: Time.now
-    }
+    entry = { method: env.method, url: env.url.to_s, started_at: Time.now }
     @app.call(env).on_complete do |response_env|
       next if !@ignores.empty? &&
               response_env[:http_cache_trace] &&

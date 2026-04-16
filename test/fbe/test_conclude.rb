@@ -25,7 +25,6 @@ class TestConclude < Fbe::Test
     $judge = ''
     Fbe.conclude do
       quota_unaware
-      # nothing
     end
   end
 
@@ -39,7 +38,7 @@ class TestConclude < Fbe::Test
     $fb.insert.bar = 2
     Fbe.conclude(judge: 'judge-one') do
       quota_unaware
-      on '(exists foo)'
+      on('(exists foo)')
       draw do |n, prev|
         n.sum = prev.foo + 1
         'Something funny and long enough to pass the requirements: long and long and long and long and long and long.'
@@ -60,10 +59,10 @@ class TestConclude < Fbe::Test
     $fb.insert.foo = 1
     Fbe.conclude(judge: 'judge-one') do
       quota_unaware
-      on '(exists foo)'
+      on('(exists foo)')
       draw do |n, prev|
         n.hello = prev.foo
-        throw :rollback
+        throw(:rollback)
       end
     end
     assert_equal(1, $fb.size)
@@ -76,7 +75,7 @@ class TestConclude < Fbe::Test
     options = Judges::Options.new
     Fbe.conclude(fb:, judge: 'issue-was-closed', loog: Loog::NULL, options:, global: {}) do
       quota_unaware
-      on '(exists foo)'
+      on('(exists foo)')
       consider do |_prev|
         fb.insert.bar = 42
       end
@@ -109,7 +108,7 @@ class TestConclude < Fbe::Test
     global = {}
     o = Fbe.octo(loog: Loog::NULL, options:, global:)
     Fbe.conclude(fb:, judge: 'boom', loog: Loog::NULL, options:, global:) do
-      on '(exists foo)'
+      on('(exists foo)')
       consider do |f|
         f.bar = o.user("user-#{rand(100)}")[:id]
       end
@@ -127,7 +126,7 @@ class TestConclude < Fbe::Test
     fb.insert.foo = 1
     Fbe.conclude(fb:, judge: 'judge-xxx', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
       quota_unaware
-      on '(exists foo)'
+      on('(exists foo)')
       draw do |n, prev|
         n.sum = prev.foo + 1
         'something funny'
@@ -142,9 +141,9 @@ class TestConclude < Fbe::Test
     options = Judges::Options.new('lifetime=1')
     Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, epoch: Time.now - 60) do
       quota_unaware
-      on '(exists foo)'
+      on('(exists foo)')
       draw do
-        sleep 999
+        sleep(999)
       end
     end
     assert_equal(1, fb.size)
@@ -156,9 +155,9 @@ class TestConclude < Fbe::Test
     options = Judges::Options.new('timeout=1')
     Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, kickoff: Time.now - 60) do
       quota_unaware
-      on '(exists foo)'
+      on('(exists foo)')
       draw do
-        sleep 999
+        sleep(999)
       end
     end
     assert_equal(1, fb.size)
@@ -180,7 +179,7 @@ class TestConclude < Fbe::Test
     fb.insert.foo = 42
     count = 0
     Fbe.conclude(fb:, loog:, global:, options:, epoch: Time.now, kickoff: Time.now, judge: 'judge') do
-      on '(exists foo)'
+      on('(exists foo)')
       consider do |_|
         1000.times do
           octo.repository('foo/baz')

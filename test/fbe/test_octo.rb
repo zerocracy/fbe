@@ -550,7 +550,7 @@ class TestOcto < Fbe::Test
     assert_raises(RuntimeError) do
       o.with_disable_auto_paginate do
         refute(o.auto_paginate)
-        raise 'some error'
+        raise('some error')
       end
     end
     assert(o.auto_paginate)
@@ -584,14 +584,14 @@ class TestOcto < Fbe::Test
     octo.repository('foo/bar')
     octo.print_trace!(all: true, max: 9_999)
     output = loog.to_s
-    assert_includes output, '3 URLs vs 4 requests'
-    assert_includes output, '219 quota left'
-    assert_includes output, '/rate_limit: 1'
-    assert_includes output, '/user/123: 1'
-    assert_includes output, '/repos/foo/bar: 2'
+    assert_includes(output, '3 URLs vs 4 requests')
+    assert_includes(output, '219 quota left')
+    assert_includes(output, '/rate_limit: 1')
+    assert_includes(output, '/user/123: 1')
+    assert_includes(output, '/repos/foo/bar: 2')
     repo_index = output.index('/repos/foo/bar: 2')
     user_index = output.index('/user/123: 1')
-    assert_operator repo_index, :<, user_index, 'URLs should be sorted by request count (highest first)'
+    assert_operator(repo_index, :<, user_index, 'URLs should be sorted by request count (highest first)')
   end
 
   def test_prints_only_real_requests
@@ -671,7 +671,7 @@ class TestOcto < Fbe::Test
       end
     end
     o.print_trace!(all: true)
-    assert_requested :get, 'https://api.github.com/repos/zerocracy/baza.rb', times: 2
+    assert_requested(:get, 'https://api.github.com/repos/zerocracy/baza.rb', times: 2)
     output = loog.to_s
     assert_match('/repos/zerocracy/baza.rb: 1', output)
     refute_match('/repos/zerocracy/baza.rb: 5', output)
@@ -693,7 +693,7 @@ class TestOcto < Fbe::Test
     octo.user(456)
     octo.print_trace!
     first_output = first_loog.to_s
-    assert_includes first_output, 'GitHub API trace'
+    assert_includes(first_output, 'GitHub API trace')
   end
 
   def test_works_via_sqlite_store
@@ -830,9 +830,9 @@ class TestOcto < Fbe::Test
     end
     o.print_trace!(all: true)
     output = loog.to_s
-    assert_requested :get, 'https://api.github.com/user/1', times: 1
-    assert_requested :get, 'https://api.github.com/user/111', times: 201
-    assert_requested :get, 'https://api.github.com/rate_limit', times: 3
+    assert_requested(:get, 'https://api.github.com/user/1', times: 1)
+    assert_requested(:get, 'https://api.github.com/user/111', times: 201)
+    assert_requested(:get, 'https://api.github.com/rate_limit', times: 3)
     assert_match('2 URLs vs 2 requests', output)
     assert_match('/user/1: 1', output)
     assert_match('/rate_limit: 1', output)

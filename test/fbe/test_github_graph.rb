@@ -78,15 +78,7 @@ class TestGitHubGraph < Fbe::Test
     options = Judges::Options.new
     g = Fbe.github_graph(options:, loog: Loog::NULL, global:)
     stub_request(:post, 'https://api.github.com/graphql').to_return(
-      body: JSON.pretty_generate(
-        {
-          data: {
-            repository: {
-              name: 'foo'
-            }
-          }
-        }
-      )
+      body: JSON.pretty_generate({ data: { repository: { name: 'foo' } } })
     )
     result = g.resolved_conversations('foo', 'bar', 42)
     assert_equal(1, result.count)

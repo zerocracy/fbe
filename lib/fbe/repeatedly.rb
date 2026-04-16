@@ -32,11 +32,11 @@ require_relative 'overwrite'
 #     # PMP might have: hours_between_checks=6
 #   end
 def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &)
-  raise 'The area is nil' if area.nil?
-  raise 'The p_every_hours is nil' if p_every_hours.nil?
-  raise 'The fb is nil' if fb.nil?
-  raise 'The $judge is not set' if judge.nil?
-  raise 'The $loog is not set' if loog.nil?
+  raise('The area is nil') if area.nil?
+  raise('The p_every_hours is nil') if p_every_hours.nil?
+  raise('The fb is nil') if fb.nil?
+  raise('The $judge is not set') if judge.nil?
+  raise('The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_hours}))").each.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
   recent = fb.query(
@@ -54,6 +54,6 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
     f.what = judge
   end
   Fbe.overwrite(f, 'when', Time.now)
-  yield fb.query("(and (eq what '#{judge}'))").each.first
+  yield(fb.query("(and (eq what '#{judge}'))").each.first)
   nil
 end

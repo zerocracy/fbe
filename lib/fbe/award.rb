@@ -109,26 +109,25 @@ class Fbe::Award
         @operands.each do |o|
           o.bill_to(bill)
         rescue StandardError => e
-          raise "Failure in #{o}: #{e.message}"
+          raise("Failure in #{o}: #{e.message}")
         end
       when :aka
         @operands[0..-2].each do |o|
           o.bill_to(bill)
         rescue StandardError => e
-          raise "Failure in #{o}: #{e.message}"
+          raise("Failure in #{o}: #{e.message}")
         end
       when :let, :set
         v = to_val(@operands[1], bill)
-        raise "Can't #{@op.inspect} #{@operands[0].inspect} to nil" if v.nil?
+        raise("Can't #{@op.inspect} #{@operands[0].inspect} to nil") if v.nil?
         bill.set(@operands[0], v)
       when :give
         text = @operands[1]
         text = '' if text.nil?
         bill.line(to_val(@operands[0], bill), text)
       when :explain, :in
-        # nothing, just ignore
       else
-        raise "Unknown term '#{@op}'"
+        raise("Unknown term '#{@op}'")
       end
     end
 
@@ -147,7 +146,7 @@ class Fbe::Award
         any.calc(bill)
       elsif any.is_a?(Symbol)
         v = bill.vars[any]
-        raise "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}" if v.nil?
+        raise("Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}") if v.nil?
         v
       else
         any
@@ -211,7 +210,7 @@ class Fbe::Award
         return 0 if (!v.negative? && v < min) || (!v.positive? && v > max)
         v.clamp(min, max)
       else
-        raise "Unknown term '#{@op}'"
+        raise("Unknown term '#{@op}'")
       end
     end
   end
@@ -255,7 +254,7 @@ class Fbe::Award
       when :between
         "at least #{to_p(@operands[0])} and at most #{to_p(@operands[1])}"
       else
-        raise "Unknown term '#{@op}'"
+        raise("Unknown term '#{@op}'")
       end
     end
 
@@ -273,13 +272,13 @@ class Fbe::Award
         @operands.each do |o|
           o.publish_to(bylaw)
         rescue StandardError => e
-          raise "Failure in #{o}: #{e.message}"
+          raise("Failure in #{o}: #{e.message}")
         end
       when :aka
         @operands[0..-2].each do |o|
           o.publish_to(bylaw)
         rescue StandardError => e
-          raise "Failure in #{o}: #{e.message}"
+          raise("Failure in #{o}: #{e.message}")
         end
         bylaw.revert(@operands.size - 1)
         bylaw.line(to_p(@operands[-1]))
@@ -295,7 +294,7 @@ class Fbe::Award
       when :give
         bylaw.line("award #{to_p(@operands[0])}")
       else
-        raise "Unknown term '#{@op}'"
+        raise("Unknown term '#{@op}'")
       end
     end
 
@@ -305,19 +304,8 @@ class Fbe::Award
         any.to_s
       when Symbol
         s = any.to_s
-        subs = {
-          0 => '₀',
-          1 => '₁',
-          2 => '₂',
-          3 => '₃',
-          4 => '₄',
-          5 => '₅',
-          6 => '₆',
-          7 => '₇',
-          8 => '₈',
-          9 => '₉'
-        }
-        s.gsub!(/([a-z]+)([0-9])/) { |_| "#{Regexp.last_match[1]}#{subs[Regexp.last_match[2].to_i]}" }
+        subs = { 0 => '₀', 1 => '₁', 2 => '₂', 3 => '₃', 4 => '₄', 5 => '₅', 6 => '₆', 7 => '₇', 8 => '₈', 9 => '₉' }
+        s.gsub!(/([a-z]+)([0-9])/) { |_| "#{Regexp.last_match[1]}#{subs[Integer(Regexp.last_match[2], 10)]}" }
         "_#{s.tr('_', '-')}_"
       when Integer, Float
         "**#{any}**"
@@ -333,7 +321,6 @@ class Fbe::Award
   # for each award component. It provides methods to calculate total points
   # and generate a human-readable summary of the rewards.
   class Bill
-    # @return [Hash] Variables set in this bill
     attr_reader :vars
 
     # Creates a new empty bill.
@@ -380,7 +367,7 @@ class Fbe::Award
     #   bill.line(42.5, "for answer")
     #   bill.points #=> 43
     def points
-      @lines.sum { |l| l[:v] }.to_f.round.to_i
+      Integer(Float(@lines.sum { |l| l[:v] }).round.to_s, 10)
     end
 
     # Generates a human-readable summary of the bill.
@@ -410,7 +397,6 @@ class Fbe::Award
   # introductions, calculation steps, and variable substitutions.
   # It produces Markdown-formatted output describing how awards are calculated.
   class Bylaw
-    # @return [Hash] Variables defined in this bylaw
     attr_reader :vars
 
     # Creates a new empty bylaw.

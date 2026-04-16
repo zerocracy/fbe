@@ -43,7 +43,7 @@ def Fbe.just_one(fb: Fbe.fb)
         @map[k.to_sym]
       end
     end
-  yield f
+  yield(f)
   q = attrs.except('_id', '_time', '_version').map do |k, v|
     vv = v.to_s
     if v.is_a?(String)

@@ -43,9 +43,9 @@ class Fbe::OffQuota < StandardError; end
 # @param [Loog] loog Logging facility
 # @return [Hash] Usually returns a JSON, as it comes from the GitHub API
 def Fbe.octo(options: $options, global: $global, loog: $loog)
-  raise 'The $global is not set' if global.nil?
-  raise 'The $options is not set' if options.nil?
-  raise 'The $loog is not set' if loog.nil?
+  raise('The $global is not set') if global.nil?
+  raise('The $options is not set') if options.nil?
+  raise('The $loog is not set') if loog.nil?
   global[:octo] ||=
     begin
       loog.info("Fbe version is #{Fbe::VERSION}")
@@ -73,12 +73,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
         end
         o.auto_paginate = true
         o.per_page = 100
-        o.connection_options = {
-          request: {
-            open_timeout: 15,
-            timeout: 15
-          }
-        }
+        o.connection_options = { request: { open_timeout: 15, timeout: 15 } }
         stack =
           Faraday::RackBuilder.new do |builder|
             builder.use(
@@ -96,9 +91,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
             builder.use(Fbe::Middleware::RateLimit)
             builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
             if options.sqlite_cache
-              maxsize = Filesize.from(options.sqlite_cache_maxsize || '100M').to_i
-              maxvsize = Filesize.from(options.sqlite_cache_maxvsize || '100K').to_i
-              cache_min_age = options.sqlite_cache_min_age&.to_i
+              maxsize = Integer(Filesize.from(options.sqlite_cache_maxsize || '100M'))
+              maxvsize = Integer(Filesize.from(options.sqlite_cache_maxvsize || '100K'))
+              cache_min_age = options.sqlite_cache_min_age.nil? ? nil : Integer(options.sqlite_cache_min_age.to_s, 10)
               store = Fbe::Middleware::SqliteStore.new(
                 options.sqlite_cache, Fbe::VERSION, loog:, maxsize:, maxvsize:, ttl: 24, cache_min_age:
               )
@@ -107,16 +102,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
                 "#{File.exist?(store.path) ? Filesize.from(File.size(store.path).to_s).pretty : 'file is absent'}, " \
                 "max size: #{Filesize.from(maxsize.to_s).pretty}, max vsize: #{Filesize.from(maxvsize.to_s).pretty})"
               )
-              builder.use(
-                Faraday::HttpCache,
-                store:, serializer: JSON, shared_cache: false, logger: Loog::NULL
-              )
+              builder.use(Faraday::HttpCache, store:, serializer: JSON, shared_cache: false, logger: Loog::NULL)
             else
               loog.info("No HTTP cache in SQLite file, because 'sqlite_cache' option is not provided")
-              builder.use(
-                Faraday::HttpCache,
-                serializer: Marshal, shared_cache: false, logger: Loog::NULL
-              )
+              builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
             end
             builder.adapter(Faraday.default_adapter)
           end
@@ -178,8 +167,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           end
 
           def user_name_by_id(id)
-            raise 'The ID of the user is nil' if id.nil?
-            raise 'The ID of the user must be an Integer' unless id.is_a?(Integer)
+            raise('The ID of the user is nil') if id.nil?
+            raise('The ID of the user must be an Integer') unless id.is_a?(Integer)
             json = @origin.user(id)
             name = json[:login].downcase
             @loog.debug("GitHub user ##{id} has a name: @#{name}")
@@ -187,17 +176,17 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           end
 
           def repo_id_by_name(name)
-            raise 'The name of the repo is nil' if name.nil?
+            raise('The name of the repo is nil') if name.nil?
             json = @origin.repository(name)
             id = json[:id]
-            raise "Repository #{name} not found" if id.nil?
+            raise("Repository #{name} not found") if id.nil?
             @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
             id
           end
 
           def repo_name_by_id(id)
-            raise 'The ID of the repo is nil' if id.nil?
-            raise 'The ID of the repo must be an Integer' unless id.is_a?(Integer)
+            raise('The ID of the repo is nil') if id.nil?
+            raise('The ID of the repo must be an Integer') unless id.is_a?(Integer)
             json = @origin.repository(id)
             name = json[:full_name].downcase
             @loog.debug("GitHub repository ##{id} has a name: #{name}")
@@ -217,7 +206,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
           def with_disable_auto_paginate
             ap = @origin.auto_paginate
             @origin.auto_paginate = false
-            yield self if block_given?
+            yield(self) if block_given?
           ensure
             @origin.auto_paginate = ap
           end
@@ -225,7 +214,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog)
       o =
         intercepted(o) do |e, m, _args, _r|
           if e == :before && m != :off_quota? && m != :print_trace! && m != :rate_limit && o.off_quota?
-            raise Fbe::OffQuota, "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()"
+            raise(Fbe::OffQuota, "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()")
           end
         end
       o
@@ -482,7 +471,7 @@ class Fbe::FakeOctokit
   #   fake_client.accept_repository_invitation(1) #=> true
   # rubocop:disable Naming/PredicateMethod
   def accept_repository_invitation(id)
-    raise Octokit::NotFound if id == 404_000
+    raise(Octokit::NotFound) if id == 404_000
     true
   end
   # rubocop:enable Naming/PredicateMethod
@@ -509,7 +498,7 @@ class Fbe::FakeOctokit
   #   fake_client.user(526_301) #=> {:id=>444, :login=>"yegor256", :type=>"User"}
   #   fake_client.user('octocat') #=> {:id=>444, :login=>nil, :type=>"User"}
   def user(uid)
-    raise Octokit::NotFound if [404_001, 404_002].include?(uid)
+    raise(Octokit::NotFound) if [404_001, 404_002].include?(uid)
     login = (uid == 526_301 ? 'yegor256' : 'torvalds') if uid.is_a?(Integer)
     {
       id: 444,
@@ -609,7 +598,7 @@ class Fbe::FakeOctokit
   #   client.repository('octocat/Hello-World')
   #   # => {:id=>1296269, :full_name=>"octocat/Hello-World", ...}
   def repository(name)
-    raise Octokit::NotFound if [404_123, 404_124].include?(name)
+    raise(Octokit::NotFound) if [404_123, 404_124].include?(name)
     full_name = name.is_a?(Integer) ? 'yegor256/test' : name
     full_name = 'zerocracy/baza' if name == 1439
     full_name = 'foo/bazz' if name == 810

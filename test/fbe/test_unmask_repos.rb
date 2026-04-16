@@ -52,11 +52,7 @@ class TestUnmaskRepos < Fbe::Test
 
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
-    opts = Judges::Options.new(
-      {
-        'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum'
-      }
-    )
+    opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })
     list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
     assert_predicate(list.size, :positive?)
     assert_includes(list, 'zerocracy/pages-action')

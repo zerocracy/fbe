@@ -102,9 +102,10 @@ class TestBylaws < Fbe::Test
       pairs.each do |args, points|
         b = a.bill(args)
         next if b.points == points
-        raise \
+        raise(
           "Wrong reward of #{b.points} points from #{title}, " \
           "while #{points} expected (#{args}): #{b.greeting}\n\n#{help}"
+        )
       end
     end
   end

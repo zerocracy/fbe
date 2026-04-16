@@ -28,15 +28,15 @@ require_relative 'octo'
 #   issue_fact.issue = 42               # Issue number
 #   puts Fbe.issue(issue_fact)  # => "zerocracy/fbe#42"
 def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
-  raise 'The fact is nil' if fact.nil?
-  raise 'The $global is not set' if global.nil?
-  raise 'The $options is not set' if options.nil?
-  raise 'The $loog is not set' if loog.nil?
+  raise('The fact is nil') if fact.nil?
+  raise('The $global is not set') if global.nil?
+  raise('The $options is not set') if options.nil?
+  raise('The $loog is not set') if loog.nil?
   rid = fact['repository']
-  raise "There is no 'repository' property" if rid.nil?
-  rid = rid.first.to_i
+  raise("There is no 'repository' property") if rid.nil?
+  rid = Integer(rid.first.to_s, 10)
   issue = fact['issue']
-  raise "There is no 'issue' property" if issue.nil?
-  issue = issue.first.to_i
+  raise("There is no 'issue' property") if issue.nil?
+  issue = Integer(issue.first.to_s, 10)
   "#{Fbe.octo(global:, options:, loog:).repo_name_by_id(rid)}##{issue}"
 end

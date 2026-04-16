@@ -27,10 +27,10 @@ require_relative '../fbe'
 # @param [Loog] loog The logging facility
 # @return [Factbase] The global factbase
 def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
-  raise 'The fb is nil' if fb.nil?
-  raise 'The $global is not set' if global.nil?
-  raise 'The $options is not set' if options.nil?
-  raise 'The $loog is not set' if loog.nil?
+  raise('The fb is nil') if fb.nil?
+  raise('The $global is not set') if global.nil?
+  raise('The $options is not set') if options.nil?
+  raise('The $loog is not set') if loog.nil?
   global[:fb] ||=
     begin
       rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }
@@ -44,12 +44,8 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
           max = fbt.query('(max _id)').one
           f._id = (max.nil? ? 0 : max) + 1
           f._time = Time.now
-          f._version = [
-            Factbase::VERSION,
-            Judges::VERSION,
-            options.action_version
-          ].compact.join('/')
-          f._job = options.job_id.to_i if options.job_id
+          f._version = [Factbase::VERSION, Judges::VERSION, options.action_version].compact.join('/')
+          f._job = Integer(options.job_id.to_s, 10) if options.job_id
         end
       Factbase::Impatient.new(
         Factbase::Logged.new(

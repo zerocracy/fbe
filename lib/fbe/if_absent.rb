@@ -54,14 +54,14 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       if k.end_with?('=')
         k = k[0..-2].to_sym
         v = args[1]
-        raise "Can't set #{k} to nil" if v.nil?
-        raise "Can't set #{k} to empty string" if v.is_a?(String) && v.empty?
+        raise("Can't set #{k} to nil") if v.nil?
+        raise("Can't set #{k} to empty string") if v.is_a?(String) && v.empty?
         @map[k] = v
       else
         @map[k.to_sym]
       end
     end
-  yield f
+  yield(f)
   q = attrs.except('_id', '_time', '_version').map do |k, v|
     vv = v.to_s
     if v.is_a?(String)

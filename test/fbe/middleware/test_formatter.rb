@@ -96,9 +96,7 @@ class LoggingFormatterTest < Fbe::Test
         }
       )
     )
-    formatter.response(
-      Faraday::Env.from({ status:, response_body:, response_headers: })
-    )
-    yield loog
+    formatter.response(Faraday::Env.from({ status:, response_body:, response_headers: }))
+    yield(loog)
   end
 end

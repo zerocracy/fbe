@@ -42,10 +42,10 @@ def Fbe.iterate(
   fb: Fbe.fb, loog: $loog, options: $options, global: $global,
   epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
 )
-  raise 'The fb is nil' if fb.nil?
-  raise 'The $global is not set' if global.nil?
-  raise 'The $options is not set' if options.nil?
-  raise 'The $loog is not set' if loog.nil?
+  raise('The fb is nil') if fb.nil?
+  raise('The $global is not set') if global.nil?
+  raise('The $options is not set') if options.nil?
+  raise('The $loog is not set') if loog.nil?
   c = Fbe::Iterate.new(fb:, loog:, options:, global:, epoch:, kickoff:)
   c.instance_eval(&)
 end
@@ -144,8 +144,8 @@ class Fbe::Iterate
   # @example Process up to 100 items per repository
   #   iterator.repeats(100)
   def repeats(repeats)
-    raise 'Cannot set "repeats" to nil' if repeats.nil?
-    raise 'The "repeats" must be a positive integer' unless repeats.positive?
+    raise('Cannot set "repeats" to nil') if repeats.nil?
+    raise('The "repeats" must be a positive integer') unless repeats.positive?
     @repeats = repeats
   end
 
@@ -161,8 +161,8 @@ class Fbe::Iterate
   # @example Query for issues after a certain ID
   #   iterator.by('(and (eq what "issue") (gt id $before) (eq repo $repository))')
   def by(query)
-    raise 'Query is already set' unless @query.nil?
-    raise 'Cannot set query to nil' if query.nil?
+    raise('Query is already set') unless @query.nil?
+    raise('Cannot set query to nil') if query.nil?
     @query = query
   end
 
@@ -178,9 +178,9 @@ class Fbe::Iterate
   # @example Sort issues by number
   #   iterator.sort_by('issue')
   def sort_by(prop)
-    raise 'Sort field is already set' unless @sort_by.nil?
-    raise 'Cannot set sort field to nil' if prop.nil?
-    raise 'Sort field must be a String' unless prop.is_a?(String)
+    raise('Sort field is already set') unless @sort_by.nil?
+    raise('Cannot set sort field to nil') if prop.nil?
+    raise('Sort field must be a String') unless prop.is_a?(String)
     @sort_by = prop
   end
 
@@ -196,9 +196,9 @@ class Fbe::Iterate
   # @example Set label for issue processing
   #   iterator.as('issue_processor')
   def as(label)
-    raise 'Label is already set' unless @label.nil?
-    raise 'Cannot set "label" to nil' if label.nil?
-    raise "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*" unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
+    raise('Label is already set') unless @label.nil?
+    raise('Cannot set "label" to nil') if label.nil?
+    raise("Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*") unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
     @label = label
   end
 
@@ -239,8 +239,8 @@ class Fbe::Iterate
   #     issue_number + 1  # Return next issue number to process
   #   end
   def over
-    raise 'Use "as" first' if @label.nil?
-    raise 'Use "by" first' if @query.nil?
+    raise('Use "as" first') if @label.nil?
+    raise('Use "by" first') if @query.nil?
     seen = {}
     oct = Fbe.octo(loog: @loog, options: @options, global: @global)
     return if Fbe.over?(
@@ -314,7 +314,7 @@ class Fbe::Iterate
             yield(repo, nxt)
           end
         unless before[repo].is_a?(Integer)
-          raise "Iterator must return an Integer, but #{before[repo].class} was returned"
+          raise("Iterator must return an Integer, but #{before[repo].class} was returned")
         end
         seen[repo] += 1
       end
