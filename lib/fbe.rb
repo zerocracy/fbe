@@ -9,6 +9,6 @@
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 module Fbe
-  VERSION = '0.0.0' unless const_defined?(:VERSION)
+  VERSION = '0.48.4' unless const_defined?(:VERSION)
   class Error < StandardError; end
 end
