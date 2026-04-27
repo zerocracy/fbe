@@ -55,7 +55,7 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     f.what = judge
     f.when = Time.now
     unless p_since_days.nil?
-      days = pmp.nil? ? 28 : pmp[p_since_days].first
+      days = pmp.nil? || pmp[p_since_days].nil? ? 28 : pmp[p_since_days].first
       since = Time.now - (days * 24 * 60 * 60)
       f.since = since
     end
