@@ -34,4 +34,23 @@ class TestRegularly < Fbe::Test
     end
     assert_equal(0, fb.size)
   end
+
+  def test_uses_default_since_days_when_pmp_lacks_property
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = 'quality'
+      f.interval = 3
+    end
+    loog = Loog::NULL
+    judge = 'test'
+    Fbe.regularly('quality', 'interval', 'days', fb:, loog:, judge:) do |f|
+      f.foo = 42
+    end
+    assert_equal(2, fb.size)
+    fact = fb.query("(eq what '#{judge}')").each.first
+    refute_nil(fact)
+    refute_nil(fact.since)
+  end
 end
