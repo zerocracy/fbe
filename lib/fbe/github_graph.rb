@@ -310,16 +310,16 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         }
       GRAPHQL
     ).to_h
+    nodes = result.dig('repository', 'pullRequests', 'nodes')
+    raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if nodes.nil?
     {
-      'pulls_with_reviews' => result
-        .dig('repository', 'pullRequests', 'nodes')
-        .filter_map do |pull|
-          next if pull.dig('timelineItems', 'nodes').empty?
-          {
-            'id' => pull['id'],
-            'number' => pull['number']
-          }
-        end,
+      'pulls_with_reviews' => nodes.filter_map do |pull|
+        next if pull.dig('timelineItems', 'nodes').empty?
+        {
+          'id' => pull['id'],
+          'number' => pull['number']
+        }
+      end,
       'has_next_page' => result.dig('repository', 'pullRequests', 'pageInfo', 'hasNextPage'),
       'next_cursor' => result.dig('repository', 'pullRequests', 'pageInfo', 'endCursor')
     }
