@@ -204,6 +204,18 @@ class TestGitHubGraph < Fbe::Test
     end
   end
 
+  def test_pull_requests_with_reviews_when_repository_is_missing
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'errors' => [{ 'message' => 'Could not resolve to a Repository' }] }
+    end
+    error = assert_raises(Fbe::Error) do
+      graph.pull_requests_with_reviews('bad-owner', 'bad-repo', Time.parse('2025-08-01T18:00:00Z'))
+    end
+    assert_includes(error.message, 'bad-owner/bad-repo')
+  end
+
   def test_fake_pull_request_reviews
     WebMock.disable_net_connect!
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
