@@ -210,9 +210,10 @@ class TestGitHubGraph < Fbe::Test
     graph.define_singleton_method(:query) do |_qry|
       { 'errors' => [{ 'message' => 'Could not resolve to a Repository' }] }
     end
-    error = assert_raises(Fbe::Error) do
-      graph.pull_requests_with_reviews('bad-owner', 'bad-repo', Time.parse('2025-08-01T18:00:00Z'))
-    end
+    error =
+      assert_raises(Fbe::Error) do
+        graph.pull_requests_with_reviews('bad-owner', 'bad-repo', Time.parse('2025-08-01T18:00:00Z'))
+      end
     assert_includes(error.message, 'bad-owner/bad-repo')
   end
 
