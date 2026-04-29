@@ -206,10 +206,19 @@ class TestGitHubGraph < Fbe::Test
 
   def test_pull_requests_with_reviews_when_repository_is_missing
     WebMock.disable_net_connect!
-    graph = Fbe::Graph.new(token: 'fake')
-    graph.define_singleton_method(:query) do |_qry|
-      { 'errors' => [{ 'message' => 'Could not resolve to a Repository' }] }
+    errors = Object.new
+    errors.define_singleton_method(:empty?) { false }
+    errors.define_singleton_method(:messages) do
+      { 'data' => ["Could not resolve to a Repository with the name 'bad-owner/bad-repo'."] }
     end
+    response = Object.new
+    response.define_singleton_method(:errors) { errors }
+    response.define_singleton_method(:data) { nil }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |qry| qry }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:client) { fake_client }
     error =
       assert_raises(Fbe::Error) do
         graph.pull_requests_with_reviews('bad-owner', 'bad-repo', Time.parse('2025-08-01T18:00:00Z'))
@@ -271,5 +280,25 @@ class TestGitHubGraph < Fbe::Test
         releases: 7
       }
     end
+  end
+
+  def test_query_raises_when_graphql_response_has_errors
+    WebMock.disable_net_connect!
+    errors = Object.new
+    errors.define_singleton_method(:empty?) { false }
+    errors.define_singleton_method(:messages) do
+      { 'data' => ["Could not resolve to a Repository with the name 'bad-owner/bad-repo'."] }
+    end
+    response = Object.new
+    response.define_singleton_method(:errors) { errors }
+    response.define_singleton_method(:data) { nil }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |qry| qry }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:client) { fake_client }
+    err = assert_raises(Fbe::Error) { graph.query('{ viewer { login } }') }
+    assert_includes(err.message, 'GraphQL query failed')
+    assert_includes(err.message, 'bad-owner/bad-repo')
   end
 end
