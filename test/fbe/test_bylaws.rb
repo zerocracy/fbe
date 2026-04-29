@@ -19,6 +19,17 @@ class TestBylaws < Fbe::Test
     refute_nil(laws['published-release-was-rewarded'])
   end
 
+  def test_apostrophes_are_not_double_escaped
+    Fbe.bylaws.each do |title, formula|
+      markdown = Fbe::Award.new(formula).bylaw.markdown
+      refute_match(
+        /\\'/,
+        markdown,
+        "Bylaw #{title.inspect} contains a backslash-escaped apostrophe in: #{markdown.inspect}"
+      )
+    end
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
