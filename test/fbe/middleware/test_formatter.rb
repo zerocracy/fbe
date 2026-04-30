@@ -34,12 +34,13 @@ class LoggingFormatterTest < Fbe::Test
       refute_empty(str)
       [
         %r{http://example.com},
-        /Authorization:/,
+        /Authorization: "Bearer \[FILTERED\]"/,
         %r{HTTP/1.1 401},
         /x-github-api-version-selected: "2022-11-28"/,
         /hello, world!/,
         /request body/
       ].each { |ptn| assert_match(ptn, str) }
+      refute_match(/github_pat_11AAsecret/, str)
     end
   end
 
@@ -64,13 +65,14 @@ class LoggingFormatterTest < Fbe::Test
       refute_empty(str)
       [
         %r{http://example.com},
-        /Authorization:/,
+        /Authorization: "Bearer \[FILTERED\]"/,
         /some request body/,
         %r{HTTP/1.1 502},
         /x-github-api-version-selected: "2022-11-28"/,
         %r{content-type: "text/html; charset=utf-8"},
         "#{body.slice(0, 97)}..."
       ].each { |ptn| assert_match(ptn, str) }
+      refute_match(/github_pat_11AAsecret/, str)
     end
   end
 
