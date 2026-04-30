@@ -513,6 +513,156 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     { 'releases' => total }
   end
 
+  # Counts the total number of releases (including drafts and prereleases).
+  #
+  # @param [String] owner Repository owner
+  # @param [String] name Repository name
+  # @return [Hash] A hash with key 'releases' mapped to the total count
+  def releases_count(owner, name)
+    result = query(
+      <<~GRAPHQL
+        {
+          repository(owner: "#{owner}", name: "#{name}") {
+            releases { totalCount }
+          }
+        }
+      GRAPHQL
+    ).to_h
+    { 'releases' => result.dig('repository', 'releases', 'totalCount') || 0 }
+  end
+
+  # Lists non-draft releases with publishedAt within the [since, to] window.
+  #
+  # @param [String] owner Repository owner
+  # @param [String] name Repository name
+  # @param [Time] since Lower bound (inclusive)
+  # @param [Time] to Upper bound (inclusive)
+  # @return [Array<Hash>] Each item has 'tagName' (String) and 'publishedAt' (Time)
+  def releases_in_window(owner, name, since, to)
+    found = []
+    cursor = nil
+    loop do
+      result = query(
+        <<~GRAPHQL
+          {
+            repository(owner: "#{owner}", name: "#{name}") {
+              releases(first: 25, after: "#{cursor}", orderBy: { field: CREATED_AT, direction: DESC }) {
+                nodes {
+                  tagName
+                  isDraft
+                  publishedAt
+                }
+                pageInfo {
+                  endCursor
+                  hasNextPage
+                }
+              }
+            }
+          }
+        GRAPHQL
+      ).to_h
+      releases = result.dig('repository', 'releases', 'nodes')
+      break if releases.nil? || releases.empty?
+      releases.each do |r|
+        next if r['isDraft']
+        next unless r['publishedAt']
+        published = Time.parse(r['publishedAt'])
+        next if published > to
+        next if published < since
+        found << { 'tagName' => r['tagName'], 'publishedAt' => published }
+      end
+      break if releases.all? { _1['publishedAt'] && Time.parse(_1['publishedAt']) < since }
+      break unless result.dig('repository', 'releases', 'pageInfo', 'hasNextPage')
+      cursor = result.dig('repository', 'releases', 'pageInfo', 'endCursor')
+    end
+    found
+  end
+
+  # Lists timeline events for an issue, paginated.
+  #
+  # @param [String] owner Repository owner
+  # @param [String] name Repository name
+  # @param [Integer] issue Issue number
+  # @return [Array<Hash>] Each item has '__typename' (String) and 'id' (String GraphQL node ID)
+  def issue_timeline_items(owner, name, issue)
+    items = []
+    cursor = nil
+    loop do
+      result = query(
+        <<~GRAPHQL
+          {
+            repository(owner: "#{owner}", name: "#{name}") {
+              issue(number: #{issue}) {
+                timelineItems(first: 100, after: "#{cursor}") {
+                  nodes {
+                    __typename
+                    ... on Node { id }
+                  }
+                  pageInfo {
+                    endCursor
+                    hasNextPage
+                  }
+                }
+              }
+            }
+          }
+        GRAPHQL
+      ).to_h
+      timeline = result.dig('repository', 'issue', 'timelineItems')
+      break if timeline.nil?
+      nodes = timeline['nodes'] || []
+      nodes.each { |n| items << { '__typename' => n['__typename'], 'id' => n['id'] } }
+      break unless timeline.dig('pageInfo', 'hasNextPage')
+      cursor = timeline.dig('pageInfo', 'endCursor')
+    end
+    items
+  end
+
+  # Returns distinct GitHub user database IDs that authored commits on the default branch.
+  #
+  # @param [String] owner Repository owner
+  # @param [String] name Repository name
+  # @return [Array<Integer>] Deduplicated databaseId values; commits without a linked GitHub user are skipped
+  def distinct_contributors(owner, name)
+    ids = []
+    cursor = nil
+    loop do
+      result = query(
+        <<~GRAPHQL
+          {
+            repository(owner: "#{owner}", name: "#{name}") {
+              defaultBranchRef {
+                target {
+                  ... on Commit {
+                    history(first: 100, after: "#{cursor}") {
+                      nodes {
+                        author { user { databaseId } }
+                      }
+                      pageInfo {
+                        endCursor
+                        hasNextPage
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        GRAPHQL
+      ).to_h
+      history = result.dig('repository', 'defaultBranchRef', 'target', 'history')
+      break if history.nil?
+      nodes = history['nodes'] || []
+      nodes.each do |c|
+        id = c.dig('author', 'user', 'databaseId')
+        ids << id if id
+      end
+      break unless history.dig('pageInfo', 'hasNextPage')
+      cursor = history.dig('pageInfo', 'endCursor')
+    end
+    ids.uniq
+  end
+
   private
 
   # Creates or returns a cached GraphQL client instance.
@@ -755,6 +905,29 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
 
     def total_releases_published(_owner, _name, _since)
       { 'releases' => 7 }
+    end
+
+    def releases_count(_owner, _name)
+      { 'releases' => 7 }
+    end
+
+    def releases_in_window(_owner, _name, since, to)
+      [
+        { 'tagName' => '0.0.6', 'publishedAt' => Time.parse('2025-12-16T15:00:00Z') },
+        { 'tagName' => '0.0.5', 'publishedAt' => Time.parse('2025-11-16T15:00:00Z') },
+        { 'tagName' => '0.0.4', 'publishedAt' => Time.parse('2025-10-16T15:00:00Z') }
+      ].select { |r| r['publishedAt'].between?(since, to) }
+    end
+
+    def issue_timeline_items(_owner, _name, _issue)
+      [
+        { '__typename' => 'IssueTypeAddedEvent', 'id' => 'ITAE_examplevq862Ga8lzwAAAAQZanzv' },
+        { '__typename' => 'IssueTypeChangedEvent', 'id' => 'ITCE_examplevq862Ga8lzwAAAAQZbq9S' }
+      ]
+    end
+
+    def distinct_contributors(_owner, _name)
+      [42, 43, 526_301]
     end
 
     private

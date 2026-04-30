@@ -32,6 +32,7 @@ Elegant/GoodMethodName:
     - create_commit_comment
     - create_connection
     - delete_one
+    - distinct_contributors
     - dump_headers
     - extract_remaining_count
     - faraday_value
@@ -42,6 +43,7 @@ Elegant/GoodMethodName:
     - issue_comments
     - issue_events
     - issue_timeline
+    - issue_timeline_items
     - issue_type_event
     - just_one
     - kill_if
@@ -65,6 +67,8 @@ Elegant/GoodMethodName:
     - quota_unaware
     - random_time
     - rate_limit
+    - releases_count
+    - releases_in_window
     - remove_organization_membership
     - repo_id_by_name
     - repo_name_by_id
