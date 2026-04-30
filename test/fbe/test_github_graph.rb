@@ -272,4 +272,53 @@ class TestGitHubGraph < Fbe::Test
       }
     end
   end
+
+  def test_fake_releases_count
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.releases_count('foo', 'foo')
+    h = h.transform_keys(&:to_sym)
+    assert_pattern do
+      h => { releases: Integer }
+    end
+    assert_operator(h[:releases], :>, 0)
+  end
+
+  def test_fake_releases_in_window
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    since = Time.parse('2024-01-01T00:00:00Z')
+    upto = Time.parse('2030-12-31T00:00:00Z')
+    releases = graph.releases_in_window('foo', 'foo', since, upto)
+    assert_instance_of(Array, releases)
+    refute_empty(releases)
+    releases.each do |r|
+      assert_kind_of(String, r['tagName'])
+      assert_kind_of(Time, r['publishedAt'])
+      assert_operator(r['publishedAt'], :>=, since)
+      assert_operator(r['publishedAt'], :<=, upto)
+    end
+  end
+
+  def test_fake_issue_timeline_items
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    items = graph.issue_timeline_items('zerocracy', 'baza', 42)
+    assert_instance_of(Array, items)
+    refute_empty(items)
+    items.each do |item|
+      assert_kind_of(String, item['__typename'])
+      assert_kind_of(String, item['id'])
+    end
+  end
+
+  def test_fake_distinct_contributors
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    ids = graph.distinct_contributors('zerocracy', 'fbe')
+    assert_instance_of(Array, ids)
+    refute_empty(ids)
+    ids.each { |id| assert_kind_of(Integer, id) }
+    assert_equal(ids.uniq.size, ids.size, 'ids must be unique')
+  end
 end
