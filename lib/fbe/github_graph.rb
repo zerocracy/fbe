@@ -921,8 +921,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
 
     def issue_timeline_items(_owner, _name, _issue)
       [
-        { '__typename' => 'IssueTypeAddedEvent', 'id' => 'ITAE_kwDOO0iZpc7DR0iz' },
-        { '__typename' => 'IssueTypeChangedEvent', 'id' => 'ITCE_kwDOO0iZpc7DR0i0' }
+        { '__typename' => 'IssueTypeAddedEvent', 'id' => 'ITAE_examplevq862Ga8lzwAAAAQZanzv' },
+        { '__typename' => 'IssueTypeChangedEvent', 'id' => 'ITCE_examplevq862Ga8lzwAAAAQZbq9S' }
       ]
     end
 
