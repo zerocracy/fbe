@@ -45,6 +45,10 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   puts result.viewer.login #=> "octocat"
   def query(qry)
     result = client.query(client.parse(qry))
+    if result.respond_to?(:errors) && !result.errors.empty?
+      msgs = result.errors.respond_to?(:messages) ? result.errors.messages.values.flatten : [result.errors.to_s]
+      raise(Fbe::Error, "GraphQL query failed: #{msgs.join('; ')}")
+    end
     result.data
   end
 
@@ -179,8 +183,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       GRAPHQL
     ).to_h
     {
-      'issues' => result.dig('repository', 'issues', 'totalCount') || 0,
-      'pulls' => result.dig('repository', 'pullRequests', 'totalCount') || 0
+      'issues' => result.dig('repository', 'issues', 'totalCount'),
+      'pulls' => result.dig('repository', 'pullRequests', 'totalCount')
     }
   end
 
@@ -311,7 +315,6 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       GRAPHQL
     ).to_h
     nodes = result.dig('repository', 'pullRequests', 'nodes')
-    raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if nodes.nil?
     {
       'pulls_with_reviews' => nodes.filter_map do |pull|
         next if pull.dig('timelineItems', 'nodes').empty?
@@ -504,7 +507,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         GRAPHQL
       ).to_h
       releases = result.dig('repository', 'releases', 'nodes')
-      break if releases.nil? || releases.empty?
+      break if releases.empty?
       total += releases.count { !_1['isDraft'] && _1['publishedAt'] && Time.parse(_1['publishedAt']) > since }
       break if releases.all? { _1['publishedAt'] && Time.parse(_1['publishedAt']) < since }
       break unless result.dig('repository', 'releases', 'pageInfo', 'hasNextPage')
