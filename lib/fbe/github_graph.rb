@@ -287,11 +287,12 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #     cursor = json['next_cursor']
   #   end
   def pull_requests_with_reviews(owner, name, since, cursor: nil)
+    after = "after: \"#{cursor}\", " unless cursor.nil?
     result = query(
       <<~GRAPHQL
         {
           repository(owner: "#{owner}", name: "#{name}") {
-            pullRequests(first: 100, after: "#{cursor}") {
+            pullRequests(#{after}first: 100) {
               nodes {
                 id
                 number
@@ -349,11 +350,12 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   def pull_request_reviews(owner, name, pulls: [])
     requests =
       pulls.map do |number, cursor|
+        after = "after: \"#{cursor}\", " unless cursor.nil?
         <<~GRAPHQL
           pr_#{number}: pullRequest(number: #{number}) {
             id
             number
-            reviews(first: 100, after: "#{cursor}") {
+            reviews(#{after}first: 100) {
               nodes {
                 id
                 submittedAt
