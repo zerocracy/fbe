@@ -272,4 +272,30 @@ class TestGitHubGraph < Fbe::Test
       }
     end
   end
+
+  def test_pull_requests_with_reviews_omits_after_when_cursor_is_nil
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    captured = nil
+    page = { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      { 'repository' => { 'pullRequests' => page } }
+    end
+    graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'), cursor: nil)
+    refute_includes(captured, 'after: ""')
+  end
+
+  def test_pull_request_reviews_omits_after_when_cursor_is_nil
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    captured = nil
+    reviews = { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      { 'repository' => { 'pr_2' => { 'id' => 'PR_x', 'number' => 2, 'reviews' => reviews } } }
+    end
+    graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil]])
+    refute_includes(captured, 'after: ""')
+  end
 end
