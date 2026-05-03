@@ -39,6 +39,19 @@ require_relative '../../fbe/middleware'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
+  # Registers a filter that masks the credential portion of an
+  # `Authorization` header so live tokens never reach the log.
+  # Matches any auth scheme: `Authorization: "Bearer xxx"`,
+  # `Authorization: "Basic yyy"`, etc. The scheme is preserved,
+  # the credential is replaced with `[FILTERED]`.
+  #
+  # @param [Logger] logger The Faraday-supplied logger
+  # @param [Hash] options Faraday formatter options
+  def initialize(logger:, options:)
+    super
+    filter(/(Authorization:\s*"?\s*\S+\s+)[^"\s]+/i, '\1[FILTERED]')
+  end
+
   # Captures HTTP request details for later use in error logging.
   #
   # @param [Hash] http Request data including method, url, headers, and body

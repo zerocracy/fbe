@@ -34,12 +34,13 @@ class LoggingFormatterTest < Fbe::Test
       refute_empty(str)
       [
         %r{http://example.com},
-        /Authorization:/,
+        /Authorization: "Bearer \[FILTERED\]"/,
         %r{HTTP/1.1 401},
         /x-github-api-version-selected: "2022-11-28"/,
         /hello, world!/,
         /request body/
       ].each { |ptn| assert_match(ptn, str) }
+      refute_match(/github_pat_11AAsecret/, str, 'live token must never appear in the log')
     end
   end
 
@@ -47,6 +48,22 @@ class LoggingFormatterTest < Fbe::Test
     log_it(status: 403) do |loog|
       str = loog.to_s
       refute_empty(str)
+    end
+  end
+
+  def test_filters_basic_auth_credentials_from_log
+    log_it(status: 500, request_headers: { 'Authorization' => 'Basic dXNlcjpwYXNzd29yZA==' }) do |loog|
+      str = loog.to_s
+      assert_match(/Authorization: "Basic \[FILTERED\]"/, str)
+      refute_match(/dXNlcjpwYXNzd29yZA==/, str, 'Basic credentials must never appear in the log')
+    end
+  end
+
+  def test_filters_lowercase_token_scheme_from_log
+    log_it(status: 500, request_headers: { 'Authorization' => 'token ghs_secrettoken123' }) do |loog|
+      str = loog.to_s
+      assert_match(/Authorization: "token \[FILTERED\]"/, str)
+      refute_match(/ghs_secrettoken123/, str, 'token-scheme credential must never appear in the log')
     end
   end
 
@@ -64,13 +81,14 @@ class LoggingFormatterTest < Fbe::Test
       refute_empty(str)
       [
         %r{http://example.com},
-        /Authorization:/,
+        /Authorization: "Bearer \[FILTERED\]"/,
         /some request body/,
         %r{HTTP/1.1 502},
         /x-github-api-version-selected: "2022-11-28"/,
         %r{content-type: "text/html; charset=utf-8"},
         "#{body.slice(0, 97)}..."
       ].each { |ptn| assert_match(ptn, str) }
+      refute_match(/github_pat_11AAsecret/, str, 'live token must never appear in the log')
     end
   end
 
@@ -80,7 +98,8 @@ class LoggingFormatterTest < Fbe::Test
     status:,
     method: :get,
     response_body: '{"message": "hello, world!"}',
-    response_headers: { 'content-type' => 'application/json', 'x-github-api-version-selected' => '2022-11-28' }
+    response_headers: { 'content-type' => 'application/json', 'x-github-api-version-selected' => '2022-11-28' },
+    request_headers: { 'Authorization' => 'Bearer github_pat_11AAsecret' }
   )
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
@@ -90,9 +109,7 @@ class LoggingFormatterTest < Fbe::Test
           method:,
           request_body: 'some request body',
           url: URI('http://example.com'),
-          request_headers: {
-            'Authorization' => 'Bearer github_pat_11AAsecret'
-          }
+          request_headers:
         }
       )
     )
