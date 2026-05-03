@@ -34,6 +34,7 @@ Elegant/GoodMethodName:
     - delete_one
     - dump_headers
     - extract_remaining_count
+    - extract_search_remaining_count
     - faraday_value
     - github_graph
     - handle_rate_limit_request
@@ -53,6 +54,8 @@ Elegant/GoodMethodName:
     - off_quota?
     - organization_memberships
     - organization_repositories
+    - parsed_body
+    - patched_body
     - print_trace!
     - publish_to
     - pull_request
@@ -85,7 +88,6 @@ Elegant/GoodMethodName:
     - track_request
     - unmask_repos
     - update_organization_membership
-    - update_remaining_count
     - user_name_by_id
     - user_repository_invitations
     - with_disable_auto_paginate
