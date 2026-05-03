@@ -84,7 +84,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Response] response The API response
   # @return [Integer] The remaining requests count
   def extract_remaining_count(response)
-    body = parsed_body(response)
+    body = response.body
+    body = JSON.parse(body) if body.is_a?(String)
     return 0 unless body.is_a?(Hash)
     body.dig('rate', 'remaining') || 0
   end
@@ -94,21 +95,10 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Response] response The API response
   # @return [Integer, nil] Remaining search-API requests or nil if absent
   def extract_search_remaining_count(response)
-    body = parsed_body(response)
+    body = response.body
+    body = JSON.parse(body) if body.is_a?(String)
     return nil unless body.is_a?(Hash)
     body.dig('resources', 'search', 'remaining')
-  end
-
-  # Parses the response body as a Hash if it's a JSON string.
-  #
-  # @param [Faraday::Response] response The API response
-  # @return [Hash, Object] Parsed body or original on parse failure
-  def parsed_body(response)
-    body = response.body
-    return body unless body.is_a?(String)
-    JSON.parse(body)
-  rescue JSON::ParserError
-    nil
   end
 
   # Builds a fresh body with the current remaining counts written in,
@@ -119,17 +109,14 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @return [Object] A new body of the same type with remaining counts updated
   def patched_body(original)
     stringed = original.is_a?(String)
-    if stringed
-      begin
-        body = JSON.parse(original)
-      rescue JSON::ParserError
+    body =
+      if stringed
+        JSON.parse(original)
+      elsif original.is_a?(Hash)
+        JSON.parse(original.to_json)
+      else
         return original
       end
-    elsif original.is_a?(Hash)
-      body = JSON.parse(original.to_json)
-    else
-      return original
-    end
     body['rate']['remaining'] = @remaining if body['rate']
     body.dig('resources', 'search')&.[]=('remaining', @searchleft) if @searchleft
     stringed ? body.to_json : body

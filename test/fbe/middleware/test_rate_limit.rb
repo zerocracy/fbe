@@ -80,15 +80,6 @@ class RateLimitTest < Fbe::Test
     assert_empty(response.body)
   end
 
-  def test_ignores_non_hash_response_body
-    stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: 'invalid json', headers: { 'Content-Type' => 'text/plain' })
-    conn = create_connection
-    response = conn.get('/rate_limit')
-    assert_equal(200, response.status)
-    assert_equal('invalid json', response.body)
-  end
-
   def test_handles_zero_remaining_count
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')

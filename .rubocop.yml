@@ -54,7 +54,6 @@ Elegant/GoodMethodName:
     - off_quota?
     - organization_memberships
     - organization_repositories
-    - parsed_body
     - patched_body
     - print_trace!
     - publish_to
