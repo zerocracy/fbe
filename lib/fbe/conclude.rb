@@ -36,16 +36,16 @@ end
 # A concluding block.
 #
 # You may want to use this class when you want to go through a number
-# of facts in the factbase, applying certain algorithm to each of them
+# of facts in the factbase, applying a certain algorithm to each of them
 # and possibly creating new facts from them.
 #
 # For example, you want to make a new +good+ fact for every +bad+ fact found:
 #
 #  require 'fbe/conclude'
 #  conclude do
-#    on '(exist bad)'
+#    on '(exists bad)'
 #    follow 'when'
-#    draw on |n, b|
+#    draw do |n, b|
 #      n.good = 'yes!'
 #    end
 #  end
@@ -132,9 +132,9 @@ class Fbe::Conclude
   #
   #  require 'fbe/conclude'
   #  conclude do
-  #    on '(exist win)'
+  #    on '(exists win)'
   #    follow 'win when'
-  #    draw on |n, w|
+  #    draw do |n, w|
   #      n.reward = 10
   #    end
   #  end
@@ -161,7 +161,7 @@ class Fbe::Conclude
   #  require 'fbe/conclude'
   #  conclude do
   #    on '(always)'
-  #    consider on |f|
+  #    consider do |f|
   #      f.when = Time.new
   #    end
   #  end

@@ -15,7 +15,7 @@ It's a collection of tools for
 You are not supposed to use it directly, but only in a combination
 with other tools of Zerocracy.
 
-The following tools runs a block:
+The following tools run a block:
 
 * `Fbe.regularly` runs a block of code every X days.
 * `Fbe.conclude` runs a block on every fact from a query.

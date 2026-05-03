@@ -105,28 +105,27 @@ class Fbe::Iterate
     @timeout = true
   end
 
-  # Makes the iterator aware of GitHub API quota limits.
+  # Makes the iterator unaware of GitHub API quota limits.
   #
-  # When enabled, the iterator will check quota status before processing
-  # each repository and gracefully stop when the quota is exhausted.
-  # This prevents API errors and allows for resuming later.
+  # When disabled, the iterator will not check quota status before processing
+  # each repository and will not gracefully stop when the quota is exhausted.
   #
   # @return [nil] Nothing is returned
-  # @example Enable quota awareness
-  #   iterator.quota_aware
-  #   iterator.over { |repo, item| ... }  # Will stop if quota exhausted
+  # @example Disable quota awareness
+  #   iterator.quota_unaware
+  #   iterator.over { |repo, item| ... }  # Will not stop on quota exhaustion
   def quota_unaware
     @quota = false
   end
 
-  # Makes the iterator aware of lifetime limits.
+  # Makes the iterator unaware of lifetime limits.
   #
   # @return [nil] Nothing is returned
   def lifetime_unaware
     @lifetime = false
   end
 
-  # Makes the iterator aware of timeout limits.
+  # Makes the iterator unaware of timeout limits.
   #
   # @return [nil] Nothing is returned
   def timeout_unaware
