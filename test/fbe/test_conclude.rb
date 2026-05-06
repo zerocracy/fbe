@@ -163,6 +163,24 @@ class TestConclude < Fbe::Test
     assert_equal(1, fb.size)
   end
 
+  def test_draw_block_returning_non_string_does_not_crash
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $fb.insert.foo = 1
+    Fbe.conclude(judge: 'judge-non-string') do
+      quota_unaware
+      on('(exists foo)')
+      draw do |n, _prev|
+        n.score = 42
+      end
+    end
+    f = $fb.query('(exists score)').each.to_a[0]
+    assert_equal(42, f.score)
+  end
+
   def test_catch_fbe_off_quota_exception_correctly
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
