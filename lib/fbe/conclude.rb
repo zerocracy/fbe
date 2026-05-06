@@ -208,7 +208,12 @@ class Fbe::Conclude
       )
       @fb.txn do |fbt|
         n = yield(fbt, a)
-        @loog.info("#{n.what}: #{n.details}") unless n.nil?
+        unless n.nil?
+          props = n.all_properties
+          if props.include?('what') && props.include?('details')
+            @loog.info("#{n.what}: #{n.details}")
+          end
+        end
       end
       passed += 1
     end
