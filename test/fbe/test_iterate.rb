@@ -483,4 +483,41 @@ class TestIterate < Fbe::Test # rubocop:disable Metrics/ClassLength
     end
     assert_equal(0, count)
   end
+
+  def test_preserves_repo_and_item_context_when_block_raises
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.foo = 42
+    ex =
+      assert_raises(StandardError) do
+        Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+          as('context_test')
+          by('(agg (always) (max foo))')
+          repeats(1)
+          over do |_repository, _foo|
+            raise(StandardError, 'boom')
+          end
+        end
+      end
+    assert_includes(ex.message, '42', "Expected message to contain item id, got: #{ex.message.inspect}")
+    assert_match(/repo/i, ex.message, "Expected message to mention repo, got: #{ex.message.inspect}")
+    assert_includes(ex.message, 'boom', "Expected original message preserved, got: #{ex.message.inspect}")
+  end
+
+  def test_does_not_swallow_off_quota_when_block_raises
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.foo = 42
+    cycles = 0
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('quota_in_block_test')
+      by('(agg (always) (max foo))')
+      repeats(5)
+      over do |_repository, _foo|
+        cycles += 1
+        raise(Fbe::OffQuota, 'no more quota')
+      end
+    end
+    assert_equal(1, cycles)
+  end
 end
