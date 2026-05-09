@@ -32,8 +32,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def initialize(app)
     super
     @cached = nil
-    @remaining = nil
-    @searchleft = nil
+    @remaining = 0
+    @searchleft = 0
     @counter = 0
   end
 
@@ -73,9 +73,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def track_request(path = nil)
     @counter += 1
     if path&.start_with?('/search/')
-      @searchleft -= 1 if @searchleft&.positive?
-    elsif @remaining
-      @remaining -= 1 if @remaining.positive?
+      @searchleft -= 1 if @searchleft.positive?
+    elsif @remaining.positive?
+      @remaining -= 1
     end
   end
 
@@ -93,12 +93,12 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # Extracts the search-resource remaining count from the response body.
   #
   # @param [Faraday::Response] response The API response
-  # @return [Integer, nil] Remaining search-API requests or nil if absent
+  # @return [Integer] The remaining search-API requests count
   def extract_search_remaining_count(response)
     body = response.body
     body = JSON.parse(body) if body.is_a?(String)
-    return nil unless body.is_a?(Hash)
-    body.dig('resources', 'search', 'remaining')
+    return 0 unless body.is_a?(Hash)
+    body.dig('resources', 'search', 'remaining') || 0
   end
 
   # Builds a fresh body with the current remaining counts written in,
@@ -118,7 +118,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
         return original
       end
     body['rate']['remaining'] = @remaining if body['rate']
-    body.dig('resources', 'search')&.[]=('remaining', @searchleft) if @searchleft
+    body.dig('resources', 'search')&.[]=('remaining', @searchleft)
     stringed ? body.to_json : body
   end
 
@@ -134,7 +134,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     served.request_headers = env.request_headers
     served.body = patched_body(response.body)
     served.response_headers = response.headers.dup
-    served.response_headers['x-ratelimit-remaining'] = @remaining.to_s if @remaining
+    served.response_headers['x-ratelimit-remaining'] = @remaining.to_s
     served
   end
 end
