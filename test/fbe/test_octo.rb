@@ -184,6 +184,110 @@ class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
     assert_predicate(o, :off_quota?)
   end
 
+  def test_off_quota_search_when_search_resource_exhausted
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    refute_predicate(o, :off_quota?, 'core quota is healthy, off_quota? must stay false')
+    assert(
+      o.off_quota?(resource: :search),
+      'search quota is below threshold, off_quota?(resource: :search) must be true'
+    )
+  end
+
+  def test_search_issues_blocked_when_search_quota_exhausted
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_raises(Fbe::OffQuota) { o.search_issues('repo:foo/bar type:issue') }
+  end
+
+  def test_search_issues_allowed_when_search_quota_ok_but_core_low
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 1 }, resources: { core: { remaining: 1 }, search: { remaining: 30 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '1' }
+    )
+    stub_request(:get, %r{https://api.github.com/search/issues}).to_return(
+      body: { total_count: 0, incomplete_results: false, items: [] }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_raises(Fbe::OffQuota) { o.user(42) }
+    result = o.search_issues('repo:foo/bar type:issue')
+    assert_equal(0, result[:total_count])
+  end
+
+  def test_off_quota_search_falls_back_to_core_when_no_search_resource
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    refute(
+      o.off_quota?(resource: :search),
+      'when payload lacks resources.search, off_quota? must fall back to the core remaining count'
+    )
+  end
+
+  def test_off_quota_search_uses_default_threshold_of_five
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 5 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    refute(o.off_quota?(resource: :search), 'remaining=5 must NOT trip the default search threshold of 5 (strict <)')
+    assert(
+      o.off_quota?(resource: :search, threshold: 6),
+      'remaining=5 with explicit threshold=6 must trip off_quota?'
+    )
+  end
+
+  def test_off_quota_core_uses_default_threshold_of_fifty
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 49 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '49' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_predicate(o, :off_quota?, 'remaining=49 must trip the default core threshold of 50')
+  end
+
+  def test_off_quota_search_when_last_response_is_nil
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    refute(
+      o.off_quota?(resource: :search),
+      'with no prior request made, last_response is nil and we must fall back to core quota'
+    )
+  end
+
+  def test_search_methods_are_routed_through_search_quota_check
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    Fbe::SEARCH_METHODS.each do |m|
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+      assert_raises(Fbe::OffQuota, "search method #{m} must be blocked when search quota is exhausted") do
+        o.__send__(m, 'q')
+      end
+    end
+  end
+
   def test_print_quota_left_while_initialize
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

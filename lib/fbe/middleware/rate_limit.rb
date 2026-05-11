@@ -24,13 +24,16 @@ require_relative '../../fbe/middleware'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class Fbe::Middleware::RateLimit < Faraday::Middleware
+  # NOT thread-safe: assumes single-threaded use (judges run sequentially in judges-action).
+  #
   # Initializes the rate limit middleware.
   #
   # @param [Object] app The next middleware in the stack
   def initialize(app)
     super
     @cached = nil
-    @remaining = nil
+    @remaining = 0
+    @searchleft = 0
     @counter = 0
   end
 
@@ -42,7 +45,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     if env.url.path == '/rate_limit'
       handle_rate_limit_request(env)
     else
-      track_request
+      track_request(env.url.path)
       @app.call(env)
     end
   end
@@ -56,22 +59,24 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def handle_rate_limit_request(env)
     if @cached.nil? || @counter >= 100
       response = @app.call(env)
-      @cached = response.dup
+      @cached = response
       @remaining = extract_remaining_count(response)
+      @searchleft = extract_search_remaining_count(response)
       @counter = 0
       response
     else
-      response = @cached.dup
-      update_remaining_count(response)
-      Faraday::Response.new(response_env(env, response))
+      Faraday::Response.new(response_env(env, @cached))
     end
   end
 
   # Tracks non-rate_limit requests and decrements counter.
-  def track_request
-    return if @remaining.nil?
-    @remaining -= 1 if @remaining.positive?
+  def track_request(path = nil)
     @counter += 1
+    if path&.start_with?('/search/')
+      @searchleft -= 1 if @searchleft.positive?
+    elsif @remaining.positive?
+      @remaining -= 1
+    end
   end
 
   # Extracts the remaining count from the response body.
@@ -80,52 +85,56 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @return [Integer] The remaining requests count
   def extract_remaining_count(response)
     body = response.body
-    if body.is_a?(String)
-      begin
-        body = JSON.parse(body)
-      rescue JSON::ParserError
-        return 0
-      end
-    end
+    body = JSON.parse(body) if body.is_a?(String)
     return 0 unless body.is_a?(Hash)
     body.dig('rate', 'remaining') || 0
   end
 
-  # Updates the remaining count in the response body.
+  # Extracts the search-resource remaining count from the response body.
   #
-  # @param [Faraday::Response] response The cached response to update
-  def update_remaining_count(response)
+  # @param [Faraday::Response] response The API response
+  # @return [Integer] The remaining search-API requests count
+  def extract_search_remaining_count(response)
     body = response.body
-    stringed = body.is_a?(String)
-    if stringed
-      begin
-        body = JSON.parse(body)
-      rescue JSON::ParserError
-        return
-      end
-    end
-    return unless body.is_a?(Hash) && body['rate']
-    body['rate']['remaining'] = @remaining
-    return unless stringed
-    response.instance_variable_set(:@body, body.to_json)
+    body = JSON.parse(body) if body.is_a?(String)
+    return 0 unless body.is_a?(Hash)
+    body.dig('resources', 'search', 'remaining') || 0
   end
 
-  # Creates a response environment for the cached response.
+  # Builds a fresh body with the current remaining counts written in,
+  # without mutating the cached response. Uses a JSON round-trip for
+  # the deep copy so we only handle JSON-shaped data.
+  #
+  # @param [Object] original The cached response body (Hash or JSON String)
+  # @return [Object] A new body of the same type with remaining counts updated
+  def patched_body(original)
+    stringed = original.is_a?(String)
+    body =
+      if stringed
+        JSON.parse(original)
+      elsif original.is_a?(Hash)
+        JSON.parse(original.to_json)
+      else
+        return original
+      end
+    body['rate']['remaining'] = @remaining if body['rate']
+    body.dig('resources', 'search')&.[]=('remaining', @searchleft)
+    stringed ? body.to_json : body
+  end
+
+  # Builds a response environment that mirrors the cached response,
+  # preserving Faraday::Env invariants by dup-ing the original env
+  # and only overriding body and rate-limit headers.
   #
   # @param [Faraday::Env] env The original request environment
   # @param [Faraday::Response] response The cached response
-  # @return [Hash] Response environment hash
+  # @return [Faraday::Env] Response env ready to wrap in Faraday::Response
   def response_env(env, response)
-    headers = response.headers.dup
-    headers['x-ratelimit-remaining'] = @remaining.to_s if @remaining
-    {
-      method: env.method,
-      url: env.url,
-      request_headers: env.request_headers,
-      request_body: env.request_body,
-      status: response.status,
-      response_headers: headers,
-      body: response.body
-    }
+    served = response.env.dup
+    served.request_headers = env.request_headers
+    served.body = patched_body(response.body)
+    served.response_headers = response.headers.dup
+    served.response_headers['x-ratelimit-remaining'] = @remaining.to_s
+    served
   end
 end
