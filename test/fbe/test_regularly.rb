@@ -35,6 +35,22 @@ class TestRegularly < Fbe::Test
     assert_equal(0, fb.size)
   end
 
+  def test_log_uses_judge_parameter_not_global
+    $judge = 'global_judge'
+    fb = Factbase.new
+    loog = Loog::Buffer.new
+    judge = 'custom_judge'
+    Fbe.regularly('pmp', 'interval', 'days', fb:, loog:, judge:) do |f|
+      f.foo = 42
+    end
+    Fbe.regularly('pmp', 'interval', 'days', fb:, loog:, judge:) do |f|
+      f.foo = 42
+    end
+    output = loog.to_s
+    assert_includes(output, 'custom_judge')
+    refute_includes(output, 'global_judge')
+  end
+
   def test_uses_default_since_days_when_pmp_lacks_property
     fb = Factbase.new
     fb.txn do |fbt|
