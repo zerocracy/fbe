@@ -87,6 +87,17 @@ class TestIfAbsent < Fbe::Test
     assert_nil(n)
   end
 
+  def test_ignores_system_attributes_when_matching
+    fb = Factbase.new
+    fb.insert.foo = 'hello dude'
+    n =
+      Fbe.if_absent(fb:) do |f|
+        f._id = 42
+        f.foo = 'hello dude'
+      end
+    assert_nil(n)
+  end
+
   def test_complex_injects
     fb = Factbase.new
     fact = fb.insert
