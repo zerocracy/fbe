@@ -236,6 +236,47 @@ class RateLimitTest < Fbe::Test
     assert_equal(4999, parsed['rate']['remaining'])
   end
 
+  def test_concurrent_non_rate_limit_requests_do_not_lose_decrements
+    payload = {
+      'rate' => { 'limit' => 5000, 'remaining' => 10_000, 'reset' => 1_672_531_200 },
+      'resources' => {
+        'core' => { 'limit' => 5000, 'remaining' => 10_000, 'reset' => 1_672_531_200 },
+        'search' => { 'limit' => 30, 'remaining' => 1_000, 'reset' => 1_672_531_200 }
+      }
+    }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(status: 200, body: '{"login":"x"}', headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/search/issues?q=z')
+      .to_return(status: 200, body: '{"items":[]}', headers: { 'Content-Type' => 'application/json' })
+    conn = create_connection
+    conn.get('/rate_limit')
+    threads =
+      Array.new(10) do
+        Thread.new do
+          4.times do
+            conn.get('/user')
+            conn.get('/search/issues?q=z')
+          end
+        end
+      end
+    threads.each(&:join)
+    response = conn.get('/rate_limit')
+    assert_equal(10_000 - 40, response.body['rate']['remaining'])
+    assert_equal(1_000 - 40, response.body['resources']['search']['remaining'])
+  end
+
+  def test_concurrent_rate_limit_requests_refresh_once
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    conn = create_connection
+    threads = Array.new(20) { Thread.new { conn.get('/rate_limit') } }
+    threads.each(&:join)
+    assert_requested(:get, 'https://api.github.com/rate_limit', times: 1)
+  end
+
   def test_cached_body_is_not_leaked_to_callers
     payload = {
       'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
