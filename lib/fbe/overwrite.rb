@@ -40,14 +40,23 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
       before[k.to_s] = fact[k]
     end
     modified = false
+    adding = true
     property_or_hash.each do |k, vv|
       raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
       vv = [vv] unless vv.is_a?(Array)
       next if before[k.to_s] == vv
+      adding = false unless before[k.to_s].nil?
       before[k.to_s] = vv
       modified = true
     end
     return fact unless modified
+    if adding
+      property_or_hash.each do |k, vv|
+        vv = [vv] unless vv.is_a?(Array)
+        vv.each { |v| fact.public_send(:"#{k}=", v) }
+      end
+      return
+    end
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
     raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
