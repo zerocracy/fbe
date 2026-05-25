@@ -68,7 +68,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   # @note Special handling for 403 JSON responses to show compact error message
   def response(http) # rubocop:disable Metrics/AbcSize
     return if http.status < 400
-    if http.status == 403 && http.response_headers['content-type'].start_with?('application/json')
+    if http.status == 403 && http.response_headers['content-type']&.start_with?('application/json')
       warn(
         [
           "#{@req.method.upcase} #{apply_filters(@req.url.to_s)}",
