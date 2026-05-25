@@ -62,7 +62,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       end
     end
   yield(f)
-  q = attrs.except('_id', '_time', '_version').map do |k, v|
+  q = attrs.except(:_id, :_time, :_version).map do |k, v|
     vv = v.to_s
     if v.is_a?(String)
       vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
