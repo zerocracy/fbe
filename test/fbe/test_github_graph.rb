@@ -20,6 +20,23 @@ class TestGitHubGraph < Fbe::Test
     Fbe.github_graph(options:, loog: Loog::NULL, global:)
   end
 
+  def test_raises_when_graphql_response_carries_errors
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    errors = Object.new
+    errors.define_singleton_method(:empty?) { false }
+    errors.define_singleton_method(:messages) { { 'data' => ['Could not resolve to a Repository with the name'] } }
+    response = Object.new
+    response.define_singleton_method(:errors) { errors }
+    response.define_singleton_method(:data) { nil }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
+    e = assert_raises(Fbe::Error) { graph.query('{ viewer { login } }') }
+    assert_match(/Could not resolve to a Repository/, e.message)
+  end
+
   def test_simple_use_graph
     skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
