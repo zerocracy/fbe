@@ -97,6 +97,7 @@ class Fbe::Iterate
     @kickoff = kickoff
     @label = nil
     @since = 0
+    @custom = false
     @query = nil
     @sorting = nil
     @repeats = 1
@@ -146,6 +147,24 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Cannot set "repeats" to nil') if repeats.nil?
     raise(Fbe::Error, 'The "repeats" must be a positive integer') unless repeats.positive?
     @repeats = repeats
+  end
+
+  # Sets the initial marker value.
+  #
+  # This value is used when no marker fact exists yet, and when iteration
+  # restarts after the query returns nil.
+  #
+  # @param [Integer] value The initial marker value
+  # @return [nil] Nothing is returned
+  # @raise [RuntimeError] If value is nil, not an Integer, or already set
+  # @example Start scanning after issue 100
+  #   iterator.since(100)
+  def since(value)
+    raise(Fbe::Error, 'Since is already set') if @custom
+    raise(Fbe::Error, 'Cannot set "since" to nil') if value.nil?
+    raise(Fbe::Error, 'The "since" must be an Integer') unless value.is_a?(Integer)
+    @since = value
+    @custom = true
   end
 
   # Sets the query to execute for each iteration.

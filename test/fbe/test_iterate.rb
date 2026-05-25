@@ -191,6 +191,54 @@ class TestIterate < Fbe::Test # rubocop:disable Metrics/ClassLength
     end
   end
 
+  def test_configures_since_start
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    seen = []
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('custom_since_test')
+      since(7)
+      by('(plus $before 1)')
+      repeats(1)
+      over do |_, nxt|
+        seen << nxt
+        nxt
+      end
+    end
+    assert_equal([8], seen)
+  end
+
+  def test_raises_when_since_is_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        since(nil)
+      end
+    end
+  end
+
+  def test_raises_when_since_is_not_integer
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        since('7')
+      end
+    end
+  end
+
+  def test_raises_when_since_set_twice
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        since(1)
+        since(2)
+      end
+    end
+  end
+
   def test_raises_when_label_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
