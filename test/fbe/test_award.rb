@@ -114,6 +114,11 @@ class TestAward < Fbe::Test
     end
   end
 
+  def test_between_bylaw_mentions_value_and_both_bounds
+    md = Fbe::Award.new('(award (set b (between b 3 120)))').bylaw.markdown
+    assert_includes(md, 'set _b_ to _b_ clamped between **3** and **120**', md)
+  end
+
   def test_shorten_when_one_number
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
     assert_equal('You\'ve earned +23 points. ', g, g)
