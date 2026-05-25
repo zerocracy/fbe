@@ -24,8 +24,6 @@ require_relative '../../fbe/middleware'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class Fbe::Middleware::RateLimit < Faraday::Middleware
-  # NOT thread-safe: assumes single-threaded use (judges run sequentially in judges-action).
-  #
   # Initializes the rate limit middleware.
   #
   # @param [Object] app The next middleware in the stack
@@ -35,6 +33,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @remaining = 0
     @searchleft = 0
     @counter = 0
+    @lock = Mutex.new
   end
 
   # Processes the HTTP request and handles rate limit caching.
@@ -43,9 +42,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @return [Faraday::Response] The response from cache or the next middleware
   def call(env)
     if env.url.path == '/rate_limit'
-      handle_rate_limit_request(env)
+      @lock.synchronize { handle_rate_limit_request(env) }
     else
-      track_request(env.url.path)
+      @lock.synchronize { track_request(env.url.path) }
       @app.call(env)
     end
   end
