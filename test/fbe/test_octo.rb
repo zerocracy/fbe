@@ -288,6 +288,48 @@ class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
     end
   end
 
+  def test_send_routes_through_quota_guard
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    Fbe::SEARCH_METHODS.each do |m|
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+      assert_raises(Fbe::OffQuota, "send(:#{m}) must be blocked when search quota is exhausted") do
+        o.send(m, 'q') # rubocop:disable Style/Send
+      end
+    end
+  end
+
+  def test_public_send_routes_through_quota_guard
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    Fbe::SEARCH_METHODS.each do |m|
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+      assert_raises(Fbe::OffQuota, "public_send(:#{m}) must be blocked when search quota is exhausted") do
+        o.public_send(m, 'q')
+      end
+    end
+  end
+
+  def test_send_routes_core_methods_through_quota_guard
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_raises(Fbe::OffQuota, 'send(:user) must be blocked when core quota is exhausted') do
+      o.send(:user, 42) # rubocop:disable Style/Send
+    end
+    assert_raises(Fbe::OffQuota, 'public_send(:user) must be blocked when core quota is exhausted') do
+      o.public_send(:user, 42) # rubocop:disable Style/SendWithLiteralMethodName
+    end
+  end
+
   def test_print_quota_left_while_initialize
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

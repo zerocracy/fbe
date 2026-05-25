@@ -242,6 +242,14 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             raise(Fbe::OffQuota, "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()")
           end
         end
+      o.instance_eval do
+        def send(...)
+          __send__(...)
+        end
+        def public_send(...) # rubocop:disable Layout/EmptyLineBetweenDefs, Elegant/GoodMethodName
+          __send__(...)
+        end
+      end
       o
     end
 end
