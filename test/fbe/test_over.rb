@@ -24,6 +24,23 @@ class TestOver < Fbe::Test
     end
   end
 
+  def test_check_search_off_quota_enabled
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    loog = Loog::NULL
+    octo = Fbe.octo(loog:, options:, global:)
+    calls = []
+    octo.define_singleton_method(:off_quota?) do |*args, **kwargs|
+      kwargs = args.last if kwargs.empty? && args.last.is_a?(Hash)
+      call = { threshold: kwargs[:threshold], resource: kwargs.fetch(:resource, :core) }
+      calls << call
+      call[:resource] == :search
+    end
+    assert(Fbe.over?(global:, options:, loog:, quota_aware: true))
+    assert_includes(calls, { threshold: 100, resource: :core })
+    assert_includes(calls, { threshold: 10, resource: :search })
+  end
+
   def test_check_off_quota_disabled
     global = {}
     options = Judges::Options.new({ 'testing' => true })
