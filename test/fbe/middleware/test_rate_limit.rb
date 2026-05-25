@@ -53,6 +53,22 @@ class RateLimitTest < Fbe::Test
     assert_equal('4998', response.headers['x-ratelimit-remaining'])
   end
 
+  def test_updates_remaining_count_from_non_rate_limit_response_header
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 222, 'reset' => 1_672_531_200 } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json',
+                                                                'X-RateLimit-Remaining' => '222' })
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(status: 200, body: '{"login": "test"}', headers: { 'Content-Type' => 'application/json',
+                                                                    'X-RateLimit-Remaining' => '1' })
+    conn = create_connection
+    conn.get('/rate_limit')
+    conn.get('/user')
+    response = conn.get('/rate_limit')
+    assert_equal(1, response.body['rate']['remaining'])
+    assert_equal('1', response.headers['x-ratelimit-remaining'])
+  end
+
   def test_refreshes_cache_after_hundred_requests
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     refreshed = { 'rate' => { 'limit' => 5000, 'remaining' => 4950, 'reset' => 1_672_531_200 } }
