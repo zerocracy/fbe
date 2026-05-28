@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
+class TestOcto < Fbe::Test
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })

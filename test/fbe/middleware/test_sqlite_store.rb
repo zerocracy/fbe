@@ -14,7 +14,7 @@ require_relative '../../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class SqliteStoreTest < Fbe::Test # rubocop:disable Metrics/ClassLength
+class SqliteStoreTest < Fbe::Test
   def test_simple_caching_algorithm # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('x.db') do |f|
       store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')

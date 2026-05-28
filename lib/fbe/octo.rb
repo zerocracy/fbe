@@ -234,7 +234,7 @@ end
 #
 # @note All methods return static or pseudo-random data
 # @note No actual API calls are made
-class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength, Style/OneClassPerFile
+class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Generates a random time in the past.
   #
   # @return [Time] A random time within the last 10,000 seconds

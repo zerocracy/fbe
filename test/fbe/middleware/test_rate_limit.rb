@@ -41,8 +41,12 @@ class RateLimitTest < Fbe::Test
   def test_decrements_remaining_count_for_non_rate_limit_requests
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json',
-                                                                'X-RateLimit-Remaining' => '4999' })
+      .to_return(
+        status: 200, body: payload.to_json, headers: {
+          'Content-Type' => 'application/json',
+          'X-RateLimit-Remaining' => '4999'
+        }
+      )
     stub_request(:get, 'https://api.github.com/user')
       .to_return(status: 200, body: '{"login": "test"}', headers: { 'Content-Type' => 'application/json' })
     conn = create_connection
