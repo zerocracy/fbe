@@ -30,4 +30,15 @@ class TestJustOne < Fbe::Test
       end
     assert_equal(42, n.foo)
   end
+
+  def test_ignores_system_attributes_when_matching
+    fb = Factbase.new
+    fb.insert.foo = 'hello dude'
+    n =
+      Fbe.just_one(fb:) do |f|
+        f._id = 42
+        f.foo = 'hello dude'
+      end
+    refute_nil(n)
+  end
 end

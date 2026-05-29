@@ -28,6 +28,10 @@ require_relative 'middleware/trace'
 # When we are off quota.
 class Fbe::OffQuota < StandardError; end
 
+Fbe::SEARCH_METHODS = %i[
+  search_issues search_commits search_repositories search_users search_code search_topics
+].freeze
+
 # Makes a call to the GitHub API.
 #
 # It is supposed to be used instead of +Octokit::Client+, because it
@@ -154,13 +158,34 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               @trace.clear
             end
           end
-          def off_quota?(threshold: 50) # rubocop:disable Layout/EmptyLineBetweenDefs
+          def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+            threshold ||= resource == :search ? 5 : 50
+            label = resource == :search ? 'GitHub Search API' : 'GitHub API'
             left = @origin.rate_limit!.remaining
+            got = false
+            if resource == :search && @origin.respond_to?(:last_response)
+              body = @origin.last_response&.body
+              body = JSON.parse(body) if body.is_a?(String)
+              if body.is_a?(Hash)
+                fresh = body.dig('resources', 'search', 'remaining') || body.dig(:resources, :search, :remaining)
+                if fresh
+                  left = Integer(fresh)
+                  got = true
+                end
+              end
+            end
+            if resource == :search && !got
+              klass = @origin.respond_to?(:last_response) ? @origin.last_response&.body&.class : nil
+              @loog.warn(
+                "Search-quota check fell back to core remaining (#{left}); " \
+                "search count unavailable (last_response body class: #{klass.inspect})"
+              )
+            end
             if left < threshold
-              @loog.info("Too much GitHub API quota consumed already (#{left} < #{threshold})")
+              @loog.info("Too much #{label} quota consumed already (#{left} < #{threshold})")
               true
             else
-              @loog.debug("Still #{left} GitHub API quota left (>#{threshold})")
+              @loog.debug("Still #{left} #{label} quota left (>#{threshold})")
               false
             end
           end
@@ -208,10 +233,23 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         end
       o =
         intercepted(o) do |e, m, _args, _r|
-          if e == :before && m != :off_quota? && m != :print_trace! && m != :rate_limit && o.off_quota?
+          next unless e == :before
+          next if %i[off_quota? print_trace! rate_limit].include?(m)
+          if Fbe::SEARCH_METHODS.include?(m)
+            raise(Fbe::OffQuota, "We are off-quota on the search resource, can't do #{m}()") if
+              o.off_quota?(resource: :search)
+          elsif o.off_quota?
             raise(Fbe::OffQuota, "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()")
           end
         end
+      o.instance_eval do
+        def send(...)
+          __send__(...)
+        end
+        def public_send(...) # rubocop:disable Layout/EmptyLineBetweenDefs, Elegant/GoodMethodName
+          __send__(...)
+        end
+      end
       o
     end
 end

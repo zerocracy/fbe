@@ -28,4 +28,24 @@ class TestRepeatedly < Fbe::Test
     assert_equal(1, $fb.size)
     assert_equal(42, $fb.query('(always)').each.first.foo)
   end
+
+  def test_log_uses_judge_parameter_not_global
+    $judge = 'global_judge'
+    fb = Factbase.new
+    $fb = fb
+    $global = {}
+    $options = Judges::Options.new
+    loog = Loog::Buffer.new
+    $loog = loog
+    judge = 'custom_judge'
+    Fbe.repeatedly('pmp', 'every_x_hours', fb:, loog:, judge:) do |f|
+      f.foo = 42
+    end
+    Fbe.repeatedly('pmp', 'every_x_hours', fb:, loog:, judge:) do |f|
+      f.foo = 42
+    end
+    output = loog.to_s
+    assert_includes(output, 'custom_judge')
+    refute_includes(output, 'global_judge')
+  end
 end

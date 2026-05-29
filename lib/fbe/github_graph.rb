@@ -45,6 +45,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   puts result.viewer.login #=> "octocat"
   def query(qry)
     result = client.query(client.parse(qry))
+    unless result.errors.empty?
+      raise(Fbe::Error, "GitHub GraphQL query failed: #{result.errors.messages.values.flatten.join('; ')}")
+    end
     result.data
   end
 
