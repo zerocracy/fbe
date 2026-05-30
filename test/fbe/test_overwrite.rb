@@ -185,6 +185,23 @@ class TestOverwrite < Fbe::Test
     assert_equal(0, f.pos)
   end
 
+  def test_hash_form_preserves_id_when_only_adding_absent_properties
+    fb = Factbase.new
+    global = {}
+    options = Judges::Options.new
+    loog = Loog::NULL
+    fbx = Fbe.fb(fb:, global:, options:, loog:)
+    f = fbx.insert
+    f.foo = 42
+    fbx.insert
+    before = f._id
+    Fbe.overwrite(f, { bar: 44, baz: 'new' }, fb: fbx)
+    result = fbx.query('(eq bar 44)').each.first
+    assert_equal(before, result._id)
+    assert_equal(42, result['foo'].first)
+    assert_equal('new', result['baz'].first)
+  end
+
   def test_overwrite_with_hash_preserves_other_properties
     fb = Factbase.new
     f = fb.insert
