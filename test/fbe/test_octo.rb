@@ -198,6 +198,28 @@ class TestOcto < Fbe::Test
     )
   end
 
+  def test_off_quota_search_uses_middleware_count_when_last_response_loses_search_resource
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    client = o.instance_variable_get(:@origin)
+    client.define_singleton_method(:rate_limit!) do
+      result = @origin.rate_limit!
+      @lost = Struct.new(:body).new({ 'rate' => { 'remaining' => result.remaining } })
+      result
+    end
+    client.define_singleton_method(:last_response) do
+      @lost || @origin.last_response
+    end
+    assert(
+      o.off_quota?(resource: :search),
+      'search quota check must not drift to the core count when last_response loses resources.search'
+    )
+  end
+
   def test_search_issues_blocked_when_search_quota_exhausted
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
