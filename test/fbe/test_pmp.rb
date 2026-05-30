@@ -37,6 +37,30 @@ class TestPmp < Fbe::Test
     refute(Fbe.pmp(loog: Loog::NULL).communications.stealth)
   end
 
+  def test_reads_true_boolean_default
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    xml = <<~XML
+      <?xml version='1.0'?>
+      <pmp>
+        <area name="communications">
+          <p>
+            <name>stealth</name>
+            <default>true</default>
+            <type>bool</type>
+            <memo>Test boolean default</memo>
+          </p>
+        </area>
+      </pmp>
+    XML
+    File.stub(:read, xml) do
+      assert(Fbe.pmp(loog: Loog::NULL).communications.stealth)
+      assert(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
+    end
+  end
+
   def test_converts_to_correct_type
     $fb = Factbase.new
     $global = {}
