@@ -432,6 +432,24 @@ class TestIterate < Fbe::Test
     assert_equal(12, fb.query('(eq what "iterate")').each.to_a.first.marker)
   end
 
+  def test_custom_since
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    10.times { |i| fb.insert.num = i + 1 }
+    results = []
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('since_test')
+      by('(agg (and (gt num $before) (lte num 10)) (min num))')
+      since(5)
+      repeats(10)
+      over do |_, num|
+        results << num
+        num
+      end
+    end
+    assert_equal([6, 7, 8, 9, 10], results)
+  end
+
   def test_catch_fbe_off_quota_exception_correctly
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
