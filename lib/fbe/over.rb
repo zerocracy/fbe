@@ -22,9 +22,12 @@ def Fbe.over?(
   epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
 )
-  if quota_aware && Fbe.octo(loog:, options:, global:).off_quota?(threshold: 100)
-    loog.info('We are off GitHub quota, time to stop')
-    return true
+  if quota_aware
+    octo = Fbe.octo(loog:, options:, global:)
+    if octo.off_quota?(threshold: 100, resource: :core) || octo.off_quota?(threshold: 100, resource: :search)
+      loog.info('We are off GitHub quota, time to stop')
+      return true
+    end
   end
   if lifetime_aware && options.lifetime && Time.now - epoch > options.lifetime * 0.9
     loog.info("We ran out of lifetime (#{epoch.ago} already), must stop here")
