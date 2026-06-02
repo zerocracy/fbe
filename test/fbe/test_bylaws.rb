@@ -76,6 +76,10 @@ class TestBylaws < Fbe::Test
         { hoc: 150, comments: 5, reviews: 1 } => 24,
         { hoc: 500, comments: 25, reviews: 2 } => 4,
         { hoc: 99, comments: 6, reviews: 1 } => 16,
+        { hoc: 200, comments: 0, reviews: 1 } => 8,
+        { hoc: 542, comments: 0, reviews: 1 } => 8,
+        { hoc: 799, comments: 0, reviews: 1 } => 8,
+        { hoc: 800, comments: 0, reviews: 1 } => 4,
         { hoc: 1_500, comments: 3, reviews: 0 } => 4,
         { hoc: 15_000, comments: 40, reviews: 0 } => 4
       },
