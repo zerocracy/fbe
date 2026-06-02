@@ -24,7 +24,7 @@ require_relative 'over'
 def Fbe.mask_to_regex(mask)
   org, repo = mask.split('/')
   raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
-  Regexp.compile("#{Regexp.escape(org)}/#{Regexp.escape(repo).gsub('\\*', '.*')}", Regexp::IGNORECASE)
+  Regexp.compile("\\A#{Regexp.escape(org)}/#{Regexp.escape(repo).gsub('\\*', '.*')}\\z", Regexp::IGNORECASE)
 end
 
 # Resolves repository masks to actual GitHub repository names.
