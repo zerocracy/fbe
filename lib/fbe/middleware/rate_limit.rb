@@ -44,8 +44,12 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     if env.url.path == '/rate_limit'
       @lock.synchronize { handle_rate_limit_request(env) }
     else
-      @lock.synchronize { track_request(env.url.path) }
-      @app.call(env)
+      @lock.synchronize do
+        track_request(env.url.path)
+        @app.call(env).on_complete do |response_env|
+          sync(response_env)
+        end
+      end
     end
   end
 
@@ -76,6 +80,24 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     elsif @remaining.positive?
       @remaining -= 1
     end
+  end
+
+  # Syncs the internal remaining count from a real API response header.
+  #
+  # When the response was served by Faraday::HttpCache from cache
+  # (indicated by +http_cache_trace+ containing +:fresh+), the
+  # +x-ratelimit-remaining+ header is stale, so we keep our
+  # decremented count. When the API was actually contacted,
+  # we prefer the authoritative header value.
+  #
+  # @param [Faraday::Env] response_env The response environment
+  def sync(response_env)
+    return if response_env[:http_cache_trace]&.include?(:fresh)
+    headers = response_env.response_headers
+    return unless headers
+    core = headers['x-ratelimit-remaining']
+    return unless core
+    @remaining = Integer(core)
   end
 
   # Extracts the remaining count from the response body.
