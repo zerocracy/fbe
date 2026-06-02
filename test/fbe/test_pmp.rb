@@ -98,9 +98,39 @@ class TestPmp < Fbe::Test
     assert(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
   end
 
-  def test_fail_on_wrong_area
+  def test_custom_area
     $global = {}
+    $options = Judges::Options.new
     $loog = Loog::NULL
-    assert_raises(StandardError) { Fbe.pmp(Factbase.new, loog: Loog::NULL).something }
+    fb = Fbe.fb(fb: Factbase.new, global: $global, options: $options, loog: $loog)
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'custom'
+    f.my_prop = 42
+    assert_equal(42, Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop)
+  end
+
+  def test_custom_area_without_fact
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    fb = Factbase.new
+    v = Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop
+    assert_nil(v.value)
+  end
+
+  def test_custom_area_properties
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    $fb = Factbase.new
+    f = $fb.insert
+    f.what = 'pmp'
+    f.area = 'custom'
+    f.prop_a = 1
+    f.prop_b = 2
+    props = Fbe.pmp(loog: Loog::NULL).custom.properties
+    assert_includes(props, 'prop_a')
+    assert_includes(props, 'prop_b')
   end
 end
