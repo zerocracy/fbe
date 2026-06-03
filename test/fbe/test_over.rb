@@ -38,7 +38,7 @@ class TestOver < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     loog = Loog::NULL
     octo = Fbe.octo(loog:, options:, global:)
-    def octo.off_quota?(threshold: nil, resource: :core)
+    def octo.off_quota?(resource: :core, **)
       resource == :search
     end
     assert(Fbe.over?(global:, options:, loog:, quota_aware: true))
