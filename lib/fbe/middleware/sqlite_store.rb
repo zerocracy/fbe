@@ -129,6 +129,8 @@ class Fbe::Middleware::SqliteStore
           end
         end
         resp['response_headers']['cache-control'] = control
+        value = value.dup
+        value[0] = value[0].dup
         value[0][1] = JSON.dump(resp)
       end
     end
