@@ -50,6 +50,29 @@ class TestConclude < Fbe::Test
     assert_includes(f.details, 'funny')
   end
 
+  def test_draw_follow_preserves_multi_values
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $fb.insert.then do |f|
+      f.win = 1
+      f.win = 2
+      f.win = 3
+    end
+    Fbe.conclude(judge: 'judge-multi') do
+      quota_unaware
+      on('(exists win)')
+      follow('win')
+      draw do |_n, _prev|
+        nil
+      end
+    end
+    f = $fb.query('(exists win)').each.to_a.last
+    assert_equal([1, 2, 3], f['win'])
+  end
+
   def test_draw_with_rollback
     $fb = Factbase.new
     $global = {}
