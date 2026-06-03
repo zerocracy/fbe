@@ -44,11 +44,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     if env.url.path == '/rate_limit'
       @lock.synchronize { handle_rate_limit_request(env) }
     else
-      @lock.synchronize do
-        track_request(env.url.path)
-        @app.call(env).on_complete do |response_env|
-          sync(response_env)
-        end
+      @lock.synchronize { track_request(env.url.path) }
+      @app.call(env).on_complete do |response_env|
+        @lock.synchronize { sync(response_env, env.url.path) }
       end
     end
   end
@@ -91,13 +89,17 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # we prefer the authoritative header value.
   #
   # @param [Faraday::Env] response_env The response environment
-  def sync(response_env)
+  def sync(response_env, path = nil)
     return if response_env[:http_cache_trace]&.include?(:fresh)
     headers = response_env.response_headers
     return unless headers
-    core = headers['x-ratelimit-remaining']
-    return unless core
-    @remaining = Integer(core)
+    remaining = headers['x-ratelimit-remaining']
+    return unless remaining
+    if path&.start_with?('/search/')
+      @searchleft = Integer(remaining)
+    else
+      @remaining = Integer(remaining)
+    end
   end
 
   # Extracts the remaining count from the response body.
