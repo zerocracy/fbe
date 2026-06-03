@@ -24,7 +24,7 @@ def Fbe.over?(
 )
   if quota_aware
     octo = Fbe.octo(loog:, options:, global:)
-    if octo.off_quota?(threshold: 100, resource: :core) || octo.off_quota?(threshold: 100, resource: :search)
+    if octo.off_quota?(threshold: 100, resource: :core) || octo.off_quota?(resource: :search)
       loog.info('We are off GitHub quota, time to stop')
       return true
     end
