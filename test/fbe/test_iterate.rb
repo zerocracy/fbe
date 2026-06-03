@@ -461,7 +461,7 @@ class TestIterate < Fbe::Test
         foo
       end
     end
-    assert_equal(51, count)
+    assert_equal(52, count)
   end
 
   def test_with_exhausted_rate_limit
