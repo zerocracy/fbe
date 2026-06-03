@@ -98,6 +98,18 @@ class TestPmp < Fbe::Test
     assert(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
   end
 
+  def test_regression_bool_true_default
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    cust = '<pmp><area name="t"><p><name>f</name><default>true</default><type>bool</type><memo>t</memo></p></area></pmp>'
+    orig = File.method(:read)
+    File.stub(:read, ->(p, **k) { p.end_with?('pmp.xml') ? cust : orig.call(p, **k) }) do
+      assert(Fbe.pmp(loog: Loog::NULL).t.f)
+    end
+  end
+
   def test_custom_area
     $global = {}
     $options = Judges::Options.new
