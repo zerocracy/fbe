@@ -28,6 +28,13 @@ require_relative 'fb'
 #   Fbe.pmp.cost.hourly_rate
 #   Fbe.pmp.time.deadline
 #
+# Custom areas (not defined in +assets/pmp.xml+) are also supported. When
+# accessing a property through a custom area, the returned value is read
+# directly from the factbase without XML defaults or type coercion. The
+# returned +Pmpv+ object will have +nil+ for +default+, +type+, and +memo+.
+#
+#   Fbe.pmp.my_custom.my_prop  # reads from factbase, no XML defaults
+#
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options The options coming from the +judges+ tool
@@ -42,6 +49,9 @@ require_relative 'fb'
 #
 #   # Get deadline from time area
 #   deadline = Fbe.pmp.time.deadline
+#
+#   # Read custom property (nil default/type/memo)
+#   val = Fbe.pmp.my_custom.my_prop
 def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   xml = Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
   pmpv =
