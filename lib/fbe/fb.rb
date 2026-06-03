@@ -31,34 +31,36 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
   raise(Fbe::Error, 'The $global is not set') if global.nil?
   raise(Fbe::Error, 'The $options is not set') if options.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  global[:fb] ||=
-    begin
-      rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }
-      fbe = Factbase::Rules.new(
-        fb,
-        "(and \n#{rules.join("\n")}\n)",
-        uid: '_id'
-      )
-      fbe =
-        Factbase::Pre.new(fbe) do |f, fbt|
-          max = fbt.query('(max _id)').one
-          f._id = (max.nil? ? 0 : max) + 1
-          f._time = Time.now
-          f._version = [Factbase::VERSION, Judges::VERSION, options.action_version].compact.join('/')
-          f._job = Integer(options.job_id.to_s, 10) if options.job_id
-        end
-      Factbase::Impatient.new(
-        Factbase::Logged.new(
-          Factbase::SyncFactbase.new(
-            Factbase::IndexedFactbase.new(
-              Factbase::CachedFactbase.new(
-                fbe
+  Fbe::GLOBAL_MUTEX.synchronize do
+    global[:fb] ||=
+      begin
+        rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }
+        fbe = Factbase::Rules.new(
+          fb,
+          "(and \n#{rules.join("\n")}\n)",
+          uid: '_id'
+        )
+        fbe =
+          Factbase::Pre.new(fbe) do |f, fbt|
+            max = fbt.query('(max _id)').one
+            f._id = (max.nil? ? 0 : max) + 1
+            f._time = Time.now
+            f._version = [Factbase::VERSION, Judges::VERSION, options.action_version].compact.join('/')
+            f._job = Integer(options.job_id.to_s, 10) if options.job_id
+          end
+        Factbase::Impatient.new(
+          Factbase::Logged.new(
+            Factbase::SyncFactbase.new(
+              Factbase::IndexedFactbase.new(
+                Factbase::CachedFactbase.new(
+                  fbe
+                )
               )
-            )
+            ),
+            loog
           ),
-          loog
-        ),
-        timeout: 60
-      )
-    end
+          timeout: 60
+        )
+      end
+  end
 end

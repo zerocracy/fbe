@@ -15,13 +15,15 @@ require_relative '../fbe'
 # @param [Loog] loog Logging facility
 # @return [Fbe::Graph] The instance of the class
 def Fbe.github_graph(options: $options, global: $global, loog: $loog)
-  global[:github_graph] ||=
-    if options.testing.nil?
-      Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
-    else
-      loog.debug('The connection to GitHub GraphQL API is mocked')
-      Fbe::Graph::Fake.new
-    end
+  Fbe::GLOBAL_MUTEX.synchronize do
+    global[:github_graph] ||=
+      if options.testing.nil?
+        Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
+      else
+        loog.debug('The connection to GitHub GraphQL API is mocked')
+        Fbe::Graph::Fake.new
+      end
+  end
 end
 
 # A client to GitHub GraphQL.
