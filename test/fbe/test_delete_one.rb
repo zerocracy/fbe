@@ -53,4 +53,25 @@ class TestDeleteOne < Fbe::Test
     assert_equal(1, fb.query('(exists foo)').each.to_a.size)
     assert_equal(1, fb.query('(eq foo 42)').each.to_a.size)
   end
+
+  def test_preserves_id_on_decorated_fb
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    fb = Factbase.new
+    global = {}
+    options = Judges::Options.new
+    loog = Loog::NULL
+    fbx = Fbe.fb(fb:, global:, options:, loog:)
+    fbx.insert.then { |f| f.foo = 1 }
+    fbx.insert.then { |f| f.foo = 2 }
+    target = fbx.query('(eq foo 1)').each.first
+    before = target._id
+    target.foo = 42
+    target.foo = 43
+    Fbe.delete_one(target, 'foo', 42, fb: fbx)
+    after = fbx.query('(eq foo 43)').each.first
+    assert_equal(before, after._id)
+  end
 end

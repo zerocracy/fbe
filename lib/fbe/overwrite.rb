@@ -53,6 +53,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
     fb.txn do |fbt|
       n = fbt.insert
+      Fbe.unid(n)
       before.each do |k, vv|
         next unless n[k].nil?
         vv.each do |v|
@@ -82,6 +83,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
   fb.txn do |fbt|
     n = fbt.insert
+    Fbe.unid(n)
     before[property.to_s] = values
     before.each do |k, vv|
       next unless n[k].nil?

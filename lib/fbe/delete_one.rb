@@ -33,6 +33,7 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   fb.query("(eq #{id} #{i})").delete!
   fb.txn do |fbt|
     c = fbt.insert
+    Fbe.unid(c)
     before.each do |k, vv|
       next unless c[k].nil?
       vv.each do |v|
