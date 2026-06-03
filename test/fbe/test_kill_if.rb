@@ -36,4 +36,17 @@ class TestKillIf < Fbe::Test
     assert_equal(1, Fbe.kill_if(fb.query('(always)').each.to_a, fb:) { |f| f.foo.zero? })
     assert_equal(1, fb.size)
   end
+
+  def test_returns_zero_when_facts_empty
+    fb = Factbase.new
+    assert_equal(0, Fbe.kill_if([], fb:))
+  end
+
+  def test_returns_zero_when_block_rejects_all
+    fb = Factbase.new
+    fb.insert.foo = 1
+    fb.insert.foo = 2
+    assert_equal(0, Fbe.kill_if(fb.query('(always)').each.to_a, fb:) { false })
+    assert_equal(2, fb.size)
+  end
 end
