@@ -103,7 +103,8 @@ class TestPmp < Fbe::Test
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
-    cust = '<pmp><area name="t"><p><name>f</name><default>true</default><type>bool</type><memo>t</memo></p></area></pmp>'
+    cust = '<pmp><area name="t"><p><name>x</name>' \
+           '<default>true</default><type>bool</type><memo>x</memo></p></area></pmp>'
     orig = File.method(:read)
     File.stub(:read, ->(p, **k) { p.end_with?('pmp.xml') ? cust : orig.call(p, **k) }) do
       assert(Fbe.pmp(loog: Loog::NULL).t.f)
