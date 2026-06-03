@@ -308,7 +308,7 @@ class Fbe::Iterate
           if nxt.nil?
             @loog.debug("Next element after ##{before[repo]} not suggested, re-starting from ##{@since}: #{@query}")
             restarted << repo
-            values.delete(repo) if @sorting
+            values.delete(repo)
             @since
           else
             @loog.debug("Next is ##{nxt}, starting from it")
