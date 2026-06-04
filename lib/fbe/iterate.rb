@@ -254,19 +254,14 @@ class Fbe::Iterate
       ).map { |n| oct.repo_id_by_name(n) }
     started = Time.now
     restarted = []
-    before =
-      repos.to_h do |repo|
-        [
-          repo,
-          @fb.query(
-            "(agg (and
-              (eq what 'iterate')
-              (eq where 'github')
-              (eq repository #{repo}))
-            (first #{@label}))"
-          ).one&.first || @since
-        ]
-      end
+    markers = {}
+    @fb.query("(and (eq what 'iterate') (eq where 'github'))").each do |f|
+      r = f['repository']&.first
+      next if r.nil? || markers.key?(r)
+      v = f[@label.to_s]&.first
+      markers[r] = v unless v.nil?
+    end
+    before = repos.to_h { |repo| [repo, markers[repo] || @since] }
     starts = before.dup
     values = {}
     loop do # rubocop:disable Metrics/BlockLength
