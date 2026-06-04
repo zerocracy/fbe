@@ -28,8 +28,10 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
     before[k] = fact[k]
   end
   return unless before[prop]
-  before[prop] = before[prop] - [value]
-  before.delete(prop) if before[prop].empty?
+  nv = before[prop] - [value]
+  return if nv == before[prop]
+  before[prop] = nv
+  before.delete(prop) if nv.empty?
   fb.query("(eq #{id} #{i})").delete!
   fb.txn do |fbt|
     c = fbt.insert
