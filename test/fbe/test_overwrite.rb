@@ -88,6 +88,22 @@ class TestOverwrite < Fbe::Test
     assert_equal(before, fbx.query('(eq bar 44)').each.first._id)
   end
 
+  def test_hash_without_previous_property
+    c = 0
+    fb =
+      Factbase::Pre.new(Factbase.new) do |f, _fbt|
+        f.pos = c
+        c += 1
+      end
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    before = f.pos
+    Fbe.overwrite(f, { bar: 44 }, fb:)
+    found = fb.query('(eq bar 44)').each.first
+    assert_equal(before, found.pos)
+  end
+
   def test_safe_insert
     fb = Factbase.new
     first = fb.insert
