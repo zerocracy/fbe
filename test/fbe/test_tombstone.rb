@@ -89,6 +89,19 @@ class TestTombstone < Fbe::Test
     assert_equal(%w[4-6 8 10-15 20], fb.query('(always)').each.first['issues'])
   end
 
+  def test_no_id_collisions
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    n = 100
+    n.times { |i| ts.bury!('github', i, 1) }
+    ids = Set.new
+    fb.query("(and (eq what 'tombstone'))").each do |f|
+      refute_nil(f[:_id])
+      ids << f[:_id]
+    end
+    assert_equal(n, ids.size)
+  end
+
   def test_store_single_issues_without_turning_them_into_pairs
     where = 'github'
     repo = 42
