@@ -210,6 +210,32 @@ class TestOverwrite < Fbe::Test
     assert_equal(42, result['foo'].first)
   end
 
+  def test_overwrite_with_hash_pure_addition_in_place
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, { bar: 'hello', baz: 99 }, fb:)
+    result = fb.query('(eq _id 1)').each.to_a
+    assert_equal(1, result.size)
+    assert_equal(42, result.first['foo'].first)
+    assert_equal('hello', result.first['bar'].first)
+    assert_equal(99, result.first['baz'].first)
+  end
+
+  def test_overwrite_with_hash_mix_addition_and_override
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    f.bar = 'old'
+    Fbe.overwrite(f, { foo: 100, baz: 'new_property' }, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(100, result['foo'].first)
+    assert_equal('old', result['bar'].first)
+    assert_equal('new_property', result['baz'].first)
+  end
+
   def test_overwrite_with_hash_mixed_key_types
     fb = Factbase.new
     f = fb.insert
