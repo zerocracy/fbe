@@ -38,7 +38,10 @@ def Fbe.just_one(fb: Fbe.fb)
     others(map: attrs) do |*args|
       k = args[0]
       if k.end_with?('=')
-        @map[k[0..-2].to_sym] = args[1]
+        v = args[1]
+        raise(Fbe::Error, "Can't set #{k[0..-2]} to nil") if v.nil?
+        raise(Fbe::Error, "Can't set #{k[0..-2]} to empty string") if v.is_a?(String) && v.empty?
+        @map[k[0..-2].to_sym] = v
       else
         @map[k.to_sym]
       end
