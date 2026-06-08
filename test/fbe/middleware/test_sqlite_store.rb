@@ -393,6 +393,16 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_does_not_mutate_original_value
+    with_tmpfile('x.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)
+      original = faraday_value(resp: { 'response_headers' => { 'cache-control' => 'public, max-age=60' } })
+      prior = original[0][1].dup
+      store.write('test', original)
+      assert_equal(prior, original[0][1], 'original value must not be mutated')
+    end
+  end
+
   def test_overwrite_cache_control
     with_tmpfile('t.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300).then do |store|
