@@ -108,6 +108,11 @@ Elegant/GoodMethodName:
     - workflow_run
     - workflow_run_job
     - workflow_run_usage
+Elegant/GoodVariableName:
+  AllowedNames:
+    - '@fb_mutex'
+    - '@octo_mutex'
+    - '@graph_mutex'
 Naming/MethodParameterName:
   AllowedNames:
     - as
