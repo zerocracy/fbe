@@ -53,4 +53,20 @@ class TestDeleteOne < Fbe::Test
     assert_equal(1, fb.query('(exists foo)').each.to_a.size)
     assert_equal(1, fb.query('(eq foo 42)').each.to_a.size)
   end
+
+  def test_does_not_recreate_fact_when_value_not_present
+    opts = Judges::Options.new(['testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    f = fb.insert
+    f.what = 'test'
+    f.foo = 1
+    f.foo = 2
+    f.foo = 3
+    id = f._id
+    Fbe.delete_one(f, 'foo', 99, fb:)
+    r = fb.query('(eq what "test")').each.first
+    assert_equal(1, fb.query('(eq what "test")').each.to_a.size)
+    assert_equal(id, r._id, 'The _id must not change when value is not in the array')
+    assert_equal([1, 2, 3], r['foo'])
+  end
 end
