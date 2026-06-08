@@ -50,6 +50,26 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(2, list.size)
   end
 
+  def test_mask_to_regex_treats_dot_as_literal
+    re = Fbe.mask_to_regex('zold-io/blog.zold.io')
+    assert_match(re, 'zold-io/blog.zold.io')
+    refute_match(re, 'zold-io/blogXzoldYio')
+  end
+
+  def test_mask_to_regex_escapes_other_metacharacters
+    re = Fbe.mask_to_regex('foo/bar+baz')
+    assert_match(re, 'foo/bar+baz')
+    refute_match(re, 'foo/barbaz')
+    refute_match(re, 'foo/barrrbaz')
+  end
+
+  def test_mask_to_regex_still_expands_wildcard
+    re = Fbe.mask_to_regex('zold-io/blog.zold.*')
+    assert_match(re, 'zold-io/blog.zold.io')
+    assert_match(re, 'zold-io/blog.zold.org')
+    refute_match(re, 'zold-io/blogXzoldYio')
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })
