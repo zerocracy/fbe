@@ -122,6 +122,24 @@ class TestOverwrite < Fbe::Test
     assert_equal('bar', after.foo)
   end
 
+  def test_keeps_original_fact_when_scalar_reinsert_fails
+    reject = false
+    fb =
+      Factbase::Pre.new(Factbase.new) do |_f, _fbt|
+        raise(RuntimeError, 'insert failed') if reject
+      end
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    f.bar = 'keep'
+    reject = true
+    assert_raises(RuntimeError) { Fbe.overwrite(f, 'foo', 55, fb:) }
+    after = fb.query('(eq _id 1)').each.to_a
+    assert_equal(1, after.size)
+    assert_equal([42], after.first['foo'])
+    assert_equal(['keep'], after.first['bar'])
+  end
+
   def test_overwrite_with_hash_single_property
     fb = Factbase.new
     f = fb.insert
@@ -234,6 +252,25 @@ class TestOverwrite < Fbe::Test
     assert_equal(100, result['foo'].first)
     assert_equal('old', result['bar'].first)
     assert_equal('new_property', result['baz'].first)
+  end
+
+  def test_keeps_original_fact_when_hash_reinsert_fails
+    reject = false
+    fb =
+      Factbase::Pre.new(Factbase.new) do |_f, _fbt|
+        raise(RuntimeError, 'insert failed') if reject
+      end
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    f.bar = 'keep'
+    reject = true
+    assert_raises(RuntimeError) { Fbe.overwrite(f, { foo: 55, baz: 'new' }, fb:) }
+    after = fb.query('(eq _id 1)').each.to_a
+    assert_equal(1, after.size)
+    assert_equal([42], after.first['foo'])
+    assert_equal(['keep'], after.first['bar'])
+    assert_nil(after.first['baz'])
   end
 
   def test_overwrite_with_hash_mixed_key_types
