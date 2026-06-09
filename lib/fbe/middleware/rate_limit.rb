@@ -117,6 +117,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
         return original
       end
     body['rate']['remaining'] = @remaining if body['rate']
+    body.dig('resources', 'core')&.[]=('remaining', @remaining)
     body.dig('resources', 'search')&.[]=('remaining', @searchleft)
     stringed ? body.to_json : body
   end
