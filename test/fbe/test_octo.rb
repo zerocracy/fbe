@@ -201,10 +201,15 @@ class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
   def test_off_quota_search_uses_middleware_count_when_last_response_loses_search_resource
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 5 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    stub_request(:get, %r{https://api.github.com/search/issues}).to_return(
+      body: { total_count: 0, incomplete_results: false, items: [] }.to_json,
       headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
     )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_equal(0, o.search_issues('repo:foo/bar type:issue')[:total_count])
     client = o.instance_variable_get(:@origin)
     client.define_singleton_method(:rate_limit!) do
       result = @origin.rate_limit!
@@ -216,7 +221,8 @@ class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
     end
     assert(
       o.off_quota?(resource: :search),
-      'search quota check must not drift to the core count when last_response loses resources.search'
+      'search quota check must use middleware remaining after a search request ' \
+      'even when last_response loses resources.search'
     )
   end
 

@@ -30,7 +30,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def initialize(app, tracker = nil)
     super(app)
     @cached = nil
-    @remaining = 0
+    @remaining = nil
     @searchleft = nil
     @counter = 0
     @lock = Mutex.new
@@ -86,7 +86,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @counter += 1
     if path&.start_with?('/search/')
       @searchleft -= 1 if @searchleft&.positive?
-    elsif @remaining.positive?
+    elsif @remaining&.positive?
       @remaining -= 1
     end
   end
@@ -126,7 +126,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     if path&.start_with?('/search/')
       @searchleft = @searchleft.nil? ? count : [@searchleft, count].min
     else
-      @remaining = [@remaining, count].min
+      @remaining = @remaining.nil? ? count : [@remaining, count].min
     end
   end
 
@@ -146,7 +146,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       else
         return original
       end
-    body['rate']['remaining'] = @remaining if body['rate']
+    body['rate']['remaining'] = @remaining if body['rate'] && !@remaining.nil?
     body.dig('resources', 'search')&.[]=('remaining', @searchleft) unless @searchleft.nil?
     stringed ? body.to_json : body
   end
@@ -163,7 +163,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     served.request_headers = env.request_headers
     served.body = patched_body(response.body)
     served.response_headers = response.headers.dup
-    served.response_headers['x-ratelimit-remaining'] = @remaining.to_s
+    served.response_headers['x-ratelimit-remaining'] = @remaining.to_s unless @remaining.nil?
     served
   end
 end
