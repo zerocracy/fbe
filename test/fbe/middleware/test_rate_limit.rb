@@ -56,8 +56,14 @@ class RateLimitTest < Fbe::Test
   def test_updates_remaining_count_from_non_rate_limit_response_header
     tracker = {}
     stub_request(:get, 'https://api.github.com/user')
-      .to_return(status: 200, body: '{"login": "test"}', headers: { 'Content-Type' => 'application/json',
-                                                                    'X-RateLimit-Remaining' => '1' })
+      .to_return(
+        status: 200,
+        body: '{"login": "test"}',
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-RateLimit-Remaining' => '1'
+        }
+      )
     conn = create_connection(tracker)
     conn.get('/user')
     assert_equal(1, tracker[:rate_limit].remaining)
