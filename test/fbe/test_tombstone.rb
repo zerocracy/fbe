@@ -89,17 +89,24 @@ class TestTombstone < Fbe::Test
     assert_equal(%w[4-6 8 10-15 20], fb.query('(always)').each.first['issues'])
   end
 
-  def test_no_id_collisions
+  def test_uses_large_random_range
     fb = Factbase.new
     ts = Fbe::Tombstone.new(fb:)
-    n = 100
-    n.times { |i| ts.bury!('github', i, 1) }
-    ids = Set.new
-    fb.query("(and (eq what 'tombstone'))").each do |f|
-      refute_nil(f[:_id])
-      ids << f[:_id]
+    arg = nil
+    callable =
+      lambda do |n|
+        arg = n
+        42
+      end
+    SecureRandom.stub(:random_number, callable) do
+      ts.bury!('github', 42, 1)
+      ts.bury!('github', 43, 1)
+      ts.bury!('github', 44, 1)
     end
-    assert_equal(n, ids.size)
+    assert_equal(9_999_999_999_999, arg, 'the SecureRandom range must be the large 10T value to avoid _id collisions')
+    ids = fb.query("(and (eq what 'tombstone'))").map { |f| f[:_id] }
+    ids.uniq!
+    assert_equal(1, ids.size, 'stubbed random_number returns same value, all get same _id')
   end
 
   def test_store_single_issues_without_turning_them_into_pairs
