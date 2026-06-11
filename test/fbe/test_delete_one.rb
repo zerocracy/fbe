@@ -69,4 +69,23 @@ class TestDeleteOne < Fbe::Test
     assert_equal(id, r._id, 'The _id must not change when value is not in the array')
     assert_equal([1, 2, 3], r['foo'])
   end
+
+  def test_keeps_original_fact_when_reinsert_fails
+    reject = false
+    fb =
+      Factbase::Pre.new(Factbase.new) do |_f, _fbt|
+        raise(RuntimeError, 'insert failed') if reject
+      end
+    f = fb.insert
+    f._id = 555
+    f.foo = 42
+    f.foo = 'hello'
+    f.bar = 'keep'
+    reject = true
+    assert_raises(RuntimeError) { Fbe.delete_one(f, 'foo', 42, fb:) }
+    after = fb.query('(eq _id 555)').each.to_a
+    assert_equal(1, after.size)
+    assert_equal([42, 'hello'], after.first['foo'])
+    assert_equal(['keep'], after.first['bar'])
+  end
 end

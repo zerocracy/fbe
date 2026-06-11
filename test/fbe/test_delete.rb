@@ -113,6 +113,24 @@ class TestDelete < Fbe::Test
     assert_nil(after['foo'])
   end
 
+  def test_keeps_original_fact_when_reinsert_fails
+    reject = false
+    fb =
+      Factbase::Pre.new(Factbase.new) do |_f, _fbt|
+        raise(RuntimeError, 'insert failed') if reject
+      end
+    f = fb.insert
+    f._id = 44
+    f.foo = 42
+    f.bar = 'keep'
+    reject = true
+    assert_raises(RuntimeError) { Fbe.delete(f, 'foo', fb:) }
+    after = fb.query('(eq _id 44)').each.to_a
+    assert_equal(1, after.size)
+    assert_equal([42], after.first['foo'])
+    assert_equal(['keep'], after.first['bar'])
+  end
+
   def test_deletes_when_duplicate_id
     fb = Factbase.new
     f = fb.insert
