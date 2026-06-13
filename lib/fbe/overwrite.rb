@@ -68,6 +68,13 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
     fb.txn do |fbt|
       n = fbt.insert
+      f = n
+      while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
+        iv = f.instance_variable_defined?(:@fact) ? :@fact : :@origin
+        f = f.instance_variable_get(iv)
+      end
+      map = f.instance_variable_get(:@map)
+      %w[_id _time _version _job].each { |k| map.delete(k) if before.key?(k) }
       before.each do |k, vv|
         next unless n[k].nil?
         vv.each do |v|
@@ -97,6 +104,13 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
   fb.txn do |fbt|
     n = fbt.insert
+    f = n
+    while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
+      iv = f.instance_variable_defined?(:@fact) ? :@fact : :@origin
+      f = f.instance_variable_get(iv)
+    end
+    map = f.instance_variable_get(:@map)
+    %w[_id _time _version _job].each { |k| map.delete(k) if before.key?(k) }
     before[property.to_s] = values
     before.each do |k, vv|
       next unless n[k].nil?

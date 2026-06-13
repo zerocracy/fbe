@@ -69,4 +69,29 @@ class TestDeleteOne < Fbe::Test
     assert_equal(id, r._id, 'The _id must not change when value is not in the array')
     assert_equal([1, 2, 3], r['foo'])
   end
+
+  def test_preserves_system_props_on_decorated_fb
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    fb = Factbase.new
+    global = {}
+    options = Judges::Options.new(job_id: 42)
+    loog = Loog::NULL
+    fbx = Fbe.fb(fb:, global:, options:, loog:)
+    fbx.insert.then { |f| f.foo = 1 }
+    fbx.insert.then { |f| f.foo = 2 }
+    target = fbx.query('(eq foo 1)').each.first
+    target.bar = 11
+    target.bar = 22
+    snapshot = { id: target._id, time: target._time, version: target._version, job: target._job }
+    Fbe.delete_one(target, 'bar', 11, fb: fbx)
+    after = fbx.query('(eq foo 1)').each.first
+    assert_equal(snapshot[:id], after._id)
+    assert_equal(snapshot[:time], after._time)
+    assert_equal(snapshot[:version], after._version)
+    assert_equal(snapshot[:job], after._job)
+    assert_equal([22], after['bar'])
+  end
 end
