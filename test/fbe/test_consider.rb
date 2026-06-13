@@ -32,4 +32,22 @@ class TestConsider < Fbe::Test
     end
     assert_equal(1, $fb.size)
   end
+
+  def test_quota_unaware
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '0' } }
+    )
+    $fb = Factbase.new
+    $fb.insert.foo = 42
+    $epoch = Time.now
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    $judge = ''
+    Fbe.consider('(always)', quota_aware: false) do |f|
+      f.bar = 7
+    end
+    assert_equal(1, $fb.size)
+  end
 end
