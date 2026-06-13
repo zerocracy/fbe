@@ -731,7 +731,7 @@ class TestOcto < Fbe::Test
     octo.print_trace!(all: true, max: 9_999)
     output = loog.to_s
     assert_includes(output, '3 URLs vs 4 requests')
-    assert_includes(output, '219 quota left')
+    assert_includes(output, '222 quota left')
     assert_includes(output, '/rate_limit: 1')
     assert_includes(output, '/user/123: 1')
     assert_includes(output, '/repos/foo/bar: 2')
