@@ -490,11 +490,12 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     total = 0
     cursor = nil
     loop do
+      after = "after: \"#{cursor}\", " unless cursor.nil?
       result = query(
         <<~GRAPHQL
           {
             repository(owner: "#{owner}", name: "#{name}") {
-              releases(first: 25, after: "#{cursor}", orderBy: { field: CREATED_AT, direction: DESC }) {
+              releases(#{after}first: 25, orderBy: { field: CREATED_AT, direction: DESC }) {
                 nodes {
                   isDraft
                   publishedAt
