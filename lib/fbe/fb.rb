@@ -33,8 +33,8 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   global[:mutex] ||= Mutex.new
   global[:mutex].synchronize do
-  global[:fb] ||=
-    begin
+    global[:fb] ||=
+      begin
         rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }
         fbe = Factbase::Rules.new(
           fb,
