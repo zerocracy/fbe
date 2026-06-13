@@ -51,9 +51,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
   raise(Fbe::Error, 'The $options is not set') if options.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   global[:mutex] ||= Mutex.new
-  global[:mutex].synchronize do
-  global[:octo] ||=
-    begin
+  global[:mutex].synchronize do # rubocop:disable Metrics/BlockLength
+    global[:octo] ||=
+      begin
         loog.info("Fbe version is #{Fbe::VERSION}")
         trace = []
         if options.testing.nil?
