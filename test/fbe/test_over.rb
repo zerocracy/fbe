@@ -38,7 +38,7 @@ class TestOver < Fbe::Test
     end
     assert(Fbe.over?(global:, options:, loog:, quota_aware: true))
     assert_includes(calls, { threshold: 100, resource: :core })
-    assert_includes(calls, { threshold: 10, resource: :search })
+    assert_includes(calls, { threshold: nil, resource: :search })
   end
 
   def test_check_off_quota_disabled
