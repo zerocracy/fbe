@@ -625,4 +625,17 @@ class TestGitHubGraph < Fbe::Test
     graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil]])
     refute_includes(captured, 'after: ""')
   end
+
+  def test_total_releases_published_omits_after_when_cursor_is_nil
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    captured = nil
+    page = { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      { 'repository' => { 'releases' => page } }
+    end
+    graph.total_releases_published('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
+    refute_includes(captured, 'after: ""')
+  end
 end
