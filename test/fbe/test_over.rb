@@ -33,6 +33,17 @@ class TestOver < Fbe::Test
     end
   end
 
+  def test_search_quota_stops_run_when_core_has_quota
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    loog = Loog::NULL
+    octo = Fbe.octo(loog:, options:, global:)
+    def octo.off_quota?(resource: :core, **)
+      resource == :search
+    end
+    assert(Fbe.over?(global:, options:, loog:, quota_aware: true))
+  end
+
   def test_check_lifetime_enabled
     global = {}
     options = Judges::Options.new({ 'testing' => true, 'lifetime' => 100 })
