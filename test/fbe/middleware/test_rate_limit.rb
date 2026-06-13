@@ -156,6 +156,7 @@ class RateLimitTest < Fbe::Test
     response = conn.get('/rate_limit')
     assert_equal(30, response.body['resources']['search']['remaining'])
     assert_equal(4998, response.body['rate']['remaining'])
+    assert_equal(4998, response.body['resources']['core']['remaining'])
   end
 
   def test_search_remaining_survives_repeated_search_calls_within_cache_window
