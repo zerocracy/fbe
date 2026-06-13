@@ -247,8 +247,9 @@ class Fbe::Conclude
   #   end
   def fill(fact, prev)
     @follows.each do |follow|
-      v = prev.public_send(follow)
-      fact.public_send(:"#{follow}=", v)
+      prev[follow.to_s].each do |v|
+        fact.public_send(:"#{follow}=", v)
+      end
     end
     r = yield(fact, prev)
     return unless r.is_a?(String)
