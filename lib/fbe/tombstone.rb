@@ -56,7 +56,7 @@ class Fbe::Tombstone
         n.where = where
         n.repository = repo
       end
-    f.public_send(:"#{@fid}=", SecureRandom.random_number(99_999)) if f[@fid].nil?
+    f.public_send(:"#{@fid}=", SecureRandom.random_number(9_999_999_999_999)) if f[@fid].nil?
     nn = f['issues']&.map do |ii|
       ii.split('-').map do |i|
         Integer(i, 10)

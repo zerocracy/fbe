@@ -40,19 +40,41 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
       before[k.to_s] = fact[k]
     end
     modified = false
+    overwrites = false
     property_or_hash.each do |k, vv|
+      sk = k.to_s
       raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
       vv = [vv] unless vv.is_a?(Array)
-      next if before[k.to_s] == vv
-      before[k.to_s] = vv
+      existing = before[sk]
+      next if existing == vv
+      before[sk] = vv
       modified = true
+      overwrites = true unless existing.nil?
     end
     return fact unless modified
+    unless overwrites
+      property_or_hash.each do |k, vv|
+        sk = k.to_s
+        next unless fact[sk].nil?
+        vv = [vv] unless vv.is_a?(Array)
+        vv.each do |v|
+          fact.public_send(:"#{sk}=", v)
+        end
+      end
+      return
+    end
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
     raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
     fb.txn do |fbt|
       n = fbt.insert
+      f = n
+      while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
+        iv = f.instance_variable_defined?(:@fact) ? :@fact : :@origin
+        f = f.instance_variable_get(iv)
+      end
+      map = f.instance_variable_get(:@map)
+      %w[_id _time _version _job].each { |k| map.delete(k) if before.key?(k) }
       before.each do |k, vv|
         next unless n[k].nil?
         vv.each do |v|
@@ -82,6 +104,13 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
   fb.txn do |fbt|
     n = fbt.insert
+    f = n
+    while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
+      iv = f.instance_variable_defined?(:@fact) ? :@fact : :@origin
+      f = f.instance_variable_get(iv)
+    end
+    map = f.instance_variable_get(:@map)
+    %w[_id _time _version _job].each { |k| map.delete(k) if before.key?(k) }
     before[property.to_s] = values
     before.each do |k, vv|
       next unless n[k].nil?

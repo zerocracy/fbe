@@ -41,8 +41,12 @@ class RateLimitTest < Fbe::Test
   def test_decrements_remaining_count_for_non_rate_limit_requests
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
-      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json',
-                                                                'X-RateLimit-Remaining' => '4999' })
+      .to_return(
+        status: 200, body: payload.to_json, headers: {
+          'Content-Type' => 'application/json',
+          'X-RateLimit-Remaining' => '4999'
+        }
+      )
     stub_request(:get, 'https://api.github.com/user')
       .to_return(status: 200, body: '{"login": "test"}', headers: { 'Content-Type' => 'application/json' })
     conn = create_connection
@@ -168,6 +172,7 @@ class RateLimitTest < Fbe::Test
     response = conn.get('/rate_limit')
     assert_equal(30, response.body['resources']['search']['remaining'])
     assert_equal(4998, response.body['rate']['remaining'])
+    assert_equal(4998, response.body['resources']['core']['remaining'])
   end
 
   def test_search_remaining_survives_repeated_search_calls_within_cache_window
@@ -291,6 +296,46 @@ class RateLimitTest < Fbe::Test
     threads = Array.new(20) { Thread.new { conn.get('/rate_limit') } }
     threads.each(&:join)
     assert_requested(:get, 'https://api.github.com/rate_limit', times: 1)
+  end
+
+  def test_syncs_core_remaining_from_response_header
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(
+        status: 200, body: '{"login":"x"}', headers: {
+          'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4900'
+        }
+      )
+    conn = create_connection
+    conn.get('/rate_limit')
+    conn.get('/user')
+    response = conn.get('/rate_limit')
+    assert_equal(4900, response.body['rate']['remaining'])
+  end
+
+  def test_syncs_search_remaining_from_response_header
+    payload = {
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'resources' => {
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => 1_672_531_200 }
+      }
+    }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/search/issues?q=s')
+      .to_return(
+        status: 200, body: '{"items":[]}', headers: {
+          'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '25'
+        }
+      )
+    conn = create_connection
+    conn.get('/rate_limit')
+    conn.get('/search/issues?q=s')
+    response = conn.get('/rate_limit')
+    assert_equal(25, response.body['resources']['search']['remaining'])
   end
 
   def test_cached_body_is_not_leaked_to_callers

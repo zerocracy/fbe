@@ -46,9 +46,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @lock.synchronize { handle_rate_limit_request(env) }
     else
       @lock.synchronize { track_request(env.url.path) }
-      response = @app.call(env)
-      @lock.synchronize { update(response, env.url.path) }
-      response
+      @app.call(env).on_complete do |response_env|
+        @lock.synchronize { sync(response_env, env.url.path) }
+      end
     end
   end
 
@@ -91,6 +91,30 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     end
   end
 
+  # Syncs the internal remaining count from a real API response header.
+  #
+  # When the response was served by Faraday::HttpCache from cache
+  # (indicated by +http_cache_trace+ containing +:fresh+), the
+  # +x-ratelimit-remaining+ header is stale, so we keep our
+  # decremented count. When the API was actually contacted,
+  # we seed unknown counters from headers, but avoid raising
+  # a counter already decremented by this middleware.
+  #
+  # @param [Faraday::Env] response_env The response environment
+  def sync(response_env, path = nil)
+    return if response_env[:http_cache_trace]&.include?(:fresh)
+    headers = response_env.response_headers
+    return unless headers
+    remaining = headers['x-ratelimit-remaining']
+    return unless remaining
+    count = Integer(remaining)
+    if path&.start_with?('/search/')
+      @searchleft = @searchleft.nil? ? count : [@searchleft, count].min
+    else
+      @remaining = @remaining.nil? ? count : [@remaining, count].min
+    end
+  end
+
   # Extracts the remaining count from the response body.
   #
   # @param [Faraday::Response] response The API response
@@ -115,21 +139,6 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     value.nil? ? nil : Integer(value)
   end
 
-  # Updates the tracked remaining count from a non-rate_limit response header.
-  #
-  # @param [Faraday::Response] response The API response
-  # @param [String] path The requested path
-  def update(response, path)
-    value = response.headers['x-ratelimit-remaining']
-    return if value.nil?
-    count = Integer(value)
-    if path&.start_with?('/search/')
-      @searchleft = @searchleft.nil? ? count : [@searchleft, count].min
-    else
-      @remaining = @remaining.nil? ? count : [@remaining, count].min
-    end
-  end
-
   # Builds a fresh body with the current remaining counts written in,
   # without mutating the cached response. Uses a JSON round-trip for
   # the deep copy so we only handle JSON-shaped data.
@@ -147,6 +156,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
         return original
       end
     body['rate']['remaining'] = @remaining if body['rate'] && !@remaining.nil?
+    body.dig('resources', 'core')&.[]=('remaining', @remaining) unless @remaining.nil?
     body.dig('resources', 'search')&.[]=('remaining', @searchleft) unless @searchleft.nil?
     stringed ? body.to_json : body
   end

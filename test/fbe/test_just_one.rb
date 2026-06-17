@@ -41,4 +41,20 @@ class TestJustOne < Fbe::Test
       end
     refute_nil(n)
   end
+
+  def test_raises_on_empty_value
+    assert_raises(StandardError) do
+      Fbe.just_one(fb: Factbase.new) do |f|
+        f.foo = ''
+      end
+    end
+  end
+
+  def test_raises_on_nil
+    assert_raises(StandardError) do
+      Fbe.just_one(fb: Factbase.new) do |f|
+        f.foo = nil
+      end
+    end
+  end
 end

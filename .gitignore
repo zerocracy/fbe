@@ -9,3 +9,5 @@ node_modules/
 rdoc/
 vendor/
 .claude/
+.opencode/
+.vscode/

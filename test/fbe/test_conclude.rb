@@ -181,6 +181,30 @@ class TestConclude < Fbe::Test
     assert_equal(42, f.score)
   end
 
+  def test_follow_multivalued
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    f = $fb.insert
+    f.foo = 1
+    f.tags = 'a'
+    f.tags = 'b'
+    f.tags = 'c'
+    Fbe.conclude(judge: 'judge-follow') do
+      quota_unaware
+      on('(exists foo)')
+      follow('tags')
+      draw do |n, _prev|
+        n.processed = 'yes'
+        'Some long description that satisfies the twenty five chars minimum.'
+      end
+    end
+    n = $fb.query('(eq processed "yes")').each.to_a[0]
+    assert_equal(%w[a b c], n['tags'])
+  end
+
   def test_catch_fbe_off_quota_exception_correctly
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

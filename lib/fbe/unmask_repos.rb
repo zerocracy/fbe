@@ -24,7 +24,7 @@ require_relative 'over'
 def Fbe.mask_to_regex(mask)
   org, repo = mask.split('/')
   raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
-  Regexp.compile("#{org}/#{repo.gsub('*', '.*')}", Regexp::IGNORECASE)
+  Regexp.compile("#{Regexp.escape(org)}/#{Regexp.escape(repo).gsub('\\*', '.*')}", Regexp::IGNORECASE)
 end
 
 # Resolves repository masks to actual GitHub repository names.
@@ -96,7 +96,6 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   raise(Fbe::Error, "No repos found matching: #{options.repositories.inspect}") if repos.empty?
   repos.shuffle!
   loog.debug("Scanning #{repos.size} repositories: #{repos.joined}...")
-  repos.each { |repo| octo.repository(repo) }
   return repos unless block_given?
   repos.each do |repo|
     break if Fbe.over?(global:, options:, loog:, epoch:, kickoff:, quota_aware:, lifetime_aware:, timeout_aware:)

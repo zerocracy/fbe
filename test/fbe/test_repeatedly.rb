@@ -48,4 +48,22 @@ class TestRepeatedly < Fbe::Test
     assert_includes(output, 'custom_judge')
     refute_includes(output, 'global_judge')
   end
+
+  def test_failed_block_does_not_lock_out_next_run
+    $fb = Factbase.new
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
+    judge = 'failing-judge'
+    assert_raises(RuntimeError) do
+      Fbe.repeatedly('pmp', 'every_x_hours', judge:) do |_f|
+        raise(RuntimeError, 'oops')
+      end
+    end
+    ran = false
+    Fbe.repeatedly('pmp', 'every_x_hours', judge:) do |_f|
+      ran = true
+    end
+    assert(ran)
+  end
 end

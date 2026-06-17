@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
+class TestOcto < Fbe::Test
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
@@ -759,7 +759,7 @@ class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
     octo.print_trace!(all: true, max: 9_999)
     output = loog.to_s
     assert_includes(output, '3 URLs vs 4 requests')
-    assert_includes(output, '219 quota left')
+    assert_includes(output, '222 quota left')
     assert_includes(output, '/rate_limit: 1')
     assert_includes(output, '/user/123: 1')
     assert_includes(output, '/repos/foo/bar: 2')
@@ -1125,5 +1125,165 @@ class TestOcto < Fbe::Test # rubocop:disable Metrics/ClassLength
         assert_equal('factbase_changed', o.repo(798_641_472)['name'])
       end
     end
+  end
+
+  def test_fake_accept_repository_invitation
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert(o.accept_repository_invitation(1))
+    assert_raises(Octokit::NotFound) { o.accept_repository_invitation(404_000) }
+  end
+
+  def test_fake_repositories
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    repos = o.repositories('yegor256')
+    assert_equal(2, repos.size)
+    assert_equal('yegor256/judges', repos[0][:full_name])
+    assert_equal('yegor256/factbase', repos[1][:full_name])
+  end
+
+  def test_fake_releases
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    list = o.releases('yegor256/test')
+    assert_equal(2, list.size)
+    rel = o.release('https://example.com')
+    assert_equal('0.19.0', rel[:tag_name])
+  end
+
+  def test_fake_pull_requests
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    prs = o.pull_requests('yegor256/test')
+    assert_equal(2, prs.size)
+    assert_equal(100, prs[0][:number])
+    assert_equal(95, prs[1][:number])
+  end
+
+  def test_fake_pull_request_reviews
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    reviews = o.pull_request_reviews('yegor256/test', 100)
+    assert_equal(2, reviews.size)
+    assert_equal('CHANGES_REQUESTED', reviews[0][:state])
+  end
+
+  def test_fake_review_comments
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    comments = o.review_comments('yegor256/test', 100)
+    assert_equal(3, comments.size)
+    assert_equal('Some comment 1', comments[0][:body])
+  end
+
+  def test_fake_create_commit_comment
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.create_commit_comment('yegor256/test', 'abc123', 'test comment')
+    assert_equal('abc123', result[:commit_id])
+    assert_equal('test comment', result[:body])
+  end
+
+  def test_fake_search_issues_with_merged
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.search_issues('repo:foo/bar type:pr is:merged')
+    assert_equal(1, result[:total_count])
+    assert_equal(10, result[:items][0][:number])
+  end
+
+  def test_fake_commits_since
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    commits = o.commits_since('yegor256/test', Time.now - 86_400)
+    assert_equal(2, commits.size)
+    assert_equal(123, commits[0][:stats][:total])
+  end
+
+  def test_fake_search_commits
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.search_commits('repo:yegor256/test')
+    assert_equal(3, result[:total_count])
+  end
+
+  def test_fake_issue_timeline
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    events = o.issue_timeline('yegor256/test', 42)
+    assert_equal(4, events.size)
+    assert_equal('renamed', events[0][:event])
+    assert_match(/issue_type_/, events[2][:event])
+    assert_match(/issue_type_/, events[3][:event])
+  end
+
+  def test_fake_repository_events
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    events = o.repository_events('yegor256/test')
+    assert_equal(5, events.size)
+  end
+
+  def test_fake_pull_request_comments
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    comments = o.pull_request_comments('yegor256/test', 42)
+    assert_equal(2, comments.size)
+  end
+
+  def test_fake_issue_comments
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    comments = o.issue_comments('yegor256/test', 42)
+    assert_equal(2, comments.size)
+  end
+
+  def test_fake_issue_comment_reactions
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    reactions = o.issue_comment_reactions('yegor256/test', 1_709_082_318)
+    assert_equal(1, reactions.size)
+    assert_equal('heart', reactions[0][:content])
+  end
+
+  def test_fake_pull_request_review_comment_reactions
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    reactions = o.pull_request_review_comment_reactions('yegor256/test', 1_709_082_318)
+    assert_equal(1, reactions.size)
+    assert_equal('heart', reactions[0][:content])
+  end
+
+  def test_fake_compare
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.compare('yegor256/test', 'abc', 'def')
+    assert_equal('diverged', result[:status])
+    assert_equal(1, result[:ahead_by])
+  end
+
+  def test_fake_tree
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.tree('yegor256/test', 'abc')
+    refute(result[:truncated])
+  end
+
+  def test_fake_contributors
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    contribs = o.contributors('yegor256/test')
+    assert_equal(7, contribs.size)
+  end
+
+  def test_fake_user_repository_invitations
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    invs = o.user_repository_invitations
+    assert_equal(2, invs.size)
+  end
+
+  def test_fake_organization_memberships
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    mems = o.organization_memberships
+    assert_equal(2, mems.size)
+  end
+
+  def test_fake_update_organization_membership
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.update_organization_membership('zerocracy')
+    assert_equal('active', result[:state])
+  end
+
+  def test_fake_remove_organization_membership
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert(o.remove_organization_membership('zerocracy', 'yegor256'))
+  end
+
+  def test_fake_repository_workflow_runs
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.repository_workflow_runs('yegor256/test')
+    assert_equal(2, result[:total_count])
   end
 end

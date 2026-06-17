@@ -69,16 +69,17 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   def response(http) # rubocop:disable Metrics/AbcSize
     return if http.status < 400
     if http.status == 403 && http.response_headers['content-type']&.start_with?('application/json')
-      warn(
-        [
-          "#{@req.method.upcase} #{apply_filters(@req.url.to_s)}",
-          '->',
-          http.status,
-          '/',
-          JSON.parse(http.response_body)['message']
-        ].join(' ')
-      )
-      return
+      msg =
+        begin
+          parsed = JSON.parse(http.response_body)
+          parsed['message'] if parsed.is_a?(Hash)
+        rescue JSON::ParserError, TypeError
+          nil
+        end
+      unless msg.nil?
+        warn(["#{@req.method.upcase} #{apply_filters(@req.url.to_s)}", '->', http.status, '/', msg].join(' '))
+        return
+      end
     end
     if http.status >= 500 && http.response_headers['content-type']&.start_with?('text')
       error(
