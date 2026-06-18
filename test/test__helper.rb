@@ -22,7 +22,6 @@ unless SimpleCov.running || ARGV.include?('--no-cov')
     add_filter 'vendor/'
     add_filter 'target/'
     add_filter 'test/'
-    add_filter 'lib/fbe/github_graph.rb'
     track_files 'lib/**/*.rb'
     track_files '*.rb'
   end

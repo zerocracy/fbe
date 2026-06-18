@@ -18,4 +18,18 @@ class TestSec < Fbe::Test
     f.seconds = 333
     assert(Fbe.sec(f).start_with?('5m'))
   end
+
+  def test_formats_elapsed_time_for_a_week
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 86_400 * 7
+    assert_equal('1w', Fbe.sec(f))
+  end
+
+  def test_uses_custom_property
+    fb = Factbase.new
+    f = fb.insert
+    f.duration = 86_400 * 30
+    assert_equal('1mo', Fbe.sec(f, :duration))
+  end
 end

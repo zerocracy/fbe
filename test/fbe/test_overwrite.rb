@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class TestOverwrite < Fbe::Test # rubocop:disable Metrics/ClassLength
+class TestOverwrite < Fbe::Test
   def test_simple_overwrite
     fb = Factbase.new
     f = fb.insert
@@ -210,6 +210,32 @@ class TestOverwrite < Fbe::Test # rubocop:disable Metrics/ClassLength
     assert_equal(42, result['foo'].first)
   end
 
+  def test_overwrite_with_hash_pure_addition_in_place
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, { bar: 'hello', baz: 99 }, fb:)
+    result = fb.query('(eq _id 1)').each.to_a
+    assert_equal(1, result.size)
+    assert_equal(42, result.first['foo'].first)
+    assert_equal('hello', result.first['bar'].first)
+    assert_equal(99, result.first['baz'].first)
+  end
+
+  def test_overwrite_with_hash_mix_addition_and_override
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    f.bar = 'old'
+    Fbe.overwrite(f, { foo: 100, baz: 'new_property' }, fb:)
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(100, result['foo'].first)
+    assert_equal('old', result['bar'].first)
+    assert_equal('new_property', result['baz'].first)
+  end
+
   def test_overwrite_with_hash_mixed_key_types
     fb = Factbase.new
     f = fb.insert
@@ -357,5 +383,54 @@ class TestOverwrite < Fbe::Test # rubocop:disable Metrics/ClassLength
     assert_equal('مرحبا بالعالم', result['arabic'].first)
     assert_equal('Привет мир', result['russian'].first)
     assert_equal('こんにちは世界', result['japanese'].first)
+  end
+
+  def test_preserves_system_props_on_decorated_fb_scalar
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    fb = Factbase.new
+    global = {}
+    options = Judges::Options.new(job_id: 42)
+    loog = Loog::NULL
+    fbx = Fbe.fb(fb:, global:, options:, loog:)
+    fbx.insert.then { |f| f.foo = 1 }
+    fbx.insert.then { |f| f.foo = 2 }
+    target = fbx.query('(eq foo 1)').each.first
+    target.bar = 'old'
+    snapshot = { id: target._id, time: target._time, version: target._version, job: target._job }
+    Fbe.overwrite(target, 'bar', 'new', fb: fbx)
+    after = fbx.query('(eq foo 1)').each.first
+    assert_equal(snapshot[:id], after._id)
+    assert_equal(snapshot[:time], after._time)
+    assert_equal(snapshot[:version], after._version)
+    assert_equal(snapshot[:job], after._job)
+    assert_equal(['new'], after['bar'])
+  end
+
+  def test_preserves_system_props_on_decorated_fb_hash_overwrites_existing
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    fb = Factbase.new
+    global = {}
+    options = Judges::Options.new(job_id: 42)
+    loog = Loog::NULL
+    fbx = Fbe.fb(fb:, global:, options:, loog:)
+    fbx.insert.then { |f| f.foo = 1 }
+    fbx.insert.then { |f| f.foo = 2 }
+    target = fbx.query('(eq foo 1)').each.first
+    target.bar = 'old'
+    snapshot = { id: target._id, time: target._time, version: target._version, job: target._job }
+    Fbe.overwrite(target, { bar: 'new', baz: 'added' }, fb: fbx)
+    after = fbx.query('(eq foo 1)').each.first
+    assert_equal(snapshot[:id], after._id)
+    assert_equal(snapshot[:time], after._time)
+    assert_equal(snapshot[:version], after._version)
+    assert_equal(snapshot[:job], after._job)
+    assert_equal(['new'], after['bar'])
+    assert_equal(['added'], after['baz'])
   end
 end

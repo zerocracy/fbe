@@ -7,7 +7,7 @@ AllCops:
     - 'assets/**/*'
     - 'vendor/**/**'
   DisplayCopNames: true
-  TargetRubyVersion: 3.2
+  TargetRubyVersion: 3.3
   SuggestExtensions: false
   NewCops: enable
 plugins:
@@ -19,7 +19,22 @@ Style/GlobalVars:
   Enabled: false
 Style/TopLevelMethodDefinition:
   Enabled: false
+Elegant/NoRedundantVariable:
+  Enabled: false
+Elegant/NoNilReturn:
+  Enabled: false
+Elegant/IndentationLadder:
+  Enabled: false
+Elegant/NoClassInModule:
+  Exclude:
+    - 'lib/fbe.rb'
+Elegant/ClassInModule:
+  Exclude:
+    - 'lib/**/*'
+    - 'test/**/*'
 Elegant/GoodMethodName:
+  Exclude:
+    - 'test/**/*'
   AllowedNames:
     - accept_repository_invitation
     - add_comment

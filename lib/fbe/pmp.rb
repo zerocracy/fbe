@@ -28,6 +28,13 @@ require_relative 'fb'
 #   Fbe.pmp.cost.hourly_rate
 #   Fbe.pmp.time.deadline
 #
+# Custom areas (not defined in +assets/pmp.xml+) are also supported. When
+# accessing a property through a custom area, the returned value is read
+# directly from the factbase without XML defaults or type coercion. The
+# returned +Pmpv+ object will have +nil+ for +default+, +type+, and +memo+.
+#
+#   Fbe.pmp.my_custom.my_prop  # reads from factbase, no XML defaults
+#
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options The options coming from the +judges+ tool
@@ -42,7 +49,10 @@ require_relative 'fb'
 #
 #   # Get deadline from time area
 #   deadline = Fbe.pmp.time.deadline
-def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize
+#
+#   # Read custom property (nil default/type/memo)
+#   val = Fbe.pmp.my_custom.my_prop
+def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   xml = Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
   pmpv =
     Class.new(SimpleDelegator) do
@@ -55,6 +65,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
         @memo = memo
       end
     end
+  query = ->(area) { Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))") }
   Class.new do
     define_method(:areas) do
       xml.xpath('/pmp/area/@name').map(&:value)
@@ -62,42 +73,53 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
     others do |*args1|
       area = args1.first.to_s
       node = xml.at_xpath("/pmp/area[@name='#{area}']")
-      raise Fbe::Error, "Unknown area #{area.inspect}" if node.nil?
-      Class.new do
-        define_method(:properties) do
-          node.xpath('p/name').map(&:text)
-        end
-        others do |*args2|
-          param = args2.first.to_s
-          f = Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))").each.first
-          result = f&.[](param)&.first
-          prop = node.at_xpath("p[name='#{param}']")
-          default = nil
-          type = nil
-          memo = nil
-          if prop
-            default = prop.at_xpath('default').text
-            type = prop.at_xpath('type').text
-            memo = prop.at_xpath('memo').text
-            default =
-              case type
-              when 'int' then Integer(default, 10)
-              when 'float' then Float(default)
-              when 'bool' then default == 'true'
-              else default
-              end
+      if node.nil?
+        Class.new do
+          define_method(:properties) do
+            query.call(area).each.first&.all_properties&.map(&:to_s) || []
           end
-          result ||= default
-          result =
-            case type
-            when 'int' then Integer(Float(result).truncate)
-            when 'float' then Float(result)
-            when 'bool' then result == 'true'
-            else result
+          others do |*args2|
+            param = args2.first.to_s
+            result = query.call(area).each.first&.[](param)&.first
+            pmpv.new(result, nil, nil, nil)
+          end
+        end.new
+      else
+        Class.new do
+          define_method(:properties) do
+            node.xpath('p/name').map(&:text)
+          end
+          others do |*args2|
+            param = args2.first.to_s
+            result = query.call(area).each.first&.[](param)&.first
+            prop = node.at_xpath("p[name='#{param}']")
+            default = nil
+            type = nil
+            memo = nil
+            if prop
+              default = prop.at_xpath('default').text
+              type = prop.at_xpath('type').text
+              memo = prop.at_xpath('memo').text
+              default =
+                case type
+                when 'int' then Integer(default, 10)
+                when 'float' then Float(default)
+                when 'bool' then default == 'true'
+                else default
+                end
             end
-          pmpv.new(result, default, type, memo)
-        end
-      end.new
+            result ||= default
+            result =
+              case type
+              when 'int' then Integer(Float(result).truncate)
+              when 'float' then Float(result)
+              when 'bool' then result == 'true'
+              else result
+              end
+            pmpv.new(result, default, type, memo)
+          end
+        end.new
+      end
     end
   end.new
 end

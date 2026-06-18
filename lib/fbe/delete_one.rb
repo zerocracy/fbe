@@ -28,11 +28,20 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
     before[k] = fact[k]
   end
   return unless before[prop]
-  before[prop] = before[prop] - [value]
-  before.delete(prop) if before[prop].empty?
+  nv = before[prop] - [value]
+  return if nv == before[prop]
+  before[prop] = nv
+  before.delete(prop) if nv.empty?
   fb.query("(eq #{id} #{i})").delete!
   fb.txn do |fbt|
     c = fbt.insert
+    f = c
+    while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
+      iv = f.instance_variable_defined?(:@fact) ? :@fact : :@origin
+      f = f.instance_variable_get(iv)
+    end
+    map = f.instance_variable_get(:@map)
+    %w[_id _time _version _job].each { |k| map.delete(k) if before.key?(k) }
     before.each do |k, vv|
       next unless c[k].nil?
       vv.each do |v|

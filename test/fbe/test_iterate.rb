@@ -13,7 +13,7 @@ require_relative '../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class TestIterate < Fbe::Test # rubocop:disable Metrics/ClassLength
+class TestIterate < Fbe::Test
   def test_simple
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -429,12 +429,14 @@ class TestIterate < Fbe::Test # rubocop:disable Metrics/ClassLength
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
       as('marker')
       sort_by('issue')
-      by("(and
+      by(
+        "(and
             (gt issue $before)
             (eq repository $repository)
             (eq where 'github')
             (eq what 'judge')
-            (empty (and (exists prop) (eq issue $issue))))")
+            (empty (and (exists prop) (eq issue $issue))))"
+      )
       repeats(100)
       over do |repository, issue|
         f =
@@ -453,12 +455,14 @@ class TestIterate < Fbe::Test # rubocop:disable Metrics/ClassLength
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
       as('marker')
       sort_by('issue')
-      by("(and
+      by(
+        "(and
             (gt issue $before)
             (eq repository $repository)
             (eq where 'github')
             (eq what 'judge')
-            (empty (and (exists prop) (eq issue $issue))))")
+            (empty (and (exists prop) (eq issue $issue))))"
+      )
       repeats(5)
       over do |repository, issue|
         f =
@@ -474,6 +478,24 @@ class TestIterate < Fbe::Test # rubocop:disable Metrics/ClassLength
     end
     assert_equal(5, fb.query('(and (eq what "judge") (exists prop3))').each.to_a.size)
     assert_equal(12, fb.query('(eq what "iterate")').each.to_a.first.marker)
+  end
+
+  def test_custom_since
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    10.times { |i| fb.insert.num = i + 1 }
+    results = []
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('since_test')
+      by('(agg (and (gt num $before) (lte num 10)) (min num))')
+      since(5)
+      repeats(10)
+      over do |_, num|
+        results << num
+        num
+      end
+    end
+    assert_equal([6, 7, 8, 9, 10], results)
   end
 
   def test_catch_fbe_off_quota_exception_correctly
@@ -505,7 +527,7 @@ class TestIterate < Fbe::Test # rubocop:disable Metrics/ClassLength
         foo
       end
     end
-    assert_equal(51, count)
+    assert_equal(52, count)
   end
 
   def test_with_exhausted_rate_limit

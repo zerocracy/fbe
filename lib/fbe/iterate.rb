@@ -149,15 +149,17 @@ class Fbe::Iterate
     @repeats = repeats
   end
 
-  # Sets the initial marker value.
+  # Sets the initial value for iteration tracking.
   #
-  # This value is used when no marker fact exists yet, and when iteration
-  # restarts after the query returns nil.
+  # This value is used as the starting point when no marker exists in the
+  # factbase for the current iteration label. It is also used as the
+  # restart value when a query returns nil, causing the iteration for
+  # that repository to begin again from this value.
   #
-  # @param [Integer] value The initial marker value
+  # @param [Integer] value The initial value for iteration tracking
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If value is nil, not an Integer, or already set
-  # @example Start scanning after issue 100
+  # @raise [RuntimeError] If value is nil or not an Integer
+  # @example Start iteration from issue number 100
   #   iterator.since(100)
   def since(value)
     raise(Fbe::Error, 'Since is already set') if @custom
@@ -273,19 +275,14 @@ class Fbe::Iterate
       ).map { |n| oct.repo_id_by_name(n) }
     started = Time.now
     restarted = []
-    before =
-      repos.to_h do |repo|
-        [
-          repo,
-          @fb.query(
-            "(agg (and
-              (eq what 'iterate')
-              (eq where 'github')
-              (eq repository #{repo}))
-            (first #{@label}))"
-          ).one&.first || @since
-        ]
-      end
+    markers = {}
+    @fb.query("(and (eq what 'iterate') (eq where 'github'))").each do |f|
+      r = f['repository']&.first
+      next if r.nil? || markers.key?(r)
+      v = f[@label.to_s]&.first
+      markers[r] = v unless v.nil?
+    end
+    before = repos.to_h { |repo| [repo, markers[repo] || @since] }
     starts = before.dup
     values = {}
     loop do # rubocop:disable Metrics/BlockLength

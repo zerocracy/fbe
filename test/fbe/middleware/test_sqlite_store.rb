@@ -14,7 +14,7 @@ require_relative '../../test__helper'
 # Author:: Yegor Bugayenko (yegor256@gmail.com)
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
-class SqliteStoreTest < Fbe::Test # rubocop:disable Metrics/ClassLength
+class SqliteStoreTest < Fbe::Test
   def test_simple_caching_algorithm # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('x.db') do |f|
       store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')
@@ -390,6 +390,16 @@ class SqliteStoreTest < Fbe::Test # rubocop:disable Metrics/ClassLength
         assert_equal(JSON.dump('some string'), store.read('test7')[0][1])
         assert_nil(store.read('test8')[0][1])
       end
+    end
+  end
+
+  def test_does_not_mutate_original_value
+    with_tmpfile('x.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)
+      original = faraday_value(resp: { 'response_headers' => { 'cache-control' => 'public, max-age=60' } })
+      prior = original[0][1].dup
+      store.write('test', original)
+      assert_equal(prior, original[0][1], 'original value must not be mutated')
     end
   end
 

@@ -60,6 +60,33 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_limit_response_with_empty_json_body
+    log_it(status: 403, response_body: '') do |loog|
+      str = loog.to_s
+      refute_empty(str)
+      assert_match(%r{http://example.com}, str)
+      assert_match(%r{HTTP/1.1 403}, str)
+    end
+  end
+
+  def test_limit_response_with_json_body_without_message
+    log_it(status: 403, response_body: '{}') do |loog|
+      str = loog.to_s
+      refute_empty(str)
+      assert_match(%r{HTTP/1.1 403}, str)
+      assert_match(/\{\}/, str)
+    end
+  end
+
+  def test_limit_response_with_malformed_json_body
+    log_it(status: 403, response_body: '<html>denied</html>') do |loog|
+      str = loog.to_s
+      refute_empty(str)
+      assert_match(%r{HTTP/1.1 403}, str)
+      assert_match(%r{<html>denied</html>}, str)
+    end
+  end
+
   def test_filters_basic_auth_credentials_from_log
     log_it(status: 500, request_headers: { 'Authorization' => 'Basic dXNlcjpwYXNzd29yZA==' }) do |loog|
       str = loog.to_s
