@@ -70,6 +70,28 @@ class TestUnmaskRepos < Fbe::Test
     refute_match(re, 'zold-io/blogXzoldYio')
   end
 
+  def test_mask_to_regex_exact_match
+    re = Fbe.mask_to_regex('zerocracy/judges-action')
+    assert_match(re, 'zerocracy/judges-action')
+  end
+
+  def test_mask_to_regex_prefix_collision
+    re = Fbe.mask_to_regex('zerocracy/judges-action')
+    refute_match(re, 'zerocracy/judges-actions')
+    refute_match(re, 'zerocracy/judges-action-old')
+  end
+
+  def test_mask_to_regex_wildcard
+    re = Fbe.mask_to_regex('zerocracy/*')
+    assert_match(re, 'zerocracy/fbe')
+    assert_match(re, 'zerocracy/judges-action')
+  end
+
+  def test_mask_to_regex_case_insensitive
+    re = Fbe.mask_to_regex('Zerocracy/Fbe')
+    assert_match(re, 'zerocracy/fbe')
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })
