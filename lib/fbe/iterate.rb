@@ -159,8 +159,8 @@ class Fbe::Iterate
   # @return [nil] Nothing is returned
   # @raise [RuntimeError] If value is nil or not an Integer
   # @example Start iteration from issue number 100
-  #   iterator.since(100)
-  def since(value)
+  #   iterator.since!(100)
+  def since!(value)
     raise(Fbe::Error, 'Cannot set "since" to nil') if value.nil?
     raise(Fbe::Error, 'The "since" must be an Integer') unless value.is_a?(Integer)
     @since = value
