@@ -113,7 +113,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
               case type
               when 'int' then Integer(Float(result).truncate)
               when 'float' then Float(result)
-              when 'bool' then result == 'true'
+              when 'bool' then result.to_s == 'true'
               else result
               end
             pmpv.new(result, default, type, memo)

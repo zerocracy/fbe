@@ -440,7 +440,7 @@ class TestIterate < Fbe::Test
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
       as('since_test')
       by('(agg (and (gt num $before) (lte num 10)) (min num))')
-      since(5)
+      since!(5)
       repeats(10)
       over do |_, num|
         results << num

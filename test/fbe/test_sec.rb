@@ -32,4 +32,14 @@ class TestSec < Fbe::Test
     f.duration = 86_400 * 30
     assert_equal('1mo', Fbe.sec(f, :duration))
   end
+
+  def test_elapsed_past
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 7200
+    now = Time.now
+    Time.stub(:now, now) do
+      assert_equal('2h', Fbe.sec(f))
+    end
+  end
 end
