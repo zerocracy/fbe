@@ -86,8 +86,8 @@ class Fbe::Middleware::SqliteStore
     return unless value
     begin
       JSON.parse(Zlib::Inflate.inflate(value))
-    rescue Zlib::Error => e
-      @loog.info("Failed to decompress cached value for key: #{key}, error: #{e.message}, the key will be deleted")
+    rescue Zlib::Error, JSON::ParserError, TypeError => e
+      @loog.info("Failed to decode cached value for key: #{key}, error: #{e.message}, the key will be deleted")
       delete(key)
     end
   end
