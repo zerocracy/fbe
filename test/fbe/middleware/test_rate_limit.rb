@@ -57,6 +57,22 @@ class RateLimitTest < Fbe::Test
     assert_equal('4998', response.headers['x-ratelimit-remaining'])
   end
 
+  def test_updates_remaining_count_from_non_rate_limit_response_header
+    tracker = {}
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(
+        status: 200,
+        body: '{"login": "test"}',
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-RateLimit-Remaining' => '1'
+        }
+      )
+    conn = create_connection(tracker)
+    conn.get('/user')
+    assert_equal(1, tracker[:rate_limit].remaining)
+  end
+
   def test_refreshes_cache_after_hundred_requests
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     refreshed = { 'rate' => { 'limit' => 5000, 'remaining' => 4950, 'reset' => 1_672_531_200 } }
@@ -354,9 +370,9 @@ class RateLimitTest < Fbe::Test
 
   private
 
-  def create_connection
+  def create_connection(tracker = nil)
     Faraday.new(url: 'https://api.github.com') do |f|
-      f.use(Fbe::Middleware::RateLimit)
+      f.use(Fbe::Middleware::RateLimit, tracker)
       f.response(:json)
       f.adapter(:net_http)
     end

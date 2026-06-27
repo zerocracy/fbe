@@ -24,14 +24,11 @@ def Fbe.over?(
 )
   if quota_aware
     octo = Fbe.octo(loog:, options:, global:)
-    if octo.off_quota?(threshold: 100, resource: :core) || octo.off_quota?(resource: :search)
+    if octo.off_quota?(threshold: 100, resource: :core) ||
+       octo.off_quota?(resource: :search, threshold: 10)
       loog.info('We are off GitHub quota, time to stop')
       return true
     end
-  end
-  if quota_aware && Fbe.octo(loog:, options:, global:).off_quota?(resource: :search, threshold: 10)
-    loog.info('We are off GitHub Search API quota, time to stop')
-    return true
   end
   if lifetime_aware && options.lifetime && Time.now - epoch > options.lifetime * 0.9
     loog.info("We ran out of lifetime (#{epoch.ago} already), must stop here")
