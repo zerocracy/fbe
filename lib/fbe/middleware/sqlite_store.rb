@@ -161,6 +161,13 @@ class Fbe::Middleware::SqliteStore
     perform { _1.execute('SELECT key, value FROM cache') }
   end
 
+  # Close the database connection explicitly.
+  # @return [nil]
+  def close
+    @db&.close
+    @db = nil
+  end
+
   private
 
   def perform(&) # rubocop:disable Metrics/AbcSize
@@ -250,7 +257,6 @@ class Fbe::Middleware::SqliteStore
             "new file size: #{Filesize.from(File.size(@path).to_s).pretty} bytes"
           )
         end
-        at_exit { @db&.close }
       end
     @db.transaction(&)
   end
