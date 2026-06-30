@@ -64,6 +64,18 @@ class TestOcto < Fbe::Test
     assert_equal('dude56', nick)
   end
 
+  def test_user_name_by_id_returns_nil_on_forbidden
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/user/42').to_return(
+      status: 403, body: '{}', headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_nil(o.user_name_by_id(42))
+  end
+
   def test_reads_repo_id_by_name
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

@@ -191,6 +191,20 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 false
               end
             end
+            # Retrieve the login name of a GitHub user by their numeric ID.
+            #
+            # When the user has been deleted from GitHub, the API returns 403
+            # (Octokit::Forbidden) instead of 404, because the user ID is known
+            # but access is restricted. This method rescues both Forbidden and
+            # NotFound, logs a warning, and returns +nil+ so that callers can
+            # decide how to handle missing users without crashing the pipeline.
+            #
+            # @see https://github.com/zerocracy/pages-action/issues/131
+            # @see https://github.com/zerocracy/fbe/pull/574
+            #
+            # @param [Integer] id GitHub user numeric ID
+            # @return [String, nil] The user's login name in lowercase, or +nil+
+            #   if the user does not exist or is inaccessible.
             def user_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The ID of the user is nil') if id.nil?
               raise(Fbe::Error, 'The ID of the user must be an Integer') unless id.is_a?(Integer)
@@ -198,6 +212,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               name = json[:login].downcase
               @loog.debug("GitHub user ##{id} has a name: @#{name}")
               name
+            rescue Octokit::NotFound, Octokit::Forbidden => e
+              @loog.warn("GitHub user ##{id} is not accessible: #{e.message}")
+              nil
             end
             def repo_id_by_name(name) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The name of the repo is nil') if name.nil?
