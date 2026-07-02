@@ -3,9 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'qbash'
 require 'securerandom'
-require 'shellwords'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/sqlite_store'
 require_relative '../../test__helper'
@@ -80,33 +78,15 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_defer_db_close_callback
-    txt = <<~RUBY
-      require 'tempfile'
-      require 'sqlite3'
-      require 'fbe/middleware/sqlite_store'
-      SQLite3::Database.class_eval do
-        prepend(Module.new do
-          def close
-            super
-            puts 'closed sqlite after process exit'
-          end
-        end)
-      end
-      Tempfile.open('test.db') do |f|
-        Fbe::Middleware::SqliteStore.new(f.path, '0.0.0').then do |s|
-          s.write('my_key', 'my_value')
-          s.read('my_key')
-        end
-      end
-    RUBY
-    out =
-      qbash(
-        'bundle exec ruby ' \
-        "-I#{Shellwords.escape(File.expand_path('../../../lib', __dir__))} " \
-        "-e #{Shellwords.escape(txt)} 2>&1"
-      )
-    assert_match('closed sqlite after process exit', out)
+  def test_close_reopens_on_next_use
+    with_tmpfile('test.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')
+      store.write('my_key', 'my_value')
+      assert_equal('my_value', store.read('my_key'))
+      store.close
+      store.read('my_key')
+      assert_equal('my_value', store.read('my_key'))
+    end
   end
 
   def test_different_versions # rubocop:disable Minitest/MultipleAssertions
