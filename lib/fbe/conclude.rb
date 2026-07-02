@@ -123,6 +123,7 @@ class Fbe::Conclude
   # @param [Array<String>] props List of property names
   # @return [nil] Nothing
   def follow(props)
+    raise(Fbe::Error, 'Follow is already set') unless @follows.empty?
     @follows = props.strip.split.compact
   end
 
