@@ -200,8 +200,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               @loog.debug("GitHub user ##{id} has a name: @#{name}")
               name
             rescue Octokit::NotFound, Octokit::Forbidden => e
-              @loog.warn("GitHub user ##{id} is not accessible: #{e.message}")
-              nil
+              raise(Fbe::Error, "GitHub user ##{id} is not accessible: #{e.message}")
             end
             def repo_id_by_name(name) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The name of the repo is nil') if name.nil?
