@@ -27,13 +27,14 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # Initializes the rate limit middleware.
   #
   # @param [Object] app The next middleware in the stack
-  def initialize(app)
-    super
+  def initialize(app, tracker = nil)
+    super(app)
     @cached = nil
-    @remaining = 0
-    @searchleft = 0
+    @remaining = nil
+    @searchleft = nil
     @counter = 0
     @lock = Mutex.new
+    tracker[:rate_limit] = self unless tracker.nil?
   end
 
   # Processes the HTTP request and handles rate limit caching.
@@ -48,6 +49,16 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @app.call(env).on_complete do |response_env|
         @lock.synchronize { sync(response_env, env.url.path) }
       end
+    end
+  end
+
+  # Returns the remaining requests count tracked by this middleware.
+  #
+  # @param [Symbol] resource The GitHub API resource (:core or :search)
+  # @return [Integer, nil] The remaining count, or nil when the resource is absent
+  def remaining(resource = :core)
+    @lock.synchronize do
+      resource == :search ? @searchleft : @remaining
     end
   end
 
@@ -74,8 +85,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def track_request(path = nil)
     @counter += 1
     if path&.start_with?('/search/')
-      @searchleft -= 1 if @searchleft.positive?
-    elsif @remaining.positive?
+      @searchleft -= 1 if @searchleft&.positive?
+    elsif @remaining&.positive?
       @remaining -= 1
     end
   end
@@ -86,7 +97,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # (indicated by +http_cache_trace+ containing +:fresh+), the
   # +x-ratelimit-remaining+ header is stale, so we keep our
   # decremented count. When the API was actually contacted,
-  # we prefer the authoritative header value.
+  # we seed unknown counters from headers, but avoid raising
+  # a counter already decremented by this middleware.
   #
   # @param [Faraday::Env] response_env The response environment
   def sync(response_env, path = nil)
@@ -95,10 +107,11 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     return unless headers
     remaining = headers['x-ratelimit-remaining']
     return unless remaining
+    count = Integer(remaining)
     if path&.start_with?('/search/')
-      @searchleft = Integer(remaining)
+      @searchleft = @searchleft.nil? ? count : [@searchleft, count].min
     else
-      @remaining = Integer(remaining)
+      @remaining = @remaining.nil? ? count : [@remaining, count].min
     end
   end
 
@@ -109,19 +122,21 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def extract_remaining_count(response)
     body = response.body
     body = JSON.parse(body) if body.is_a?(String)
-    return 0 unless body.is_a?(Hash)
-    body.dig('rate', 'remaining') || 0
+    value = body.dig('rate', 'remaining') if body.is_a?(Hash)
+    value ||= response.headers['x-ratelimit-remaining']
+    Integer(value || 0)
   end
 
   # Extracts the search-resource remaining count from the response body.
   #
   # @param [Faraday::Response] response The API response
-  # @return [Integer] The remaining search-API requests count
+  # @return [Integer, nil] The remaining search-API requests count
   def extract_search_remaining_count(response)
     body = response.body
     body = JSON.parse(body) if body.is_a?(String)
-    return 0 unless body.is_a?(Hash)
-    body.dig('resources', 'search', 'remaining') || 0
+    return nil unless body.is_a?(Hash)
+    value = body.dig('resources', 'search', 'remaining')
+    value.nil? ? nil : Integer(value)
   end
 
   # Builds a fresh body with the current remaining counts written in,
@@ -140,9 +155,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       else
         return original
       end
-    body['rate']['remaining'] = @remaining if body['rate']
-    body.dig('resources', 'core')&.[]=('remaining', @remaining)
-    body.dig('resources', 'search')&.[]=('remaining', @searchleft)
+    body['rate']['remaining'] = @remaining if body['rate'] && !@remaining.nil?
+    body.dig('resources', 'core')&.[]=('remaining', @remaining) unless @remaining.nil?
+    body.dig('resources', 'search')&.[]=('remaining', @searchleft) unless @searchleft.nil?
     stringed ? body.to_json : body
   end
 
@@ -158,7 +173,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     served.request_headers = env.request_headers
     served.body = patched_body(response.body)
     served.response_headers = response.headers.dup
-    served.response_headers['x-ratelimit-remaining'] = @remaining.to_s
+    served.response_headers['x-ratelimit-remaining'] = @remaining.to_s unless @remaining.nil?
     served
   end
 end

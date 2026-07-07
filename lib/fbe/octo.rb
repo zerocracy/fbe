@@ -56,6 +56,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
       begin
         loog.info("Fbe version is #{Fbe::VERSION}")
         trace = []
+        limits = {}
         if options.testing.nil?
           o = Octokit::Client.new
           token = options.github_token
@@ -94,7 +95,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               )
               builder.use(Octokit::Response::RaiseError)
               builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
-              builder.use(Fbe::Middleware::RateLimit)
+              builder.use(Fbe::Middleware::RateLimit, limits)
               builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
               if options.sqlite_cache
                 maxsize = Integer(Filesize.from(options.sqlite_cache_maxsize || '100M'))
@@ -128,7 +129,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
           o = Fbe::FakeOctokit.new
         end
         o =
-          decoor(o, loog:, trace:) do # rubocop:disable Metrics/BlockLength
+          decoor(o, loog:, trace:, limits:) do # rubocop:disable Metrics/BlockLength
             def print_trace!(all: false, max: 5)
               if @trace.empty?
                 @loog.debug('GitHub API trace is empty')
@@ -160,27 +161,17 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 @trace.clear
               end
             end
-            def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+            def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs
               threshold ||= resource == :search ? 5 : 50
               label = resource == :search ? 'GitHub Search API' : 'GitHub API'
-              left = @origin.rate_limit!.remaining
-              got = false
-              if resource == :search && @origin.respond_to?(:last_response)
-                body = @origin.last_response&.body
-                body = JSON.parse(body) if body.is_a?(String)
-                if body.is_a?(Hash)
-                  fresh = body.dig('resources', 'search', 'remaining') || body.dig(:resources, :search, :remaining)
-                  if fresh
-                    left = Integer(fresh)
-                    got = true
-                  end
-                end
-              end
+              rate = @origin.rate_limit!
+              left = @limits[:rate_limit]&.remaining(resource)
+              got = !left.nil?
+              left = rate.remaining unless got
               if resource == :search && !got
-                klass = @origin.respond_to?(:last_response) ? @origin.last_response&.body&.class : nil
                 @loog.warn(
                   "Search-quota check fell back to core remaining (#{left}); " \
-                  "search count unavailable (last_response body class: #{klass.inspect})"
+                  'search count unavailable in rate-limit middleware'
                 )
               end
               if left < threshold
