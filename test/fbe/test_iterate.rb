@@ -228,6 +228,25 @@ class TestIterate < Fbe::Test
     assert_equal(15, markers.first.marker_test)
   end
 
+  def test_persists_restart_to_since_across_runs
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.then do |f|
+      f.what = 'iterate'
+      f.where = 'github'
+      f.repository = 680
+      f.wrap_test = 10
+    end
+    fb.insert.num = 5
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('wrap_test')
+      by('(agg (gt num $before) (min num))')
+      repeats(10)
+      over { |_, nxt| nxt }
+    end
+    assert_equal(0, fb.query("(eq what 'iterate')").each.to_a.first.wrap_test)
+  end
+
   def test_multiple_repositories_with_different_progress
     opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -403,7 +422,7 @@ class TestIterate < Fbe::Test
       end
     end
     assert_equal(9, fb.query('(and (eq what "judge") (exists prop2))').each.to_a.size)
-    assert_equal(3, fb.query('(eq what "iterate")').each.to_a.first.marker)
+    assert_equal(0, fb.query('(eq what "iterate")').each.to_a.first.marker)
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
       as('marker')
       sort_by('issue')
@@ -429,7 +448,7 @@ class TestIterate < Fbe::Test
       end
     end
     assert_equal(5, fb.query('(and (eq what "judge") (exists prop3))').each.to_a.size)
-    assert_equal(12, fb.query('(eq what "iterate")').each.to_a.first.marker)
+    assert_equal(10, fb.query('(eq what "iterate")').each.to_a.first.marker)
   end
 
   def test_custom_since
