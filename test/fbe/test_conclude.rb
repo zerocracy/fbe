@@ -205,6 +205,50 @@ class TestConclude < Fbe::Test
     assert_equal(%w[a b c], n['tags'])
   end
 
+  def test_follow_honors_as_rewrite
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    f = $fb.insert
+    f.foo = 1
+    f.who = 777
+    f.assignee = 4536
+    Fbe.conclude(judge: 'judge-follow') do
+      quota_unaware
+      on('(and (exists foo) (as who assignee))')
+      follow('who')
+      draw do |n, _prev|
+        n.processed = 'yes'
+        'Some long description that satisfies the twenty five chars minimum.'
+      end
+    end
+    n = $fb.query('(eq processed "yes")').each.to_a[0]
+    assert_equal([4536], n['who'])
+  end
+
+  def test_follow_skips_missing_property
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    f = $fb.insert
+    f.foo = 1
+    Fbe.conclude(judge: 'judge-follow') do
+      quota_unaware
+      on('(exists foo)')
+      follow('absent')
+      draw do |n, _prev|
+        n.processed = 'yes'
+        'Some long description that satisfies the twenty five chars minimum.'
+      end
+    end
+    n = $fb.query('(eq processed "yes")').each.to_a[0]
+    assert_nil(n['absent'])
+  end
+
   def test_follow_raises_on_second_call
     $fb = Factbase.new
     $global = {}

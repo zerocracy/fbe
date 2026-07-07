@@ -231,6 +231,13 @@ class Fbe::Conclude
   # calls the provided block for custom processing, and sets metadata
   # on the new fact.
   #
+  # A property that is absent on the previous fact is skipped (its "[]"
+  # accessor returns nil). Factbase's "(as new old)" rewrite is only visible
+  # through method access (prev.new), while "[]" returns the raw stored value
+  # (see #595); when such a rewrite is in effect the method accessor returns
+  # the rewritten value, so we honor it. All values are still copied for
+  # genuinely multi-valued properties (see #520).
+  #
   # @param [Factbase::Fact] fact The fact to populate
   # @param [Factbase::Fact] prev The previous fact to copy from
   # @yield [Factbase::Fact, Factbase::Fact] New fact and the previous fact
@@ -248,7 +255,12 @@ class Fbe::Conclude
   #   end
   def fill(fact, prev)
     @follows.each do |follow|
-      prev[follow.to_s].each do |v|
+      key = follow.to_s
+      values = prev[key]
+      next if values.nil?
+      rewritten = prev.public_send(follow)
+      values = [rewritten] unless values.first == rewritten
+      values.each do |v|
         fact.public_send(:"#{follow}=", v)
       end
     end
