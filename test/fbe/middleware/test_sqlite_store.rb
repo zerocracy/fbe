@@ -218,6 +218,21 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_non_json_deflated_payload_does_not_raise
+    with_tmpfile('c.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        store.__send__(:perform) do |t|
+          t.execute(
+            'INSERT INTO cache(key, value, touched_at, created_at) VALUES(?1, ?2, ?3, ?3);',
+            ['poisoned', Zlib::Deflate.deflate('not a json document'), Time.now.utc.iso8601]
+          )
+        end
+        assert_nil(store.read('poisoned'))
+        assert_predicate(store.all.count, :zero?)
+      end
+    end
+  end
+
   def test_upgrade_sqlite_schema_for_add_created_at_column
     with_tmpfile('a.db') do |f|
       SQLite3::Database.new(f).tap do |d|
