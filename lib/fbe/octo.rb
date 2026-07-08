@@ -182,6 +182,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 false
               end
             end
+            # @see https://github.com/zerocracy/pages-action/issues/131
             def user_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The ID of the user is nil') if id.nil?
               raise(Fbe::Error, 'The ID of the user must be an Integer') unless id.is_a?(Integer)
@@ -189,6 +190,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               name = json[:login].downcase
               @loog.debug("GitHub user ##{id} has a name: @#{name}")
               name
+            rescue Octokit::NotFound, Octokit::Forbidden => e
+              raise(Fbe::Error, "GitHub user ##{id} is not accessible: #{e.message}")
             end
             def repo_id_by_name(name) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The name of the repo is nil') if name.nil?
