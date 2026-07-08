@@ -163,6 +163,53 @@ class TestConclude < Fbe::Test
     assert_equal(1, fb.size)
   end
 
+  def test_slot_stops_before_timeout_overrun
+    fb = Factbase.new
+    fb.insert.foo = 1
+    fb.insert.foo = 2
+    options = Judges::Options.new('timeout=10')
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, kickoff: Time.now - 5, slot: 6) do
+      quota_unaware
+      on('(exists foo)')
+      draw do |n, prev|
+        n.sum = prev.foo
+        'A long enough description to satisfy the requirements of the draw.'
+      end
+    end
+    assert_equal(0, fb.query('(exists sum)').each.to_a.size)
+  end
+
+  def test_slot_stops_before_lifetime_overrun
+    fb = Factbase.new
+    fb.insert.foo = 1
+    fb.insert.foo = 2
+    options = Judges::Options.new('lifetime=10')
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, epoch: Time.now - 5, slot: 6) do
+      quota_unaware
+      on('(exists foo)')
+      draw do |n, prev|
+        n.sum = prev.foo
+        'A long enough description to satisfy the requirements of the draw.'
+      end
+    end
+    assert_equal(0, fb.query('(exists sum)').each.to_a.size)
+  end
+
+  def test_default_slot_does_not_stop_early
+    fb = Factbase.new
+    fb.insert.foo = 1
+    options = Judges::Options.new('timeout=10')
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, kickoff: Time.now) do
+      quota_unaware
+      on('(exists foo)')
+      draw do |n, prev|
+        n.sum = prev.foo
+        'A long enough description to satisfy the requirements of the draw.'
+      end
+    end
+    assert_equal(1, fb.query('(exists sum)').each.to_a.size)
+  end
+
   def test_draw_block_returning_non_string_does_not_crash
     $fb = Factbase.new
     $global = {}

@@ -19,17 +19,20 @@ require_relative 'over'
 # @param [Loog] loog The logging facility
 # @param [Time] epoch When the entire update started
 # @param [Time] kickoff When the particular judge started
+# @param [Integer] slot Seconds a single iteration may need; the loop stops
+#   before starting a new one when less than this many seconds remain in the
+#   timeout (or lifetime) budget
 # @yield [Factbase::Fact] The fact
 def Fbe.conclude(
   fb: Fbe.fb, judge: $judge, loog: $loog, options: $options, global: $global,
-  epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, &
+  epoch: $epoch || Time.now, kickoff: $kickoff || Time.now, slot: 1, &
 )
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $global is not set') if global.nil?
   raise(Fbe::Error, 'The $options is not set') if options.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, epoch:, kickoff:)
+  c = Fbe::Conclude.new(fb:, judge:, loog:, options:, global:, epoch:, kickoff:, slot:)
   c.instance_eval(&)
 end
 
@@ -66,7 +69,8 @@ class Fbe::Conclude
   # @param [Loog] loog The logging facility
   # @param [Time] epoch When the entire update started
   # @param [Time] kickoff When the particular judge started
-  def initialize(fb:, judge:, global:, options:, loog:, epoch:, kickoff:)
+  # @param [Integer] slot Seconds a single iteration may need
+  def initialize(fb:, judge:, global:, options:, loog:, epoch:, kickoff:, slot: 1)
     @fb = fb
     @judge = judge
     @loog = loog
@@ -74,6 +78,7 @@ class Fbe::Conclude
     @global = global
     @epoch = epoch
     @kickoff = kickoff
+    @slot = slot
     @query = nil
     @follows = []
     @lifetime = true
@@ -184,6 +189,13 @@ class Fbe::Conclude
   # monitoring quotas and timeouts, and processing each fact through
   # the provided block.
   #
+  # Besides the {Fbe.over?} check (which stops once the elapsed time crosses
+  # the fixed 90% margin of the timeout), the loop also reserves one +@slot+
+  # up front: it stops before starting a new iteration when fewer than +@slot+
+  # seconds remain in the timeout (or lifetime) budget. This prevents a slow
+  # single step from starting late and overrunning the hard timeout enforced
+  # by the +judges+ gem.
+  #
   # @yield [Factbase::Transaction, Factbase::Fact] Transaction and the matching fact
   # @return [Integer] The count of facts processed
   # @example
@@ -207,6 +219,14 @@ class Fbe::Conclude
         global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
         quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
       )
+      if @timeout && @options.timeout && @options.timeout - (Time.now - @kickoff) < @slot
+        @loog.info("Less than #{@slot}s left before the timeout, must stop here")
+        break
+      end
+      if @lifetime && @options.lifetime && @options.lifetime - (Time.now - @epoch) < @slot
+        @loog.info("Less than #{@slot}s left before the lifetime ends, must stop here")
+        break
+      end
       @fb.txn do |fbt|
         n = yield(fbt, a)
         unless n.nil?
