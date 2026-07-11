@@ -173,12 +173,12 @@ class Fbe::Middleware::SqliteStore
 
   def perform(&)
     @mutex.synchronize do
-      @db ||= init_database
+      @db ||= init!
     end
     @db.transaction(&)
   end
 
-  def init_database # rubocop:disable Metrics/AbcSize
+  def init! # rubocop:disable Metrics/AbcSize
     SQLite3::Database.new(@path).tap do |d| # rubocop:disable Metrics/BlockLength
       d.transaction do |t|
         t.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')

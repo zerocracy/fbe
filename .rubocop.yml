@@ -54,7 +54,6 @@ Elegant/GoodMethodName:
     - github_graph
     - handle_rate_limit_request
     - if_absent
-    - init_database
     - issue_comment_reactions
     - issue_comments
     - issue_events
