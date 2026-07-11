@@ -70,7 +70,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
     define_method(:areas) do
       xml.xpath('/pmp/area/@name').map(&:value)
     end
-    others do |*args1|
+    others do |*args1| # rubocop:disable Metrics/BlockLength
       area = args1.first.to_s
       node = xml.at_xpath("/pmp/area[@name='#{area}']")
       if node.nil?
@@ -101,20 +101,30 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
               type = prop.at_xpath('type').text
               memo = prop.at_xpath('memo').text
               default =
-                case type
-                when 'int' then Integer(default, 10)
-                when 'float' then Float(default)
-                when 'bool' then default == 'true'
-                else default
+                begin
+                  case type
+                  when 'int' then Integer(default, 10)
+                  when 'float' then Float(default)
+                  when 'bool' then default == 'true'
+                  else default
+                  end
+                rescue ArgumentError, TypeError => e
+                  msg = "Invalid default value '#{default}' for PMP property '#{param}' in area '#{area}': #{e.message}"
+                  raise(Fbe::Error, msg)
                 end
             end
             result ||= default
             result =
-              case type
-              when 'int' then Integer(Float(result).truncate)
-              when 'float' then Float(result)
-              when 'bool' then result.to_s == 'true'
-              else result
+              begin
+                case type
+                when 'int' then Integer(Float(result).truncate)
+                when 'float' then Float(result)
+                when 'bool' then result.to_s == 'true'
+                else result
+                end
+              rescue ArgumentError, TypeError => e
+                msg = "Invalid value '#{result}' for PMP property '#{param}' in area '#{area}': #{e.message}"
+                raise(Fbe::Error, msg)
               end
             pmpv.new(result, default, type, memo)
           end
