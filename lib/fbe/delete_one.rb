@@ -32,8 +32,8 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   return if nv == before[prop]
   before[prop] = nv
   before.delete(prop) if nv.empty?
-  fb.query("(eq #{id} #{i})").delete!
   fb.txn do |fbt|
+    fbt.query("(eq #{id} #{i})").delete!
     c = fbt.insert
     f = c
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
