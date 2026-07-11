@@ -192,7 +192,9 @@ class Fbe::Award
       when :gte
         to_val(@operands[0], bill) >= to_val(@operands[1], bill)
       when :div
-        to_val(@operands[0], bill) / to_val(@operands[1], bill)
+        divisor = to_val(@operands[1], bill)
+        raise(Fbe::Error, 'Division by zero in award calculation') if divisor.zero?
+        to_val(@operands[0], bill) / divisor
       when :times
         to_val(@operands[0], bill) * to_val(@operands[1], bill)
       when :plus
