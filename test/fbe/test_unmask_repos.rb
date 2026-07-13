@@ -50,6 +50,13 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(2, list.size)
   end
 
+  def test_deduplicates_repos_matched_by_overlapping_masks
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/factbase,Yegor256/*' })
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_equal(list.uniq.size, list.size, "duplicates found in #{list.inspect}")
+    assert_includes(list, 'yegor256/factbase')
+  end
+
   def test_mask_to_regex_treats_dot_as_literal
     re = Fbe.mask_to_regex('zold-io/blog.zold.io')
     assert_match(re, 'zold-io/blog.zold.io')

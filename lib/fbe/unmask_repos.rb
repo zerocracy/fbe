@@ -92,6 +92,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     re = Fbe.mask_to_regex(mask[1..])
     repos.reject! { |r| re.match?(r) }
   end
+  repos.uniq!
   repos.reject! { |repo| octo.repository(repo)[:archived] }
   raise(Fbe::Error, "No repos found matching: #{options.repositories.inspect}") if repos.empty?
   repos.shuffle!
