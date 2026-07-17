@@ -136,9 +136,7 @@ class TestAward < Fbe::Test
   end
 
   def test_bylaw_raises_on_undefined_var
-    a = Fbe::Award.new(
-      '(award (aka (give 10 "points") "${undefined} points"))'
-    )
+    a = Fbe::Award.new('(award (aka (give 10 "points") "${undefined} points"))')
     assert_raises(Fbe::Error) { a.bylaw }
   end
 end
