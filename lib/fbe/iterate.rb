@@ -330,7 +330,7 @@ class Fbe::Iterate
             rescue Fbe::OffQuota
               raise
             rescue StandardError => e
-              raise(e.class, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
+              raise(Fbe::Error, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
             end
           end
         unless before[repo].is_a?(Integer)
