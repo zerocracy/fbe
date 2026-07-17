@@ -11,6 +11,8 @@ name: markdown-lint
     branches:
       - master
     paths-ignore: ['paper/**', 'sandbox/**']
+permissions:
+  contents: read
 concurrency:
   group: markdown-lint-${{ github.ref }}
   cancel-in-progress: true

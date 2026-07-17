@@ -6,6 +6,8 @@ name: xcop
 'on':
   push:
   pull_request:
+permissions:
+  contents: read
 jobs:
   xcop:
     timeout-minutes: 15
