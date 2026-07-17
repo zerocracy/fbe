@@ -109,8 +109,11 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                   else default
                   end
                 rescue ArgumentError, TypeError => e
-                  raise(Fbe::Error,
-                    "Invalid default value '#{default}' for PMP property '#{param}' in area '#{area}': #{e.message}")
+                  raise(
+                    Fbe::Error,
+                    "Invalid default value '#{default}' for PMP property " \
+                    "'#{param}' in area '#{area}': #{e.message}"
+                  )
                 end
             end
             result ||= default
@@ -123,8 +126,11 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                 else result
                 end
               rescue ArgumentError, TypeError => e
-                raise(Fbe::Error,
-                  "Invalid value '#{result}' for PMP property '#{param}' in area '#{area}': #{e.message}")
+                raise(
+                  Fbe::Error,
+                  "Invalid value '#{result}' for PMP property " \
+                  "'#{param}' in area '#{area}': #{e.message}"
+                )
               end
             pmpv.new(result, default, type, memo)
           end
