@@ -139,4 +139,9 @@ class TestAward < Fbe::Test
     a = Fbe::Award.new('(award (aka (give 10 "points") "${undefined} points"))')
     assert_raises(Fbe::Error) { a.bylaw }
   end
+
+  def test_division_by_zero_raises_error
+    a = Fbe::Award.new('(award (set x (div 10 0)) (give x "test"))')
+    assert_raises(Fbe::Error) { a.bill }
+  end
 end

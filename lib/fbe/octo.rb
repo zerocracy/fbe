@@ -56,6 +56,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
       begin
         loog.info("Fbe version is #{Fbe::VERSION}")
         trace = []
+        mutex = Mutex.new
         limits = {}
         if options.testing.nil?
           o = Octokit::Client.new
@@ -96,7 +97,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.use(Octokit::Response::RaiseError)
               builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
               builder.use(Fbe::Middleware::RateLimit, limits)
-              builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
+              builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh], mutex:)
               if options.sqlite_cache
                 maxsize = Integer(Filesize.from(options.sqlite_cache_maxsize || '100M'))
                 maxvsize = Integer(Filesize.from(options.sqlite_cache_maxvsize || '100K'))
@@ -129,36 +130,38 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
           o = Fbe::FakeOctokit.new
         end
         o =
-          decoor(o, loog:, trace:, limits:) do # rubocop:disable Metrics/BlockLength
+          decoor(o, loog:, trace:, limits:, mutex:) do # rubocop:disable Metrics/BlockLength
             def print_trace!(all: false, max: 5)
-              if @trace.empty?
-                @loog.debug('GitHub API trace is empty')
-              else
-                grouped =
-                  @trace.select { |e| e[:duration] > 0.05 || all }.group_by do |entry|
-                    uri = URI.parse(entry[:url])
-                    query = uri.query
-                    query = "?#{query.ellipsized(40)}" if query
-                    "#{uri.scheme}://#{uri.host}#{uri.path}#{query}"
-                  end
-                message = grouped
-                  .sort_by { |_path, entries| -entries.count }
-                  .map do |path, entries|
-                    [
-                      '  ',
-                      path.gsub(%r{^https://api.github.com/}, '/'),
-                      ': ',
-                      entries.count,
-                      " (#{entries.sum { |e| e[:duration] }.seconds})"
-                    ].join
-                  end
-                  .take(max)
-                  .join("\n")
-                @loog.info(
-                  "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
-                  "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
-                )
-                @trace.clear
+              @mutex.synchronize do
+                if @trace.empty?
+                  @loog.debug('GitHub API trace is empty')
+                else
+                  grouped =
+                    @trace.select { |e| e[:duration] > 0.05 || all }.group_by do |entry|
+                      uri = URI.parse(entry[:url])
+                      query = uri.query
+                      query = "?#{query.ellipsized(40)}" if query
+                      "#{uri.scheme}://#{uri.host}#{uri.path}#{query}"
+                    end
+                  message = grouped
+                    .sort_by { |_path, entries| -entries.count }
+                    .map do |path, entries|
+                      [
+                        '  ',
+                        path.gsub(%r{^https://api.github.com/}, '/'),
+                        ': ',
+                        entries.count,
+                        " (#{entries.sum { |e| e[:duration] }.seconds})"
+                      ].join
+                    end
+                    .take(max)
+                    .join("\n")
+                  @loog.info(
+                    "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
+                    "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
+                  )
+                  @trace.clear
+                end
               end
             end
             def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs

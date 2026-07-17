@@ -37,6 +37,16 @@ class TestKillIf < Fbe::Test
     assert_equal(1, fb.size)
   end
 
+  def test_deletes_multiple_facts
+    fb = Factbase.new
+    fb.insert.then { |f| f._id = 10 }
+    fb.insert.then { |f| f._id = 20 }
+    fb.insert.then { |f| f._id = 30 }
+    facts = fb.query('(always)').each.to_a
+    assert_equal(2, Fbe.kill_if([facts[0], facts[2]], fb:))
+    assert_equal(1, fb.size)
+  end
+
   def test_returns_zero_when_facts_empty
     fb = Factbase.new
     assert_equal(0, Fbe.kill_if([], fb:))
