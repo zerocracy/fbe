@@ -129,4 +129,16 @@ class TestAward < Fbe::Test
     g = Fbe::Award.new('(award (give 0 "for none"))').bill.greeting
     assert_equal('You\'ve earned nothing. ', g, g)
   end
+
+  def test_bill_raises_on_undefined_var
+    a = Fbe::Award.new('(award (give 10 "test ${missing}"))')
+    assert_raises(Fbe::Error) { a.bill }
+  end
+
+  def test_bylaw_raises_on_undefined_var
+    a = Fbe::Award.new(
+      '(award (aka (give 10 "points") "${undefined} points"))'
+    )
+    assert_raises(Fbe::Error) { a.bylaw }
+  end
 end
