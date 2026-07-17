@@ -69,6 +69,7 @@ class TestRepeatedly < Fbe::Test
 
   def test_area_with_single_quote
     fb = Factbase.new
+    $fb = fb
     $loog = Loog::NULL
     $options = Judges::Options.new
     fb.txn do |fbt|
@@ -79,23 +80,6 @@ class TestRepeatedly < Fbe::Test
     end
     $global = {}
     Fbe.repeatedly("te'st", 'every_x_hours', fb:, judge: 'test') do |f|
-      f.foo = 42
-    end
-    assert_equal(2, fb.size)
-  end
-
-  def test_judge_with_single_quote
-    fb = Factbase.new
-    $loog = Loog::NULL
-    $options = Judges::Options.new
-    fb.txn do |fbt|
-      f = fbt.insert
-      f.what = 'pmp'
-      f.area = 'quality'
-      f.every_x_hours = 24
-    end
-    $global = {}
-    Fbe.repeatedly('quality', 'every_x_hours', fb:, judge: "te'st") do |f|
       f.foo = 42
     end
     assert_equal(2, fb.size)
