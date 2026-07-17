@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
-      - uses: crate-ci/typos@v1.48.0
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: crate-ci/typos@dbe52f72499cd4ab666928e4d14ecfa9ddbb6852
         with:
           config: .github/.typos.toml
