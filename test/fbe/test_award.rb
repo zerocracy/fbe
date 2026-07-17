@@ -129,4 +129,9 @@ class TestAward < Fbe::Test
     g = Fbe::Award.new('(award (give 0 "for none"))').bill.greeting
     assert_equal('You\'ve earned nothing. ', g, g)
   end
+
+  def test_division_by_zero_raises_error
+    a = Fbe::Award.new('(award (set x (div 10 0)) (give x "test"))')
+    assert_raises(Fbe::Error) { a.bill }
+  end
 end
