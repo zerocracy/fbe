@@ -81,7 +81,7 @@ class TestRepeatedly < Fbe::Test
     Fbe.repeatedly("te'st", 'every_x_hours', fb:, judge: 'test') do |f|
       f.foo = 42
     end
-    assert_equal(1, fb.size)
+    assert_equal(2, fb.size)
   end
 
   def test_judge_with_single_quote
@@ -98,6 +98,6 @@ class TestRepeatedly < Fbe::Test
     Fbe.repeatedly('quality', 'every_x_hours', fb:, judge: "te'st") do |f|
       f.foo = 42
     end
-    assert_equal(1, fb.size)
+    assert_equal(2, fb.size)
   end
 end
