@@ -59,4 +59,13 @@ class TestKillIf < Fbe::Test
     assert_equal(0, Fbe.kill_if(fb.query('(always)').each.to_a, fb:) { false })
     assert_equal(2, fb.size)
   end
+
+  def test_raises_when_fact_lacks_the_id_property
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    assert_raises(Fbe::Error) do
+      Fbe.kill_if([f], fb:)
+    end
+  end
 end
