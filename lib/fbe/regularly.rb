@@ -35,11 +35,11 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_days}))").each.first
+  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}') (exists #{p_every_days}))").each.first
   interval = pmp.nil? ? 7 : pmp[p_every_days].first
   recent = fb.query(
     "(and
-      (eq what '#{judge}')
+      (eq what '#{judge.gsub("'", "\\\\'")}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
   ).each.first
   if recent
