@@ -24,6 +24,6 @@ require_relative '../fbe'
 def Fbe.sec(fact, prop = :seconds)
   s = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if s.nil?
-  s = Integer(s.first.to_s, 10)
+  s = Integer(Float(s.first).round)
   (Time.now - s).ago
 end
