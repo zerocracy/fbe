@@ -236,8 +236,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         }
       GRAPHQL
     ).to_h
-    return unless result['node']
     type = result.dig('node', '__typename')
+    return unless %w[IssueTypeAddedEvent IssueTypeChangedEvent IssueTypeRemovedEvent].include?(type)
     previous =
       if type == 'IssueTypeChangedEvent'
         {
