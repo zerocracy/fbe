@@ -17,7 +17,9 @@ def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
       t = yield(f)
       next unless t
     end
-    ids << f[fid].first
+    found = f[fid]
+    raise(Fbe::Error, "The fact has no #{fid.inspect} property: #{f}") if found.nil? || found.empty?
+    ids << found.first
   end
   return 0 if ids.empty?
   fb.query("(or #{ids.map { |id| "(eq #{fid} #{id})" }.join(' ')})").delete!
