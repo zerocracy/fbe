@@ -250,12 +250,21 @@ class Fbe::Middleware::SqliteStore
           SELECT (page_count - freelist_count) * page_size AS size
           FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
         SQL
+          gone = 0
           d.transaction do |t|
             t.execute(<<~SQL)
               DELETE FROM cache
               WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
             SQL
-            deleted += t.changes
+            gone = t.changes
+            deleted += gone
+          end
+          if gone.zero?
+            @loog.warn(
+              "The cache is empty and its own pages still take more than " \
+              "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
+            )
+            break
           end
         end
         d.execute('VACUUM;')
