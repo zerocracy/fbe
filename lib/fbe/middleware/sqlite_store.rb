@@ -259,13 +259,12 @@ class Fbe::Middleware::SqliteStore
             gone = t.changes
             deleted += gone
           end
-          if gone.zero?
-            @loog.warn(
-              "The cache is empty and its own pages still take more than " \
-              "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
-            )
-            break
-          end
+          next unless gone.zero?
+          @loog.warn(
+            'The cache is empty and its own pages still take more than ' \
+            "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
+          )
+          break
         end
         d.execute('VACUUM;')
         @loog.info(
