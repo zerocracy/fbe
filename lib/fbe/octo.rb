@@ -167,6 +167,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs
               threshold ||= resource == :search ? 5 : 50
               label = resource == :search ? 'GitHub Search API' : 'GitHub API'
+              @origin.rate_limit! if resource == :search
               left = @limits[:rate_limit]&.remaining(resource)
               got = !left.nil?
               left = @origin.rate_limit!.remaining unless got
