@@ -99,6 +99,45 @@ class TestUnmaskRepos < Fbe::Test
     assert_match(re, 'zerocracy/fbe')
   end
 
+  def test_skips_mask_when_organization_listing_is_forbidden
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/orgs/foo/repos?per_page=100&type=all').to_return(status: 403)
+    stub_request(:get, 'https://api.github.com/repos/bar/baz').to_return(
+      body: '{"archived":false}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'repositories' => 'foo/*,bar/baz' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(['bar/baz'], list, 'the forbidden mask is not skipped')
+  end
+
+  def test_keeps_repo_when_archived_check_fails
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(status: 500)
+    options = Judges::Options.new({ 'repositories' => 'foo/bar' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(['foo/bar'], list, 'the repo is not kept after a failed archived check')
+  end
+
+  def test_drops_repo_that_is_absent
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(status: 404)
+    stub_request(:get, 'https://api.github.com/repos/bar/baz').to_return(
+      body: '{"archived":false}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'repositories' => 'foo/bar,bar/baz' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(['bar/baz'], list, 'the absent repo is not dropped')
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })
