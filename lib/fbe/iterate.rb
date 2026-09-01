@@ -280,6 +280,7 @@ class Fbe::Iterate
       markers[r] = v unless v.nil?
     end
     before = repos.to_h { |repo| [repo, markers[repo] || @since] }
+    repos.sort_by! { |repo| before[repo] }
     starts = before.dup
     values = {}
     loop do # rubocop:disable Metrics/BlockLength
