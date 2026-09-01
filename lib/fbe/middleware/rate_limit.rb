@@ -50,6 +50,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
         @lock.synchronize { sync(response_env, env.url.path) }
       end
     end
+  rescue StandardError
+    @lock.synchronize { untrack_request(env.url.path) } unless env.url.path == '/rate_limit'
+    raise
   end
 
   # Returns the remaining requests count tracked by this middleware.
@@ -88,6 +91,17 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @searchleft -= 1 if @searchleft&.positive?
     elsif @remaining&.positive?
       @remaining -= 1
+    end
+  end
+
+  # Reverts the counter decrement when the request fails.
+  def untrack_request(path = nil)
+    return unless @counter&.positive?
+    @counter -= 1
+    if path&.start_with?('/search/')
+      @searchleft += 1 if @searchleft&.positive?
+    elsif @remaining&.positive?
+      @remaining += 1
     end
   end
 
