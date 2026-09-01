@@ -5,6 +5,7 @@
 
 require 'decoor'
 require 'ellipsized'
+require 'faraday'
 require 'faraday/http_cache'
 require 'faraday/retry'
 require 'filesize'
@@ -184,6 +185,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 @loog.debug("Still #{left} #{label} quota left (>#{threshold})")
                 false
               end
+            rescue Octokit::ServerError, Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
+              @loog.warn("Failed to check #{label} quota, assuming it is over: #{e.message}")
+              true
             end
             # @see https://github.com/zerocracy/pages-action/issues/131
             def user_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
@@ -238,7 +242,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               raise(Fbe::OffQuota, "We are off-quota on the search resource, can't do #{m}()") if
                 o.off_quota?(resource: :search)
             elsif o.off_quota?
-              raise(Fbe::OffQuota, "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()")
+              left = limits[:rate_limit]&.remaining || 'unknown'
+              raise(Fbe::OffQuota, "We are off-quota (remaining: #{left}), can't do #{m}()")
             end
           end
         o.instance_eval do
