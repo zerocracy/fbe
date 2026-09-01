@@ -5,6 +5,7 @@
 
 require 'decoor'
 require 'ellipsized'
+require 'faraday'
 require 'faraday/http_cache'
 require 'faraday/retry'
 require 'filesize'
@@ -167,10 +168,15 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs
               threshold ||= resource == :search ? 5 : 50
               label = resource == :search ? 'GitHub Search API' : 'GitHub API'
-              @origin.rate_limit! if resource == :search
-              left = @limits[:rate_limit]&.remaining(resource)
-              got = !left.nil?
-              left = @origin.rate_limit!.remaining unless got
+              begin
+                @origin.rate_limit! if resource == :search
+                left = @limits[:rate_limit]&.remaining(resource)
+                got = !left.nil?
+                left = @origin.rate_limit!.remaining unless got
+              rescue Octokit::ServerError, Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
+                @loog.warn("Failed to check #{label} quota, assuming it is over: #{e.message}")
+                return true
+              end
               if resource == :search && !got
                 @loog.warn(
                   "Search-quota check fell back to core remaining (#{left}); " \
@@ -238,7 +244,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               raise(Fbe::OffQuota, "We are off-quota on the search resource, can't do #{m}()") if
                 o.off_quota?(resource: :search)
             elsif o.off_quota?
-              raise(Fbe::OffQuota, "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()")
+              left = limits[:rate_limit]&.remaining || 'unknown'
+              raise(Fbe::OffQuota, "We are off-quota (remaining: #{left}), can't do #{m}()")
             end
           end
         o.instance_eval do
