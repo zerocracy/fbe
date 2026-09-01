@@ -168,15 +168,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs
               threshold ||= resource == :search ? 5 : 50
               label = resource == :search ? 'GitHub Search API' : 'GitHub API'
-              begin
-                @origin.rate_limit! if resource == :search
-                left = @limits[:rate_limit]&.remaining(resource)
-                got = !left.nil?
-                left = @origin.rate_limit!.remaining unless got
-              rescue Octokit::ServerError, Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
-                @loog.warn("Failed to check #{label} quota, assuming it is over: #{e.message}")
-                return true
-              end
+              @origin.rate_limit! if resource == :search
+              left = @limits[:rate_limit]&.remaining(resource)
+              got = !left.nil?
+              left = @origin.rate_limit!.remaining unless got
               if resource == :search && !got
                 @loog.warn(
                   "Search-quota check fell back to core remaining (#{left}); " \
@@ -190,6 +185,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 @loog.debug("Still #{left} #{label} quota left (>#{threshold})")
                 false
               end
+            rescue Octokit::ServerError, Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
+              @loog.warn("Failed to check #{label} quota, assuming it is over: #{e.message}")
+              true
             end
             # @see https://github.com/zerocracy/pages-action/issues/131
             def user_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
