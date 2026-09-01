@@ -71,6 +71,8 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   repos = []
   octo = Fbe.octo(loog:, global:, options:)
   masks = (options.repositories || '').split(',')
+  masks.map!(&:strip)
+  masks.reject!(&:empty?)
   masks.reject { |m| m.start_with?('-') }.each do |mask|
     unless mask.include?('*')
       repos << mask
