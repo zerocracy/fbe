@@ -495,7 +495,31 @@ class TestGitHubGraph < Fbe::Test
     end
     result = graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01'))
     assert_equal(5, result['commits'])
-    assert_equal(165, result['hoc'])
+    assert_equal(110, result['hoc'])
+  end
+
+  def test_real_total_commits_pushed_ignores_merge_only_page
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 1,
+                'nodes' => [
+                  { 'oid' => 'merge', 'parents' => { 'totalCount' => 2 }, 'additions' => 200, 'deletions' => 20 }
+                ],
+                'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+              }
+            }
+          }
+        }
+      }
+    end
+    result = graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(0, result['hoc'])
   end
 
   def test_real_total_issues_created

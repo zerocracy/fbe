@@ -441,7 +441,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         GRAPHQL
       ).to_h
       commits = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'nodes')
-      hoc += commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
+      solo = commits.nil? ? [] : commits.select { _1.dig('parents', 'totalCount') == 1 }
+      hoc += solo.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
       total = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'totalCount') || 0
       break unless result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'hasNextPage')
       cursor = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
