@@ -37,6 +37,51 @@ class TestGitHubGraph < Fbe::Test
     assert_match(/Could not resolve to a Repository/, e.message)
   end
 
+  def test_raises_when_data_carries_path_scoped_error
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    top = Object.new
+    top.define_singleton_method(:empty?) { true }
+    nested = Object.new
+    nested.define_singleton_method(:empty?) { false }
+    nested.define_singleton_method(:messages) { { 'repository' => ['Could not resolve to a Repository'] } }
+    scoped = Object.new
+    scoped.define_singleton_method(:all) { nested }
+    data = Object.new
+    data.define_singleton_method(:errors) { scoped }
+    response = Object.new
+    response.define_singleton_method(:errors) { top }
+    response.define_singleton_method(:data) { data }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
+    e = assert_raises(Fbe::Error) { graph.query('{ repository(owner: "x", name: "y") { id } }') }
+    assert_match(/Could not resolve to a Repository/, e.message)
+  end
+
+  def test_returns_data_when_it_carries_no_path_scoped_error
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    top = Object.new
+    top.define_singleton_method(:empty?) { true }
+    nested = Object.new
+    nested.define_singleton_method(:empty?) { true }
+    scoped = Object.new
+    scoped.define_singleton_method(:all) { nested }
+    data = Object.new
+    data.define_singleton_method(:errors) { scoped }
+    response = Object.new
+    response.define_singleton_method(:errors) { top }
+    response.define_singleton_method(:data) { data }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
+    result = graph.query('{ repository(owner: "x", name: "y") { id } }')
+    assert_same(data, result)
+  end
+
   def test_simple_use_graph
     skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
