@@ -17,7 +17,16 @@ class TestGitHubGraph < Fbe::Test
     WebMock.disable_net_connect!
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    assert_instance_of(Fbe::Graph::Fake, graph)
+  end
+
+  def test_creates_real_graph_when_not_testing
+    WebMock.disable_net_connect!
+    global = {}
+    options = Judges::Options.new({ 'github_token' => 'x' })
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    assert_instance_of(Fbe::Graph, graph)
   end
 
   def test_raises_when_graphql_response_carries_errors
@@ -58,7 +67,8 @@ class TestGitHubGraph < Fbe::Test
     $global = {}
     $options = Judges::Options.new({ 'testing' => true })
     $loog = Loog::NULL
-    Fbe.github_graph
+    graph = Fbe.github_graph
+    assert_same(graph, Fbe.github_graph)
   end
 
   def test_with_broken_token
