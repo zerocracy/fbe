@@ -23,18 +23,51 @@ class TestGitHubGraph < Fbe::Test
   def test_raises_when_graphql_response_carries_errors
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'x')
-    errors = Object.new
-    errors.define_singleton_method(:empty?) { false }
-    errors.define_singleton_method(:messages) { { 'data' => ['Could not resolve to a Repository with the name'] } }
+    raw = [{ 'message' => "Could not resolve to a Repository with the name 'x/y'", 'path' => ['repository'] }]
+    GraphQL::Client::Errors.normalize_error_paths({ 'repository' => nil }, raw)
+    data = Object.new
+    data.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw, ['data']) }
     response = Object.new
-    response.define_singleton_method(:errors) { errors }
-    response.define_singleton_method(:data) { nil }
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { data }
     fake_client = Object.new
     fake_client.define_singleton_method(:parse) { |q| q }
     fake_client.define_singleton_method(:query) { |_parsed| response }
     graph.define_singleton_method(:client) { fake_client }
     e = assert_raises(Fbe::Error) { graph.query('{ viewer { login } }') }
     assert_match(/Could not resolve to a Repository/, e.message)
+  end
+
+  def test_raises_when_graphql_response_carries_pathless_errors
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    raw = [{ 'message' => 'Syntax Error: Unexpected Name "viewr"' }]
+    GraphQL::Client::Errors.normalize_error_paths(nil, raw)
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { nil }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
+    e = assert_raises(Fbe::Error) { graph.query('{ viewr { login } }') }
+    assert_match(/Syntax Error/, e.message)
+  end
+
+  def test_returns_data_when_graphql_response_carries_no_errors
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    raw = []
+    data = Object.new
+    data.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw, ['data']) }
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { data }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
+    assert_same(data, graph.query('{ viewer { login } }'))
   end
 
   def test_simple_use_graph
