@@ -33,6 +33,8 @@ end
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class Fbe::Graph # rubocop:disable Metrics/ClassLength
+  MAX_PAGES = 100
+
   def initialize(token:, host: 'api.github.com')
     @token = token
     @host = host
@@ -409,7 +411,12 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     cursor = nil
     total = 0
     hoc = 0
+    pages = 0
     loop do
+      pages += 1
+      if pages > MAX_PAGES
+        raise(Fbe::Error, "Too many pages (>#{MAX_PAGES}) while counting commits in '#{owner}/#{name}'")
+      end
       after = "after: \"#{cursor}\", " unless cursor.nil?
       result = query(
         <<~GRAPHQL
@@ -444,7 +451,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       hoc += commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
       total = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'totalCount') || 0
       break unless result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'hasNextPage')
-      cursor = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
+      newcursor = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
+      break if newcursor.nil? || newcursor == cursor
+      cursor = newcursor
     end
     {
       'commits' => total,
@@ -492,7 +501,12 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   def total_releases_published(owner, name, since)
     total = 0
     cursor = nil
+    pages = 0
     loop do
+      pages += 1
+      if pages > MAX_PAGES
+        raise(Fbe::Error, "Too many pages (>#{MAX_PAGES}) while counting releases in '#{owner}/#{name}'")
+      end
       after = "after: \"#{cursor}\", " unless cursor.nil?
       result = query(
         <<~GRAPHQL
@@ -517,7 +531,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       total += releases.count { !_1['isDraft'] && _1['publishedAt'] && Time.parse(_1['publishedAt']) > since }
       break if releases.all? { _1['publishedAt'] && Time.parse(_1['publishedAt']) < since }
       break unless result.dig('repository', 'releases', 'pageInfo', 'hasNextPage')
-      cursor = result.dig('repository', 'releases', 'pageInfo', 'endCursor')
+      newcursor = result.dig('repository', 'releases', 'pageInfo', 'endCursor')
+      break if newcursor.nil? || newcursor == cursor
+      cursor = newcursor
     end
     { 'releases' => total }
   end
