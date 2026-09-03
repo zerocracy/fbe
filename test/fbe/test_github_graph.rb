@@ -144,6 +144,59 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(1, result.count)
   end
 
+  def test_paginates_review_threads_and_comments
+    pages = [
+      {
+        'repository' => {
+          'pullRequest' => {
+            'reviewThreads' => {
+              'nodes' => [
+                {
+                  'id' => 'T1', 'isResolved' => true,
+                  'comments' => {
+                    'nodes' => [{ 'id' => 'C1' }],
+                    'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }
+                  }
+                }
+              ],
+              'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 't1' }
+            }
+          }
+        }
+      },
+      {
+        'repository' => {
+          'pullRequest' => {
+            'reviewThreads' => {
+              'nodes' => [
+                {
+                  'id' => 'T2', 'isResolved' => false,
+                  'comments' => { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false } }
+                }
+              ],
+              'pageInfo' => { 'hasNextPage' => false }
+            }
+          }
+        }
+      },
+      {
+        'node' => {
+          'comments' => {
+            'nodes' => [{ 'id' => 'C2' }],
+            'pageInfo' => { 'hasNextPage' => false, 'endCursor' => 'c2' }
+          }
+        }
+      }
+    ]
+    g = Fbe::Graph.new(token: 'fake')
+    threads =
+      g.stub(:query, ->(_q) { pages.shift }) do
+        g.resolved_conversations('foo', 'bar', 42)
+      end
+    assert_equal(1, threads.count)
+    assert_equal(%w[C1 C2], threads.first['comments']['nodes'].map { |c| c['id'] })
+  end
+
   def test_does_not_count_unresolved_conversations
     skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!

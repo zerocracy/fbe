@@ -65,35 +65,51 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   threads = graph.resolved_conversations('octocat', 'Hello-World', 42)
   #   threads.first['comments']['nodes'].first['body'] #=> "Great work!"
   def resolved_conversations(owner, name, number)
-    result = query(
-      <<~GRAPHQL
-        {
-          repository(owner: "#{owner}", name: "#{name}") {
-            pullRequest(number: #{number}) {
-              reviewThreads(first: 100) {
-                nodes {
-                  id
-                  isResolved
-                  comments(first: 100) {
+    threads = []
+    cursor = nil
+    loop do
+      after = "after: \"#{cursor}\", " unless cursor.nil?
+      page =
+        query(
+          <<~GRAPHQL
+            {
+              repository(owner: "#{owner}", name: "#{name}") {
+                pullRequest(number: #{number}) {
+                  reviewThreads(#{after}first: 100) {
                     nodes {
                       id
-                      body
-                      author {
-                        login
+                      isResolved
+                      comments(first: 100) {
+                        nodes {
+                          id
+                          body
+                          author {
+                            login
+                          }
+                          createdAt
+                        }
+                        pageInfo {
+                          endCursor
+                          hasNextPage
+                        }
                       }
-                      createdAt
+                    }
+                    pageInfo {
+                      endCursor
+                      hasNextPage
                     }
                   }
                 }
               }
             }
-          }
-        }
-      GRAPHQL
-    )
-    nodes = result&.to_h&.dig('repository', 'pullRequest', 'reviewThreads', 'nodes')
-    return [] if nodes.nil?
-    nodes.select { |thread| thread['isResolved'] }
+          GRAPHQL
+        )&.to_h&.dig('repository', 'pullRequest', 'reviewThreads')
+      break if page.nil?
+      threads.concat(page['nodes'] || [])
+      break unless page.dig('pageInfo', 'hasNextPage')
+      cursor = page.dig('pageInfo', 'endCursor')
+    end
+    threads.select { |thread| thread['isResolved'] }.each { |thread| with_comments(thread) }
   end
 
   # Gets the total number of commits in a branch.
@@ -526,6 +542,48 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   end
 
   private
+
+  # Reads the rest of the comments of one review thread.
+  #
+  # @param [Hash] thread The thread, with its first page of comments in it
+  # @return [Hash] The same thread, with all its comments in it
+  def with_comments(thread)
+    comments = thread['comments']
+    return thread if comments.nil?
+    cursor = comments.dig('pageInfo', 'endCursor')
+    while comments.dig('pageInfo', 'hasNextPage')
+      page =
+        query(
+          <<~GRAPHQL
+            {
+              node(id: "#{thread['id']}") {
+                ... on PullRequestReviewThread {
+                  comments(after: "#{cursor}", first: 100) {
+                    nodes {
+                      id
+                      body
+                      author {
+                        login
+                      }
+                      createdAt
+                    }
+                    pageInfo {
+                      endCursor
+                      hasNextPage
+                    }
+                  }
+                }
+              }
+            }
+          GRAPHQL
+        )&.to_h&.dig('node', 'comments')
+      break if page.nil?
+      comments['nodes'].concat(page['nodes'] || [])
+      comments['pageInfo'] = page['pageInfo'] || {}
+      cursor = comments.dig('pageInfo', 'endCursor')
+    end
+    thread
+  end
 
   # Creates or returns a cached GraphQL client instance.
   #
