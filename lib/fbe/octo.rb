@@ -121,9 +121,15 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
           o.middleware = stack
           o = Verbose.new(o, log: loog)
           unless token.nil? || token.empty?
+            quota =
+              begin
+                "#{o.rate_limit.remaining} quota remaining"
+              rescue Octokit::Error, Faraday::Error => e
+                "quota unknown: #{e.message}"
+              end
             loog.info(
               "Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect}, " \
-              "#{o.rate_limit.remaining} quota remaining)"
+              "#{quota})"
             )
           end
         else
