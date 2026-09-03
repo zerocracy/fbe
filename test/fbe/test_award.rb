@@ -140,6 +140,11 @@ class TestAward < Fbe::Test
     assert_raises(Fbe::Error) { a.bylaw }
   end
 
+  def test_bylaw_reports_the_real_error
+    a = Fbe::Award.new('(award (aka (bogus 1) (give 5 "y") "summary"))')
+    assert_includes(assert_raises(Fbe::Error) { a.bylaw }.message, "Unknown term 'bogus'")
+  end
+
   def test_division_by_zero_raises_error
     a = Fbe::Award.new('(award (set x (div 10 0)) (give x "test"))')
     assert_raises(Fbe::Error) { a.bill }
