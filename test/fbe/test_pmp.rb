@@ -107,7 +107,7 @@ class TestPmp < Fbe::Test
            '<default>true</default><type>bool</type><memo>x</memo></p></area></pmp>'
     orig = File.method(:read)
     File.stub(:read, ->(p, **k) { p.end_with?('pmp.xml') ? cust : orig.call(p, **k) }) do
-      assert(Fbe.pmp(loog: Loog::NULL).t.f)
+      assert(Fbe.pmp(loog: Loog::NULL).t.x)
     end
   end
 
@@ -128,8 +128,9 @@ class TestPmp < Fbe::Test
     $options = Judges::Options.new
     $loog = Loog::NULL
     fb = Factbase.new
-    v = Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop
-    assert_nil(v.value)
+    assert_raises(Fbe::Error) do
+      Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop
+    end
   end
 
   def test_custom_area_properties
