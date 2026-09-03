@@ -29,6 +29,13 @@ class TestGitHubGraph < Fbe::Test
     assert_instance_of(Fbe::Graph, graph)
   end
 
+  def test_prefers_fake_over_token_when_testing
+    WebMock.disable_net_connect!
+    options = Judges::Options.new({ 'testing' => true, 'github_token' => 'x' })
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global: {})
+    assert_instance_of(Fbe::Graph::Fake, graph)
+  end
+
   def test_memoizes_graph_inside_one_global
     WebMock.disable_net_connect!
     global = {}
