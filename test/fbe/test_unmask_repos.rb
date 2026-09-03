@@ -99,6 +99,50 @@ class TestUnmaskRepos < Fbe::Test
     assert_match(re, 'zerocracy/fbe')
   end
 
+  def test_cannot_build_regex_from_mask_without_slash
+    e = assert_raises(Fbe::Error) { Fbe.mask_to_regex('zerocracy') }
+    assert_includes(e.message, 'zerocracy', 'the mask without a slash is not quoted in the error')
+  end
+
+  def test_cannot_build_regex_from_mask_with_empty_repo
+    e = assert_raises(Fbe::Error) { Fbe.mask_to_regex('zerocracy/') }
+    assert_includes(e.message, 'zerocracy/', 'the mask with an empty repo is not quoted in the error')
+  end
+
+  def test_cannot_build_regex_from_mask_with_empty_org
+    e = assert_raises(Fbe::Error) { Fbe.mask_to_regex('/fbe') }
+    assert_includes(e.message, '/fbe', 'the mask with an empty org is not quoted in the error')
+  end
+
+  def test_cannot_build_regex_from_empty_mask
+    assert_raises(Fbe::Error) { Fbe.mask_to_regex('') }
+  end
+
+  def test_cannot_build_regex_from_mask_with_two_slashes
+    e = assert_raises(Fbe::Error) { Fbe.mask_to_regex('zerocracy/a/b') }
+    assert_includes(e.message, 'zerocracy/a/b', 'the mask with two slashes is not quoted in the error')
+  end
+
+  def test_cannot_build_regex_from_slash_only_mask
+    assert_raises(Fbe::Error) { Fbe.mask_to_regex('/') }
+  end
+
+  def test_cannot_build_regex_from_mask_with_asterisk_in_org
+    e = assert_raises(Fbe::Error) { Fbe.mask_to_regex('zero*/fbe') }
+    assert_includes(e.message, 'zero*', 'the org with an asterisk is not quoted in the error')
+  end
+
+  def test_cannot_build_regex_from_random_mask_without_slash
+    seed = Random.new_seed
+    mask = "Ω#{Random.new(seed).rand(1_000_000)}λ"
+    assert_raises(Fbe::Error, "the mask #{mask.inspect} is accepted, seed is #{seed}") { Fbe.mask_to_regex(mask) }
+  end
+
+  def test_cannot_unmask_repos_with_broken_exclusion_mask
+    options = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/tacit,-zerocracy/a/b' })
+    assert_raises(Fbe::Error) { Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL) }
+  end
+
   def test_skips_mask_when_organization_listing_is_forbidden
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
