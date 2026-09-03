@@ -33,6 +33,20 @@ class TestSec < Fbe::Test
     assert_equal('1mo', Fbe.sec(f, :duration))
   end
 
+  def test_zero_seconds
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 0
+    assert_equal('0s', Fbe.sec(f))
+  end
+
+  def test_negative_seconds
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = -86_400
+    assert_equal('-1d', Fbe.sec(f))
+  end
+
   def test_elapsed_past
     fb = Factbase.new
     f = fb.insert

@@ -16,7 +16,7 @@ require_relative '../fbe'
 # @param [String, Symbol] prop The property name with seconds (defaults to :seconds)
 # @return [String] Human-readable time interval (e.g., "2w", "3h", "5m33s")
 # @raise [RuntimeError] If the specified property doesn't exist in the fact
-# @note Uses the tago gem's ago method for formatting
+# @note Uses the tago gem for formatting; a negative interval keeps its sign
 # @example Format elapsed time from a fact
 #   build_fact = fb.query('(eq type "build")').first
 #   build_fact.duration = 7200  # 2 hours in seconds
@@ -25,5 +25,7 @@ def Fbe.sec(fact, prop = :seconds)
   s = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if s.nil?
   s = Integer(Float(s.first).round)
-  (Time.now - s).ago
+  return '0s' if s.zero?
+  return "-#{Float(s.abs).seconds}" if s.negative?
+  Float(s).seconds
 end
