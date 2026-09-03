@@ -209,9 +209,9 @@ class Fbe::Award
         v = to_val(@operands[0], bill)
         a = to_val(@operands[1], bill)
         b = to_val(@operands[2], bill)
-        min, max = [a, b].minmax
-        return 0 if (!v.negative? && v < min) || (!v.positive? && v > max)
-        v.clamp(min, max)
+        min, max = [a.abs, b.abs].minmax
+        return 0 if v.abs < min
+        (v.negative? ? -1 : 1) * v.abs.clamp(min, max)
       else
         raise(Fbe::Error, "Unknown term '#{@op}'")
       end
@@ -255,7 +255,8 @@ class Fbe::Award
       when :min
         "minimum of #{to_p(@operands[0])} and #{to_p(@operands[1])}"
       when :between
-        "#{to_p(@operands[0])} clamped between #{to_p(@operands[1])} and #{to_p(@operands[2])}"
+        "#{to_p(@operands[0])} clamped between #{to_p(@operands[1])} and #{to_p(@operands[2])}, " \
+        "or 0 if it is smaller than #{to_p(@operands[1])}"
       else
         raise(Fbe::Error, "Unknown term '#{@op}'")
       end
