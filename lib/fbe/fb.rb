@@ -60,7 +60,7 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
             ),
             loog
           ),
-          timeout: 60
+          timeout: options.timeout || 60
         )
       end
   end

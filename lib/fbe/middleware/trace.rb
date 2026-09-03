@@ -33,10 +33,11 @@ class Fbe::Middleware::Trace < Faraday::Middleware
   # @param [Array] trace The array to store trace entries
   # @param [Array<Symbol>] ignores The array of symbols (see Faraday::HttpCache::CACHE_STATUSES),
   # which will be ignored
-  def initialize(app, trace, ignores: [])
+  def initialize(app, trace, ignores: [], mutex: Mutex.new)
     super(app)
     @trace = trace
     @ignores = ignores
+    @mutex = mutex
   end
 
   # Processes the HTTP request and records trace information.
@@ -54,7 +55,7 @@ class Fbe::Middleware::Trace < Faraday::Middleware
       entry[:status] = response_env.status
       entry[:finished_at] = finished
       entry[:duration] = duration
-      @trace << entry
+      @mutex.synchronize { @trace << entry }
     end
   end
 end

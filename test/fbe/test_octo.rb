@@ -313,6 +313,47 @@ class TestOcto < Fbe::Test
     assert_predicate(o, :off_quota?, 'remaining=49 must trip the default core threshold of 50')
   end
 
+  def test_off_quota_when_quota_probe_fails_with_server_error
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(status: 500, body: '{"message":"boom ü"}')
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    assert(
+      o.off_quota?(threshold: 50, resource: :core),
+      'a 500 from the rate_limit probe is not reported as off-quota'
+    )
+  end
+
+  def test_off_quota_when_quota_probe_is_unauthorized
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(status: 401, body: '{"message":"bad token"}')
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    assert(
+      o.off_quota?(threshold: 50, resource: :core),
+      'a 401 from the rate_limit probe is not reported as off-quota'
+    )
+  end
+
+  def test_off_quota_search_when_quota_probe_cannot_connect
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_raise(Faraday::ConnectionFailed.new('socket is closed'))
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    assert(
+      o.off_quota?(threshold: 5, resource: :search),
+      'a broken connection in the search-quota probe is not reported as off-quota'
+    )
+  end
+
+  def test_fails_user_request_when_quota_probe_fails
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..100_000)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(status: 502, body: '{"message":"gateway"}')
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    assert_raises(Fbe::OffQuota, "user request with a broken quota probe does not pause the cycle (seed: #{seed})") do
+      o.user(id)
+    end
+  end
+
   def test_off_quota_search_when_last_response_is_nil
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

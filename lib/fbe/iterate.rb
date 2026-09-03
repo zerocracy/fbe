@@ -32,7 +32,6 @@ require_relative 'unmask_repos'
 #     as 'issues_iterator'
 #     by '(and (eq what "issue") (gt created_at $before))'
 #     repeats 5
-#     quota_aware
 #     over do |repository_id, issue_id|
 #       process_issue(repository_id, issue_id)
 #       issue_id + 1
@@ -71,7 +70,6 @@ end
 #   iterator.as('pull_requests')
 #   iterator.by('(and (eq what "pull_request") (gt number $before))')
 #   iterator.repeats(10)
-#   iterator.quota_aware
 #   iterator.over(timeout: 600) do |repo_id, pr_number|
 #     # Process pull request
 #     fetch_and_store_pr(repo_id, pr_number)
@@ -280,6 +278,7 @@ class Fbe::Iterate
       markers[r] = v unless v.nil?
     end
     before = repos.to_h { |repo| [repo, markers[repo] || @since] }
+    repos.sort_by! { |repo| before[repo] }
     starts = before.dup
     values = {}
     loop do # rubocop:disable Metrics/BlockLength
@@ -330,7 +329,7 @@ class Fbe::Iterate
             rescue Fbe::OffQuota
               raise
             rescue StandardError => e
-              raise(e.class, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
+              raise(Fbe::Error, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
             end
           end
         unless before[repo].is_a?(Integer)

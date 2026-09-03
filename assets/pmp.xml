@@ -1,97 +1,97 @@
-<?xml version='1.0'?>
+<?xml version="1.0"?>
 <!--
 SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 SPDX-License-Identifier: MIT
 -->
 <pmp>
-    <area name="hr">
-        <p>
-            <name>anger</name>
-            <default>2</default>
-            <type>int</type>
-            <memo>Intensity of penalties for rule violations</memo>
-        </p>
-        <p>
-            <name>days_to_reward</name>
-            <default>14</default>
-            <type>int</type>
-            <memo>Minimum age in days for an event to qualify for a reward</memo>
-        </p>
-        <p>
-            <name>days_of_running_score</name>
-            <default>56</default>
-            <type>int</type>
-            <memo>Number of days to include in a contributor's running score</memo>
-        </p>
-        <p>
-            <name>master_punish_days</name>
-            <default>4</default>
-            <type>int</type>
-            <memo>Interval in days between penalties for direct pushes to master</memo>
-        </p>
-    </area>
-    <area name="integration">
-        <p>
-            <name>eva_interval</name>
-            <default>10</default>
-            <type>int</type>
-            <memo>Interval in days between EVA statistics collection</memo>
-        </p>
-        <p>
-            <name>eva_learn_hours</name>
-            <default>8</default>
-            <type>int</type>
-            <memo>Interval in hours between EVA data collection and model training</memo>
-        </p>
-    </area>
-    <area name="quality">
-        <p>
-            <name>paranoia</name>
-            <default>2</default>
-            <type>int</type>
-            <memo>Strictness level for quality checks</memo>
-        </p>
-        <p>
-            <name>qos_days</name>
-            <default>32</default>
-            <type>int</type>
-            <memo>Number of days to include in QoS data collection</memo>
-        </p>
-    </area>
-    <area name="scope">
-        <p>
-            <name>qod_days</name>
-            <default>32</default>
-            <type>int</type>
-            <memo>Number of days to include in QoD data collection</memo>
-        </p>
-    </area>
-    <area name="cost">
-        <p>
-            <name>love</name>
-            <default>2</default>
-            <type>int</type>
-            <memo>Generosity level for rewards</memo>
-        </p>
-        <p>
-            <name>award_price</name>
-            <default>0.0</default>
-            <type>float</type>
-            <memo>Amount in USD paid per award point</memo>
-        </p>
-        <p>
-            <name>slaves</name>
-            <default>torvalds</default>
-            <type>string</type>
-            <memo>Comma-separated list of contributors exempt from cash payments</memo>
-        </p>
-    </area>
-    <area name="communications">
-        <p>
-            <name>stealth</name>
-            <default>false</default>
-            <type>bool</type>
-            <memo>Suppress all notifications to contributors about awards and penalties</memo>
-        </p>
-    </area>
+  <area name="hr">
+    <p>
+      <name>anger</name>
+      <default>2</default>
+      <type>int</type>
+      <memo>Intensity of penalties for rule violations</memo>
+    </p>
+    <p>
+      <name>days_to_reward</name>
+      <default>14</default>
+      <type>int</type>
+      <memo>Minimum age in days for an event to qualify for a reward</memo>
+    </p>
+    <p>
+      <name>days_of_running_score</name>
+      <default>56</default>
+      <type>int</type>
+      <memo>Number of days to include in a contributor's running score</memo>
+    </p>
+    <p>
+      <name>master_punish_days</name>
+      <default>4</default>
+      <type>int</type>
+      <memo>Interval in days between penalties for direct pushes to master</memo>
+    </p>
+  </area>
+  <area name="integration">
+    <p>
+      <name>eva_interval</name>
+      <default>10</default>
+      <type>int</type>
+      <memo>Interval in days between EVA statistics collection</memo>
+    </p>
+    <p>
+      <name>eva_learn_hours</name>
+      <default>8</default>
+      <type>int</type>
+      <memo>Interval in hours between EVA data collection and model training</memo>
+    </p>
+  </area>
+  <area name="quality">
+    <p>
+      <name>paranoia</name>
+      <default>2</default>
+      <type>int</type>
+      <memo>Strictness level for quality checks</memo>
+    </p>
+    <p>
+      <name>qos_days</name>
+      <default>32</default>
+      <type>int</type>
+      <memo>Number of days to include in QoS data collection</memo>
+    </p>
+  </area>
+  <area name="scope">
+    <p>
+      <name>qod_days</name>
+      <default>32</default>
+      <type>int</type>
+      <memo>Number of days to include in QoD data collection</memo>
+    </p>
+  </area>
+  <area name="cost">
+    <p>
+      <name>love</name>
+      <default>2</default>
+      <type>int</type>
+      <memo>Generosity level for rewards</memo>
+    </p>
+    <p>
+      <name>award_price</name>
+      <default>0.0</default>
+      <type>float</type>
+      <memo>Amount in USD paid per award point</memo>
+    </p>
+    <p>
+      <name>slaves</name>
+      <default>torvalds</default>
+      <type>string</type>
+      <memo>Comma-separated list of contributors exempt from cash payments</memo>
+    </p>
+  </area>
+  <area name="communications">
+    <p>
+      <name>stealth</name>
+      <default>false</default>
+      <type>bool</type>
+      <memo>Suppress all notifications to contributors about awards and penalties</memo>
+    </p>
+  </area>
 </pmp>

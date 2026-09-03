@@ -11,6 +11,8 @@ name: markdown-lint
     branches:
       - master
     paths-ignore: ['paper/**', 'sandbox/**']
+permissions:
+  contents: read
 concurrency:
   group: markdown-lint-${{ github.ref }}
   cancel-in-progress: true
@@ -19,5 +21,5 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
-      - uses: DavidAnson/markdownlint-cli2-action@v24.0.0
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: DavidAnson/markdownlint-cli2-action@b847b0e2798e09594353ac3d92f6222621a4d870

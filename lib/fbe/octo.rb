@@ -5,6 +5,7 @@
 
 require 'decoor'
 require 'ellipsized'
+require 'faraday'
 require 'faraday/http_cache'
 require 'faraday/retry'
 require 'filesize'
@@ -56,6 +57,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
       begin
         loog.info("Fbe version is #{Fbe::VERSION}")
         trace = []
+        mutex = Mutex.new
         limits = {}
         if options.testing.nil?
           o = Octokit::Client.new
@@ -96,7 +98,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.use(Octokit::Response::RaiseError)
               builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
               builder.use(Fbe::Middleware::RateLimit, limits)
-              builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
+              builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh], mutex:)
               if options.sqlite_cache
                 maxsize = Integer(Filesize.from(options.sqlite_cache_maxsize || '100M'))
                 maxvsize = Integer(Filesize.from(options.sqlite_cache_maxvsize || '100K'))
@@ -129,45 +131,47 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
           o = Fbe::FakeOctokit.new
         end
         o =
-          decoor(o, loog:, trace:, limits:) do # rubocop:disable Metrics/BlockLength
+          decoor(o, loog:, trace:, limits:, mutex:) do # rubocop:disable Metrics/BlockLength
             def print_trace!(all: false, max: 5)
-              if @trace.empty?
-                @loog.debug('GitHub API trace is empty')
-              else
-                grouped =
-                  @trace.select { |e| e[:duration] > 0.05 || all }.group_by do |entry|
-                    uri = URI.parse(entry[:url])
-                    query = uri.query
-                    query = "?#{query.ellipsized(40)}" if query
-                    "#{uri.scheme}://#{uri.host}#{uri.path}#{query}"
-                  end
-                message = grouped
-                  .sort_by { |_path, entries| -entries.count }
-                  .map do |path, entries|
-                    [
-                      '  ',
-                      path.gsub(%r{^https://api.github.com/}, '/'),
-                      ': ',
-                      entries.count,
-                      " (#{entries.sum { |e| e[:duration] }.seconds})"
-                    ].join
-                  end
-                  .take(max)
-                  .join("\n")
-                @loog.info(
-                  "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
-                  "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
-                )
-                @trace.clear
+              @mutex.synchronize do
+                if @trace.empty?
+                  @loog.debug('GitHub API trace is empty')
+                else
+                  grouped =
+                    @trace.select { |e| e[:duration] > 0.05 || all }.group_by do |entry|
+                      uri = URI.parse(entry[:url])
+                      query = uri.query
+                      query = "?#{query.ellipsized(40)}" if query
+                      "#{uri.scheme}://#{uri.host}#{uri.path}#{query}"
+                    end
+                  message = grouped
+                    .sort_by { |_path, entries| -entries.count }
+                    .map do |path, entries|
+                      [
+                        '  ',
+                        path.gsub(%r{^https://api.github.com/}, '/'),
+                        ': ',
+                        entries.count,
+                        " (#{entries.sum { |e| e[:duration] }.seconds})"
+                      ].join
+                    end
+                    .take(max)
+                    .join("\n")
+                  @loog.info(
+                    "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
+                    "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
+                  )
+                  @trace.clear
+                end
               end
             end
             def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs
               threshold ||= resource == :search ? 5 : 50
               label = resource == :search ? 'GitHub Search API' : 'GitHub API'
-              rate = @origin.rate_limit!
+              @origin.rate_limit! if resource == :search
               left = @limits[:rate_limit]&.remaining(resource)
               got = !left.nil?
-              left = rate.remaining unless got
+              left = @origin.rate_limit!.remaining unless got
               if resource == :search && !got
                 @loog.warn(
                   "Search-quota check fell back to core remaining (#{left}); " \
@@ -181,6 +185,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 @loog.debug("Still #{left} #{label} quota left (>#{threshold})")
                 false
               end
+            rescue Octokit::ServerError, Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
+              @loog.warn("Failed to check #{label} quota, assuming it is over: #{e.message}")
+              true
             end
             # @see https://github.com/zerocracy/pages-action/issues/131
             def user_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
@@ -235,7 +242,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               raise(Fbe::OffQuota, "We are off-quota on the search resource, can't do #{m}()") if
                 o.off_quota?(resource: :search)
             elsif o.off_quota?
-              raise(Fbe::OffQuota, "We are off-quota (remaining: #{o.rate_limit.remaining}), can't do #{m}()")
+              left = limits[:rate_limit]&.remaining || 'unknown'
+              raise(Fbe::OffQuota, "We are off-quota (remaining: #{left}), can't do #{m}()")
             end
           end
         o.instance_eval do

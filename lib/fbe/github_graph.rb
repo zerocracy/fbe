@@ -48,9 +48,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   puts result.viewer.login #=> "octocat"
   def query(qry)
     result = client.query(client.parse(qry))
-    unless result.errors.empty?
-      raise(Fbe::Error, "GitHub GraphQL query failed: #{result.errors.messages.values.flatten.join('; ')}")
-    end
+    messages = result.errors.messages.values.flatten
+    messages += result.data.errors.messages.values.flatten if result.data
+    raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}") unless messages.empty?
     result.data
   end
 
@@ -236,8 +236,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         }
       GRAPHQL
     ).to_h
-    return unless result['node']
     type = result.dig('node', '__typename')
+    return unless %w[IssueTypeAddedEvent IssueTypeChangedEvent IssueTypeRemovedEvent].include?(type)
     previous =
       if type == 'IssueTypeChangedEvent'
         {
@@ -383,7 +383,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         }
       GRAPHQL
     ).to_h
-    result['repository'].map do |_k, v|
+    result['repository'].filter_map do |_k, v|
+      next if v.nil?
       {
         'id' => v['id'],
         'number' => v['number'],
@@ -440,11 +441,13 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           }
         GRAPHQL
       ).to_h
-      commits = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'nodes')
+      repository = result['repository']
+      raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if repository.nil?
+      commits = repository.dig('defaultBranchRef', 'target', 'history', 'nodes')
       hoc += commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
-      total = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'totalCount') || 0
-      break unless result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'hasNextPage')
-      cursor = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
+      total = repository.dig('defaultBranchRef', 'target', 'history', 'totalCount') || 0
+      break unless repository.dig('defaultBranchRef', 'target', 'history', 'pageInfo', 'hasNextPage')
+      cursor = repository.dig('defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
     end
     {
       'commits' => total,

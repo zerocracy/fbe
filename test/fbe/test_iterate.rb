@@ -530,7 +530,7 @@ class TestIterate < Fbe::Test
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.foo = 42
     ex =
-      assert_raises(StandardError) do
+      assert_raises(Fbe::Error) do
         Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
           as('context_test')
           by('(agg (always) (max foo))')
@@ -543,6 +543,40 @@ class TestIterate < Fbe::Test
     assert_includes(ex.message, '42', "Expected message to contain item id, got: #{ex.message.inspect}")
     assert_match(/repo/i, ex.message, "Expected message to mention repo, got: #{ex.message.inspect}")
     assert_includes(ex.message, 'boom', "Expected original message preserved, got: #{ex.message.inspect}")
+  end
+
+  def test_wraps_octokit_error_as_fbe_error_with_context
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.foo = 42
+    err =
+      Octokit::ServiceUnavailable.new(
+        {
+          status: 503,
+          method: :get,
+          url: 'https://api.github.com/',
+          body: 'Service Unavailable',
+          response_headers: {}
+        }
+      )
+    ex =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+          as('octokit_context_test')
+          by('(agg (always) (max foo))')
+          repeats(1)
+          over do |_repository, _foo|
+            raise(err)
+          end
+        end
+      end
+    assert_includes(ex.message, '42', "Expected message to contain item id, got: #{ex.message.inspect}")
+    assert_match(/repo/i, ex.message, "Expected message to mention repo, got: #{ex.message.inspect}")
+    assert_includes(
+      ex.message,
+      err.message,
+      "Expected original Octokit message preserved, got: #{ex.message.inspect}"
+    )
   end
 
   def test_does_not_swallow_off_quota_when_block_raises

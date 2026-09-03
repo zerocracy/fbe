@@ -3,7 +3,9 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'faraday'
 require 'joined'
+require 'octokit'
 require_relative '../fbe'
 require_relative 'octo'
 require_relative 'over'
@@ -20,8 +22,9 @@ require_relative 'over'
 #
 # @param [String] mask Repository mask in format 'org/repo' where repo can contain '*'
 # @return [Regexp] Case-insensitive regular expression for matching repositories
-# @raise [RuntimeError] If organization part contains asterisk
+# @raise [Fbe::Error] If the mask is not 'org/repo' or the organization part contains asterisk
 def Fbe.mask_to_regex(mask)
+  raise(Fbe::Error, "Mask #{mask.inspect} is not in the 'org/repo' format") unless mask.match?(%r{\A[^/]+/[^/]+\z})
   org, repo = mask.split('/')
   raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
   Regexp.compile("\\A#{Regexp.escape(org)}/#{Regexp.escape(repo).gsub('\\*', '.*')}\\z", Regexp::IGNORECASE)
@@ -59,6 +62,8 @@ end
 # @raise [RuntimeError] If no repositories match the provided masks
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
+# @note A mask whose expansion fails on GitHub is skipped, an absent repository is dropped,
+#   and a repository whose archived status can't be read is treated as not archived
 def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   options: $options, global: $global, loog: $loog, epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
@@ -71,6 +76,8 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   repos = []
   octo = Fbe.octo(loog:, global:, options:)
   masks = (options.repositories || '').split(',')
+  masks.map!(&:strip)
+  masks.reject!(&:empty?)
   masks.reject { |m| m.start_with?('-') }.each do |mask|
     unless mask.include?('*')
       repos << mask
@@ -87,12 +94,25 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     list.each do |r|
       repos << r[:full_name] if re.match?(r[:full_name])
     end
+  rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::NotFound, Octokit::ServerError,
+         Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
+    loog.warn("Cannot expand the mask #{mask.inspect}, skipping it: #{e.message}")
   end
   masks.select { |m| m.start_with?('-') }.each do |mask|
     re = Fbe.mask_to_regex(mask[1..])
     repos.reject! { |r| re.match?(r) }
   end
-  repos.reject! { |repo| octo.repository(repo)[:archived] }
+  repos.uniq!
+  repos.reject! do |repo|
+    octo.repository(repo)[:archived]
+  rescue Octokit::NotFound => e
+    loog.warn("Repository #{repo.inspect} is absent, dropping it: #{e.message}")
+    true
+  rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError, Octokit::Unauthorized,
+         Faraday::ConnectionFailed, Faraday::TimeoutError => e
+    loog.warn("Cannot tell whether #{repo.inspect} is archived, assuming it is not: #{e.message}")
+    false
+  end
   raise(Fbe::Error, "No repos found matching: #{options.repositories.inspect}") if repos.empty?
   repos.shuffle!
   loog.debug("Scanning #{repos.size} repositories: #{repos.joined}...")

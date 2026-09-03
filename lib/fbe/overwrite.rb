@@ -65,8 +65,8 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     end
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
-    raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
     fb.txn do |fbt|
+      raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
       n = fbt.insert
       f = n
       while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
@@ -101,8 +101,8 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   end
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
-  raise(Fbe::Error, "No facts by #{fid} = #{id}") if fb.query("(eq #{fid} #{id})").delete!.zero?
   fb.txn do |fbt|
+    raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
     n = fbt.insert
     f = n
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
