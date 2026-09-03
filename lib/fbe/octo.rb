@@ -88,11 +88,16 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.use(
                 Faraday::Retry::Middleware,
                 exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [
-                  Octokit::TooManyRequests, Octokit::ServiceUnavailable
+                  Octokit::ServerError, Octokit::ClientError
                 ],
                 max: 4,
                 interval: ENV['RACK_ENV'] == 'test' ? 0.01 : 4,
-                methods: [:get],
+                methods: [],
+                retry_if: lambda do |env, exception|
+                  next false unless env[:method] == :get
+                  next true unless exception.is_a?(Octokit::ClientError)
+                  exception.is_a?(Octokit::TooManyRequests) || exception.response_status == 429
+                end,
                 backoff_factor: 2
               )
               builder.use(Octokit::Response::RaiseError)
