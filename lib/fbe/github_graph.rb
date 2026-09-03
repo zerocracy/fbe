@@ -440,11 +440,13 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           }
         GRAPHQL
       ).to_h
-      commits = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'nodes')
+      repository = result['repository']
+      raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if repository.nil?
+      commits = repository.dig('defaultBranchRef', 'target', 'history', 'nodes')
       hoc += commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
-      total = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'totalCount') || 0
-      break unless result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'hasNextPage')
-      cursor = result.dig('repository', 'defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
+      total = repository.dig('defaultBranchRef', 'target', 'history', 'totalCount') || 0
+      break unless repository.dig('defaultBranchRef', 'target', 'history', 'pageInfo', 'hasNextPage')
+      cursor = repository.dig('defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
     end
     {
       'commits' => total,
