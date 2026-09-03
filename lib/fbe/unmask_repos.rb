@@ -22,8 +22,9 @@ require_relative 'over'
 #
 # @param [String] mask Repository mask in format 'org/repo' where repo can contain '*'
 # @return [Regexp] Case-insensitive regular expression for matching repositories
-# @raise [RuntimeError] If organization part contains asterisk
+# @raise [Fbe::Error] If the mask is not 'org/repo' or the organization part contains asterisk
 def Fbe.mask_to_regex(mask)
+  raise(Fbe::Error, "Mask #{mask.inspect} is not in the 'org/repo' format") unless mask.match?(%r{\A[^/]+/[^/]+\z})
   org, repo = mask.split('/')
   raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
   Regexp.compile("\\A#{Regexp.escape(org)}/#{Regexp.escape(repo).gsub('\\*', '.*')}\\z", Regexp::IGNORECASE)

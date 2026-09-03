@@ -23,18 +23,51 @@ class TestGitHubGraph < Fbe::Test
   def test_raises_when_graphql_response_carries_errors
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'x')
-    errors = Object.new
-    errors.define_singleton_method(:empty?) { false }
-    errors.define_singleton_method(:messages) { { 'data' => ['Could not resolve to a Repository with the name'] } }
+    raw = [{ 'message' => "Could not resolve to a Repository with the name 'x/y'", 'path' => ['repository'] }]
+    GraphQL::Client::Errors.normalize_error_paths({ 'repository' => nil }, raw)
+    data = Object.new
+    data.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw, ['data']) }
     response = Object.new
-    response.define_singleton_method(:errors) { errors }
-    response.define_singleton_method(:data) { nil }
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { data }
     fake_client = Object.new
     fake_client.define_singleton_method(:parse) { |q| q }
     fake_client.define_singleton_method(:query) { |_parsed| response }
     graph.define_singleton_method(:client) { fake_client }
     e = assert_raises(Fbe::Error) { graph.query('{ viewer { login } }') }
     assert_match(/Could not resolve to a Repository/, e.message)
+  end
+
+  def test_raises_when_graphql_response_carries_pathless_errors
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    raw = [{ 'message' => 'Syntax Error: Unexpected Name "viewr"' }]
+    GraphQL::Client::Errors.normalize_error_paths(nil, raw)
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { nil }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
+    e = assert_raises(Fbe::Error) { graph.query('{ viewr { login } }') }
+    assert_match(/Syntax Error/, e.message)
+  end
+
+  def test_returns_data_when_graphql_response_carries_no_errors
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    raw = []
+    data = Object.new
+    data.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw, ['data']) }
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { data }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
+    assert_same(data, graph.query('{ viewer { login } }'))
   end
 
   def test_simple_use_graph
@@ -59,6 +92,16 @@ class TestGitHubGraph < Fbe::Test
     $options = Judges::Options.new({ 'testing' => true })
     $loog = Loog::NULL
     Fbe.github_graph
+    $global = nil
+    $options = nil
+    $loog = nil
+  end
+
+  def test_clears_global_variables_after_use_with_global_variables
+    test_use_with_global_variables
+    assert_nil($global)
+    assert_nil($options)
+    assert_nil($loog)
   end
 
   def test_with_broken_token
@@ -245,6 +288,30 @@ class TestGitHubGraph < Fbe::Test
         graph.pull_request_reviews('bad-owner', 'bad-repo', pulls: [[1, nil]])
       end
     assert_includes(error.message, 'bad-owner/bad-repo')
+  end
+
+  def test_pull_request_reviews_when_repository_is_null
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    owner = "\u00fc-#{Random.new(seed).rand(1_000_000).to_s(36)}"
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => nil }
+    end
+    error =
+      assert_raises(Fbe::Error) do
+        graph.pull_request_reviews(owner, 'bar', pulls: [[7, nil]])
+      end
+    assert_includes(error.message, "#{owner}/bar", "error does not name the repository, seed #{seed}")
+  end
+
+  def test_pull_request_reviews_dont_raise_when_repository_has_no_pulls
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => {} }
+    end
+    assert_empty(graph.pull_request_reviews('foo', 'bar', pulls: [[7, nil]]))
   end
 
   def test_fake_pull_request_reviews
@@ -511,6 +578,26 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(165, result['hoc'])
   end
 
+  def test_real_total_commits_pushed_returns_zero_for_repo_without_default_branch
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => { 'defaultBranchRef' => nil } }
+    end
+    result = graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(0, result['commits'])
+    assert_equal(0, result['hoc'])
+  end
+
+  def test_real_total_commits_pushed_raises_when_repo_not_found
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => nil }
+    end
+    assert_raises(Fbe::Error) { graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01')) }
+  end
+
   def test_real_total_issues_created
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
@@ -624,6 +711,35 @@ class TestGitHubGraph < Fbe::Test
     end
     graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'), cursor: nil)
     refute_includes(captured, 'after: ""')
+  end
+
+  def test_pull_request_reviews_skips_pull_that_no_longer_exists
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pr_2' => nil,
+          'pr_5' => {
+            'id' => 'PR_5',
+            'number' => 5,
+            'reviews' => { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+          }
+        }
+      }
+    end
+    pulls = graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil], [5, nil]])
+    assert_equal(1, pulls.size)
+  end
+
+  def test_pull_request_reviews_returns_empty_when_all_pulls_no_longer_exist
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => { 'pr_2' => nil, 'pr_5' => nil } }
+    end
+    pulls = graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil], [5, nil]])
+    assert_empty(pulls)
   end
 
   def test_pull_request_reviews_omits_after_when_cursor_is_nil
