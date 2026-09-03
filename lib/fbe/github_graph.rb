@@ -34,6 +34,7 @@ end
 # License:: MIT
 class Fbe::Graph # rubocop:disable Metrics/ClassLength
   MAX_PAGES = 100
+  private_constant :MAX_PAGES
 
   def initialize(token:, host: 'api.github.com')
     @token = token
