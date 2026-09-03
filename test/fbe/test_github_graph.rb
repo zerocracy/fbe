@@ -59,6 +59,16 @@ class TestGitHubGraph < Fbe::Test
     $options = Judges::Options.new({ 'testing' => true })
     $loog = Loog::NULL
     Fbe.github_graph
+    $global = nil
+    $options = nil
+    $loog = nil
+  end
+
+  def test_clears_global_variables_after_use_with_global_variables
+    test_use_with_global_variables
+    assert_nil($global)
+    assert_nil($options)
+    assert_nil($loog)
   end
 
   def test_with_broken_token
