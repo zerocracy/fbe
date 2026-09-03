@@ -217,6 +217,42 @@ class RateLimitTest < Fbe::Test
     assert_equal(0, response.body['resources']['search']['remaining'])
   end
 
+  def test_restores_the_counter_at_zero_after_a_failed_request
+    payload = {
+      'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+      'resources' => {
+        'core' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => 1_672_531_200 }
+      }
+    }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+      .times(1)
+    stub_request(:get, 'https://api.github.com/user').to_raise(Faraday::ConnectionFailed.new('no network'))
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/user') }
+    assert_equal(1, conn.get('/rate_limit').body['resources']['core']['remaining'])
+  end
+
+  def test_restores_the_search_counter_at_zero
+    payload = {
+      'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+      'resources' => {
+        'core' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => 1_672_531_200 }
+      }
+    }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+      .times(1)
+    stub_request(:get, 'https://api.github.com/search/issues?q=z').to_raise(Faraday::ConnectionFailed.new('nope'))
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/search/issues?q=z') }
+    assert_equal(1, conn.get('/rate_limit').body['resources']['search']['remaining'])
+  end
+
   def test_search_remaining_absent_when_payload_lacks_resources
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')

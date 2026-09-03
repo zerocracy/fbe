@@ -99,8 +99,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     return unless @counter&.positive?
     @counter -= 1
     if path&.start_with?('/search/')
-      @searchleft += 1 if @searchleft&.positive?
-    elsif @remaining&.positive?
+      @searchleft += 1 unless @searchleft.nil?
+    elsif !@remaining.nil?
       @remaining += 1
     end
   end
