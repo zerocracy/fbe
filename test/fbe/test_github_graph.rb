@@ -676,6 +676,35 @@ class TestGitHubGraph < Fbe::Test
     refute_includes(captured, 'after: ""')
   end
 
+  def test_pull_request_reviews_skips_pull_that_no_longer_exists
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pr_2' => nil,
+          'pr_5' => {
+            'id' => 'PR_5',
+            'number' => 5,
+            'reviews' => { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+          }
+        }
+      }
+    end
+    pulls = graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil], [5, nil]])
+    assert_equal(1, pulls.size)
+  end
+
+  def test_pull_request_reviews_returns_empty_when_all_pulls_no_longer_exist
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => { 'pr_2' => nil, 'pr_5' => nil } }
+    end
+    pulls = graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil], [5, nil]])
+    assert_empty(pulls)
+  end
+
   def test_pull_request_reviews_omits_after_when_cursor_is_nil
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
