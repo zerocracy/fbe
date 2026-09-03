@@ -120,6 +120,13 @@ class TestAward < Fbe::Test
     assert_includes(md, '_x_ clamped between **3** and **120**', md)
   end
 
+  def test_lines_add_up_to_the_total
+    b = Fbe::Award.new('(award (give 12 "as a basis") (give 7.6 "for comments"))').bill
+    g = b.greeting
+    assert_equal(20, b.points, g)
+    assert_equal("You've earned +20 points for this: +12 as a basis; +8 for comments. ", g)
+  end
+
   def test_shorten_when_one_number
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
     assert_equal('You\'ve earned +23 points. ', g, g)
