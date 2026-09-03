@@ -5,6 +5,7 @@
 
 require 'graphql/client'
 require 'graphql/client/http'
+require 'json'
 require 'loog'
 require_relative '../fbe'
 
@@ -68,7 +69,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     result = query(
       <<~GRAPHQL
         {
-          repository(owner: "#{owner}", name: "#{name}") {
+          repository(owner: #{Literal.new(owner)}, name: #{Literal.new(name)}) {
             pullRequest(number: #{number}) {
               reviewThreads(first: 100) {
                 nodes {
@@ -128,8 +129,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     requests =
       repos.each_with_index.map do |(owner, name, branch), i|
         <<~GRAPHQL
-          repo_#{i}: repository(owner: "#{owner}", name: "#{name}") {
-            ref(qualifiedName: "#{branch}") {
+          repo_#{i}: repository(owner: #{Literal.new(owner)}, name: #{Literal.new(name)}) {
+            ref(qualifiedName: #{Literal.new(branch)}) {
               target {
                 ... on Commit {
                   history {
@@ -173,7 +174,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     result = query(
       <<~GRAPHQL
         {
-          repository(owner: "#{owner}", name: "#{name}") {
+          repository(owner: #{Literal.new(owner)}, name: #{Literal.new(name)}) {
             issues {
               totalCount
             }
@@ -198,7 +199,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     result = query(
       <<~GRAPHQL
         {
-          node(id: "#{node_id}") {
+          node(id: #{Literal.new(node_id)}) {
             __typename
             ... on IssueTypeAddedEvent {
               id
@@ -293,11 +294,11 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #     cursor = json['next_cursor']
   #   end
   def pull_requests_with_reviews(owner, name, since, cursor: nil)
-    after = "after: \"#{cursor}\", " unless cursor.nil?
+    after = "after: #{Literal.new(cursor)}, " unless cursor.nil?
     result = query(
       <<~GRAPHQL
         {
-          repository(owner: "#{owner}", name: "#{name}") {
+          repository(owner: #{Literal.new(owner)}, name: #{Literal.new(name)}) {
             pullRequests(#{after}first: 100) {
               nodes {
                 id
@@ -356,7 +357,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   def pull_request_reviews(owner, name, pulls: [])
     requests =
       pulls.map do |number, cursor|
-        after = "after: \"#{cursor}\", " unless cursor.nil?
+        after = "after: #{Literal.new(cursor)}, " unless cursor.nil?
         <<~GRAPHQL
           pr_#{number}: pullRequest(number: #{number}) {
             id
@@ -377,7 +378,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     result = query(
       <<~GRAPHQL
         {
-          repository(owner: "#{owner}", name: "#{name}") {
+          repository(owner: #{Literal.new(owner)}, name: #{Literal.new(name)}) {
             #{requests.join("\n")}
           }
         }
@@ -411,11 +412,11 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     total = 0
     hoc = 0
     loop do
-      after = "after: \"#{cursor}\", " unless cursor.nil?
+      after = "after: #{Literal.new(cursor)}, " unless cursor.nil?
       result = query(
         <<~GRAPHQL
           {
-            repository(owner: "#{owner}", name: "#{name}") {
+            repository(owner: #{Literal.new(owner)}, name: #{Literal.new(name)}) {
               defaultBranchRef {
                 target {
                   ... on Commit {
@@ -466,13 +467,13 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       <<~GRAPHQL
         {
           issues: search(
-            query: "repo:#{owner}/#{name} type:issue created:>#{since.utc.iso8601}",
+            query: #{Literal.new("repo:#{owner}/#{name} type:issue created:>#{since.utc.iso8601}")},
             type: ISSUE
           ) {
             issueCount
           },
           pulls: search(
-            query: "repo:#{owner}/#{name} type:pr created:>#{since.utc.iso8601}",
+            query: #{Literal.new("repo:#{owner}/#{name} type:pr created:>#{since.utc.iso8601}")},
             type: ISSUE
           ) {
             issueCount
@@ -496,11 +497,11 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     total = 0
     cursor = nil
     loop do
-      after = "after: \"#{cursor}\", " unless cursor.nil?
+      after = "after: #{Literal.new(cursor)}, " unless cursor.nil?
       result = query(
         <<~GRAPHQL
           {
-            repository(owner: "#{owner}", name: "#{name}") {
+            repository(owner: #{Literal.new(owner)}, name: #{Literal.new(name)}) {
               releases(#{after}first: 25, orderBy: { field: CREATED_AT, direction: DESC }) {
                 nodes {
                   isDraft
@@ -561,6 +562,26 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     # @return [Hash] Headers for the request
     def headers(_context)
       { Authorization: "Bearer #{@token}" }
+    end
+  end
+
+  # A value that goes into a GraphQL query as a quoted string.
+  #
+  # This class turns any value into a GraphQL string literal, so that a name
+  # carrying a quote becomes an odd name instead of a second field.
+  class Literal
+    # Initializes a new literal out of a value.
+    #
+    # @param [Object] value The value to put into a query
+    def initialize(value)
+      @value = value
+    end
+
+    # Renders the value as a GraphQL string literal, quotes included.
+    #
+    # @return [String] The quoted and escaped value
+    def to_s
+      JSON.dump(@value.to_s)
     end
   end
 
