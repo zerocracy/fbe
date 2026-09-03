@@ -114,6 +114,16 @@ class TestAward < Fbe::Test
     end
   end
 
+  def test_aka_with_explain_keeps_earlier_lines
+    a = Fbe::Award.new(
+      '(award (give 1 "for the first thing") ' \
+      '(aka (explain "some intro") (give 5 "for the second thing") "summary of the aka"))'
+    )
+    md = a.bylaw.markdown
+    assert_includes(md, 'award **1**', md)
+    assert_includes(md, 'summary of the aka', md)
+  end
+
   def test_between_in_bylaw_markdown
     a = Fbe::Award.new('(award (set b (between x 3 120)) (give b "test"))')
     md = a.bylaw.markdown
