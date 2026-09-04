@@ -55,6 +55,14 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_repository_is_consistent_for_an_id
+    o = Fbe::FakeOctokit.new
+    json = o.repository(1439)
+    assert_equal('zerocracy/baza', json[:full_name])
+    assert_equal('zerocracy', json[:owner][:login])
+    assert_equal('https://github.com/zerocracy/baza', json[:html_url])
+  end
+
   def test_rate_limit
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)
