@@ -258,7 +258,7 @@ class Fbe::Award
         "#{to_p(@operands[0])} clamped between #{to_p(@operands[1])} and #{to_p(@operands[2])}, " \
         "or 0 if it is smaller than #{to_p(@operands[1])}"
       else
-        raise(Fbe::Error, "Unknown term '#{@op}'")
+        "(#{@op} #{@operands.join(' ')})"
       end
     end
 
