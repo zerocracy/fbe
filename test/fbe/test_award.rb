@@ -65,7 +65,7 @@ class TestAward < Fbe::Test
       '(let x 25)' => 0,
       '(award (give (times 5 0.25 "fun")))' => 1,
       '(award (give 25 "for being a good boy"))' => 25,
-      '(award (give (between 42 -10 -50) "empty"))' => -10,
+      '(award (give (between 42 -10 -50) "empty"))' => 42,
       '(award (give (between -3 -10 -50) "empty"))' => 0,
       '(award (give (between -100 -50 -10) "empty"))' => -50
     }.each do |q, v|
@@ -95,7 +95,10 @@ class TestAward < Fbe::Test
       '(award (give (between 0 -10 -30)))' => 0,
       '(award (give (between -2 -10 -30)))' => 0,
       '(award (give (between -15 -10 -30)))' => -15,
-      '(award (give (between -50 -10 -30)))' => -30
+      '(award (give (between -50 -10 -30)))' => -30,
+      '(award (give (between -4 5 8)))' => 0,
+      '(award (give (between -6 5 8)))' => -6,
+      '(award (give (between -9 5 8)))' => -8
     }.each do |q, v|
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.points, q)
@@ -127,7 +130,7 @@ class TestAward < Fbe::Test
   def test_between_in_bylaw_markdown
     a = Fbe::Award.new('(award (set b (between x 3 120)) (give b "test"))')
     md = a.bylaw.markdown
-    assert_includes(md, '_x_ clamped between **3** and **120**', md)
+    assert_includes(md, '_x_ clamped between **3** and **120**, or 0 if it is smaller than **3**', md)
   end
 
   def test_lines_add_up_to_the_total
