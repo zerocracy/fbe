@@ -472,6 +472,47 @@ class TestOcto < Fbe::Test
     o.user('yegor256')
   end
 
+  def test_retrying_on_server_errors
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    [500, 502, 503].each do |code|
+      stub_request(:get, "https://api.github.com/repositories/#{code}")
+        .to_return(status: code)
+        .times(1)
+        .then
+        .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+      o.repository(code)
+    end
+  end
+
+  def test_retrying_on_too_many_requests
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repositories/429')
+      .to_return(status: 429)
+      .times(1)
+      .then
+      .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+    o.repository(429)
+  end
+
+  def test_not_retrying_on_not_found
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repositories/404').to_return(status: 404)
+    assert_raises(Octokit::NotFound) { o.repository(404) }
+    assert_requested(:get, 'https://api.github.com/repositories/404', times: 1)
+  end
+
   def test_with_broken_token
     skip("it's a live test, run it manually if you need it")
     WebMock.enable_net_connect!
