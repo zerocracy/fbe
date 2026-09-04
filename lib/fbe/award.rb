@@ -375,7 +375,7 @@ class Fbe::Award
     #   bill.line(42.5, "for answer")
     #   bill.points #=> 43
     def points
-      Integer(Float(@lines.sum { |l| l[:v] }).round.to_s, 10)
+      @lines.sum { |l| whole(l[:v]) }
     end
 
     # Generates a human-readable summary of the bill.
@@ -387,7 +387,7 @@ class Fbe::Award
     #   bill.line(25, "for documentation")
     #   bill.greeting #=> "You've earned +75 points for this: +50 for code review; +25 for documentation. "
     def greeting
-      items = @lines.map { |l| "#{format('%+d', l[:v])} #{l[:t]}" }
+      items = @lines.map { |l| "#{format('%+d', whole(l[:v]))} #{l[:t]}" }
       case items.size
       when 0
         "You've earned nothing. "
@@ -396,6 +396,16 @@ class Fbe::Award
       else
         "You've earned #{format('%+d', points)} points for this: #{items.join('; ')}. "
       end
+    end
+
+    private
+
+    # Rounds one line value the way the total is rounded.
+    #
+    # @param [Float, Integer] value The value of one line
+    # @return [Integer] The value as a whole number
+    def whole(value)
+      Integer(Float(value).round)
     end
   end
 
