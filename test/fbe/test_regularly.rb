@@ -69,4 +69,34 @@ class TestRegularly < Fbe::Test
     refute_nil(fact)
     refute_nil(fact.since)
   end
+
+  def test_area_with_single_quote
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = "te'st"
+      f.interval = 3
+    end
+    loog = Loog::NULL
+    Fbe.regularly("te'st", 'interval', 'days', fb:, loog:, judge: 'test') do |f|
+      f.foo = 42
+    end
+    assert_equal(2, fb.size)
+  end
+
+  def test_judge_with_single_quote
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = 'quality'
+      f.interval = 3
+    end
+    loog = Loog::NULL
+    Fbe.regularly('quality', 'interval', 'days', fb:, loog:, judge: "te'st") do |f|
+      f.foo = 42
+    end
+    assert_equal(2, fb.size)
+  end
 end
