@@ -294,13 +294,19 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @return [Hash] User information including id, login, and type
   # @example
   #   fake_client = Fbe::FakeOctokit.new
-  #   fake_client.user(526_301) #=> {:id=>444, :login=>"yegor256", :type=>"User"}
-  #   fake_client.user('octocat') #=> {:id=>444, :login=>nil, :type=>"User"}
+  #   fake_client.user(526_301) #=> {:id=>526301, :login=>"yegor256", :type=>"User"}
+  #   fake_client.user('octocat') #=> {:id=>728, :login=>"octocat", :type=>"User"}
   def user(uid)
     raise(Octokit::NotFound) if [404_001, 404_002].include?(uid)
-    login = (uid == 526_301 ? 'yegor256' : 'torvalds') if uid.is_a?(Integer)
+    if uid.is_a?(Integer)
+      id = uid
+      login = uid == 526_301 ? 'yegor256' : 'torvalds'
+    else
+      login = uid.to_s
+      id = name_to_number(login)
+    end
     {
-      id: 444,
+      id:,
       login:,
       type: uid == 29_139_614 ? 'Bot' : 'User'
     }
