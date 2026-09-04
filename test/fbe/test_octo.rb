@@ -55,6 +55,11 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_issues_have_unique_ids
+    ids = Fbe::FakeOctokit.new.list_issues('foo/bar').map { |i| i[:id] }
+    assert_equal(ids.uniq.size, ids.size, ids.inspect)
+  end
+
   def test_rate_limit
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)
