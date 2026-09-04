@@ -591,7 +591,58 @@ class TestGitHubGraph < Fbe::Test
     end
     result = graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01'))
     assert_equal(5, result['commits'])
-    assert_equal(165, result['hoc'])
+    assert_equal(110, result['hoc'])
+  end
+
+  def test_real_total_commits_pushed_ignores_merge_only_page
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 1,
+                'nodes' => [
+                  { 'oid' => 'merge', 'parents' => { 'totalCount' => 2 }, 'additions' => 200, 'deletions' => 20 }
+                ],
+                'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+              }
+            }
+          }
+        }
+      }
+    end
+    result = graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(0, result['hoc'])
+  end
+
+  def test_real_total_commits_pushed_sums_across_pages_excluding_merges
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    pages = [
+      {
+        'totalCount' => 3,
+        'nodes' => [
+          { 'oid' => 'first', 'parents' => { 'totalCount' => 1 }, 'additions' => 10, 'deletions' => 1 },
+          { 'oid' => 'merge', 'parents' => { 'totalCount' => 2 }, 'additions' => 300, 'deletions' => 30 }
+        ],
+        'pageInfo' => { 'endCursor' => 'cursor1', 'hasNextPage' => true }
+      },
+      {
+        'totalCount' => 3,
+        'nodes' => [
+          { 'oid' => 'second', 'parents' => { 'totalCount' => 1 }, 'additions' => 20, 'deletions' => 2 }
+        ],
+        'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+      }
+    ]
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => { 'defaultBranchRef' => { 'target' => { 'history' => pages.shift } } } }
+    end
+    result = graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(33, result['hoc'])
   end
 
   def test_real_total_commits_pushed_returns_zero_for_repo_without_default_branch
