@@ -442,6 +442,17 @@ class TestOcto < Fbe::Test
     assert_match(/Accessing GitHub API with a token \(19 chars, ending by "oken", 1234 quota remaining\)/, buf.to_s)
   end
 
+  def test_builds_client_when_quota_probe_fails
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      status: 403, body: '{"message":"You have exceeded a secondary rate limit"}',
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    buf = Loog::Buffer.new
+    Fbe.octo(loog: buf, global: {}, options: Judges::Options.new({ 'github_token' => 'secret_github_token' }))
+    assert_match(/quota unknown/, buf.to_s)
+  end
+
   def test_retrying
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
