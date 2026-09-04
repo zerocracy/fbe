@@ -399,7 +399,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         }
       GRAPHQL
     ).to_h
-    result['repository'].filter_map do |_k, v|
+    repository = result['repository']
+    raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if repository.nil?
+    repository.filter_map do |_k, v|
       next if v.nil?
       {
         'id' => v['id'],

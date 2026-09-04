@@ -330,6 +330,43 @@ class TestGitHubGraph < Fbe::Test
     assert_includes(error.message, 'bad-owner/bad-repo')
   end
 
+  def test_pull_request_reviews_when_repository_is_missing
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'errors' => [{ 'message' => 'Could not resolve to a Repository' }] }
+    end
+    error =
+      assert_raises(Fbe::Error) do
+        graph.pull_request_reviews('bad-owner', 'bad-repo', pulls: [[1, nil]])
+      end
+    assert_includes(error.message, 'bad-owner/bad-repo')
+  end
+
+  def test_pull_request_reviews_when_repository_is_null
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    owner = "\u00fc-#{Random.new(seed).rand(1_000_000).to_s(36)}"
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => nil }
+    end
+    error =
+      assert_raises(Fbe::Error) do
+        graph.pull_request_reviews(owner, 'bar', pulls: [[7, nil]])
+      end
+    assert_includes(error.message, "#{owner}/bar", "error does not name the repository, seed #{seed}")
+  end
+
+  def test_pull_request_reviews_dont_raise_when_repository_has_no_pulls
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => {} }
+    end
+    assert_empty(graph.pull_request_reviews('foo', 'bar', pulls: [[7, nil]]))
+  end
+
   def test_fake_pull_request_reviews
     WebMock.disable_net_connect!
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
