@@ -30,6 +30,14 @@ class TestBylaws < Fbe::Test
     end
   end
 
+  def test_comments_penalty_counts_above_the_threshold
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(
+      a.bill({ hoc: 150, comments: 8, reviews: 1 }).points - 8,
+      a.bill({ hoc: 150, comments: 48, reviews: 1 }).points
+    )
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
@@ -74,7 +82,7 @@ class TestBylaws < Fbe::Test
         { hoc: 180, comments: 7, reviews: 2 } => 24,
         { hoc: 199, comments: 8, reviews: 3 } => 24,
         { hoc: 150, comments: 5, reviews: 1 } => 24,
-        { hoc: 500, comments: 25, reviews: 2 } => 4,
+        { hoc: 500, comments: 25, reviews: 2 } => 8,
         { hoc: 99, comments: 6, reviews: 1 } => 16,
         { hoc: 200, comments: 0, reviews: 1 } => 8,
         { hoc: 542, comments: 0, reviews: 1 } => 8,

@@ -46,13 +46,13 @@
     (set bonus_for_comments
       (if
         (gt comments comments_threshold)
-        (times comments (times -1 comments_k))
+        (times (minus comments comments_threshold) (times -1 comments_k))
         0
       )
     )
     (set bonus_for_comments (between bonus_for_comments comments_min comments_max))
     (give bonus_for_comments "for too many (${comments} > ${comments_threshold}) comments that were made during review")
-    "deduct ${comments_k} points for every comment above ${comments_threshold} made during review, but not more than ${comments_max} points")
+    "deduct ${comments_k} points for every comment above ${comments_threshold} made during review, but not more than ${comments_max} points, and nothing at all unless it reaches ${comments_min} points")
 
   (aka
     (let few_hoc_fee {{ 4 | times: anger }})
