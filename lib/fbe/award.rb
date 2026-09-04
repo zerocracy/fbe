@@ -278,12 +278,13 @@ class Fbe::Award
           raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
       when :aka
+        before = bylaw.size
         @operands[0..-2].each do |o|
           o.publish_to(bylaw)
         rescue StandardError => e
           raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
-        bylaw.revert(@operands.size - 1)
+        bylaw.revert(bylaw.size - before)
         bylaw.line(to_p(@operands[-1]))
       when :explain
         bylaw.intro(to_p(@operands[0]))
@@ -425,6 +426,17 @@ class Fbe::Award
       @lines = []
       @intro = ''
       @lets = {}
+    end
+
+    # How many lines are in the bylaw already.
+    #
+    # @return [Integer] The number of lines
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
+    #   bylaw.line("award 50 points")
+    #   bylaw.size # => 1
+    def size
+      @lines.size
     end
 
     # Removes the specified number of most recently added lines.
