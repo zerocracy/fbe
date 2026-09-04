@@ -46,6 +46,15 @@ class TestOcto < Fbe::Test
     assert_equal('User', o.user(42)[:type])
   end
 
+  def test_fake_events_have_one_repo_shape
+    events = Fbe::FakeOctokit.new.repository_events('yegor256/judges')
+    events.each do |e|
+      assert_kind_of(String, e[:id], e.inspect)
+      assert_equal(Fbe::FakeOctokit.new.name_to_number('yegor256/judges'), e[:repo][:id], e.inspect)
+      assert_equal('yegor256/judges', e[:repo][:name], e.inspect)
+    end
+  end
+
   def test_rate_limit
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)

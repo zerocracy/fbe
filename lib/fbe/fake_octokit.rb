@@ -1036,11 +1036,15 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         public: true
       },
       {
-        id: 42,
+        id: '42',
         created_at: Time.now,
         actor: { id: 42 },
         type: 'PullRequestEvent',
-        repo: { id: repo },
+        repo: {
+          id: name_to_number(repo),
+          name: repo,
+          url: "https://api.github.com/repos/#{repo}"
+        },
         payload: {
           action: 'closed',
           number: 172,
@@ -1052,8 +1056,9 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
               ref: 'master',
               sha: '93fe488b9967de0f690805c6943e78db42a294c1a',
               repo: {
-                id: repo,
-                name: 'baza'
+                id: name_to_number(repo),
+                name: repo,
+                url: "https://api.github.com/repos/#{repo}"
               }
             },
             head: {
@@ -1064,11 +1069,15 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         }
       },
       {
-        id: 43,
+        id: '43',
         created_at: Time.now,
         actor: { id: 42 },
         type: 'PullRequestEvent',
-        repo: { id: repo },
+        repo: {
+          id: name_to_number(repo),
+          name: repo,
+          url: "https://api.github.com/repos/#{repo}"
+        },
         payload: {
           action: 'closed',
           number: 172,
@@ -1080,8 +1089,9 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
               ref: 'master',
               sha: '125f234967de0f690805c6943e78db42a294c1a',
               repo: {
-                id: repo,
-                name: 'judges-action'
+                id: name_to_number(repo),
+                name: repo,
+                url: "https://api.github.com/repos/#{repo}"
               }
             },
             head: {
