@@ -200,6 +200,16 @@ class TestOcto < Fbe::Test
     assert_predicate(o, :off_quota?)
   end
 
+  def test_off_quota_when_probe_is_forbidden
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      status: 403, body: '{"message":"You have exceeded a secondary rate limit"}',
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_predicate(o, :off_quota?)
+  end
+
   def test_off_quota_twice
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
