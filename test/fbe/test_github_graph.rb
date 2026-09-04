@@ -594,6 +594,58 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(165, result['hoc'])
   end
 
+  def test_total_commits_pushed_raises_when_page_count_is_exceeded
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 999_999,
+                'nodes' => [{ 'oid' => 'abc', 'parents' => { 'totalCount' => 1 }, 'additions' => 1, 'deletions' => 0 }],
+                'pageInfo' => { 'endCursor' => "cursor-#{calls}", 'hasNextPage' => true }
+              }
+            }
+          }
+        }
+      }
+    end
+    error =
+      assert_raises(Fbe::Error) do
+        graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01'))
+      end
+    assert_includes(error.message, 'foo/bar')
+  end
+
+  def test_total_commits_pushed_stops_when_cursor_does_not_change
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 1,
+                'nodes' => [{ 'oid' => 'abc', 'parents' => { 'totalCount' => 1 }, 'additions' => 1, 'deletions' => 0 }],
+                'pageInfo' => { 'endCursor' => 'same-cursor', 'hasNextPage' => true }
+              }
+            }
+          }
+        }
+      }
+    end
+    result = graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(1, result['commits'])
+    assert_equal(2, calls)
+  end
+
   def test_real_total_commits_pushed_returns_zero_for_repo_without_default_branch
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
@@ -658,6 +710,48 @@ class TestGitHubGraph < Fbe::Test
     result = graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01'))
     assert_equal(1, result['releases'])
     assert_equal(1, calls)
+  end
+
+  def test_total_releases_published_raises_when_page_count_is_exceeded
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [{ 'isDraft' => false, 'publishedAt' => '2025-06-01T00:00:00Z' }],
+            'pageInfo' => { 'endCursor' => "cursor-#{calls}", 'hasNextPage' => true }
+          }
+        }
+      }
+    end
+    error =
+      assert_raises(Fbe::Error) do
+        graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01'))
+      end
+    assert_includes(error.message, 'foo/bar')
+  end
+
+  def test_total_releases_published_stops_when_cursor_does_not_change
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [{ 'isDraft' => true, 'publishedAt' => '2025-06-01T00:00:00Z' }],
+            'pageInfo' => { 'endCursor' => 'same-cursor', 'hasNextPage' => true }
+          }
+        }
+      }
+    end
+    result = graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(0, result['releases'])
+    assert_equal(2, calls)
   end
 
   def test_real_pull_requests_with_reviews
