@@ -81,6 +81,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           others do |*args2|
             param = args2.first.to_s
             result = query.call(area).each.first&.[](param)&.first
+            raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
             pmpv.new(result, nil, nil, nil)
           end
         end.new
@@ -117,6 +118,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                 end
             end
             result ||= default
+            raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
             result =
               begin
                 case type
