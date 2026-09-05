@@ -65,7 +65,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
         @memo = memo
       end
     end
-  to_int =
+  whole =
     lambda do |value|
       f = Float(value)
       raise(ArgumentError, "#{value} is not a whole number") unless (f % 1).zero?
@@ -128,7 +128,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
             result =
               begin
                 case type
-                when 'int' then to_int.call(result)
+                when 'int' then whole.call(result)
                 when 'float' then Float(result)
                 when 'bool' then result.to_s == 'true'
                 else result
