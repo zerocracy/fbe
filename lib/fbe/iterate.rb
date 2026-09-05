@@ -280,6 +280,7 @@ class Fbe::Iterate
     before = repos.to_h { |repo| [repo, markers[repo] || @since] }
     repos.sort_by! { |repo| before[repo] }
     starts = before.dup
+    latest = before.dup
     values = {}
     loop do # rubocop:disable Metrics/BlockLength
       if Fbe.over?(
@@ -324,13 +325,14 @@ class Fbe::Iterate
             @since
           else
             @loog.debug("Next is ##{nxt}, starting from it")
-            begin
-              yield(repo, nxt)
-            rescue Fbe::OffQuota
-              raise
-            rescue StandardError => e
-              raise(Fbe::Error, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
-            end
+            latest[repo] =
+              begin
+                yield(repo, nxt)
+              rescue Fbe::OffQuota
+                raise
+              rescue StandardError => e
+                raise(Fbe::Error, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
+              end
           end
         unless before[repo].is_a?(Integer)
           raise(Fbe::Error, "Iterator must return an Integer, but #{before[repo].class} was returned")
@@ -351,17 +353,17 @@ class Fbe::Iterate
     @loog.info(e.message)
   ensure
     if defined?(repos) && !repos.nil? &&
-       defined?(before) && !before.nil? &&
-       defined?(starts) && !starts.nil?
+       defined?(starts) && !starts.nil? &&
+       defined?(latest) && !latest.nil?
       repos.each do |repo|
-        next if before[repo] == starts[repo]
+        next if latest[repo] == starts[repo]
         f =
           Fbe.if_absent(fb: @fb, always: true) do |n|
             n.what = 'iterate'
             n.where = 'github'
             n.repository = repo
           end
-        Fbe.overwrite(f, @label, before[repo], fb: @fb)
+        Fbe.overwrite(f, @label, latest[repo], fb: @fb)
       end
     end
   end
