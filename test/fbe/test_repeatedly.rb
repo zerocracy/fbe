@@ -66,4 +66,23 @@ class TestRepeatedly < Fbe::Test
     end
     assert(ran)
   end
+
+  def test_writes_the_marker_into_the_given_factbase
+    $fb = Factbase.new
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: $options, loog: Loog::NULL)
+    Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'test') do |f|
+      f.foo = 42
+    end
+    Time.stub(:now, Time.now + (25 * 60 * 60)) do
+      Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'test') do |f|
+        f.bar = 7
+      end
+    end
+    assert_equal(0, $fb.size)
+    assert_equal(1, fb.size)
+    assert_equal(7, fb.query('(always)').each.first['bar'].first)
+  end
 end

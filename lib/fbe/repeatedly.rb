@@ -54,6 +54,6 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
     f.what = judge
   end
   yield(fb.query("(and (eq what '#{judge}'))").each.first)
-  Fbe.overwrite(f, 'when', Time.now)
+  Fbe.overwrite(f, 'when', Time.now, fb:)
   nil
 end
