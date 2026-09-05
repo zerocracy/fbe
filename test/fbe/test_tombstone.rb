@@ -133,4 +133,13 @@ class TestTombstone < Fbe::Test
     refute(ts.has?(where, repo, 221))
     refute(ts.has?(where, repo, 231))
   end
+
+  def test_rejects_negative_issue
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    assert_raises(Fbe::Error) { ts.bury!('github', 42, -5) }
+    assert_raises(Fbe::Error) { ts.bury!('github', 42, [1, -5]) }
+    assert_raises(Fbe::Error) { ts.bury!('github', 42, 0) }
+    assert_empty(ts.issues('github', 42))
+  end
 end
