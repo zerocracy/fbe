@@ -65,6 +65,14 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
         @memo = memo
       end
     end
+  bool =
+    lambda do |value|
+      case value.to_s.downcase
+      when 'true' then true
+      when 'false' then false
+      else raise(ArgumentError, "invalid value for bool: #{value.to_s.inspect}")
+      end
+    end
   query = ->(area) { Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))") }
   Class.new do
     define_method(:areas) do
@@ -106,7 +114,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                   case type
                   when 'int' then Integer(default, 10)
                   when 'float' then Float(default)
-                  when 'bool' then default == 'true'
+                  when 'bool' then bool.call(default)
                   else default
                   end
                 rescue ArgumentError, TypeError => e
@@ -124,7 +132,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                 case type
                 when 'int' then Integer(Float(result).truncate)
                 when 'float' then Float(result)
-                when 'bool' then result.to_s == 'true'
+                when 'bool' then bool.call(result)
                 else result
                 end
               rescue ArgumentError, TypeError => e
