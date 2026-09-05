@@ -133,4 +133,12 @@ class TestTombstone < Fbe::Test
     refute(ts.has?(where, repo, 221))
     refute(ts.has?(where, repo, 231))
   end
+
+  def test_empty_list_is_not_buried
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    ts.bury!('github', 42, 5)
+    refute(ts.has?('github', 42, []))
+    refute(ts.has?('github', 43, []))
+  end
 end
