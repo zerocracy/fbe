@@ -133,4 +133,10 @@ class TestBylaws < Fbe::Test
       end
     end
   end
+
+  def test_returns_s_expressions
+    Fbe.bylaws.each_value do |formula|
+      assert_match(/\A\(award\b/, formula.strip)
+    end
+  end
 end
