@@ -147,4 +147,17 @@ class TestPmp < Fbe::Test
     assert_includes(props, 'prop_a')
     assert_includes(props, 'prop_b')
   end
+
+  def test_area_with_a_quote
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    area = "h'r"
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = area
+    f.days_to_reward = 55
+    assert_equal(55, Fbe.pmp(loog: Loog::NULL).public_send(area).days_to_reward)
+  end
 end

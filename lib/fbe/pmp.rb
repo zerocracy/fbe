@@ -65,22 +65,26 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
         @memo = memo
       end
     end
-  query = ->(area) { Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))") }
+  query =
+    lambda do |area|
+      f = Fbe.fb(global:, fb:, options:, loog:)
+      f.query("(and (eq what 'pmp') (eq area $area))").each(f, area:)
+    end
   Class.new do
     define_method(:areas) do
       xml.xpath('/pmp/area/@name').map(&:value)
     end
     others do |*args1| # rubocop:disable Metrics/BlockLength
       area = args1.first.to_s
-      node = xml.at_xpath("/pmp/area[@name='#{area}']")
+      node = xml.at_xpath('/pmp/area[@name=$name]', nil, name: area)
       if node.nil?
         Class.new do
           define_method(:properties) do
-            query.call(area).each.first&.all_properties&.map(&:to_s) || []
+            query.call(area).first&.all_properties&.map(&:to_s) || []
           end
           others do |*args2|
             param = args2.first.to_s
-            result = query.call(area).each.first&.[](param)&.first
+            result = query.call(area).first&.[](param)&.first
             raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
             pmpv.new(result, nil, nil, nil)
           end
@@ -92,8 +96,8 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           end
           others do |*args2|
             param = args2.first.to_s
-            result = query.call(area).each.first&.[](param)&.first
-            prop = node.at_xpath("p[name='#{param}']")
+            result = query.call(area).first&.[](param)&.first
+            prop = node.at_xpath('p[name=$name]', nil, name: param)
             default = nil
             type = nil
             memo = nil
