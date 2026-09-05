@@ -69,6 +69,12 @@ class Fbe::Award
   # and billing operations. It provides methods to calculate point values and
   # evaluate complex award expressions.
   module BTerm
+    # How many operands every term uses, for those that use a fixed amount.
+    ARITY = {
+      total: 0, not: 1, eq: 2, lt: 2, lte: 2, gt: 2, gte: 2, div: 2,
+      times: 2, plus: 2, minus: 2, max: 2, min: 2, if: 3, between: 3
+    }.freeze
+
     # Returns a string representation of the term.
     #
     # @return [String] The term as a string in S-expression format
@@ -170,6 +176,10 @@ class Fbe::Award
     #   term.redress!(Fbe::Award::BTerm)
     #   term.calc(bill) #=> 50
     def calc(bill) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+      arity = ARITY[@op]
+      if !arity.nil? && @operands.size > arity
+        raise(Fbe::Error, "Too many operands for '#{@op}': #{@operands.size} given, #{arity} used")
+      end
       case @op
       when :total
         bill.points
