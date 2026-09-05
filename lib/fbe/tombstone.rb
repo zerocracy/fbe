@@ -50,6 +50,10 @@ class Fbe::Tombstone
     unless issue.is_a?(Integer) || issue.is_a?(Array)
       raise(Fbe::Error, 'The type of "issue" is neither Integer nor Array')
     end
+    issue = [issue] unless issue.is_a?(Array)
+    issue.each do |i|
+      raise(Fbe::Error, "The issue number #{i} is not positive") unless i.is_a?(Integer) && i.positive?
+    end
     f =
       Fbe.if_absent(fb: @fb, always: true) do |n|
         n.what = 'tombstone'
@@ -62,7 +66,6 @@ class Fbe::Tombstone
         Integer(i, 10)
       end.then { |ii| ii.size == 1 ? ii << ii[0] : ii }
     end || []
-    issue = [issue] unless issue.is_a?(Array)
     issue.each do |i|
       nn << [i, i]
     end
