@@ -424,6 +424,28 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_no_update_on_a_miss
+    with_tmpfile('miss.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        store.write('a', 'aa')
+        seen = []
+        db = store.instance_variable_get(:@db)
+        db.singleton_class.prepend(
+          Module.new do
+            define_method(:execute) do |*args, &block|
+              seen << args.first
+              super(*args, &block)
+            end
+          end
+        )
+        assert_nil(store.read('b'))
+        assert_empty(seen.grep(/^UPDATE/))
+        assert_equal('aa', store.read('a'))
+        refute_empty(seen.grep(/^UPDATE/))
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
