@@ -69,7 +69,6 @@ class Fbe::Award
   # and billing operations. It provides methods to calculate point values and
   # evaluate complex award expressions.
   module BTerm
-    # How many operands every term uses, for those that use a fixed amount.
     ARITY = {
       total: 0, not: 1, eq: 2, lt: 2, lte: 2, gt: 2, gte: 2, div: 2,
       times: 2, plus: 2, minus: 2, max: 2, min: 2, if: 3, between: 3
