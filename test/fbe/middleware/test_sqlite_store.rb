@@ -424,7 +424,7 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_no_update_on_a_miss
+  def test_no_update_on_a_miss # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('miss.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         store.write('a', 'aa')
