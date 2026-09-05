@@ -65,6 +65,12 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
         @memo = memo
       end
     end
+  to_int =
+    lambda do |value|
+      f = Float(value)
+      raise(ArgumentError, "#{value} is not a whole number") unless (f % 1).zero?
+      Integer(f)
+    end
   query = ->(area) { Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))") }
   Class.new do
     define_method(:areas) do
@@ -122,7 +128,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
             result =
               begin
                 case type
-                when 'int' then Integer(Float(result).truncate)
+                when 'int' then to_int.call(result)
                 when 'float' then Float(result)
                 when 'bool' then result.to_s == 'true'
                 else result

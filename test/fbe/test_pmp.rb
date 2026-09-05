@@ -44,9 +44,21 @@ class TestPmp < Fbe::Test
     f = Fbe.fb(loog: Loog::NULL).insert
     f.what = 'pmp'
     f.area = 'hr'
-    f.days_to_reward = 88.5
+    f.days_to_reward = 88.0
     $loog = Loog::NULL
     assert_equal(88, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
+  end
+
+  def test_rejects_fractional_int
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.days_to_reward = 88.5
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error) { Fbe.pmp(loog: Loog::NULL).hr.days_to_reward }
   end
 
   def test_reads_meta_info
