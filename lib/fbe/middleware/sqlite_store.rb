@@ -108,9 +108,13 @@ class Fbe::Middleware::SqliteStore
   # @note Values larger than 10KB are not cached
   # @note Non-GET requests and URLs with query parameters are not cached
   def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Metrics/AbcSize
-    return if value.is_a?(Array) && value.any? do |vv|
-      req = JSON.parse(vv[0])
-      req['method'] != 'get'
+    if value.is_a?(Array)
+      begin
+        return if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
+      rescue TypeError, JSON::ParserError => e
+        @loog.info("Failed to parse request to decide whether to cache it: #{e.message}")
+        return
+      end
     end
     if @minage && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
       begin

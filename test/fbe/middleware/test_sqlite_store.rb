@@ -424,6 +424,15 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_skip_write_of_a_broken_request
+    with_tmpfile('broken.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        store.write('a', [['this is not json', '{}']])
+        assert_nil(store.read('a'))
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
