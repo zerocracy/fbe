@@ -174,6 +174,7 @@ class Fbe::Award
       when :total
         bill.points
       when :if
+        raise(Fbe::Error, "The term 'if' needs three operands, #{@operands.size} given") if @operands.size < 3
         to_val(@operands[0], bill) ? to_val(@operands[1], bill) : to_val(@operands[2], bill)
       when :and
         @operands.all? { |o| to_val(o, bill) }

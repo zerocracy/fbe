@@ -169,4 +169,13 @@ class TestAward < Fbe::Test
     a = Fbe::Award.new('(award (set x (div 10 0)) (give x "test"))')
     assert_raises(Fbe::Error) { a.bill }
   end
+
+  def test_if_without_else
+    [
+      '(award (give (if (gt 1 2) 5) "x"))',
+      '(award (give (if (lt 1 2) 5) "x"))'
+    ].each do |q|
+      assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill.points }
+    end
+  end
 end
