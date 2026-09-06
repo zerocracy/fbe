@@ -75,14 +75,8 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       raise(ArgumentError, "#{value} is not a whole number") unless (f % 1).zero?
       Integer(f)
     end
-  bool =
-    lambda do |value|
-      case value.to_s.downcase
-      when 'true' then true
-      when 'false' then false
-      else raise(ArgumentError, "invalid value for bool: #{value.to_s.inspect}")
-      end
-    end
+  bools = { 'true' => true, 'false' => false }
+  bool = ->(v) { bools.fetch(v.to_s.downcase) { raise(ArgumentError, "invalid value for bool: #{v.inspect}") } }
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
   owner = ->(area, param) { query.call(area).each.find { |f| !f[param].nil? } }
   Class.new do
