@@ -51,7 +51,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
       modified = true
       overwrites = true unless existing.nil?
     end
-    return fact unless modified
+    return unless modified
     unless overwrites
       property_or_hash.each do |k, vv|
         sk = k.to_s
@@ -88,7 +88,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   raise(Fbe::Error, "The property is not a String but #{property.class} (#{property})") unless property.is_a?(String)
   raise(Fbe::Error, 'The values is nil') if values.nil?
   values = [values] unless values.is_a?(Array)
-  return fact if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
+  return if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
   if fact[property].nil?
     values.each do |v|
       fact.public_send(:"#{property}=", v)
