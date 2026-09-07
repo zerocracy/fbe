@@ -356,6 +356,7 @@ class Fbe::Iterate
        defined?(starts) && !starts.nil? &&
        defined?(latest) && !latest.nil?
       repos.each do |repo|
+        next unless latest[repo].is_a?(Integer)
         next if latest[repo] == starts[repo]
         f =
           Fbe.if_absent(fb: @fb, always: true) do |n|

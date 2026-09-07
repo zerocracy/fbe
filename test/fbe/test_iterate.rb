@@ -145,6 +145,38 @@ class TestIterate < Fbe::Test
     end
   end
 
+  def test_reports_the_iterator_when_the_block_returns_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.num = 10
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as('nil_test')
+          by('(agg (always) (max num))')
+          repeats(1)
+          over { |_, _| nil }
+        end
+      end
+    assert_includes(e.message, 'Iterator must return an Integer')
+    assert_empty(fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a)
+  end
+
+  def test_writes_no_marker_when_the_block_returns_a_string
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.num = 10
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('string_test')
+        by('(agg (always) (max num))')
+        repeats(1)
+        over { |_, _| 'not-an-integer' }
+      end
+    end
+    assert_empty(fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a)
+  end
+
   def test_raises_when_label_set_twice
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
