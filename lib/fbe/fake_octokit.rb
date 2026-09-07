@@ -538,7 +538,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         },
         created_at: Time.parse('2024-09-20 19:00:00 UTC')
       }
-    end
+    end.merge(comments: issue_comments(repo, number).size)
   end
 
   # Gets a single pull request.
