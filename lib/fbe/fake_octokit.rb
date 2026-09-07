@@ -24,14 +24,16 @@ require 'time'
 # @note All methods return static or pseudo-random data
 # @note No actual API calls are made
 class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
-  # Generates a random time in the past.
+  # Generates a time in the past, the same one for the same seed.
   #
-  # @return [Time] A random time within the last 10,000 seconds
+  # @param [Object] seed The name of the field the time belongs to
+  # @return [Time] A time within the 10,000 seconds before the client was made
   # @example
   #   fake_client = Fbe::FakeOctokit.new
-  #   time = fake_client.random_time #=> 2024-09-04 12:34:56 -0700
-  def random_time
-    Time.now - rand(10_000)
+  #   time = fake_client.random_time('created_at') #=> 2024-09-04 12:34:56 -0700
+  def random_time(seed = 0)
+    @epoch ||= Time.now
+    @epoch - (name_to_number(seed.to_s) % 10_000)
   end
 
   # Converts a string name to a deterministic integer.
@@ -108,7 +110,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         invitee: user(526_301),
         inviter: user(888),
         permissions: 'write',
-        created_at: random_time,
+        created_at: random_time('created_at'),
         url: 'https://api.github.com/user/repository_invitations/1',
         html_url: 'https://github.com/zerocracy/fbe/invitations',
         expired: false
@@ -120,7 +122,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         invitee: user(526_301),
         inviter: user(888),
         permissions: 'admin',
-        created_at: random_time,
+        created_at: random_time('created_at'),
         url: 'https://api.github.com/user/repository_invitations/2',
         html_url: 'https://github.com/yegor256/takes/invitations',
         expired: false
@@ -163,8 +165,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           followers: 0,
           following: 0,
           html_url: 'https://github.com/zerocracy',
-          created_at: random_time,
-          updated_at: random_time,
+          created_at: random_time('created_at'),
+          updated_at: random_time('updated_at'),
           type: 'Organization'
         },
         user: user(526_301)
@@ -195,8 +197,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           followers: 0,
           following: 0,
           html_url: 'https://github.com/objectionary',
-          created_at: random_time,
-          updated_at: random_time,
+          created_at: random_time('created_at'),
+          updated_at: random_time('updated_at'),
           type: 'Organization'
         },
         user: user(526_301)
@@ -239,8 +241,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         followers: 0,
         following: 0,
         html_url: "https://github.com/#{org}",
-        created_at: random_time,
-        updated_at: random_time,
+        created_at: random_time('created_at'),
+        updated_at: random_time('updated_at'),
         type: 'Organization'
       },
       user: user(526_301)
@@ -382,8 +384,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       name: 'just a fake name',
       draft: false,
       prerelease: false,
-      created_at: random_time,
-      published_at: random_time,
+      created_at: random_time('created_at'),
+      published_at: random_time('published_at'),
       assets: []
     }
   end
@@ -411,9 +413,9 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       description: 'something',
       fork: false,
       url: "https://github.com/#{name}",
-      created_at: random_time,
-      updated_at: random_time,
-      pushed_at: random_time,
+      created_at: random_time('created_at'),
+      updated_at: random_time('updated_at'),
+      pushed_at: random_time('pushed_at'),
       size: name == 'yegor256/empty-repo' ? 0 : 470,
       stargazers_count: 1,
       watchers_count: 1,
@@ -892,7 +894,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           from: 'before',
           to: 'after'
         },
-        created_at: random_time
+        created_at: random_time('created_at')
       },
       {
         event: 'labeled',
@@ -907,7 +909,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         label: {
           name: 'bug'
         },
-        created_at: random_time
+        created_at: random_time('created_at')
       },
       {
         node_id: 'ITAE_examplevq862Ga8lzwAAAAQZanzv',
@@ -920,7 +922,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           id: name_to_number('yegor256/judges'),
           full_name: 'yegor256/judges'
         },
-        created_at: random_time
+        created_at: random_time('created_at')
       },
       {
         node_id: 'ITCE_examplevq862Ga8lzwAAAAQZbq9S',
@@ -933,7 +935,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           id: name_to_number('yegor256/judges'),
           full_name: 'yegor256/judges'
         },
-        created_at: random_time
+        created_at: random_time('created_at')
       }
     ]
   end
@@ -959,7 +961,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: random_time('created_at'),
         public: true
       },
       {
@@ -981,7 +983,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: random_time('created_at'),
         public: true
       },
       {
@@ -1003,7 +1005,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: random_time('created_at'),
         public: true
       },
       {
@@ -1570,8 +1572,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       status: 'completed',
       conclusion: 'success',
       workflow_id: id,
-      created_at: random_time,
-      run_started_at: random_time,
+      created_at: random_time('created_at'),
+      run_started_at: random_time('run_started_at'),
       repository: repository(repo)
     }
   end
