@@ -53,7 +53,11 @@ require_relative 'fb'
 #   # Read custom property (nil default/type/memo)
 #   val = Fbe.pmp.my_custom.my_prop
 def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-  xml = Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
+  global[:mutex] ||= Mutex.new
+  xml =
+    global[:mutex].synchronize do
+      global[:pmp_xml] ||= Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
+    end
   pmpv =
     Class.new(SimpleDelegator) do
       attr_reader :default, :type, :memo, :value # rubocop:disable Layout/EmptyLinesAroundAttributeAccessor

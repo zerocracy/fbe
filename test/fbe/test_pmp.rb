@@ -26,6 +26,18 @@ class TestPmp < Fbe::Test
     assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_reads_the_xml_once
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    Fbe.pmp(loog: Loog::NULL).areas
+    xml = $global[:pmp_xml]
+    refute_nil(xml)
+    Fbe.pmp(loog: Loog::NULL).areas
+    assert_same(xml, $global[:pmp_xml])
+  end
+
   def test_some_defaults
     $fb = Factbase.new
     $global = {}
