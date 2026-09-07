@@ -4,7 +4,10 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'judges/options'
 require 'loog'
+require_relative '../../lib/fbe/fb'
+require_relative '../../lib/fbe/overwrite'
 require_relative '../../lib/fbe/regularly'
 require_relative '../test__helper'
 
@@ -23,6 +26,15 @@ class TestRegularly < Fbe::Test
       end
     end
     assert_equal(1, fb.size)
+  end
+
+  def test_yields_a_fact_that_can_be_overwritten
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+    Fbe.regularly('pmp', 'interval', fb:, loog: Loog::NULL, judge: 'test') do |f|
+      f.foo = 1
+      Fbe.overwrite(f, 'foo', 2, fb:)
+    end
+    assert_equal(2, fb.query("(eq what 'test')").each.first['foo'].first)
   end
 
   def test_rolls_back
