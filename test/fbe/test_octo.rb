@@ -1277,6 +1277,14 @@ class TestOcto < Fbe::Test
     assert_equal('yegor256/factbase', repos[1][:full_name])
   end
 
+  def test_fake_answer_reads_the_three_ways_a_real_one_reads
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    r = o.repository('foo/bar')
+    assert_equal('foo/bar', r.full_name)
+    assert_equal('foo/bar', r[:full_name])
+    assert_equal('foo/bar', r['full_name'])
+  end
+
   def test_fake_releases
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     list = o.releases('yegor256/test')
