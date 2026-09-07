@@ -42,16 +42,17 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Env] env The request environment
   # @return [Faraday::Response] The response from cache or the next middleware
   def call(env)
+    took = nil
     if env.url.path == '/rate_limit'
       @lock.synchronize { handle_rate_limit_request(env) }
     else
-      @lock.synchronize { track_request(env.url.path) }
+      @lock.synchronize { took = track_request(env.url.path) }
       @app.call(env).on_complete do |response_env|
         @lock.synchronize { sync(response_env, env.url.path) }
       end
     end
   rescue StandardError
-    @lock.synchronize { untrack_request(env.url.path) } unless env.url.path == '/rate_limit'
+    @lock.synchronize { untrack_request(took) } unless env.url.path == '/rate_limit'
     raise
   end
 
@@ -85,22 +86,31 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   end
 
   # Tracks non-rate_limit requests and decrements counter.
+  #
+  # @return [Symbol, nil] The counter the request was taken off, or NIL if none was
   def track_request(path = nil)
     @counter += 1
     if path&.start_with?('/search/')
-      @searchleft -= 1 if @searchleft&.positive?
-    elsif @remaining&.positive?
+      return nil unless @searchleft&.positive?
+      @searchleft -= 1
+      :search
+    else
+      return nil unless @remaining&.positive?
       @remaining -= 1
+      :core
     end
   end
 
   # Reverts the counter decrement when the request fails.
-  def untrack_request(path = nil)
+  #
+  # @param [Symbol, nil] took What +track_request+ answered for this request
+  def untrack_request(took = nil)
     return unless @counter&.positive?
     @counter -= 1
-    if path&.start_with?('/search/')
-      @searchleft += 1 unless @searchleft.nil?
-    elsif !@remaining.nil?
+    case took
+    when :search
+      @searchleft += 1
+    when :core
       @remaining += 1
     end
   end

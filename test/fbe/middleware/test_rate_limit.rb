@@ -235,6 +235,24 @@ class RateLimitTest < Fbe::Test
     assert_equal(1, conn.get('/rate_limit').body['resources']['core']['remaining'])
   end
 
+  def test_gives_nothing_back_when_the_quota_is_out
+    payload = {
+      'rate' => { 'limit' => 5000, 'remaining' => 0, 'reset' => 1_672_531_200 },
+      'resources' => {
+        'core' => { 'limit' => 5000, 'remaining' => 0, 'reset' => 1_672_531_200 },
+        'search' => { 'limit' => 30, 'remaining' => 0, 'reset' => 1_672_531_200 }
+      }
+    }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+      .times(1)
+    stub_request(:get, 'https://api.github.com/user').to_raise(Faraday::ConnectionFailed.new('no network'))
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/user') }
+    assert_equal(0, conn.get('/rate_limit').body['resources']['core']['remaining'])
+  end
+
   def test_restores_the_search_counter_at_zero
     payload = {
       'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
