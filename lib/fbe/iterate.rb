@@ -26,7 +26,7 @@ require_relative 'unmask_repos'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield Block containing DSL methods (as, by, over, etc.) to configure iteration
 # @return [Object] Result of the block evaluation
-# @raise [RuntimeError] If required globals are not set
+# @raise [Fbe::Error] If required globals are not set
 # @example Iterate through repositories processing issues
 #   Fbe.iterate do
 #     as 'issues_iterator'
@@ -137,7 +137,7 @@ class Fbe::Iterate
   #
   # @param [Integer] repeats The maximum iterations per repository
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If repeats is nil or not positive
+  # @raise [Fbe::Error] If repeats is nil or not positive
   # @example Process up to 100 items per repository
   #   iterator.repeats(100)
   def repeats(repeats)
@@ -155,7 +155,7 @@ class Fbe::Iterate
   #
   # @param [Integer] value The initial value for iteration tracking
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If value is nil or not an Integer
+  # @raise [Fbe::Error] If value is nil or not an Integer
   # @example Start iteration from issue number 100
   #   iterator.since!(100)
   def since!(value)
@@ -172,7 +172,7 @@ class Fbe::Iterate
   #
   # @param [String] query The Factbase query to execute
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If query is already set or nil
+  # @raise [Fbe::Error] If query is already set or nil
   # @example Query for issues after a certain ID
   #   iterator.by('(and (eq what "issue") (gt id $before) (eq repo $repository))')
   def by(query)
@@ -189,7 +189,7 @@ class Fbe::Iterate
   #
   # @param [String] prop The fact attribute to sort by
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If prop is nil, already set, or not a valid field name
+  # @raise [Fbe::Error] If prop is nil, already set, or not a valid field name
   # @example Sort issues by number
   #   iterator.sort_by('issue')
   def sort_by(prop)
@@ -207,7 +207,7 @@ class Fbe::Iterate
   #
   # @param [String] label Unique identifier for this iteration type
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If label is already set or nil
+  # @raise [Fbe::Error] If label is already set or nil
   # @example Set label for issue processing
   #   iterator.as('issue_processor')
   def as(label)
@@ -249,7 +249,7 @@ class Fbe::Iterate
   # @yield [Integer, Object] Repository ID and the result from query execution
   # @yieldreturn [Integer] The value to store as "latest" for next iteration
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If block doesn't return an Integer
+  # @raise [Fbe::Error] If block doesn't return an Integer
   # @example Process issues incrementally
   #   iterator.over do |repo_id, issue_number|
   #     fetch_and_process_issue(repo_id, issue_number)

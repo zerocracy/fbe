@@ -17,7 +17,7 @@ require_relative '../fbe'
 # @param [Loog] loog The logging facility (uses $loog if not provided)
 # @yield Block to execute within the valve context
 # @return [Object] The result of the yielded block
-# @raise [RuntimeError] If badge, why, or required globals are nil
+# @raise [Fbe::Error] If badge, why, or required globals are nil
 # @note Requires $options and $loog global variables to be set
 # @note In testing mode (options.testing != nil), bypasses valve recording
 # @example Enter a valve for processing

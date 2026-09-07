@@ -20,7 +20,7 @@ require_relative 'fb'
 # @param [Any] values The value to set (can be any type, including array) - ignored if first param is Hash
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @return [nil] Nothing
-# @raise [RuntimeError] If fact is nil, has no _id, or property is not a String
+# @raise [Fbe::Error] If fact is nil, has no _id, or property is not a String
 # @note This operation preserves all other properties during recreation
 # @note If property already has the same single value, no changes are made
 # @example Update a user's status

@@ -21,7 +21,7 @@ require_relative 'fb'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield [Factbase::Fact] Fact to populate with judge execution details
 # @return [nil] Nothing
-# @raise [RuntimeError] If required parameters or globals are nil
+# @raise [Fbe::Error] If required parameters or globals are nil
 # @note Skips execution if judge was run within the interval period
 # @note The 'since' property is added to the fact when p_since_days is provided
 # @example Run a cleanup task every 3 days

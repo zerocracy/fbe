@@ -22,7 +22,7 @@ require_relative 'overwrite'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield [Factbase::Fact] The judge fact to populate with execution details
 # @return [nil] Nothing
-# @raise [RuntimeError] If required parameters or globals are nil
+# @raise [Fbe::Error] If required parameters or globals are nil
 # @note Skips execution if judge was run within the interval period
 # @note Overwrites the 'when' property of existing judge fact
 # @example Run a monitoring task every 6 hours

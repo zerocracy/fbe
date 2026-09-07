@@ -26,7 +26,7 @@ require_relative '../fbe'
 #   - 2: Balanced requirements (default)
 #   - 4: Very difficult to earn rewards
 # @return [Hash<String, String>] Hash mapping bylaw names to their formulas
-# @raise [RuntimeError] If parameters are out of valid ranges
+# @raise [Fbe::Error] If parameters are out of valid ranges
 # @example Generate balanced bylaws
 #   bylaws = Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
 #   bylaws['bug-report-was-rewarded']
