@@ -1302,9 +1302,7 @@ class TestOcto < Fbe::Test
 
   def test_fake_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    comments = o.review_comments('yegor256/test', 100)
-    assert_equal(3, comments.size)
-    assert_equal('Some comment 1', comments[0][:body])
+    assert_equal(o.pull_request_comments('yegor256/test', 100), o.review_comments('yegor256/test', 100))
   end
 
   def test_fake_create_commit_comment
