@@ -1281,6 +1281,8 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     list = o.releases('yegor256/test')
     assert_equal(2, list.size)
+    refute_equal(list[0][:id], list[1][:id])
+    refute_equal(list[0][:tag_name], list[1][:tag_name])
     rel = o.release('https://example.com')
     assert_equal('0.19.0', rel[:tag_name])
   end
