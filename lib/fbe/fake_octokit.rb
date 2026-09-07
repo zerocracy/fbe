@@ -44,7 +44,23 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #   fake_client.name_to_number(42) #=> 42
   def name_to_number(name)
     return name unless name.is_a?(String)
-    name.chars.sum(&:ord)
+    n = name.chars.sum(&:ord)
+    names[n] = name
+    n
+  end
+
+  # Remembers which name each number was made out of.
+  #
+  # The number is a sum of character codes and cannot be turned back into the
+  # name it came from, so the names seen so far are kept here and
+  # {#repository} reads them when it is asked by identifier. Without this the
+  # fake answers every identifier with one repository, and a judge that walks
+  # from a name to an identifier and back gets a different repository than the
+  # one it started from.
+  #
+  # @return [Hash] Names by the numbers they were turned into
+  def names
+    @names ||= { 1439 => 'zerocracy/baza', 810 => 'foo/bazz' }
   end
 
   def auto_paginate=(_); end
@@ -398,19 +414,17 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #   # => {:id=>1296269, :full_name=>"octocat/Hello-World", ...}
   def repository(name)
     raise(Octokit::NotFound) if [404_123, 404_124].include?(name)
-    repo = name.is_a?(Integer) ? 'yegor256/test' : name
-    repo = 'zerocracy/baza' if name == 1439
-    repo = 'foo/bazz' if name == 810
+    repo = name.is_a?(Integer) ? names.fetch(name, 'yegor256/test') : name
     {
       id: name_to_number(name),
       full_name: repo,
       default_branch: 'master',
       private: false,
-      owner: { login: name.to_s.split('/')[0], id: 526_301, site_admin: false },
-      html_url: "https://github.com/#{name}",
+      owner: { login: repo.to_s.split('/')[0], id: 526_301, site_admin: false },
+      html_url: "https://github.com/#{repo}",
       description: 'something',
       fork: false,
-      url: "https://github.com/#{name}",
+      url: "https://github.com/#{repo}",
       created_at: random_time,
       updated_at: random_time,
       pushed_at: random_time,
