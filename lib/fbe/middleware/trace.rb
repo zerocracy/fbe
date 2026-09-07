@@ -57,5 +57,12 @@ class Fbe::Middleware::Trace < Faraday::Middleware
       entry[:duration] = duration
       @mutex.synchronize { @trace << entry }
     end
+  rescue StandardError => e
+    finished = Time.now
+    entry[:error] = e.message
+    entry[:finished_at] = finished
+    entry[:duration] = finished - entry[:started_at]
+    @mutex.synchronize { @trace << entry }
+    raise
   end
 end
