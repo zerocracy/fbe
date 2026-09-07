@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase'
 require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
@@ -19,7 +20,8 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase (defaults to Fbe.fb)
 # @param [String] judge The name of the judge (uses $judge global)
 # @param [Loog] loog The logging facility (uses $loog global)
-# @yield [Factbase::Fact] Fact to populate with judge execution details
+# @yield [Factbase::Fact] Fact to populate with judge execution details, already
+#   committed, so that it can be given to {Fbe.overwrite} and to {Fbe.delete}
 # @return [nil] Nothing
 # @raise [RuntimeError] If required parameters or globals are nil
 # @note Skips execution if judge was run within the interval period
@@ -29,7 +31,7 @@ require_relative 'fb'
 #     f.total_cleaned = cleanup_old_records
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
-def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &) # rubocop:disable Metrics/AbcSize
   raise(Fbe::Error, 'The area is nil') if area.nil?
   raise(Fbe::Error, 'The p_every_days is nil') if p_every_days.nil?
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
@@ -50,16 +52,18 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     return
   end
   loog.info("#{judge} statistics weren't collected for the last #{interval} days")
+  moment = Time.now.utc.round
   fb.txn do |fbt|
     f = fbt.insert
     f.what = judge
-    f.when = Time.now
-    unless p_since_days.nil?
-      days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28
-      since = Time.now - (days * 24 * 60 * 60)
-      f.since = since
-    end
-    yield(f)
+    f.when = moment
+    f.since = moment - ((pmp.filter_map { |x| x[p_since_days]&.first }.first || 28) * 86_400) unless p_since_days.nil?
+  end
+  mine = "(and (eq what '#{judge.gsub("'", "\\\\'")}') (eq when (to_time '#{moment.iso8601}')))"
+  begin
+    yield(fb.query(mine).each.first)
+  rescue Factbase::Rollback
+    fb.query(mine).delete!
   end
   nil
 end
