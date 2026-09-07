@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase/light'
 require 'others'
 require 'time'
 require_relative '../fbe'
@@ -46,7 +47,7 @@ require_relative 'fb'
 #   else
 #     puts "User already exists"
 #   end
-def Fbe.if_absent(fb: Fbe.fb, always: false)
+def Fbe.if_absent(fb: Fbe.fb, always: false) # rubocop:disable Metrics/PerceivedComplexity
   attrs = {}
   f =
     others(map: attrs) do |*args|
@@ -75,7 +76,37 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
   before = fb.query(q).each.first
   return before if before && always
   return nil if before
-  n = fb.insert
-  attrs.each { |k, v| n.public_send(:"#{k}=", v) }
-  n
+  if Fbe.transactional?(fb)
+    n = fb.insert
+    attrs.each { |k, v| n.public_send(:"#{k}=", v) }
+    return n
+  end
+  fb.txn do |fbt|
+    n = fbt.insert
+    attrs.each { |k, v| n.public_send(:"#{k}=", v) }
+  end
+  fb.query(q).each.first
+end
+
+# Is this factbase already inside a transaction?
+#
+# A transaction cannot be started inside another one, and a fact made inside
+# one does not exist outside it. Both matter here: a caller that is already in
+# a transaction must not have another opened for it, and the fact it gets back
+# has to be the one its own transaction holds. The mark of being inside is a
+# +Factbase::Light+ somewhere down the chain of decorators, which is what
+# +Factbase#txn+ hands to its block.
+#
+# @param [Factbase] fb The factbase to look at
+# @return [Boolean] TRUE if a transaction is already open on it
+def Fbe.transactional?(fb)
+  found = false
+  probe = fb
+  loop do
+    found = true if probe.is_a?(Factbase::Light)
+    iv = (probe.instance_variables & %i[@fb @origin @fact]).first
+    break if iv.nil?
+    probe = probe.instance_variable_get(iv)
+  end
+  found
 end
