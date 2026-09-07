@@ -197,6 +197,21 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(%w[C1 C2], threads.first['comments']['nodes'].map { |c| c['id'] })
   end
 
+  def test_quotes_a_branch_name_that_carries_a_quote
+    g = Fbe::Graph.new(token: 'fake')
+    history = Struct.new(:history).new(Struct.new(:total_count).new(7))
+    answer = Object.new
+    answer.define_singleton_method(:repo_0) { Struct.new(:ref).new(Struct.new(:target).new(history)) } # rubocop:disable Naming/VariableNumber
+    seen = nil
+    catcher =
+      lambda do |q|
+        seen = q
+        answer
+      end
+    g.stub(:query, catcher) { g.total_commits('foo', 'bar', 'feature/"quoted"') }
+    assert_includes(seen, 'qualifiedName: "feature/\"quoted\""')
+  end
+
   def test_does_not_count_unresolved_conversations
     skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
