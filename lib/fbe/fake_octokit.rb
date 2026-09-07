@@ -615,7 +615,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         closed_at: Time.parse('2024-12-20'),
         merged_at: Time.parse('2024-12-20'),
         created_at: Time.parse('2024-09-20')
-      }
+      }.merge(pull_requests(repo).find { |p| p[:number] == number } || {})
     end
   end
 

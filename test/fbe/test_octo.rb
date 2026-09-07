@@ -1300,6 +1300,15 @@ class TestOcto < Fbe::Test
     assert_equal('CHANGES_REQUESTED', reviews[0][:state])
   end
 
+  def test_fake_pull_request_matches_the_list
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.pull_requests('yegor256/test').each do |listed|
+      fetched = o.pull_request('yegor256/test', listed[:number])
+      assert_equal(listed[:id], fetched[:id])
+      assert_equal(listed[:state], fetched[:state])
+    end
+  end
+
   def test_fake_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_equal(o.pull_request_comments('yegor256/test', 100), o.review_comments('yegor256/test', 100))
