@@ -96,7 +96,7 @@ class Fbe::Award
     #
     # @param [Fbe::Award::Bill] bill The bill to update
     # @return [nil]
-    # @raise [RuntimeError] If there's a failure processing any term
+    # @raise [Fbe::Error] If there's a failure processing any term
     # @example
     #   term = Factbase::Syntax.new('(award (give 100 "for effort"))').to_term
     #   term.redress!(Fbe::Award::BTerm)
@@ -137,7 +137,7 @@ class Fbe::Award
     # @param [Object] any The value to evaluate (symbol, term, or literal)
     # @param [Fbe::Award::Bill] bill The bill providing context for evaluation
     # @return [Object] The evaluated value
-    # @raise [RuntimeError] If a symbol isn't found in the bill
+    # @raise [Fbe::Error] If a symbol isn't found in the bill
     # @example
     #   bill = Fbe::Award::Bill.new
     #   bill.set(:loc, 100)
@@ -161,7 +161,7 @@ class Fbe::Award
     #
     # @param [Fbe::Award::Bill] bill The bill providing context for calculation
     # @return [Object] The calculated value (number, boolean, etc.)
-    # @raise [RuntimeError] If the term operation is unknown
+    # @raise [Fbe::Error] If the term operation is unknown
     # @example
     #   bill = Fbe::Award::Bill.new
     #   bill.set(:x, 10)

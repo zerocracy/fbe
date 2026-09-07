@@ -15,7 +15,7 @@ require_relative '../fbe'
 # @param [Factbase::Fact] fact The fact containing the seconds property
 # @param [String, Symbol] prop The property name with seconds (defaults to :seconds)
 # @return [String] Human-readable time interval (e.g., "2w", "3h", "5m33s")
-# @raise [RuntimeError] If the specified property doesn't exist in the fact
+# @raise [Fbe::Error] If the specified property doesn't exist in the fact
 # @note Uses the tago gem for formatting; a negative interval keeps its sign
 # @example Format elapsed time from a fact
 #   build_fact = fb.query('(eq type "build")').first
