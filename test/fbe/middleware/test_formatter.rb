@@ -128,6 +128,34 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_logs_the_request_the_response_belongs_to
+    loog = Loog::Buffer.new
+    formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
+    %w[alpha bravo].each do |name|
+      env = Faraday::Env.from({ method: :get, url: URI("http://example.com/#{name}"), request_headers: {} })
+      formatter.request(env)
+      next unless name == 'alpha'
+      env.status = 403
+      env.response_headers = { 'content-type' => 'application/json' }
+      env.response_body = '{"message": "rate limit"}'
+      formatter.response(env)
+    end
+    str = loog.to_s
+    assert_match(%r{http://example.com/alpha}, str)
+    refute_match(%r{http://example.com/bravo}, str, 'the response is logged against the wrong request')
+  end
+
+  def test_survives_a_response_without_a_request
+    loog = Loog::Buffer.new
+    formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
+    env = Faraday::Env.from({ method: :get, url: URI('http://example.com'), request_headers: {} })
+    env.status = 500
+    env.response_headers = { 'content-type' => 'text/html' }
+    env.response_body = 'oops'
+    formatter.response(env)
+    assert_match(/oops/, loog.to_s)
+  end
+
   private
 
   def log_it(
@@ -139,7 +167,7 @@ class LoggingFormatterTest < Fbe::Test
   )
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
-    formatter.request(
+    env =
       Faraday::Env.from(
         {
           method:,
@@ -148,8 +176,11 @@ class LoggingFormatterTest < Fbe::Test
           request_headers:
         }
       )
-    )
-    formatter.response(Faraday::Env.from({ status:, response_body:, response_headers: }))
+    formatter.request(env)
+    env.status = status
+    env.response_headers = response_headers
+    env.response_body = response_body
+    formatter.response(env)
     yield(loog)
   end
 end

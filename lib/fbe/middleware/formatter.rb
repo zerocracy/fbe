@@ -52,12 +52,15 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
     filter(/(Authorization:\s*"?\s*\S+\s+)[^"\s]+/i, '\1[FILTERED]')
   end
 
-  # Captures HTTP request details for later use in error logging.
+  # Ignores the request, since the same environment is handed to
+  # +response+ again, carrying the request fields alongside the
+  # response ones. Keeping it in an instance variable would leak
+  # between the requests that share one formatter.
   #
-  # @param [Hash] http Request data including method, url, headers, and body
+  # @param [Hash] _http Request data including method, url, headers, and body
   # @return [void]
-  def request(http)
-    @req = http
+  def request(_http)
+    nil
   end
 
   # Logs HTTP response details only for error responses (4xx/5xx).
@@ -77,17 +80,17 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
           nil
         end
       unless msg.nil?
-        warn(["#{@req.method.upcase} #{apply_filters(@req.url.to_s)}", '->', http.status, '/', msg].join(' '))
+        warn(["#{http.method.upcase} #{apply_filters(http.url.to_s)}", '->', http.status, '/', msg].join(' '))
         return
       end
     end
     if http.status >= 500 && http.response_headers['content-type']&.start_with?('text')
       error(
         [
-          "#{@req.method.upcase} #{apply_filters(@req.url.to_s)} HTTP/1.1",
-          shifted(apply_filters(dump_headers(@req.request_headers))),
+          "#{http.method.upcase} #{apply_filters(http.url.to_s)} HTTP/1.1",
+          shifted(apply_filters(dump_headers(http.request_headers))),
           '',
-          shifted(apply_filters(@req.request_body)),
+          shifted(apply_filters(http.request_body)),
           "HTTP/1.1 #{http.status}",
           shifted(apply_filters(dump_headers(http.response_headers))),
           '',
@@ -98,10 +101,10 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
     end
     error(
       [
-        "#{@req.method.upcase} #{apply_filters(@req.url.to_s)} HTTP/1.1",
-        shifted(apply_filters(dump_headers(@req.request_headers))),
+        "#{http.method.upcase} #{apply_filters(http.url.to_s)} HTTP/1.1",
+        shifted(apply_filters(dump_headers(http.request_headers))),
         '',
-        shifted(apply_filters(@req.request_body)),
+        shifted(apply_filters(http.request_body)),
         "HTTP/1.1 #{http.status}",
         shifted(apply_filters(dump_headers(http.response_headers))),
         '',
