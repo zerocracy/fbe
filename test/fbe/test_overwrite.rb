@@ -433,4 +433,25 @@ class TestOverwrite < Fbe::Test
     assert_equal(['new'], after['bar'])
     assert_equal(['added'], after['baz'])
   end
+
+  def test_returns_nil_when_nothing_changes
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 'x'
+    assert_nil(Fbe.overwrite(f, 'foo', 'x', fb:))
+    assert_nil(Fbe.overwrite(f, { 'foo' => 'x' }, fb:))
+  end
+
+  def test_returns_nil_when_something_changes
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 'x'
+    assert_nil(Fbe.overwrite(f, 'bar', 'y', fb:))
+    f = fb.query('(always)').each.first
+    assert_nil(Fbe.overwrite(f, 'foo', 'z', fb:))
+    f = fb.query('(always)').each.first
+    assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
+  end
 end
