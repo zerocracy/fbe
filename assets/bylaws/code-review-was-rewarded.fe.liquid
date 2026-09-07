@@ -18,9 +18,7 @@
   (aka
     (let hoc_k {{ 0.005 | times: love }})
     (let hoc_max 16)
-    (let hoc_min 5)
-    (set bonus_for_hoc (times hoc hoc_k))
-    (set bonus_for_hoc (between bonus_for_hoc hoc_min hoc_max))
+    (set bonus_for_hoc (min (times hoc hoc_k) hoc_max))
     (set bonus_for_hoc (if (eq self 1) 0 bonus_for_hoc))
     (give bonus_for_hoc "for the ${hoc} hits-of-code that you reviewed")
     "add ${hoc_k} points for each
