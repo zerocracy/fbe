@@ -825,6 +825,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       incomplete_results: false,
       items: [
         {
+          sha: '0c7ee4d1e7ae2ec4a5bcfb8b1a2fa4b40d0f4d51',
           commit: {
             author: { name: 'Yegor', email: 'yegor@gmail.com', date: Time.parse('2024-09-15 12:23:25 UTC') },
             committer: { name: 'Yegor', email: 'yegor@gmail.com', date: Time.parse('2024-09-15 12:23:25 UTC') },
@@ -841,6 +842,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           }
         },
         {
+          sha: '1f0b1d33f2f2bd3f8e0f2ff96e2d80fee9df9a2c',
           commit: {
             author: { name: 'Yegor', email: 'yegor2@gmail.com', date: Time.parse('2024-09-14 12:23:25 UTC') },
             committer: { name: 'Yegor', email: 'yegor2@gmail.com', date: Time.parse('2024-09-14 12:23:25 UTC') },
@@ -857,6 +859,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           }
         },
         {
+          sha: '2a3dcb96b4bb1d64a0d2f2e4e1a72dabcd7f52ea',
           commit: {
             author: { name: 'Yegor', email: 'yegor3@gmail.com', date: Time.parse('2024-09-13 12:23:25 UTC') },
             committer: { name: 'Yegor', email: 'yegor3@gmail.com', date: Time.parse('2024-09-13 12:23:25 UTC') },
