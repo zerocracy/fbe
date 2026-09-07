@@ -38,6 +38,14 @@ class TestBylaws < Fbe::Test
     )
   end
 
+  def test_review_hoc_bonus_grows_from_the_first_hit_of_code
+    a = Fbe::Award.new(Fbe.bylaws(anger: 1, love: 2, paranoia: 4)['code-review-was-rewarded'])
+    small = a.bill({ hoc: 100, comments: 12, self: 0, reviews: 1 })
+    large = a.bill({ hoc: 400, comments: 12, self: 0, reviews: 1 })
+    assert_operator(large.points, :>, small.points, large.greeting)
+    assert_includes(small.greeting, 'hits-of-code that you reviewed')
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
@@ -64,7 +72,7 @@ class TestBylaws < Fbe::Test
       'code-review-was-rewarded' => {
         { hoc: 0, comments: 0, self: 0 } => 4,
         { hoc: 3, comments: 0, self: 0 } => 4,
-        { hoc: 78, comments: 7, self: 0 } => 12,
+        { hoc: 78, comments: 7, self: 0 } => 13,
         { hoc: 120, comments: 4, self: 0 } => 4,
         { hoc: 600, comments: 1, self: 0 } => 8,
         { hoc: 500, comments: 40, self: 0 } => 24,
