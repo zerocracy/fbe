@@ -38,16 +38,38 @@ class TestBylaws < Fbe::Test
     )
   end
 
+  def test_cannot_bill_without_a_declared_input
+    ignored =
+      Fbe.bylaws.to_h do |title, formula|
+        inputs = formula.scan(/\(in ([a-z_0-9]+)\s/).flatten
+        [title, inputs.select { |input| billable?(formula, inputs - [input]) }]
+      end.reject { |_, inputs| inputs.empty? }
+    assert_empty(ignored, "these bylaws bill without the inputs they declare: #{ignored.inspect}")
+  end
+
+  def test_bills_with_declared_inputs_only
+    broken = Fbe.bylaws.reject { |_, formula| billable?(formula, formula.scan(/\(in ([a-z_0-9]+)\s/).flatten) }
+    assert_empty(broken.keys, "these bylaws need inputs they dont declare: #{broken.keys.inspect}")
+  end
+
+  def test_dont_promise_the_number_of_contributors
+    markdown = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded']).bylaw.markdown
+    refute_includes(
+      markdown, '_contributors_',
+      "the release bylaw still names an input that its formula ignores: #{markdown.inspect}"
+    )
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
-        { hoc: 0, contributors: 1 } => 24,
-        { hoc: 10, contributors: 1 } => 24,
-        { hoc: 100, contributors: 1 } => 24,
-        { hoc: 500, contributors: 1 } => 29,
-        { hoc: 1_000, contributors: 1 } => 32,
-        { hoc: 10_000, contributors: 1 } => 32,
-        { hoc: 30_000, contributors: 1 } => 32
+        { hoc: 0 } => 24,
+        { hoc: 10 } => 24,
+        { hoc: 100 } => 24,
+        { hoc: 500 } => 29,
+        { hoc: 1_000 } => 32,
+        { hoc: 10_000 } => 32,
+        { hoc: 30_000 } => 32
       },
       'resolved-bug-was-rewarded' => {
         { hours: 1, self: 0 } => 12,
@@ -138,5 +160,12 @@ class TestBylaws < Fbe::Test
     Fbe.bylaws.each_value do |formula|
       assert_match(/\A\(award\b/, formula.strip)
     end
+  end
+
+  def billable?(formula, inputs)
+    Fbe::Award.new(formula).bill(inputs.to_h { |input| [input.to_sym, 1] })
+    true
+  rescue Fbe::Error
+    false
   end
 end
