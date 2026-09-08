@@ -5,6 +5,7 @@
 
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'quoted'
 
 # Delete a few facts, knowing their IDs.
 #
@@ -22,5 +23,5 @@ def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
     ids << found.first
   end
   return 0 if ids.empty?
-  fb.query("(or #{ids.map { |id| "(eq #{fid} #{id})" }.join(' ')})").delete!
+  fb.query("(or #{ids.map { |id| "(eq #{fid} #{Fbe.quoted(id)})" }.join(' ')})").delete!
 end
