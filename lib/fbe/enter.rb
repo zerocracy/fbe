@@ -20,6 +20,8 @@ require_relative '../fbe'
 # @raise [Fbe::Error] If badge, why, or required globals are nil
 # @note Requires $options and $loog global variables to be set
 # @note In testing mode (options.testing != nil), bypasses valve recording
+# @note Without a job ID the valve is entered with no job attached, since
+#   the API takes nil for that and rejects zero
 # @example Enter a valve for processing
 #   Fbe.enter('payment-check', 'Validating payment data') do
 #     # Process payment validation
@@ -32,5 +34,5 @@ def Fbe.enter(badge, why, options: $options, loog: $loog, &)
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   return yield unless options.testing.nil?
   baza = BazaRb.new('api.zerocracy.com', 443, options.zerocracy_token, loog:)
-  baza.enter(options.job_name, badge, why, options.job_id.nil? ? 0 : Integer(options.job_id.to_s, 10), &)
+  baza.enter(options.job_name, badge, why, options.job_id.nil? ? nil : Integer(options.job_id.to_s, 10), &)
 end
