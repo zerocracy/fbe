@@ -25,9 +25,10 @@
     (let day_fee {{ 0.5 | times: anger }})
     (set b2 (times -1 (times days day_fee)))
     (let days_fee_max -20)
+    (let days_fee_cap 20)
     (set b2 (max b2 days_fee_max))
     (give b2 "for ${days} days of delay")
-    "deduct ${day_fee} points for each day of delay, but no more than ${days_fee_max} points")
+    "deduct ${day_fee} points for each day of delay, but no more than ${days_fee_cap} points")
 
   (aka
     (let max 16)
