@@ -171,4 +171,54 @@ class TestPmp < Fbe::Test
     assert_includes(props, 'prop_a')
     assert_includes(props, 'prop_b')
   end
+
+  def test_cannot_read_property_with_apostrophe
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'apostrophe in a property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"hour'ly_rate")
+    end
+  end
+
+  def test_cannot_read_property_that_injects_xpath
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'an injected XPath predicate matches a foreign property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"anger' or '1'='1")
+    end
+  end
+
+  def test_cannot_read_property_with_quote
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'double quote in a property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:'hour"ly_rate')
+    end
+  end
+
+  def test_cannot_read_property_with_unicode
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'non-ASCII property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"дни'к_награде")
+    end
+  end
+
+  def test_cannot_read_property_with_empty_name
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'empty property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"")
+    end
+  end
 end

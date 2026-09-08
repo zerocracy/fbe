@@ -103,7 +103,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           others do |*args2|
             param = args2.first.to_s
             result = query.call(area).each.first&.[](param)&.first
-            prop = node.at_xpath("p[name='#{param}']")
+            prop = node.at_xpath('p[name=$name]', nil, 'name' => param)
             default = nil
             type = nil
             memo = nil
