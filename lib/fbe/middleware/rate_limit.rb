@@ -13,7 +13,8 @@ require_relative '../../fbe/middleware'
 # This middleware intercepts calls to the /rate_limit endpoint and caches
 # the results locally. It tracks the remaining requests count and decrements
 # it for each API call. Every 100 requests, it refreshes the cached data
-# by allowing the request to pass through to the GitHub API.
+# by allowing the request to pass through to the GitHub API. A reported quota
+# reset also expires the cached response and tracked counts.
 #
 # @example Usage in Faraday middleware stack
 #   connection = Faraday.new do |f|
@@ -32,6 +33,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @cached = nil
     @remaining = nil
     @searchleft = nil
+    @reset = nil
     @counter = 0
     @lock = Mutex.new
     tracker[:rate_limit] = self unless tracker.nil?
@@ -59,9 +61,10 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # Returns the remaining requests count tracked by this middleware.
   #
   # @param [Symbol] resource The GitHub API resource (:core or :search)
-  # @return [Integer, nil] The remaining count, or nil when the resource is absent
+  # @return [Integer, nil] The remaining count, or nil when absent or expired
   def remaining(resource = :core)
     @lock.synchronize do
+      return nil if expired?
       resource == :search ? @searchleft : @remaining
     end
   end
@@ -73,16 +76,40 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Env] env The request environment
   # @return [Faraday::Response] Cached or fresh response
   def handle_rate_limit_request(env)
-    if @cached.nil? || @counter >= 100
+    if @cached.nil? || expired? || @counter >= 100
       response = @app.call(env)
       @cached = response
       @remaining = extract_remaining_count(response)
       @searchleft = extract_search_remaining_count(response)
+      @reset = extract_reset_time(response)
       @counter = 0
       response
     else
       Faraday::Response.new(response_env(env, @cached))
     end
+  end
+
+  # Whether a reported reset makes the cached quota unknown.
+  #
+  # @return [Boolean] True when the earliest known quota reset has passed
+  def expired?
+    !@reset.nil? && Time.now.to_i >= @reset
+  end
+
+  # Reads the earliest known core or search reset from a quota response.
+  #
+  # @param [Faraday::Response] response The API response
+  # @return [Integer, nil] Unix reset time, or nil when none is provided
+  def extract_reset_time(response)
+    body = response.body
+    body = JSON.parse(body) if body.is_a?(String)
+    resets = [response.headers['x-ratelimit-reset']]
+    if body.is_a?(Hash)
+      resets.push(
+        body.dig('rate', 'reset'), body.dig('resources', 'core', 'reset'), body.dig('resources', 'search', 'reset')
+      )
+    end
+    resets.filter_map { |value| Integer(value, exception: false) }.min
   end
 
   # Tracks non-rate_limit requests and decrements counter.
