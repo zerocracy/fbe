@@ -55,7 +55,6 @@ class Fbe::Middleware::SqliteStore
   #
   # @param path [String] Path to the SQLite database file
   # @param version [String] Version identifier for cache compatibility
-  # @param opts [Hash] The rest of the arguments the constructor takes
   # @yield [Fbe::Middleware::SqliteStore] The store, open
   # @return [Object] Whatever the block returns
   def self.open(path, version, **)
