@@ -52,24 +52,29 @@ class TestBylaws < Fbe::Test
     assert_empty(broken.keys, "these bylaws need inputs they dont declare: #{broken.keys.inspect}")
   end
 
-  def test_dont_promise_the_number_of_contributors
-    markdown = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded']).bylaw.markdown
-    refute_includes(
-      markdown, '_contributors_',
-      "the release bylaw still names an input that its formula ignores: #{markdown.inspect}"
+  def test_rewards_a_larger_team_more
+    seed = Random.new_seed
+    team = Random.new(seed).rand(2..4)
+    a = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded'])
+    assert_operator(
+      a.bill(hoc: 0, contributors: team).points, :>,
+      a.bill(hoc: 0, contributors: 1).points,
+      "a release by #{team} contributors is not worth more than a release by one (seed: #{seed})"
     )
   end
 
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
-        { hoc: 0 } => 24,
-        { hoc: 10 } => 24,
-        { hoc: 100 } => 24,
-        { hoc: 500 } => 29,
-        { hoc: 1_000 } => 32,
-        { hoc: 10_000 } => 32,
-        { hoc: 30_000 } => 32
+        { hoc: 0, contributors: 0 } => 24,
+        { hoc: 0, contributors: 1 } => 26,
+        { hoc: 0, contributors: 4 } => 32,
+        { hoc: 10, contributors: 1 } => 26,
+        { hoc: 100, contributors: 2 } => 28,
+        { hoc: 500, contributors: 1 } => 31,
+        { hoc: 1_000, contributors: 1 } => 32,
+        { hoc: 10_000, contributors: 1 } => 32,
+        { hoc: 30_000, contributors: 50 } => 32
       },
       'resolved-bug-was-rewarded' => {
         { hours: 1, self: 0 } => 12,
