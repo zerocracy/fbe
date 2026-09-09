@@ -176,6 +176,14 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 end
               end
             end
+            # rubocop:disable Elegant/GoodMethodName, Style/OptionalBooleanParameter
+            def respond_to?(mtd, include_private = false) # rubocop:disable Layout/EmptyLineBetweenDefs
+              methods.include?(mtd.to_sym) || @origin.respond_to?(mtd, include_private)
+            end
+            def respond_to_missing?(mtd, include_private = false) # rubocop:disable Layout/EmptyLineBetweenDefs
+              respond_to?(mtd, include_private)
+            end
+            # rubocop:enable Elegant/GoodMethodName, Style/OptionalBooleanParameter
             def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs
               threshold ||= resource == :search ? 5 : 50
               label = resource == :search ? 'GitHub Search API' : 'GitHub API'
