@@ -23,7 +23,7 @@ require_relative '../../fbe/middleware'
 # - Size-based cache eviction (configurable, defaults to 10MB)
 # - Thread-safe SQLite transactions
 # - JSON serialization for cached values
-# - Filtering of non-cacheable requests (non-GET, URLs with query parameters)
+# - Filtering of non-cacheable requests (non-GET)
 #
 # Usage example:
 #   store = Fbe::Middleware::SqliteStore.new(
@@ -106,7 +106,7 @@ class Fbe::Middleware::SqliteStore
   # @param value [Object] The value to cache (will be JSON encoded)
   # @return [nil]
   # @note Values larger than 10KB are not cached
-  # @note Non-GET requests and URLs with query parameters are not cached
+  # @note Non-GET requests are not cached
   def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Metrics/AbcSize
     if value.is_a?(Array)
       begin
@@ -160,8 +160,9 @@ class Fbe::Middleware::SqliteStore
     @db.execute('VACUUM;')
   end
 
-  # Get all entries from the cache.
-  # @return [Array<Array>] Array of [key, value] pairs
+  # Get all entries from the cache, in the form they are stored in, which
+  # means every value is still compressed and has to be inflated by the caller.
+  # @return [Array<Array>] Array of [key, compressed value] pairs
   def all
     perform { _1.execute('SELECT key, value FROM cache') }
   end
