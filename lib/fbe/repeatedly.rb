@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'tago'
+require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 require_relative 'overwrite'
@@ -23,6 +24,7 @@ require_relative 'overwrite'
 # @yield [Factbase::Fact] The judge fact to populate with execution details
 # @return [nil] Nothing
 # @raise [Fbe::Error] If required parameters or globals are nil
+# @note Uses TODAY when set for scheduling and execution timestamps
 # @note Skips execution if judge was run within the interval period
 # @note Overwrites the 'when' property of existing judge fact
 # @example Run a monitoring task every 6 hours
@@ -39,10 +41,11 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}') (exists #{p_every_hours}))").each.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
+  today = Time.parse(ENV.fetch('TODAY') { Time.now.utc.iso8601(9) })
   recent = fb.query(
     "(and
       (eq what '#{judge.gsub("'", "\\\\'")}')
-      (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
+      (gt when (minus (to_time '#{today.utc.iso8601(9)}') '#{hours} hours')))"
   ).each.first
   if recent
     loog.info("#{judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
@@ -54,6 +57,6 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
     f.what = judge
   end
   yield(fb.query("(and (eq what '#{judge.gsub("'", "\\\\'")}'))").each.first)
-  Fbe.overwrite(f, 'when', Time.now, fb:)
+  Fbe.overwrite(f, 'when', today, fb:)
   nil
 end
