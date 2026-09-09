@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'securerandom'
+require 'timeout'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/sqlite_store'
 require_relative '../../test__helper'
@@ -450,7 +451,72 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_waits_for_an_active_transaction
+    with_tmpfile do |path|
+      store = Fbe::Middleware::SqliteStore.new(path, '0.0.0')
+      store.write('old', 'before')
+      serialized(store, 'INSERT INTO cache', -> { store.write('new', 'after') }, -> { store.read('new') })
+      assert_equal('after', store.read('new'))
+    ensure
+      store&.close
+    end
+  end
+
+  def test_waits_for_clear_to_finish_vacuuming
+    with_tmpfile do |path|
+      store = Fbe::Middleware::SqliteStore.new(path, '0.0.0')
+      store.write('old', 'before')
+      serialized(store, 'VACUUM;', -> { store.clear }, -> { store.write('new', 'after') })
+      assert_equal('after', store.read('new'))
+      assert_nil(store.read('old'))
+    ensure
+      store&.close
+    end
+  end
+
   private
+
+  # Pause a real SQLite statement to force another operation to overlap it.
+  def serialized(store, sql, first, second)
+    entered = Queue.new
+    release = Queue.new
+    database = store.instance_variable_get(:@db)
+    execute = database.method(:execute)
+    paused = false
+    database.define_singleton_method(:execute) do |statement, *args|
+      if !paused && statement.strip.start_with?(sql)
+        paused = true
+        entered << true
+        release.pop
+      end
+      execute.call(statement, *args)
+    end
+    threads = []
+    threads << Thread.new do
+      first.call
+    rescue StandardError => e
+      e
+    end
+    Timeout.timeout(5) { entered.pop }
+    started = Queue.new
+    threads << Thread.new do
+      started << true
+      second.call
+    rescue StandardError => e
+      e
+    end
+    Timeout.timeout(5) do
+      started.pop
+    end
+    waiting = threads.last.join(0.1).nil?
+    release << true
+    results = Timeout.timeout(5) { threads.map(&:value) }
+    assert(waiting, 'The second cache operation must wait for the first to finish')
+    results.each { |result| refute_kind_of(Exception, result) }
+  ensure
+    release << true
+    threads&.each { |thread| thread.kill.join if thread.alive? }
+  end
 
   def with_tmpfile(name = 'test.db', &)
     Dir.mktmpdir do |dir|
