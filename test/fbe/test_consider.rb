@@ -18,7 +18,7 @@ class TestConsider < Fbe::Test
   def test_with_simple_query
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '5000' } }
     )
     $fb = Factbase.new
     $fb.insert.foo = 42
@@ -30,14 +30,11 @@ class TestConsider < Fbe::Test
     Fbe.consider('(always)') do |f|
       f.bar = 7
     end
-    assert_equal(1, $fb.size)
+    assert_equal([7], $fb.query('(eq foo 42)').each.first['bar'])
   end
 
   def test_quota_unaware
     WebMock.disable_net_connect!
-    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      { body: '{}', headers: { 'X-RateLimit-Remaining' => '0' } }
-    )
     $fb = Factbase.new
     $fb.insert.foo = 42
     $epoch = Time.now
@@ -48,6 +45,7 @@ class TestConsider < Fbe::Test
     Fbe.consider('(always)', quota_aware: false) do |f|
       f.bar = 7
     end
-    assert_equal(1, $fb.size)
+    assert_not_requested(:get, 'https://api.github.com/rate_limit')
+    assert_equal([7], $fb.query('(eq foo 42)').each.first['bar'])
   end
 end
