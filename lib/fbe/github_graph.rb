@@ -521,6 +521,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
                 nodes {
                   isDraft
                   publishedAt
+                  createdAt
                 }
                 pageInfo {
                   endCursor
@@ -534,7 +535,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       releases = result.dig('repository', 'releases', 'nodes')
       break if releases.nil? || releases.empty?
       total += releases.count { !_1['isDraft'] && _1['publishedAt'] && Time.parse(_1['publishedAt']) > since }
-      break if releases.all? { _1['publishedAt'] && Time.parse(_1['publishedAt']) < since }
+      break if releases.all? { _1['createdAt'] && Time.parse(_1['createdAt']) < since }
       break unless result.dig('repository', 'releases', 'pageInfo', 'hasNextPage')
       cursor = result.dig('repository', 'releases', 'pageInfo', 'endCursor')
     end
