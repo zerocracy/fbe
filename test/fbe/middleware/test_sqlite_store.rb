@@ -424,6 +424,23 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_overwrite_cache_control_ignoring_directive_case
+    %w[max-age Max-Age MAX-AGE s-maxage S-MAXAGE].each do |directive|
+      with_tmpfile('case.db') do |f|
+        store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)
+        store.write(
+          'test',
+          faraday_value(resp: { 'response_headers' => { 'cache-control' => "public, #{directive}=0" } })
+        )
+        assert_equal(
+          "public, #{directive}=300",
+          JSON.parse(store.read('test')[0][1]).dig('response_headers', 'cache-control')
+        )
+        store.close
+      end
+    end
+  end
+
   def test_skip_write_of_a_broken_request
     with_tmpfile('broken.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
