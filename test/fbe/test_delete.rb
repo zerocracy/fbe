@@ -145,4 +145,26 @@ class TestDelete < Fbe::Test
     assert_equal(snapshot[:version], after._version)
     assert_equal(snapshot[:job], after._job)
   end
+
+  def test_deletes_a_property_by_a_string_id
+    fb = Factbase.new
+    f = fb.insert
+    f.name = 'alpha'
+    f.junk = 1
+    Fbe.delete(f, 'junk', fb:, id: 'name')
+    facts = fb.query('(always)').each.to_a
+    assert_equal(1, facts.size)
+    assert_nil(facts.first['junk'])
+    assert_equal('alpha', facts.first.name)
+  end
+
+  def test_does_not_duplicate_when_the_fact_is_not_found
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.junk = 1
+    other = Factbase.new
+    assert_raises(Fbe::Error) { Fbe.delete(f, 'junk', fb: other) }
+    assert_equal(0, other.size)
+  end
 end

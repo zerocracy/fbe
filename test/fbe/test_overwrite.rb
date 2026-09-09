@@ -454,4 +454,13 @@ class TestOverwrite < Fbe::Test
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
+
+  def test_overwrites_by_a_string_id
+    fb = Factbase.new
+    f = fb.insert
+    f.name = 'alpha'
+    f.v = 1
+    Fbe.overwrite(f, 'v', 2, fb:, fid: 'name')
+    assert_equal([2], fb.query('(always)').each.to_a.first['v'])
+  end
 end
