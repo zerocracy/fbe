@@ -52,7 +52,7 @@ require_relative 'fb'
 #
 #   # Read custom property (nil default/type/memo)
 #   val = Fbe.pmp.my_custom.my_prop
-def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Lint/UnusedMethodArgument
+def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity, Lint/UnusedMethodArgument
   global[:mutex] ||= Mutex.new
   xml =
     global[:mutex].synchronize do
@@ -76,6 +76,12 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       Integer(f)
     end
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
+  internal = %w[what area].freeze
+  props =
+    lambda do |area, declared|
+      stored = query.call(area).each.first&.all_properties&.map(&:to_s) || []
+      (declared | stored).reject { |n| n.start_with?('_') || internal.include?(n) }
+    end
   Class.new do
     define_method(:areas) do
       xml.xpath('/pmp/area/@name').map(&:value)
@@ -86,7 +92,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       if node.nil?
         Class.new do
           define_method(:properties) do
-            query.call(area).each.first&.all_properties&.map(&:to_s) || []
+            props.call(area, [])
           end
           others do |*args2|
             param = args2.first.to_s
@@ -98,7 +104,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       else
         Class.new do
           define_method(:properties) do
-            node.xpath('p/name').map(&:text)
+            props.call(area, node.xpath('p/name').map(&:text))
           end
           others do |*args2|
             param = args2.first.to_s
