@@ -142,7 +142,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
           o = Fbe::FakeOctokit.new
         end
         o =
-          decoor(o, loog:, trace:, limits:, mutex:) do # rubocop:disable Metrics/BlockLength
+          decoor(o, loog:, trace:, limits:, mutex:, names: {}) do # rubocop:disable Metrics/BlockLength
             def print_trace!(all: false, max: 5)
               @mutex.synchronize do
                 if @trace.empty?
@@ -205,10 +205,12 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             def user_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The ID of the user is nil') if id.nil?
               raise(Fbe::Error, 'The ID of the user must be an Integer') unless id.is_a?(Integer)
+              name = @names[[:user, id]]
+              return name unless name.nil?
               json = @origin.user(id)
               name = json[:login].downcase
               @loog.debug("GitHub user ##{id} has a name: @#{name}")
-              name
+              @names[[:user, id]] = name
             rescue Octokit::NotFound, Octokit::Forbidden => e
               raise(Fbe::Error, "GitHub user ##{id} is not accessible: #{e.message}")
             end
@@ -223,10 +225,12 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             def repo_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The ID of the repo is nil') if id.nil?
               raise(Fbe::Error, 'The ID of the repo must be an Integer') unless id.is_a?(Integer)
+              name = @names[[:repo, id]]
+              return name unless name.nil?
               json = @origin.repository(id)
               name = json[:full_name].downcase
               @loog.debug("GitHub repository ##{id} has a name: #{name}")
-              name
+              @names[[:repo, id]] = name
             end
             # Disable auto pagination for octokit client called in block
             #
