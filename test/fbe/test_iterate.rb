@@ -388,6 +388,29 @@ class TestIterate < Fbe::Test
     end
   end
 
+  def test_sort_by_visits_distinct_values_within_repeat_limit
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    [3, 2, 1, 2].each do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    seen = []
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('distinct_values')
+      by('(and (eq what "issue") (gt n $before))')
+      sort_by('n')
+      repeats(3)
+      over do |_repository, n|
+        seen << n
+        n
+      end
+    end
+    assert_equal([1, 2, 3], seen)
+    assert_equal(3, fb.query('(eq what "iterate")').each.first.distinct_values)
+  end
+
   def test_sort_by_configuration # rubocop:disable Metrics/AbcSize
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     global = {}
