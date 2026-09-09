@@ -94,4 +94,23 @@ class TestDeleteOne < Fbe::Test
     assert_equal(snapshot[:job], after._job)
     assert_equal([22], after['bar'])
   end
+
+  def test_deletes_value_when_id_is_a_string
+    seed = Random.new_seed
+    name = "\u00e9#{Random.new(seed).rand(1 << 32).to_s(36)}\u4e2d"
+    fb = Factbase.new
+    f = fb.insert
+    f.name = name
+    f.tag = 'x'
+    f.tag = 'y'
+    Fbe.delete_one(f, 'tag', 'x', fb:, id: 'name')
+    assert_equal(['y'], fb.query('(always)').each.flat_map { |t| t['tag'] }, "duplicated, seed: #{seed}")
+  end
+
+  def test_cannot_delete_from_a_foreign_factbase
+    f = Factbase.new.insert
+    f._id = 1
+    f.tag = 'x'
+    assert_raises(Fbe::Error) { Fbe.delete_one(f, 'tag', 'x', fb: Factbase.new) }
+  end
 end
