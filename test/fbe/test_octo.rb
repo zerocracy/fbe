@@ -1309,6 +1309,11 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_issue_counts_its_comments
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(o.issue_comments('foo/bar', 42).size, o.issue('foo/bar', 42)[:comments])
+  end
+
   def test_fake_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_equal(o.pull_request_comments('yegor256/test', 100), o.review_comments('yegor256/test', 100))
