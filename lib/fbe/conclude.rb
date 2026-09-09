@@ -125,11 +125,14 @@ class Fbe::Conclude
 
   # Set the list of properties to copy from the facts found to new facts.
   #
-  # @param [Array<String>] props List of property names
+  # @param [Array<String>, String] props Property names or a whitespace-delimited list
   # @return [nil] Nothing
   def follow(props)
     raise(Fbe::Error, 'Follow is already set') unless @follows.empty?
-    @follows = props.strip.split.compact
+    unless props.is_a?(String) || (props.is_a?(Array) && props.all?(String))
+      raise(Fbe::Error, 'Follow expects an array of strings or a whitespace-delimited string')
+    end
+    @follows = props.is_a?(Array) ? props.dup : props.split
   end
 
   # Create new fact from every fact found by the query.
