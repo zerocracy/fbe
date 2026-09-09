@@ -153,11 +153,14 @@ class Fbe::Middleware::SqliteStore
   # Clear all entries from the cache.
   # @return [void]
   def clear
-    perform do |t|
-      t.execute('DELETE FROM cache;')
-      t.execute("UPDATE meta SET value = ? WHERE key = 'version';", [@version])
+    @mutex.synchronize do
+      @db ||= init!
+      @db.transaction do |t|
+        t.execute('DELETE FROM cache;')
+        t.execute("UPDATE meta SET value = ? WHERE key = 'version';", [@version])
+      end
+      @db.execute('VACUUM;')
     end
-    @db.execute('VACUUM;')
   end
 
   # Get all entries from the cache.
@@ -178,8 +181,8 @@ class Fbe::Middleware::SqliteStore
   def perform(&)
     @mutex.synchronize do
       @db ||= init!
+      @db.transaction(&)
     end
-    @db.transaction(&)
   end
 
   def init! # rubocop:disable Metrics/AbcSize
