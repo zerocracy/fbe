@@ -134,6 +134,13 @@ class TestBylaws < Fbe::Test
     end
   end
 
+  def test_never_renders_a_negative_number_in_the_text
+    Fbe.bylaws(anger: 2, love: 2, paranoia: 2).each do |title, formula|
+      md = Fbe::Award.new(formula).bylaw.markdown
+      assert_empty(md.scan(/\*\*-[0-9.]+\*\*/), "The text of '#{title}' states a negative number: #{md}")
+    end
+  end
+
   def test_returns_s_expressions
     Fbe.bylaws.each_value do |formula|
       assert_match(/\A\(award\b/, formula.strip)
