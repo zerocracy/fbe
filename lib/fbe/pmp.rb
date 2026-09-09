@@ -32,6 +32,8 @@ require_relative 'fb'
 # accessing a property through a custom area, the returned value is read
 # directly from the factbase without XML defaults or type coercion. The
 # returned +Pmpv+ object will have +nil+ for +default+, +type+, and +memo+.
+# The +areas+ method lists both XML defaults and areas declared in PMP facts,
+# without duplicates.
 #
 #   Fbe.pmp.my_custom.my_prop  # reads from factbase, no XML defaults
 #
@@ -78,7 +80,9 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
   Class.new do
     define_method(:areas) do
-      xml.xpath('/pmp/area/@name').map(&:value)
+      defaults = xml.xpath('/pmp/area/@name').map(&:value)
+      declared = fb.query("(eq what 'pmp')").each.flat_map { _1[:area] || [] }
+      defaults | declared
     end
     others do |*args1| # rubocop:disable Metrics/BlockLength
       area = args1.first.to_s
