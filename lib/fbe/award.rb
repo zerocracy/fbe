@@ -256,8 +256,8 @@ class Fbe::Award
       when :min
         "minimum of #{to_p(@operands[0])} and #{to_p(@operands[1])}"
       when :between
-        "#{to_p(@operands[0])} clamped between #{to_p(@operands[1])} and #{to_p(@operands[2])}, " \
-        "or 0 if it is smaller than #{to_p(@operands[1])}"
+        "#{to_p(@operands[0])} clamped by absolute value between #{to_p(@operands[1])} and " \
+        "#{to_p(@operands[2])}, or 0 if its absolute value is smaller than both"
       else
         "(#{@op} #{@operands.join(' ')})"
       end
