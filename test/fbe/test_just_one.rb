@@ -57,4 +57,18 @@ class TestJustOne < Fbe::Test
       end
     end
   end
+
+  def test_rejects_empty_matching_attributes
+    [{}, { _id: 42, _time: Time.utc(2024, 1, 1), _version: 1 }].each do |attributes|
+      [Factbase.new, Factbase.new.tap { |fb| fb.insert.foo = 'existing' }].each do |fb|
+        before = fb.export
+        error =
+          assert_raises(Fbe::Error) do
+            Fbe.just_one(fb:) { |f| attributes.each { |key, value| f.public_send(:"#{key}=", value) } }
+          end
+        assert_includes(error.message, 'attribute')
+        assert_equal(before, fb.export)
+      end
+    end
+  end
 end
