@@ -130,7 +130,7 @@ class Fbe::Middleware::SqliteStore
           age = matched.nil? ? nil : Integer(matched, 10)
           if age
             age = [age, @minage].max
-            control = control.sub(/#{key}=(\d+)/, "#{key}=#{age}")
+            control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
           end
         end
         resp['response_headers']['cache-control'] = control
