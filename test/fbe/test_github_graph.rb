@@ -17,7 +17,38 @@ class TestGitHubGraph < Fbe::Test
     WebMock.disable_net_connect!
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    assert_instance_of(Fbe::Graph::Fake, graph)
+  end
+
+  def test_creates_real_graph_when_not_testing
+    WebMock.disable_net_connect!
+    global = {}
+    options = Judges::Options.new({ 'github_token' => 'x' })
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    assert_instance_of(Fbe::Graph, graph)
+  end
+
+  def test_prefers_fake_over_token_when_testing
+    WebMock.disable_net_connect!
+    options = Judges::Options.new({ 'testing' => true, 'github_token' => 'x' })
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global: {})
+    assert_instance_of(Fbe::Graph::Fake, graph)
+  end
+
+  def test_memoizes_graph_inside_one_global
+    WebMock.disable_net_connect!
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    assert_same(graph, Fbe.github_graph(options:, loog: Loog::NULL, global:))
+  end
+
+  def test_builds_own_graph_for_every_global
+    WebMock.disable_net_connect!
+    options = Judges::Options.new({ 'testing' => true })
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global: {})
+    refute_same(graph, Fbe.github_graph(options:, loog: Loog::NULL, global: {}))
   end
 
   def test_raises_when_graphql_response_carries_errors
@@ -102,6 +133,19 @@ class TestGitHubGraph < Fbe::Test
     assert_nil($global)
     assert_nil($options)
     assert_nil($loog)
+  end
+
+  def test_memoizes_graph_across_calls_with_global_variables
+    WebMock.disable_net_connect!
+    $global = {}
+    $options = Judges::Options.new({ 'testing' => true })
+    $loog = Loog::NULL
+    graph = Fbe.github_graph
+    again = Fbe.github_graph
+    $global = nil
+    $options = nil
+    $loog = nil
+    assert_same(graph, again)
   end
 
   def test_with_broken_token
