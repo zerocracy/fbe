@@ -23,6 +23,6 @@ class TestPmpBool < Fbe::Test
     f.what = 'pmp'
     f.area = 'communications'
     f.stealth = 'false'
-    assert_equal(false, Fbe.pmp(loog: Loog::NULL).communications.stealth)
+    assert_instance_of(FalseClass, Fbe.pmp(loog: Loog::NULL).communications.stealth)
   end
 end
