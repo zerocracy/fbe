@@ -1309,6 +1309,13 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_repository_id_ignores_the_letter_case
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    id = o.repository('yegor256/judges')[:id]
+    assert_equal(id, o.repository('Yegor256/Judges')[:id])
+    assert_equal(id, o.repository('YEGOR256/JUDGES')[:id])
+  end
+
   def test_fake_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_equal(o.pull_request_comments('yegor256/test', 100), o.review_comments('yegor256/test', 100))
