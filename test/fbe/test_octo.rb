@@ -55,6 +55,13 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_user_echoes_the_argument
+    o = Fbe::FakeOctokit.new
+    assert_equal(526_301, o.user(526_301)[:id])
+    assert_equal('yegor256', o.user(526_301)[:login])
+    assert_equal('octocat', o.user('octocat')[:login])
+  end
+
   def test_rate_limit
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)
