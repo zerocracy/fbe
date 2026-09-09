@@ -1148,7 +1148,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         updated_at: '2024-08-08T09:42:46Z',
         reactions: {
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082318/reactions',
-          total_count: 0
+          total_count: 1
         },
         start_line: 'null',
         original_start_line: 'null',
@@ -1175,7 +1175,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         updated_at: '2024-08-08T09:42:46Z',
         reactions: {
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082319/reactions',
-          total_count: 0
+          total_count: 1
         },
         start_line: 'null',
         original_start_line: 'null',
