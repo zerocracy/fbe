@@ -151,7 +151,7 @@ class SqliteStoreTest < Fbe::Test
           end
         end
       end
-      assert_operator(File.size(f), :>, 10 * 1024 * 1024)
+      assert_operator(File.size(f), :<=, 10 * 1024 * 1024)
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_equal('aa', store.read('a'))
         assert_nil(store.read('b'))

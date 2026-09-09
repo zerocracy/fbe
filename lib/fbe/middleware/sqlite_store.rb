@@ -80,11 +80,16 @@ class Fbe::Middleware::SqliteStore
   # @param key [String] The cache key to read
   # @return [Object, nil] The cached value parsed from JSON, or nil if not found
   def read(key)
-    value = perform do |t|
+    row = perform do |t|
       t.execute('UPDATE cache SET touched_at = ?2 WHERE key = ?1;', [key, Time.now.utc.iso8601])
-      t.execute('SELECT value FROM cache WHERE key = ? LIMIT 1;', [key])
-    end.dig(0, 0)
-    return unless value
+      t.execute('SELECT value, created_at FROM cache WHERE key = ? LIMIT 1;', [key])
+    end.first
+    return if row.nil?
+    value, created = row
+    if expired?(created)
+      delete(key)
+      return
+    end
     begin
       JSON.parse(Zlib::Inflate.inflate(value))
     rescue Zlib::Error, JSON::ParserError, TypeError => e
@@ -147,6 +152,7 @@ class Fbe::Middleware::SqliteStore
         ON CONFLICT(key) DO UPDATE SET value = ?2, touched_at = ?3, created_at = ?3
       SQL
     end
+    evict!(@db)
     nil
   end
 
@@ -175,6 +181,67 @@ class Fbe::Middleware::SqliteStore
 
   private
 
+  # Tell whether an entry created at this moment is too old to be served.
+  # @param [String] created The moment the entry was created, in ISO8601
+  # @return [Boolean] TRUE if the entry is older than the TTL
+  def expired?(created)
+    return false if @ttl.nil?
+    created < (Time.now.utc - (@ttl * 60 * 60)).iso8601
+  end
+
+  # Delete the entries that are older than the TTL.
+  # @param [SQLite3::Database] dbase The database to clean up
+  # @return [nil]
+  def expire!(dbase)
+    return if @ttl.nil?
+    dbase.transaction do |t|
+      t.execute(<<~SQL, [(Time.now.utc - (@ttl * 60 * 60)).iso8601])
+        DELETE FROM cache
+        WHERE key IN (SELECT key FROM cache WHERE (created_at < ?));
+      SQL
+    end
+    dbase.execute('VACUUM;')
+    nil
+  end
+
+  # Delete the oldest entries while the file is larger than the maximum size.
+  # @param [SQLite3::Database] dbase The database to clean up
+  # @return [nil]
+  def evict!(dbase)
+    return if File.size(@path) <= @maxsize
+    @loog.info(
+      "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
+      "#{Filesize.from(@maxsize.to_s).pretty}, cleaning up old entries"
+    )
+    deleted = 0
+    while dbase.execute(<<~SQL).dig(0, 0) > @maxsize
+      SELECT (page_count - freelist_count) * page_size AS size
+      FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
+    SQL
+      gone = 0
+      dbase.transaction do |t|
+        t.execute(<<~SQL)
+          DELETE FROM cache
+          WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
+        SQL
+        gone = t.changes
+        deleted += gone
+      end
+      next unless gone.zero?
+      @loog.warn(
+        'The cache is empty and its own pages still take more than ' \
+        "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
+      )
+      break
+    end
+    dbase.execute('VACUUM;')
+    @loog.info(
+      "Deleted #{deleted} old cache entries, " \
+      "new file size: #{Filesize.from(File.size(@path).to_s).pretty} bytes"
+    )
+    nil
+  end
+
   def perform(&)
     @mutex.synchronize do
       @db ||= init!
@@ -182,7 +249,7 @@ class Fbe::Middleware::SqliteStore
     @db.transaction(&)
   end
 
-  def init! # rubocop:disable Metrics/AbcSize
+  def init!
     SQLite3::Database.new(@path).tap do |d| # rubocop:disable Metrics/BlockLength
       d.transaction do |t|
         t.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')
@@ -235,47 +302,8 @@ class Fbe::Middleware::SqliteStore
         end
         d.execute('VACUUM;')
       end
-      unless @ttl.nil?
-        d.transaction do |t|
-          t.execute(<<~SQL, [(Time.now.utc - (@ttl * 60 * 60)).iso8601])
-            DELETE FROM cache
-            WHERE key IN (SELECT key FROM cache WHERE (created_at < ?));
-          SQL
-        end
-        d.execute('VACUUM;')
-      end
-      if File.size(@path) > @maxsize
-        @loog.info(
-          "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
-          "#{Filesize.from(@maxsize.to_s).pretty}, cleaning up old entries"
-        )
-        deleted = 0
-        while d.execute(<<~SQL).dig(0, 0) > @maxsize
-          SELECT (page_count - freelist_count) * page_size AS size
-          FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
-        SQL
-          gone = 0
-          d.transaction do |t|
-            t.execute(<<~SQL)
-              DELETE FROM cache
-              WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
-            SQL
-            gone = t.changes
-            deleted += gone
-          end
-          next unless gone.zero?
-          @loog.warn(
-            'The cache is empty and its own pages still take more than ' \
-            "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
-          )
-          break
-        end
-        d.execute('VACUUM;')
-        @loog.info(
-          "Deleted #{deleted} old cache entries, " \
-          "new file size: #{Filesize.from(File.size(@path).to_s).pretty} bytes"
-        )
-      end
+      expire!(d)
+      evict!(d)
     end
   end
 end
