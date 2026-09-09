@@ -99,4 +99,45 @@ class TestRegularly < Fbe::Test
     end
     assert_equal(2, fb.size)
   end
+
+  def test_numeric_string_configuration
+    [28, '28', 28.5, '28.5'].each do |days|
+      fb = Factbase.new
+      pmp = fb.insert
+      pmp.what = 'pmp'
+      pmp.area = 'quality'
+      pmp.interval = '3'
+      pmp.days = days
+      2.times do
+        Fbe.regularly('quality', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') do |fact|
+          fact.result = 42
+        end
+      end
+      facts = fb.query('(eq what "test")').each.to_a
+      assert_equal(1, facts.size)
+      assert_in_delta(Float(days) * 86_400, facts.first.when - facts.first.since, 1)
+    end
+  end
+
+  def test_rejects_invalid_configuration_before_callback
+    invalid = %w[invalid 1e999]
+    %w[interval days].each do |property|
+      invalid.each do |value|
+        fb = Factbase.new
+        pmp = fb.insert
+        pmp.what = 'pmp'
+        pmp.area = 'quality'
+        pmp.public_send(:"#{property}=", value)
+        before = fb.export
+        called = false
+        assert_raises(Fbe::Error) do
+          Fbe.regularly('quality', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') do |_fact|
+            called = true
+          end
+        end
+        refute(called)
+        assert_equal(before, fb.export)
+      end
+    end
+  end
 end
