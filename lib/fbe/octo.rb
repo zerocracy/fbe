@@ -241,11 +241,12 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             def with_disable_auto_paginate # rubocop:disable Layout/EmptyLineBetweenDefs
               ap = @origin.auto_paginate
               @origin.auto_paginate = false
-              yield(self) if block_given?
+              yield(@top || self) if block_given?
             ensure
               @origin.auto_paginate = ap
             end
           end
+        client = o
         o =
           intercepted(o) do |e, m, _args, _r|
             next unless e == :before
@@ -258,6 +259,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               raise(Fbe::OffQuota, "We are off-quota (remaining: #{left}), can't do #{m}()")
             end
           end
+        client.instance_variable_set(:@top, o)
         o.instance_eval do
           def send(...)
             __send__(...)
