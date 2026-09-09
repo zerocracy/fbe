@@ -1309,6 +1309,13 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_gives_the_same_time_for_the_same_object
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(o.repository('foo/bar')[:pushed_at], o.repository('foo/bar')[:pushed_at])
+    listed = o.repository_workflow_runs('foo/bar')[:workflow_runs].first
+    assert_equal(listed[:created_at], o.workflow_run('foo/bar', listed[:id])[:created_at])
+  end
+
   def test_fake_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_equal(o.pull_request_comments('yegor256/test', 100), o.review_comments('yegor256/test', 100))
