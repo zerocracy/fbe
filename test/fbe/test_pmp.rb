@@ -26,6 +26,21 @@ class TestPmp < Fbe::Test
     assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_uses_explicit_factbase_after_global_cache_is_primed
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    Fbe.fb
+    other = Factbase.new
+    f = other.insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.days_to_reward = 99
+    assert_equal(99, Fbe.pmp(fb: other).hr.days_to_reward)
+    assert_equal(14, Fbe.pmp.hr.days_to_reward)
+  end
+
   def test_reads_the_xml_once
     $fb = Factbase.new
     $global = {}
