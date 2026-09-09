@@ -38,6 +38,13 @@ class TestBylaws < Fbe::Test
     )
   end
 
+  def test_hoc_threshold_is_not_a_cliff
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    below = a.bill({ hoc: 199, comments: 0, reviews: 1 }).points
+    above = a.bill({ hoc: 200, comments: 0, reviews: 1 }).points
+    assert_operator(below - above, :<=, 8, "one extra hit-of-code costs #{below - above} points")
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
@@ -82,11 +89,11 @@ class TestBylaws < Fbe::Test
         { hoc: 180, comments: 7, reviews: 2 } => 24,
         { hoc: 199, comments: 8, reviews: 3 } => 24,
         { hoc: 150, comments: 5, reviews: 1 } => 24,
-        { hoc: 500, comments: 25, reviews: 2 } => 8,
+        { hoc: 500, comments: 25, reviews: 2 } => 18,
         { hoc: 99, comments: 6, reviews: 1 } => 16,
-        { hoc: 200, comments: 0, reviews: 1 } => 8,
-        { hoc: 542, comments: 0, reviews: 1 } => 8,
-        { hoc: 799, comments: 0, reviews: 1 } => 8,
+        { hoc: 200, comments: 0, reviews: 1 } => 18,
+        { hoc: 542, comments: 0, reviews: 1 } => 18,
+        { hoc: 799, comments: 0, reviews: 1 } => 18,
         { hoc: 800, comments: 0, reviews: 1 } => 4,
         { hoc: 1_500, comments: 3, reviews: 0 } => 4,
         { hoc: 15_000, comments: 40, reviews: 0 } => 4
