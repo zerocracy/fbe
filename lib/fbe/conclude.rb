@@ -50,6 +50,7 @@ end
 #    follow 'when'
 #    draw do |n, b|
 #      n.good = 'yes!'
+#      "The fact ##{b._id} was bad, this is why a good one was created."
 #    end
 #  end
 #
@@ -149,6 +150,9 @@ class Fbe::Conclude
   # new facts for all of them, passing them one by one in to the block of
   # the +draw+, where +n+ would be the new created fact and the +w+ would
   # be the fact found.
+  #
+  # When the block returns a String, it becomes the +details+ of the new fact.
+  # Anything else the block returns is ignored.
   #
   # @yield [Array<Factbase::Fact,Factbase::Fact>] New fact and seen fact
   # @return [Integer] The count of the facts processed
@@ -285,8 +289,7 @@ class Fbe::Conclude
       end
     end
     r = yield(fact, prev)
-    return unless r.is_a?(String)
-    fact.details = r
     fact.what = @judge
+    fact.details = r if r.is_a?(String)
   end
 end
