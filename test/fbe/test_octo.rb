@@ -1285,6 +1285,29 @@ class TestOcto < Fbe::Test
     assert_equal('0.19.0', rel[:tag_name])
   end
 
+  def test_fake_milestones
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    list = o.list_milestones('yegor256/test', state: 'all')
+    assert_equal([1, 2], list.map { |m| m[:number] })
+    refute_equal(list.first[:id], list.last[:id])
+    list.each do |m|
+      refute_empty(m[:title])
+      assert_equal('open', m[:state])
+      assert_kind_of(Time, m[:created_at])
+      assert_kind_of(Integer, m.dig(:creator, :id))
+    end
+    assert_kind_of(Time, list.first[:due_on])
+    assert_nil(list.last[:due_on])
+  end
+
+  def test_fake_milestone_options
+    o = Fbe::FakeOctokit.new
+    assert_equal(
+      o.list_milestones('foo/bar').map { |m| m[:number] },
+      o.list_milestones('foo/bar', { state: 'all' }).map { |m| m[:number] }
+    )
+  end
+
   def test_fake_pull_requests
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     prs = o.pull_requests('yegor256/test')
