@@ -4,8 +4,11 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'factbase/rules'
+require 'judges/options'
 require 'loog'
 require 'tmpdir'
+require_relative '../../lib/fbe/fb'
 require_relative '../../lib/fbe/if_absent'
 require_relative '../test__helper'
 
@@ -60,6 +63,31 @@ class TestIfAbsent < Fbe::Test
         f.foo = 42
       end
     assert_equal(42, n.foo)
+  end
+
+  def test_injects_inside_a_transaction_the_caller_opened
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+    fb.txn do |fbt|
+      n =
+        Fbe.if_absent(fb: fbt) do |f|
+          f.issue = 1566
+          f.repository = 42
+          f.what = 'something'
+          f.where = 'github'
+        end
+      n.extra = 'x'
+    end
+    assert_equal(1566, fb.query('(exists issue)').each.first.issue)
+  end
+
+  def test_injects_under_a_rule_that_spans_two_properties
+    fb = Factbase::Rules.new(Factbase.new, '(when (exists issue) (exists repository))')
+    n =
+      Fbe.if_absent(fb:) do |f|
+        f.issue = 1566
+        f.repository = 42
+      end
+    assert_equal(1566, n.issue)
   end
 
   def test_injects_and_reads
