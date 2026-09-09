@@ -37,8 +37,8 @@ require_relative 'fb'
 #
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching
-# @param [Judges::Options] options The options coming from the +judges+ tool
-# @param [Loog] loog The logging facility
+# @param [Judges::Options] options Retained for compatibility with existing callers
+# @param [Loog] loog Retained for compatibility with existing callers
 # @return [Object] A proxy object that allows method chaining to access PMP properties
 # @example
 #   # Get HR reward points from PMP configuration
@@ -52,7 +52,7 @@ require_relative 'fb'
 #
 #   # Read custom property (nil default/type/memo)
 #   val = Fbe.pmp.my_custom.my_prop
-def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Lint/UnusedMethodArgument
   global[:mutex] ||= Mutex.new
   xml =
     global[:mutex].synchronize do
@@ -75,7 +75,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       raise(ArgumentError, "#{value} is not a whole number") unless (f % 1).zero?
       Integer(f)
     end
-  query = ->(area) { Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))") }
+  query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
   Class.new do
     define_method(:areas) do
       xml.xpath('/pmp/area/@name').map(&:value)
