@@ -80,11 +80,9 @@ class Fbe::Middleware::SqliteStore
   # @param key [String] The cache key to read
   # @return [Object, nil] The cached value parsed from JSON, or nil if not found
   def read(key)
-    value = perform do |t|
-      t.execute('UPDATE cache SET touched_at = ?2 WHERE key = ?1;', [key, Time.now.utc.iso8601])
-      t.execute('SELECT value FROM cache WHERE key = ? LIMIT 1;', [key])
-    end.dig(0, 0)
+    value = perform { _1.execute('SELECT value FROM cache WHERE key = ? LIMIT 1;', [key]) }.dig(0, 0)
     return unless value
+    perform { _1.execute('UPDATE cache SET touched_at = ?2 WHERE key = ?1;', [key, Time.now.utc.iso8601]) }
     begin
       JSON.parse(Zlib::Inflate.inflate(value))
     rescue Zlib::Error, JSON::ParserError, TypeError => e
