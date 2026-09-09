@@ -70,6 +70,57 @@ class TestGitHubGraph < Fbe::Test
     assert_same(data, graph.query('{ viewer { login } }'))
   end
 
+  def test_raises_when_path_scoped_error_comes_with_partial_data
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    raw = [{ 'message' => "Could not resolve to a Repository with the name 'x/\u00fc'", 'path' => ['repo_1'] }]
+    GraphQL::Client::Errors.normalize_error_paths({ 'repo_0' => { 'id' => 'a' }, 'repo_1' => nil }, raw)
+    data = Object.new
+    data.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw, ['data']) }
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { data }
+    fake = Object.new
+    fake.define_singleton_method(:parse) { |q| q }
+    fake.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake }
+    assert_raises(Fbe::Error) { graph.query('{ repo_0 { id } repo_1 { id } }') }
+  end
+
+  def test_raises_when_top_level_and_path_scoped_errors_are_both_present
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    raw = [
+      { 'message' => 'Rate limit exceeded' },
+      { 'message' => 'Could not resolve to a Repository', 'path' => ['repository'] }
+    ]
+    GraphQL::Client::Errors.normalize_error_paths({ 'repository' => nil }, raw)
+    data = Object.new
+    data.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw, ['data']) }
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { data }
+    fake = Object.new
+    fake.define_singleton_method(:parse) { |q| q }
+    fake.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake }
+    e = assert_raises(Fbe::Error) { graph.query('{ repository(owner: "x", name: "y") { id } }') }
+    assert_match(/Rate limit exceeded/, e.message)
+  end
+
+  def test_dont_raise_when_data_is_null_and_nothing_failed
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new([]) }
+    response.define_singleton_method(:data) { nil }
+    fake = Object.new
+    fake.define_singleton_method(:parse) { |q| q }
+    fake.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake }
+    assert_nil(graph.query('{ viewer { login } }'))
+  end
+
   def test_simple_use_graph
     skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!
