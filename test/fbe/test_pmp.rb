@@ -159,7 +159,24 @@ class TestPmp < Fbe::Test
     f.what = 'pmp'
     f.area = 'custom'
     f.my_prop = 42
-    assert_equal(42, Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop)
+    pmp = Fbe.pmp(fb:, loog: Loog::NULL)
+    assert_equal(42, pmp.custom.my_prop)
+    assert_includes(pmp.areas, 'custom')
+  end
+
+  def test_areas_merges_defaults_and_pmp_facts_without_duplicates
+    fb = Factbase.new
+    %w[custom custom hr].each do |area|
+      f = fb.insert
+      f.what = 'pmp'
+      f.area = area
+    end
+    fb.insert.area = 'unrelated'
+    fb.insert.what = 'pmp'
+    areas = Fbe.pmp(fb:, global: {}).areas
+    assert_equal(1, areas.count('custom'))
+    assert_equal(1, areas.count('hr'))
+    refute_includes(areas, 'unrelated')
   end
 
   def test_custom_area_without_fact
