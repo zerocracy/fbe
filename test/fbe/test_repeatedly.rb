@@ -121,4 +121,70 @@ class TestRepeatedly < Fbe::Test
     end
     assert_equal(2, fb.size)
   end
+
+  def test_uses_daily_default_when_the_area_fact_omits_the_interval
+    seed = Random.new_seed
+    area = "качество-#{Random.new(seed).rand(1_000)}"
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = area
+      f.days = 5
+    end
+    Fbe.repeatedly(area, 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+      f.foo = 42
+    end
+    ran = false
+    Time.stub(:now, Time.now + (23 * 60 * 60)) do
+      Fbe.repeatedly(area, 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |_f|
+        ran = true
+      end
+    end
+    refute(ran, "the judge ran again 23 hours later, while the area '#{area}' has no interval, seed is #{seed}")
+  end
+
+  def test_runs_again_after_a_day_when_the_area_fact_omits_the_interval
+    seed = Random.new_seed
+    area = "качество-#{Random.new(seed).rand(1_000)}"
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = area
+      f.days = 5
+    end
+    Fbe.repeatedly(area, 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+      f.foo = 42
+    end
+    ran = false
+    Time.stub(:now, Time.now + (25 * 60 * 60)) do
+      Fbe.repeatedly(area, 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |_f|
+        ran = true
+      end
+    end
+    assert(ran, "the judge stayed idle 25 hours later, while the area '#{area}' has no interval, seed is #{seed}")
+  end
+
+  def test_prefers_the_configured_interval_over_the_daily_default
+    seed = Random.new_seed
+    hours = Random.new(seed).rand(2..6)
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = 'качество'
+      f.every_x_hours = hours
+    end
+    Fbe.repeatedly('качество', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+      f.foo = 42
+    end
+    ran = false
+    Time.stub(:now, Time.now + ((hours + 1) * 60 * 60)) do
+      Fbe.repeatedly('качество', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |_f|
+        ran = true
+      end
+    end
+    assert(ran, "the judge stayed idle #{hours + 1} hours later, while the interval is #{hours}, seed is #{seed}")
+  end
 end
