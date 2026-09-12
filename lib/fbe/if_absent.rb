@@ -35,6 +35,10 @@ require_relative 'fb'
 # @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
 # @note String values are properly escaped in queries
 # @note Time values are converted to UTC ISO8601 format for comparison
+# @note The check and the insert happen in one transaction, so two judges
+#   running at the same time cannot both create the fact. When the factbase
+#   given is already inside a transaction, that transaction is the one that
+#   makes the pair atomic, and no nested one is started.
 # @example Ensure unique user registration
 #   user = Fbe.if_absent do |f|
 #     f.type = 'user'
@@ -72,10 +76,23 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.first
-  return before if before && always
-  return nil if before
-  n = fb.insert
-  attrs.each { |k, v| n.public_send(:"#{k}=", v) }
-  n
+  found = nil
+  existed = false
+  once =
+    lambda do |f|
+      before = f.query(q).each.first
+      existed = !before.nil?
+      found = before
+      next if existed
+      found = f.insert
+      attrs.each { |k, v| found.public_send(:"#{k}=", v) }
+    end
+  begin
+    fb.txn { |fbt| once.call(fbt) }
+  rescue StandardError => e
+    raise(e) unless e.message.include?('inside another transaction')
+    once.call(fb)
+  end
+  return nil if existed && !always
+  found
 end

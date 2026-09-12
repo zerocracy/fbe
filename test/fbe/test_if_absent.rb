@@ -115,4 +115,38 @@ class TestIfAbsent < Fbe::Test
       end
     refute_nil(n)
   end
+
+  def test_uses_one_transaction_for_check_and_insert
+    fb = Factbase.new
+    seen = []
+    probe =
+      Class.new do
+        define_method(:initialize) do |origin, log|
+          @origin = origin
+          @log = log
+        end
+        define_method(:txn) { |&b| @log << :txn and @origin.txn(&b) }
+        define_method(:query) { |t, m = nil| @log << :query and @origin.query(t, m) }
+        define_method(:insert) { @log << :insert and @origin.insert }
+        define_method(:to_term) { |q| @origin.to_term(q) }
+      end.new(fb, seen)
+    Fbe.if_absent(fb: probe) { |f| f.what = 'x' }
+    assert_equal(
+      :txn, seen.first,
+      'the check and the insert must happen inside one transaction, or two judges can both insert'
+    )
+    assert_equal(1, fb.query('(always)').each.to_a.size)
+  end
+
+  def test_works_inside_a_transaction_of_the_caller
+    fb = Factbase.new
+    fb.txn do |fbt|
+      Fbe.if_absent(fb: fbt) { |f| f.what = 'x' }
+      Fbe.if_absent(fb: fbt) { |f| f.what = 'x' }
+    end
+    assert_equal(
+      1, fb.query('(always)').each.to_a.size,
+      'a factbase that is already in a transaction must not get a nested one'
+    )
+  end
 end
