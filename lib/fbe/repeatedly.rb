@@ -43,28 +43,56 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}') (exists #{p_every_hours}))").each.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
   marker = "(and (eq what 'repeatedly') (eq judge '#{judge.gsub("'", "\\\\'")}'))"
-  recent = fb.query(
+  fresh =
     "(and
       #{marker}
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
-  ).each.first
+  recent = nil
+  born = false
+  previous = nil
+  claim =
+    lambda do |t|
+      recent = t.query(fresh).each.first
+      next unless recent.nil?
+      m = t.query(marker).each.first
+      if m.nil?
+        m = t.insert
+        m.what = 'repeatedly'
+        m.judge = judge
+        m.when = Time.now
+        born = true
+      else
+        previous = m['when']&.first
+        Fbe.overwrite(m, 'when', Time.now, fb: t)
+      end
+    end
+  begin
+    fb.txn { |fbt| claim.call(fbt) }
+  rescue StandardError => e
+    raise(e) unless e.message.include?('inside another transaction')
+    claim.call(fb)
+  end
   if recent
     loog.info("#{judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
     return
   end
   f = fb.query(marker).each.first
-  if f.nil?
-    f = fb.insert
-    f.what = 'repeatedly'
-    f.judge = judge
-  end
   attrs = {}
-  yield(
-    others(fact: f, map: attrs) do |k, *rest|
-      next @fact.public_send(k, *rest) unless k.end_with?('=')
-      (@map[k[0..-2]] ||= []) << rest.first
+  begin
+    yield(
+      others(fact: f, map: attrs) do |k, *rest|
+        next @fact.public_send(k, *rest) unless k.end_with?('=')
+        (@map[k[0..-2]] ||= []) << rest.first
+      end
+    )
+  rescue StandardError
+    if born
+      fb.query(marker).delete!
+    elsif previous
+      Fbe.overwrite(fb.query(marker).each.first, 'when', previous, fb:)
     end
-  )
-  Fbe.overwrite(f, attrs.merge('when' => Time.now), fb:)
+    raise
+  end
+  Fbe.overwrite(fb.query(marker).each.first, attrs, fb:) unless attrs.empty?
   nil
 end
