@@ -458,7 +458,7 @@ class SqliteStoreTest < Fbe::Test
       release = Queue.new
       worker =
         Thread.new do
-          store.send(:perform) do |t|
+          store.__send__(:perform) do |t|
             inside << :in
             release.pop
             t.execute('SELECT 1')
@@ -470,10 +470,7 @@ class SqliteStoreTest < Fbe::Test
       assert_predicate(closer, :alive?, 'close must wait until the operation in flight is over')
       release << :go
       closer.join
-      assert_equal(
-        [[1]], worker.value,
-        'the operation in flight must finish on a connection that is still open'
-      )
+      assert_equal([[1]], worker.value, 'the operation in flight must finish on a live connection')
     end
   end
 
