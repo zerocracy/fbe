@@ -76,6 +76,8 @@ class Fbe::Middleware::SqliteStore
     end
     @minage = cache_min_age
     @mutex = Mutex.new
+    @idle = ConditionVariable.new
+    @busy = 0
   end
 
   # Read a value from the cache.
@@ -180,19 +182,50 @@ class Fbe::Middleware::SqliteStore
   # Close the database connection explicitly.
   # @return [nil]
   def close
-    @db&.close
-    @db = nil
+    @mutex.synchronize do
+      @idle.wait(@mutex) while @busy.positive?
+      @db&.close
+      @db = nil
+    end
   end
 
   private
 
   def perform(&)
     return [] if @disabled
-    @mutex.synchronize do
-      @db ||= open!
+    db =
+      @mutex.synchronize do
+        @db ||= open!
+        @busy += 1 unless @db.nil?
+        @db
+      end
+    return [] if db.nil?
+    begin
+      db.transaction(&)
+    ensure
+      @mutex.synchronize do
+        @busy -= 1
+        @idle.broadcast
+      end
     end
-    return [] if @disabled
-    @db.transaction(&)
+  end
+
+  # Opens the database, discarding and recreating an unusable cache file once.
+  #
+  # @return [SQLite3::Database, nil] The opened database, or nil if the cache
+  #   could not be made usable and has been disabled
+  def open!
+    init!
+  rescue SQLite3::Exception => e
+    @loog.warn("SQLite cache at #{@path} is unusable (#{e.message}), discarding it and starting fresh")
+    FileUtils.rm_f(@path)
+    begin
+      init!
+    rescue SQLite3::Exception => x
+      @loog.warn("SQLite cache at #{@path} could not be recreated (#{x.message}), disabling the cache")
+      @disabled = true
+      nil
+    end
   end
 
   # Opens the database, discarding and recreating an unusable cache file once.
