@@ -74,6 +74,8 @@ class Fbe::Middleware::SqliteStore
     end
     @minage = cache_min_age
     @mutex = Mutex.new
+    @idle = ConditionVariable.new
+    @busy = 0
   end
 
   # Read a value from the cache.
@@ -169,17 +171,30 @@ class Fbe::Middleware::SqliteStore
   # Close the database connection explicitly.
   # @return [nil]
   def close
-    @db&.close
-    @db = nil
+    @mutex.synchronize do
+      @idle.wait(@mutex) while @busy.positive?
+      @db&.close
+      @db = nil
+    end
   end
 
   private
 
   def perform(&)
-    @mutex.synchronize do
-      @db ||= init!
+    db =
+      @mutex.synchronize do
+        @db ||= init!
+        @busy += 1
+        @db
+      end
+    begin
+      db.transaction(&)
+    ensure
+      @mutex.synchronize do
+        @busy -= 1
+        @idle.broadcast
+      end
     end
-    @db.transaction(&)
   end
 
   def init! # rubocop:disable Metrics/AbcSize

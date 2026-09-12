@@ -450,6 +450,30 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_close_waits_for_an_operation_in_flight
+    with_tmpfile('c.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')
+      store.write('k', 'v')
+      inside = Queue.new
+      release = Queue.new
+      worker =
+        Thread.new do
+          store.__send__(:perform) do |t|
+            inside << :in
+            release.pop
+            t.execute('SELECT 1')
+          end
+        end
+      inside.pop
+      closer = Thread.new { store.close }
+      sleep(0.2)
+      assert_predicate(closer, :alive?, 'close must wait until the operation in flight is over')
+      release << :go
+      closer.join
+      assert_equal([[1]], worker.value, 'the operation in flight must finish on a live connection')
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
