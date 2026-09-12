@@ -116,6 +116,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                   "#{File.exist?(store.path) ? Filesize.from(File.size(store.path).to_s).pretty : 'file is absent'}, " \
                   "max size: #{Filesize.from(maxsize.to_s).pretty}, max vsize: #{Filesize.from(maxvsize.to_s).pretty})"
                 )
+                global[:sqlite_store] = store
                 builder.use(Faraday::HttpCache, store:, serializer: JSON, shared_cache: false, logger: Loog::NULL)
               else
                 loog.info("No HTTP cache in SQLite file, because 'sqlite_cache' option is not provided")

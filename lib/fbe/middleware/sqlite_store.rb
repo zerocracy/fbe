@@ -47,6 +47,25 @@ require_relative '../../fbe/middleware'
 class Fbe::Middleware::SqliteStore
   attr_reader :path
 
+  # Open a store, hand it over to the block, and close it afterwards.
+  #
+  # The database stays open from the first query until +close+ is called.
+  # On Windows an open file cannot be removed, so a store that nobody
+  # closes keeps its file locked until the process exits.
+  #
+  # @param path [String] Path to the SQLite database file
+  # @param version [String] Version identifier for cache compatibility
+  # @yield [Fbe::Middleware::SqliteStore] The store, open
+  # @return [Object] Whatever the block returns
+  def self.open(path, version, **)
+    store = new(path, version, **)
+    begin
+      yield(store)
+    ensure
+      store.close
+    end
+  end
+
   # Initialize the SQLite store.
   # @param path [String] Path to the SQLite database file
   # @param version [String] Version identifier for cache compatibility
@@ -167,10 +186,15 @@ class Fbe::Middleware::SqliteStore
   end
 
   # Close the database connection explicitly.
+  #
+  # Safe to call more than once, and on a store that was never used.
+  #
   # @return [nil]
   def close
-    @db&.close
-    @db = nil
+    @mutex.synchronize do
+      @db&.close
+      @db = nil
+    end
   end
 
   private
@@ -182,100 +206,115 @@ class Fbe::Middleware::SqliteStore
     @db.transaction(&)
   end
 
-  def init! # rubocop:disable Metrics/AbcSize
-    SQLite3::Database.new(@path).tap do |d| # rubocop:disable Metrics/BlockLength
-      d.transaction do |t|
-        t.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')
-        t.execute('CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);')
-        t.execute('CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);')
-        t.execute('CREATE INDEX IF NOT EXISTS meta_key_idx ON meta(key);')
-        t.execute("INSERT INTO meta(key, value) VALUES('version', ?) ON CONFLICT(key) DO NOTHING;", [@version])
-      end
-      if d.execute("SELECT 1 FROM pragma_table_info('cache') WHERE name = 'touched_at';").dig(0, 0) != 1
-        d.transaction do |t|
-          t.execute('ALTER TABLE cache ADD COLUMN touched_at TEXT;')
-          t.execute('UPDATE cache set touched_at = ?;', [Time.now.utc.iso8601])
-          t.execute('ALTER TABLE cache RENAME TO cache_old;')
-          t.execute(<<~SQL)
-            CREATE TABLE IF NOT EXISTS cache(
-              key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL
-            );
-          SQL
-          t.execute('INSERT INTO cache SELECT * FROM cache_old;')
-          t.execute('DROP TABLE cache_old;')
-          t.execute('CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);')
-          t.execute('CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);')
-        end
-        d.execute('VACUUM;')
-      end
-      if d.execute("SELECT 1 FROM pragma_table_info('cache') WHERE name = 'created_at';").dig(0, 0) != 1
-        d.transaction do |t|
-          t.execute('ALTER TABLE cache ADD COLUMN created_at TEXT;')
-          t.execute('UPDATE cache set created_at = ?;', [Time.now.utc.iso8601])
-          t.execute('ALTER TABLE cache RENAME TO cache_old;')
-          t.execute(<<~SQL)
-            CREATE TABLE IF NOT EXISTS cache(
-              key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL, created_at TEXT NOT NULL
-            );
-          SQL
-          t.execute('INSERT INTO cache SELECT * FROM cache_old;')
-          t.execute('DROP TABLE cache_old;')
-          t.execute('CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);')
-          t.execute('CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);')
-          t.execute('CREATE INDEX IF NOT EXISTS cache_created_at_idx ON cache(created_at);')
-        end
-        d.execute('VACUUM;')
-      end
-      found = d.execute("SELECT value FROM meta WHERE key = 'version' LIMIT 1;").dig(0, 0)
-      if found != @version
-        @loog.info("Version mismatch in SQLite cache: stored '#{found}' != current '#{@version}', cleaning up")
-        d.transaction do |t|
-          t.execute('DELETE FROM cache;')
-          t.execute("UPDATE meta SET value = ? WHERE key = 'version';", [@version])
-        end
-        d.execute('VACUUM;')
-      end
-      unless @ttl.nil?
-        d.transaction do |t|
-          t.execute(<<~SQL, [(Time.now.utc - (@ttl * 60 * 60)).iso8601])
-            DELETE FROM cache
-            WHERE key IN (SELECT key FROM cache WHERE (created_at < ?));
-          SQL
-        end
-        d.execute('VACUUM;')
-      end
-      if File.size(@path) > @maxsize
-        @loog.info(
-          "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
-          "#{Filesize.from(@maxsize.to_s).pretty}, cleaning up old entries"
-        )
-        deleted = 0
-        while d.execute(<<~SQL).dig(0, 0) > @maxsize
-          SELECT (page_count - freelist_count) * page_size AS size
-          FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
-        SQL
-          gone = 0
-          d.transaction do |t|
-            t.execute(<<~SQL)
-              DELETE FROM cache
-              WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
-            SQL
-            gone = t.changes
-            deleted += gone
-          end
-          next unless gone.zero?
-          @loog.warn(
-            'The cache is empty and its own pages still take more than ' \
-            "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
-          )
-          break
-        end
-        d.execute('VACUUM;')
-        @loog.info(
-          "Deleted #{deleted} old cache entries, " \
-          "new file size: #{Filesize.from(File.size(@path).to_s).pretty} bytes"
-        )
-      end
+  def init!
+    d = SQLite3::Database.new(@path)
+    begin
+      prepare(d)
+    rescue StandardError
+      d.close
+      raise
     end
+    d
+  end
+
+  # Creates the schema, upgrades it if it is old, and trims the cache
+  # down to the configured size.
+  #
+  # @param base [SQLite3::Database] The database, just opened
+  # @return [nil]
+  def prepare(base) # rubocop:disable Metrics/AbcSize
+    base.transaction do |t|
+      t.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')
+      t.execute('CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);')
+      t.execute('CREATE TABLE IF NOT EXISTS meta(key TEXT UNIQUE NOT NULL, value TEXT);')
+      t.execute('CREATE INDEX IF NOT EXISTS meta_key_idx ON meta(key);')
+      t.execute("INSERT INTO meta(key, value) VALUES('version', ?) ON CONFLICT(key) DO NOTHING;", [@version])
+    end
+    if base.execute("SELECT 1 FROM pragma_table_info('cache') WHERE name = 'touched_at';").dig(0, 0) != 1
+      base.transaction do |t|
+        t.execute('ALTER TABLE cache ADD COLUMN touched_at TEXT;')
+        t.execute('UPDATE cache set touched_at = ?;', [Time.now.utc.iso8601])
+        t.execute('ALTER TABLE cache RENAME TO cache_old;')
+        t.execute(<<~SQL)
+          CREATE TABLE IF NOT EXISTS cache(
+            key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL
+          );
+        SQL
+        t.execute('INSERT INTO cache SELECT * FROM cache_old;')
+        t.execute('DROP TABLE cache_old;')
+        t.execute('CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);')
+        t.execute('CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);')
+      end
+      base.execute('VACUUM;')
+    end
+    if base.execute("SELECT 1 FROM pragma_table_info('cache') WHERE name = 'created_at';").dig(0, 0) != 1
+      base.transaction do |t|
+        t.execute('ALTER TABLE cache ADD COLUMN created_at TEXT;')
+        t.execute('UPDATE cache set created_at = ?;', [Time.now.utc.iso8601])
+        t.execute('ALTER TABLE cache RENAME TO cache_old;')
+        t.execute(<<~SQL)
+          CREATE TABLE IF NOT EXISTS cache(
+            key TEXT UNIQUE NOT NULL, value TEXT, touched_at TEXT NOT NULL, created_at TEXT NOT NULL
+          );
+        SQL
+        t.execute('INSERT INTO cache SELECT * FROM cache_old;')
+        t.execute('DROP TABLE cache_old;')
+        t.execute('CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);')
+        t.execute('CREATE INDEX IF NOT EXISTS cache_touched_at_idx ON cache(touched_at);')
+        t.execute('CREATE INDEX IF NOT EXISTS cache_created_at_idx ON cache(created_at);')
+      end
+      base.execute('VACUUM;')
+    end
+    found = base.execute("SELECT value FROM meta WHERE key = 'version' LIMIT 1;").dig(0, 0)
+    if found != @version
+      @loog.info("Version mismatch in SQLite cache: stored '#{found}' != current '#{@version}', cleaning up")
+      base.transaction do |t|
+        t.execute('DELETE FROM cache;')
+        t.execute("UPDATE meta SET value = ? WHERE key = 'version';", [@version])
+      end
+      base.execute('VACUUM;')
+    end
+    unless @ttl.nil?
+      base.transaction do |t|
+        t.execute(<<~SQL, [(Time.now.utc - (@ttl * 60 * 60)).iso8601])
+          DELETE FROM cache
+          WHERE key IN (SELECT key FROM cache WHERE (created_at < ?));
+        SQL
+      end
+      base.execute('VACUUM;')
+    end
+    if File.size(@path) > @maxsize
+      @loog.info(
+        "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
+        "#{Filesize.from(@maxsize.to_s).pretty}, cleaning up old entries"
+      )
+      deleted = 0
+      while base.execute(<<~SQL).dig(0, 0) > @maxsize
+        SELECT (page_count - freelist_count) * page_size AS size
+        FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
+      SQL
+        gone = 0
+        base.transaction do |t|
+          t.execute(<<~SQL)
+            DELETE FROM cache
+            WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
+          SQL
+          gone = t.changes
+          deleted += gone
+        end
+        next unless gone.zero?
+        @loog.warn(
+          'The cache is empty and its own pages still take more than ' \
+          "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
+        )
+        break
+      end
+      base.execute('VACUUM;')
+      @loog.info(
+        "Deleted #{deleted} old cache entries, " \
+        "new file size: #{Filesize.from(File.size(@path).to_s).pretty} bytes"
+      )
+    end
+    nil
   end
 end
