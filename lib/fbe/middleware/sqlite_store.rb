@@ -228,24 +228,6 @@ class Fbe::Middleware::SqliteStore
     end
   end
 
-  # Opens the database, discarding and recreating an unusable cache file once.
-  #
-  # @return [SQLite3::Database, nil] The opened database, or nil if the cache
-  #   could not be made usable and has been disabled
-  def open!
-    init!
-  rescue SQLite3::Exception => e
-    @loog.warn("SQLite cache at #{@path} is unusable (#{e.message}), discarding it and starting fresh")
-    FileUtils.rm_f(@path)
-    begin
-      init!
-    rescue SQLite3::Exception => x
-      @loog.warn("SQLite cache at #{@path} could not be recreated (#{x.message}), disabling the cache")
-      @disabled = true
-      nil
-    end
-  end
-
   def init! # rubocop:disable Metrics/AbcSize
     SQLite3::Database.new(@path).tap do |d| # rubocop:disable Metrics/BlockLength
       d.transaction do |t|
