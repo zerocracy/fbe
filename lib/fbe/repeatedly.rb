@@ -39,21 +39,47 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}') (exists #{p_every_hours}))").each.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
-  recent = fb.query(
+  mine = "(and (eq what '#{judge.gsub("'", "\\\\'")}'))"
+  fresh =
     "(and
       (eq what '#{judge.gsub("'", "\\\\'")}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
-  ).each.first
+  recent = nil
+  born = false
+  previous = nil
+  claim =
+    lambda do |f|
+      recent = f.query(fresh).each.first
+      next unless recent.nil?
+      fact = f.query(mine).each.first
+      if fact.nil?
+        fact = f.insert
+        fact.what = judge
+        born = true
+      else
+        previous = fact['when']&.first
+      end
+      Fbe.overwrite(fact, 'when', Time.now, fb: f)
+    end
+  begin
+    fb.txn { |fbt| claim.call(fbt) }
+  rescue StandardError => e
+    raise(e) unless e.message.include?('inside another transaction')
+    claim.call(fb)
+  end
   if recent
     loog.info("#{judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
     return
   end
-  f = fb.query("(and (eq what '#{judge.gsub("'", "\\\\'")}'))").each.first
-  if f.nil?
-    f = fb.insert
-    f.what = judge
+  begin
+    yield(fb.query(mine).each.first)
+  rescue StandardError
+    if born
+      fb.query(mine).delete!
+    elsif previous
+      Fbe.overwrite(fb.query(mine).each.first, 'when', previous, fb:)
+    end
+    raise
   end
-  yield(fb.query("(and (eq what '#{judge.gsub("'", "\\\\'")}'))").each.first)
-  Fbe.overwrite(f, 'when', Time.now, fb:)
   nil
 end
