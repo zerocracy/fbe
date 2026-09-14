@@ -249,7 +249,7 @@ class TestOcto < Fbe::Test
     )
     stub_request(:get, %r{https://api.github.com/search/issues}).to_return(
       body: { total_count: 0, incomplete_results: false, items: [] }.to_json,
-      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4' }
     )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     assert_equal(0, o.search_issues('repo:foo/bar type:issue')[:total_count])
@@ -874,20 +874,13 @@ class TestOcto < Fbe::Test
       { body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' } },
       { body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
-    stub_request(:get, 'https://api.github.com/user/123').to_return do
-      {
-        status: 200,
-        body: '{"id":123,"login":"test"}',
-        headers: { 'X-RateLimit-Remaining' => '222' }
-      }
-    end
-    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return do
-      {
-        status: 200,
-        body: '{"id":456,"full_name":"foo/bar"}',
-        headers: { 'X-RateLimit-Remaining' => '222' }
-      }
-    end
+    stub_request(:get, 'https://api.github.com/user/123').to_return(
+      { status: 200, body: '{"id":123,"login":"test"}', headers: { 'X-RateLimit-Remaining' => '221' } }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(
+      { status: 200, body: '{"id":456,"full_name":"foo/bar"}', headers: { 'X-RateLimit-Remaining' => '220' } },
+      { status: 200, body: '{"id":456,"full_name":"foo/bar"}', headers: { 'X-RateLimit-Remaining' => '219' } }
+    )
     octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
     octo.user(123)
     octo.repository('foo/bar')
