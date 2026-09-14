@@ -31,6 +31,7 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase to search/insert into (defaults to Fbe.fb)
 # @yield [Factbase::Fact] Block to set attributes on the fact
 # @return [Factbase::Fact] The existing or newly created fact
+# @raise [Fbe::Error] If no non-system matching attributes are provided
 # @note System attributes (_id, _time, _version) are ignored when matching
 def Fbe.just_one(fb: Fbe.fb)
   attrs = {}
@@ -56,6 +57,7 @@ def Fbe.just_one(fb: Fbe.fb)
     end
     "(eq #{k} #{vv})"
   end.join(' ')
+  raise(Fbe::Error, 'At least one non-system matching attribute is required') if q.empty?
   q = "(and #{q})"
   before = fb.query(q).each.first
   return before unless before.nil?
