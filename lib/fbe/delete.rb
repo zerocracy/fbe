@@ -22,7 +22,7 @@ require_relative 'fb'
 #   fact = fb.query('(eq type "user")').first
 #   new_fact = Fbe.delete(fact, 'age', 'city')
 #   # new_fact will have all properties except 'age' and 'city'
-def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
+def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id') # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
   return if props.all? { |k| fact[k].nil? }
   i = fact[id]
