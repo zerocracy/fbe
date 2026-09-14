@@ -38,12 +38,40 @@ class TestBylaws < Fbe::Test
     )
   end
 
+  def test_review_comments_bonus_grows_below_twenty_comments
+    a = Fbe::Award.new(Fbe.bylaws(anger: 1, love: 2, paranoia: 4)['code-review-was-rewarded'])
+    few = a.bill({ hoc: 600, comments: 12, self: 0 })
+    many = a.bill({ hoc: 600, comments: 16, self: 0 })
+    assert_operator(many.points, :>, few.points, "the comments bonus is not paid below 20 comments: #{many.greeting}")
+  end
+
+  def test_release_hoc_bonus_grows_below_four_hundred_hits
+    a = Fbe::Award.new(Fbe.bylaws(anger: 1, love: 2, paranoia: 4)['published-release-was-rewarded'])
+    small = a.bill({ hoc: 100, contributors: 2 })
+    large = a.bill({ hoc: 300, contributors: 2 })
+    assert_operator(large.points, :>, small.points, "the bonus is not paid below 400 hits-of-code: #{large.greeting}")
+  end
+
+  def test_review_comments_bonus_stops_at_the_maximum
+    a = Fbe::Award.new(Fbe.bylaws(anger: 1, love: 1, paranoia: 1)['code-review-was-rewarded'])
+    many = a.bill({ hoc: 100, comments: 96, self: 0 })
+    more = a.bill({ hoc: 100, comments: 200, self: 0 })
+    assert_equal(many.points, more.points, "the comments bonus is not capped: #{more.greeting}")
+  end
+
+  def test_release_hoc_bonus_pays_the_documented_rate
+    a = Fbe::Award.new(Fbe.bylaws(anger: 1, love: 2, paranoia: 4)['published-release-was-rewarded'])
+    small = a.bill({ hoc: 100, contributors: 2 })
+    large = a.bill({ hoc: 200, contributors: 2 })
+    assert_equal(1, large.points - small.points, "the rate of 0.01 per hit-of-code is not paid: #{large.greeting}")
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
         { hoc: 0, contributors: 1 } => 24,
         { hoc: 10, contributors: 1 } => 24,
-        { hoc: 100, contributors: 1 } => 24,
+        { hoc: 100, contributors: 1 } => 25,
         { hoc: 500, contributors: 1 } => 29,
         { hoc: 1_000, contributors: 1 } => 32,
         { hoc: 10_000, contributors: 1 } => 32,
@@ -64,7 +92,7 @@ class TestBylaws < Fbe::Test
       'code-review-was-rewarded' => {
         { hoc: 0, comments: 0, self: 0 } => 4,
         { hoc: 3, comments: 0, self: 0 } => 4,
-        { hoc: 78, comments: 7, self: 0 } => 12,
+        { hoc: 78, comments: 7, self: 0 } => 14,
         { hoc: 120, comments: 4, self: 0 } => 4,
         { hoc: 600, comments: 1, self: 0 } => 8,
         { hoc: 500, comments: 40, self: 0 } => 24,
