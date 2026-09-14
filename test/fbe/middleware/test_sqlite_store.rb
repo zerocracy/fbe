@@ -183,7 +183,7 @@ class SqliteStoreTest < Fbe::Test
 
   def test_use_compress_for_stored_data
     with_tmpfile('c.db') do |f|
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, maxvsize: '1Mb').then do |store|
         a = SecureRandom.alphanumeric(200)
         store.write('a', a)
         store.write('b', 'b' * 100_000)

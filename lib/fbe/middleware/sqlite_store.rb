@@ -139,8 +139,9 @@ class Fbe::Middleware::SqliteStore
         value[0][1] = JSON.dump(resp)
       end
     end
-    value = Zlib::Deflate.deflate(JSON.dump(value))
-    return if value.bytesize > @maxvsize
+    json = JSON.dump(value)
+    return if json.bytesize > @maxvsize
+    value = Zlib::Deflate.deflate(json)
     perform do |t|
       t.execute(<<~SQL, [key, value, Time.now.utc.iso8601])
         INSERT INTO cache(key, value, touched_at, created_at) VALUES(?1, ?2, ?3, ?3)
