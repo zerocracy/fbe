@@ -129,6 +129,45 @@ class TestOcto < Fbe::Test
     assert_raises(StandardError) { o.user(42) }
   end
 
+  def test_rate_limit_bang_works_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 7 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '7' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'fake-token' }))
+    assert_predicate(o, :off_quota?)
+    assert_equal(7, o.rate_limit!.remaining)
+    assert_raises(Fbe::OffQuota) { o.user(42) }
+    assert_not_requested(:get, 'https://api.github.com/user/42')
+  end
+
+  def test_raw_rate_limit_works_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 7 }, resources: { search: { remaining: 30 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '7' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'fake-token' }))
+    assert_predicate(o, :off_quota?)
+    %w[/rate_limit rate_limit].each do |path|
+      assert_equal(30, o.get(path).dig(:resources, :search, :remaining))
+    end
+    assert_predicate(o, :off_quota?)
+  end
+
+  def test_unrelated_raw_gets_remain_blocked_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 7 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '7' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'fake-token' }))
+    %w[/user/42 /repos/foo/rate_limit https://example.com/rate_limit].each do |path|
+      assert_raises(Fbe::OffQuota) { o.get(path) }
+    end
+  end
+
   def test_no_failure_on_printing_when_off_quota
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

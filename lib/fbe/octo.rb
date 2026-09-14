@@ -247,9 +247,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             end
           end
         o =
-          intercepted(o) do |e, m, _args, _r|
+          intercepted(o) do |e, m, args, _r|
             next unless e == :before
-            next if %i[off_quota? print_trace! rate_limit].include?(m)
+            next if %i[off_quota? print_trace! rate_limit rate_limit!].include?(m)
+            next if m == :get && %w[/rate_limit rate_limit].include?(args.first)
             if Fbe::SEARCH_METHODS.include?(m)
               raise(Fbe::OffQuota, "We are off-quota on the search resource, can't do #{m}()") if
                 o.off_quota?(resource: :search)
