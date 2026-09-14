@@ -36,4 +36,17 @@ class TestCopy < Fbe::Test
     Fbe.copy(source, target, except: ['foo'])
     assert_nil(target['foo'])
   end
+
+  def test_rejects_string_except
+    fb = Factbase.new
+    source = fb.insert
+    target = fb.insert
+    error = assert_raises(Fbe::Error) do
+      Fbe.copy(source, target, except: 'foo')
+    end
+    assert_equal(
+      'The except must be an Array of property names, while String provided',
+      error.message
+    )
+  end
 end
