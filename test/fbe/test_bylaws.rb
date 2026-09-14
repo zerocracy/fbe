@@ -38,6 +38,14 @@ class TestBylaws < Fbe::Test
     )
   end
 
+  def test_contribution_hoc_bonus_is_paid_when_love_is_low
+    a = Fbe::Award.new(Fbe.bylaws(anger: 1, love: 2, paranoia: 4)['code-contribution-was-rewarded'])
+    small = a.bill({ hoc: 40, comments: 0, reviews: 1 })
+    large = a.bill({ hoc: 99, comments: 0, reviews: 1 })
+    assert_operator(large.points, :>, small.points, large.greeting)
+    assert_includes(large.greeting, 'hits-of-code that you wrote')
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
@@ -83,7 +91,7 @@ class TestBylaws < Fbe::Test
         { hoc: 199, comments: 8, reviews: 3 } => 24,
         { hoc: 150, comments: 5, reviews: 1 } => 24,
         { hoc: 500, comments: 25, reviews: 2 } => 8,
-        { hoc: 99, comments: 6, reviews: 1 } => 16,
+        { hoc: 99, comments: 6, reviews: 1 } => 21,
         { hoc: 200, comments: 0, reviews: 1 } => 8,
         { hoc: 542, comments: 0, reviews: 1 } => 8,
         { hoc: 799, comments: 0, reviews: 1 } => 8,
