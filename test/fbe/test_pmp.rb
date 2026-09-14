@@ -236,4 +236,28 @@ class TestPmp < Fbe::Test
       Fbe.pmp(loog: Loog::NULL).hr.public_send(:"")
     end
   end
+
+  def test_bad_bool_value
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'communications'
+    f.stealth = 'yes'
+    assert_raises(Fbe::Error) { Fbe.pmp(loog: Loog::NULL).communications.stealth }
+  end
+
+  def test_good_bool_value
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'communications'
+    f.stealth = 'TRUE'
+    assert(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
+  end
 end
