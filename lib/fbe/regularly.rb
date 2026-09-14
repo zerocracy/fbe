@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'tago'
+require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 
@@ -22,6 +23,7 @@ require_relative 'fb'
 # @yield [Factbase::Fact] Fact to populate with judge execution details
 # @return [nil] Nothing
 # @raise [Fbe::Error] If required parameters or globals are nil
+# @note Uses TODAY when set for scheduling and execution timestamps
 # @note Skips execution if judge was run within the interval period
 # @note The 'since' property is added to the fact when p_since_days is provided
 # @example Run a cleanup task every 3 days
@@ -37,10 +39,11 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
   interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
+  today = Time.parse(ENV.fetch('TODAY') { Time.now.utc.iso8601(9) })
   recent = fb.query(
     "(and
       (eq what '#{judge.gsub("'", "\\\\'")}')
-      (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
+      (gt when (minus (to_time '#{today.utc.iso8601(9)}') '#{interval} days')))"
   ).each.first
   if recent
     loog.info(
@@ -53,11 +56,10 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   fb.txn do |fbt|
     f = fbt.insert
     f.what = judge
-    f.when = Time.now
+    f.when = today
     unless p_since_days.nil?
       days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28
-      since = Time.now - (days * 24 * 60 * 60)
-      f.since = since
+      f.since = today - (days * 86_400)
     end
     yield(f)
   end
