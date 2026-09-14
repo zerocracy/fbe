@@ -460,7 +460,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       repository = result['repository']
       raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if repository.nil?
       commits = repository.dig('defaultBranchRef', 'target', 'history', 'nodes')
-      hoc += commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
+      solo = commits.nil? ? [] : commits.select { _1.dig('parents', 'totalCount') == 1 }
+      hoc += solo.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
       total = repository.dig('defaultBranchRef', 'target', 'history', 'totalCount') || 0
       break unless repository.dig('defaultBranchRef', 'target', 'history', 'pageInfo', 'hasNextPage')
       cursor = repository.dig('defaultBranchRef', 'target', 'history', 'pageInfo', 'endCursor')
