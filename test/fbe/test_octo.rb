@@ -1277,6 +1277,16 @@ class TestOcto < Fbe::Test
     assert_equal('yegor256/factbase', repos[1][:full_name])
   end
 
+  def test_fake_takes_the_options_that_octokit_takes
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.issue_comments('foo/bar', 42, per_page: 100)
+    o.repository('foo/bar', accept: 'application/vnd.github+json')
+    o.pull_request('foo/bar', 42, per_page: 10)
+    o.list_issues
+    o.rate_limit(refresh: true)
+    assert_equal('yegor256', o.user[:login])
+  end
+
   def test_fake_releases
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     list = o.releases('yegor256/test')
