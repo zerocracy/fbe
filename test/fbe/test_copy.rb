@@ -45,9 +45,6 @@ class TestCopy < Fbe::Test
       assert_raises(Fbe::Error) do
         Fbe.copy(source, target, except: 'foo')
       end
-    assert_equal(
-      'The except must be an Array of property names, while String provided',
-      error.message
-    )
+    assert_equal('The except must be an Array of property names, while String provided', error.message)
   end
 end
