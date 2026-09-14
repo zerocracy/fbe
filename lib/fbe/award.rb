@@ -365,7 +365,8 @@ class Fbe::Award
         text.gsub(/\$\{([a-z_0-9]+)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in award text: #{text}") unless @vars.key?(k)
-          @vars[k]
+          v = @vars[k]
+          v.is_a?(Float) && v != v.round ? format('%.2f', v) : v
         end
       @lines << { v: value, t: text }
     end
@@ -373,12 +374,14 @@ class Fbe::Award
     # Calculates the total points in this bill.
     #
     # @return [Integer] The sum of all point values, rounded to an integer
+    # @note The sum is rounded once, at the end, not line by line, so that
+    #   a clause worth half a point costs half a point and not a whole one
     # @example
     #   bill = Fbe::Award::Bill.new
     #   bill.line(42.5, "for answer")
     #   bill.points #=> 43
     def points
-      @lines.sum { |l| whole(l[:v]) }
+      whole(@lines.sum { |l| l[:v] })
     end
 
     # Generates a human-readable summary of the bill.
@@ -390,7 +393,11 @@ class Fbe::Award
     #   bill.line(25, "for documentation")
     #   bill.greeting #=> "You've earned +75 points for this: +50 for code review; +25 for documentation. "
     def greeting
-      items = @lines.map { |l| "#{format('%+d', whole(l[:v]))} #{l[:t]}" }
+      items =
+        @lines.zip(portions).filter_map do |l, v|
+          next if v.zero?
+          "#{format('%+d', v)} #{l[:t]}"
+        end
       case items.size
       when 0
         "You've earned nothing. "
@@ -409,6 +416,24 @@ class Fbe::Award
     # @return [Integer] The value as a whole number
     def whole(value)
       Integer(Float(value).round)
+    end
+
+    # Splits the total between the lines, giving each one a whole number.
+    #
+    # Every line is rounded on its own first, and then the difference
+    # between what that adds up to and the total, which is rounded once,
+    # is handed to the lines with the largest remainders. So the numbers
+    # in the greeting still add up to the number in front of it.
+    #
+    # @return [Array<Integer>] One whole number per line, summing to +points+
+    def portions
+      ints = @lines.map { |l| whole(l[:v]) }
+      diff = points - ints.sum
+      return ints if diff.zero?
+      step = diff.negative? ? -1 : 1
+      order = (0...ints.size).sort_by { |i| (ints[i] - @lines[i][:v]) * step }
+      diff.abs.times { |k| ints[order[k % ints.size]] += step }
+      ints
     end
   end
 
