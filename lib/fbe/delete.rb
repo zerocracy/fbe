@@ -34,7 +34,8 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
     before[k] = fact[k]
   end
   fb.txn do |fbt|
-    fbt.query("(eq #{id} #{i})").delete!
+    deleted = fbt.query("(eq #{id} #{i})").delete!
+    raise(Fbe::Error, "#{deleted} facts share #{id} = #{i}, cannot delete one of them") if deleted > 1
     c = fbt.insert
     f = c
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
