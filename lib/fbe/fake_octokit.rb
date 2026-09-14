@@ -354,30 +354,36 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
 
   # Lists releases for a repository.
   #
-  # @param [String] _repo Repository name (ignored in mock)
+  # @param [String] repo Repository name
   # @param [Hash] _opts Options hash (ignored in mock)
   # @return [Array<Hash>] Array of release hashes
   # @example
   #   client.releases('octocat/Hello-World')
-  #   # => [{:tag_name=>"0.19.0", :name=>"just a fake name", ...}, ...]
-  def releases(_repo, _opts = {})
+  #   # => [{:id=>1, :tag_name=>"0.19.1", :name=>"just a fake name", ...}, ...]
+  def releases(repo, _opts = {})
     [
-      release('https://github...'),
-      release('https://gith')
+      release("https://api.github.com/repos/#{repo}/releases/1"),
+      release("https://api.github.com/repos/#{repo}/releases/2")
     ]
   end
 
   # Gets a single release.
   #
-  # @param [String] _url Release URL (ignored in mock)
+  # The identifier and the tag come out of the URL, so that two releases of
+  # one repository differ from each other the way real ones do.
+  #
+  # @param [String] url Release URL
   # @return [Hash] Release information
   # @example
   #   client.release('https://api.github.com/repos/octocat/Hello-World/releases/1')
-  #   # => {:tag_name=>"0.19.0", :name=>"just a fake name", ...}
-  def release(_url)
+  #   # => {:id=>1, :tag_name=>"0.19.1", :name=>"just a fake name", ...}
+  def release(url)
+    tail = url.to_s[%r{/releases/(\d+)\z}, 1]
+    n = tail.nil? ? nil : Integer(tail, 10)
     {
+      id: n || name_to_number(url),
       node_id: 'RE_kwDOL6GCO84J7Cen',
-      tag_name: '0.19.0',
+      tag_name: "0.19.#{n || 0}",
       target_commitish: 'master',
       name: 'just a fake name',
       draft: false,
