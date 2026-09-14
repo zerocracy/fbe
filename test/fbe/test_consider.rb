@@ -50,4 +50,39 @@ class TestConsider < Fbe::Test
     end
     assert_equal(1, $fb.size)
   end
+
+  def test_reserves_configured_slot
+    outcomes = { 6 => [], 5 => [7] }
+    %w[timeout lifetime].each do |budget|
+      outcomes.each do |slot, expected|
+        fb = Factbase.new
+        fb.insert.foo = 42
+        now = Time.utc(2024, 1, 1)
+        Time.stub(:now, now) do
+          Fbe.consider(
+            '(exists foo)', fb:, judge: 'test', global: {}, loog: Loog::NULL,
+                            options: Judges::Options.new("#{budget}=10"), epoch: now - 5, kickoff: now - 5,
+                            quota_aware: false, slot:
+          ) { |f| f.bar = 7 }
+        end
+        assert_equal(expected, fb.query('(exists foo)').each.first['bar'] || [])
+      end
+    end
+  end
+
+  def test_preserves_default_slot_and_disabled_limits
+    [{}, { slot: 6, timeout_aware: false, lifetime_aware: false }].each do |settings|
+      fb = Factbase.new
+      fb.insert.foo = 42
+      now = Time.utc(2024, 1, 1)
+      Time.stub(:now, now) do
+        Fbe.consider(
+          '(exists foo)', fb:, judge: 'test', global: {}, loog: Loog::NULL,
+                          options: Judges::Options.new('timeout=10,lifetime=10'), epoch: now - 5, kickoff: now - 5,
+                          quota_aware: false, **settings
+        ) { |f| f.bar = 7 }
+      end
+      assert_equal(7, fb.query('(exists foo)').each.first.bar)
+    end
+  end
 end
