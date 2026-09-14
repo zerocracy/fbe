@@ -15,8 +15,66 @@ require_relative '../../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class RateLimitTest < Fbe::Test
+  FUTURE_RESET = 4_102_444_800 # 2100-01-01 UTC
+
+  def test_refreshes_at_reset_without_ordinary_requests
+    now = Time.utc(2026, 9, 8)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      {
+        body: { rate: { remaining: 7, reset: Integer(now) + 60 } }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      },
+      {
+        body: { rate: { remaining: 5000, reset: Integer(now) + 3600 } }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      }
+    )
+    conn = create_connection
+    Time.stub(:now, now) { conn.get('/rate_limit') }
+    Time.stub(:now, now + 59) { assert_equal(7, conn.get('/rate_limit').body.dig('rate', 'remaining')) }
+    assert_requested(:get, 'https://api.github.com/rate_limit', times: 1)
+    Time.stub(:now, now + 60) { assert_equal(5000, conn.get('/rate_limit').body.dig('rate', 'remaining')) }
+  end
+
+  def test_search_reset_can_expire_before_core
+    now = Time.utc(2026, 9, 8)
+    tracker = {}
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: {
+        rate: { remaining: 5000, reset: Integer(now) + 3600 },
+        resources: { search: { remaining: 1, reset: Integer(now) + 60 } }
+      }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    conn = create_connection(tracker)
+    Time.stub(:now, now) do
+      conn.get('/rate_limit')
+      assert_equal(1, tracker[:rate_limit].remaining(:search))
+    end
+    Time.stub(:now, now + 60) { assert_nil(tracker[:rate_limit].remaining(:search)) }
+  end
+
+  def test_reset_header_expires_a_tracked_count
+    now = Time.utc(2026, 9, 8)
+    tracker = {}
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}',
+      headers: {
+        'Content-Type' => 'application/json',
+        'X-RateLimit-Remaining' => '7',
+        'X-RateLimit-Reset' => (Integer(now) + 60).to_s
+      }
+    )
+    conn = create_connection(tracker)
+    Time.stub(:now, now) do
+      conn.get('/rate_limit')
+      assert_equal(7, tracker[:rate_limit].remaining)
+    end
+    Time.stub(:now, now + 60) { assert_nil(tracker[:rate_limit].remaining) }
+  end
+
   def test_caches_payload_on_first_call
-    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET } }
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
     conn = create_connection
@@ -26,7 +84,7 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_returns_cached_response_on_subsequent_calls
-    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET } }
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
       .times(1)
@@ -39,7 +97,7 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_decrements_remaining_count_for_non_rate_limit_requests
-    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET } }
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(
         status: 200, body: payload.to_json, headers: {
@@ -74,8 +132,8 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_refreshes_cache_after_hundred_requests
-    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
-    refreshed = { 'rate' => { 'limit' => 5000, 'remaining' => 4950, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET } }
+    refreshed = { 'rate' => { 'limit' => 5000, 'remaining' => 4950, 'reset' => FUTURE_RESET } }
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
       .then
@@ -101,7 +159,7 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_handles_zero_remaining_count
-    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => FUTURE_RESET } }
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
     stub_request(:get, 'https://api.github.com/user')
@@ -117,10 +175,10 @@ class RateLimitTest < Fbe::Test
 
   def test_decrements_search_remaining_for_search_requests
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -137,10 +195,10 @@ class RateLimitTest < Fbe::Test
 
   def test_search_request_does_not_decrement_core_remaining
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -156,10 +214,10 @@ class RateLimitTest < Fbe::Test
 
   def test_non_search_request_does_not_decrement_search_remaining
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -177,10 +235,10 @@ class RateLimitTest < Fbe::Test
 
   def test_search_remaining_survives_repeated_search_calls_within_cache_window
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -199,10 +257,10 @@ class RateLimitTest < Fbe::Test
 
   def test_search_remaining_clamps_at_zero
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -219,10 +277,10 @@ class RateLimitTest < Fbe::Test
 
   def test_restores_the_counter_at_zero_after_a_failed_request
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 1, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -237,10 +295,10 @@ class RateLimitTest < Fbe::Test
 
   def test_gives_nothing_back_when_the_quota_is_out
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 0, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 0, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 0, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 0, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 0, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 0, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -255,10 +313,10 @@ class RateLimitTest < Fbe::Test
 
   def test_restores_the_search_counter_at_zero
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 1, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -272,7 +330,7 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_search_remaining_absent_when_payload_lacks_resources
-    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET } }
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
     stub_request(:get, 'https://api.github.com/search/issues?q=z')
@@ -287,10 +345,10 @@ class RateLimitTest < Fbe::Test
 
   def test_decrement_applies_when_body_is_a_json_string
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -313,10 +371,10 @@ class RateLimitTest < Fbe::Test
 
   def test_concurrent_non_rate_limit_requests_do_not_lose_decrements
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 10_000, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 10_000, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 10_000, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 1_000, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 10_000, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 1_000, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -343,7 +401,7 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_concurrent_rate_limit_requests_refresh_once
-    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET } }
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
     conn = create_connection
@@ -353,7 +411,7 @@ class RateLimitTest < Fbe::Test
   end
 
   def test_syncs_core_remaining_from_response_header
-    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET } }
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
     stub_request(:get, 'https://api.github.com/user')
@@ -371,10 +429,10 @@ class RateLimitTest < Fbe::Test
 
   def test_syncs_search_remaining_from_response_header
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -394,10 +452,10 @@ class RateLimitTest < Fbe::Test
 
   def test_cached_body_is_not_leaked_to_callers
     payload = {
-      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
+      'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
       'resources' => {
-        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
-        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => 1_672_531_200 }
+        'core' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => FUTURE_RESET },
+        'search' => { 'limit' => 30, 'remaining' => 30, 'reset' => FUTURE_RESET }
       }
     }
     stub_request(:get, 'https://api.github.com/rate_limit')
