@@ -19,6 +19,13 @@
       but not more than ${hoc_max} points")
 
   (aka
+    (let team_k {{ 1 | times: love }})
+    (let team_max 8)
+    (set b2 (min (times contributors team_k) team_max))
+    (give b2 "for the ${contributors} contributor(s) of this release")
+    "add ${team_k} points for each contributor, but not more than ${team_max} points")
+
+  (aka
     (let max 32)
     (set over (if (gt (total) max) (minus max (total)) 0))
     (give over "to not go over the cap")
