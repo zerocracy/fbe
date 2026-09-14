@@ -771,6 +771,83 @@ class TestGitHubGraph < Fbe::Test
     refute_includes(captured, 'after: ""')
   end
 
+  def test_real_total_releases_published_paginates_past_old_created_recently_published
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      if calls == 1
+        {
+          'repository' => {
+            'releases' => {
+              'nodes' => [
+                { 'isDraft' => false, 'publishedAt' => '2024-06-01T00:00:00Z', 'createdAt' => '2025-06-01T00:00:00Z' }
+              ],
+              'pageInfo' => { 'endCursor' => 'cursor1', 'hasNextPage' => true }
+            }
+          }
+        }
+      else
+        {
+          'repository' => {
+            'releases' => {
+              'nodes' => [
+                { 'isDraft' => false, 'publishedAt' => '2025-03-01T00:00:00Z', 'createdAt' => '2020-01-01T00:00:00Z' }
+              ],
+              'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+            }
+          }
+        }
+      end
+    end
+    result = graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(1, result['releases'])
+    assert_equal(2, calls)
+  end
+
+  def test_total_releases_published_stops_on_old_created_recently_published
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [
+              { 'isDraft' => false, 'publishedAt' => '2025-06-01T00:00:00Z', 'createdAt' => '2020-01-01T00:00:00Z' }
+            ],
+            'pageInfo' => { 'endCursor' => "cursor#{calls}", 'hasNextPage' => calls < 5 }
+          }
+        }
+      }
+    end
+    graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(1, calls)
+  end
+
+  def test_total_releases_published_dont_stop_when_created_exactly_at_since
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [
+              { 'isDraft' => false, 'publishedAt' => '2025-01-01T00:00:00Z', 'createdAt' => '2025-01-01T00:00:00Z' }
+            ],
+            'pageInfo' => { 'endCursor' => "cursor#{calls}", 'hasNextPage' => calls < 2 }
+          }
+        }
+      }
+    end
+    graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01'))
+    assert_equal(2, calls)
+  end
+
   def test_total_releases_published_omits_after_when_cursor_is_nil
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
