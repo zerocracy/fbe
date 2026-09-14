@@ -100,6 +100,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 end,
                 backoff_factor: 2
               )
+              builder.use(Octokit::Middleware::FollowRedirects)
               builder.use(Octokit::Response::RaiseError)
               builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
               builder.use(Fbe::Middleware::RateLimit, limits)
