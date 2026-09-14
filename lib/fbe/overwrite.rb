@@ -5,6 +5,7 @@
 
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'quoted'
 
 # Overwrites a property in the fact by recreating the entire fact.
 #
@@ -66,7 +67,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
     fb.txn do |fbt|
-      raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
+      raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{Fbe.quoted(id)})").delete!.zero?
       n = fbt.insert
       f = n
       while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
@@ -102,7 +103,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
   fb.txn do |fbt|
-    raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
+    raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{Fbe.quoted(id)})").delete!.zero?
     n = fbt.insert
     f = n
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)

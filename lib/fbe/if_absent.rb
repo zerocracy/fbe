@@ -7,6 +7,7 @@ require 'others'
 require 'time'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'quoted'
 
 # Injects a fact if it's absent in the factbase, otherwise returns nil.
 #
@@ -62,15 +63,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
-    "(eq #{k} #{vv})"
-  end.join(' ')
+  q = attrs.except(:_id, :_time, :_version).map { |k, v| "(eq #{k} #{Fbe.quoted(v)})" }.join(' ')
   q = "(and #{q})"
   before = fb.query(q).each.first
   return before if before && always

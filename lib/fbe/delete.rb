@@ -5,6 +5,7 @@
 
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'quoted'
 
 # Delete properties from a fact by creating a new fact without them.
 #
@@ -17,12 +18,12 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] id The property name used as unique identifier (defaults to '_id')
 # @return [nil] Nothing
-# @raise [Fbe::Error] If fact is nil, has no ID, or ID property doesn't exist
+# @raise [Fbe::Error] If fact is nil, has no ID, or no fact carries that ID
 # @example Delete multiple properties from a fact
 #   fact = fb.query('(eq type "user")').first
 #   new_fact = Fbe.delete(fact, 'age', 'city')
 #   # new_fact will have all properties except 'age' and 'city'
-def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
+def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id') # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
   return if props.all? { |k| fact[k].nil? }
   i = fact[id]
@@ -34,7 +35,7 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
     before[k] = fact[k]
   end
   fb.txn do |fbt|
-    fbt.query("(eq #{id} #{i})").delete!
+    raise(Fbe::Error, "No facts by #{id} = #{i}") if fbt.query("(eq #{id} #{Fbe.quoted(i)})").delete!.zero?
     c = fbt.insert
     f = c
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
