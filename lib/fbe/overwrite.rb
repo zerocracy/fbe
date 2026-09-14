@@ -66,7 +66,9 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
     fb.txn do |fbt|
-      raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
+      deleted = fbt.query("(eq #{fid} #{id})").delete!
+      raise(Fbe::Error, "No facts by #{fid} = #{id}") if deleted.zero?
+      raise(Fbe::Error, "#{deleted} facts share #{fid} = #{id}, cannot overwrite one of them") if deleted > 1
       n = fbt.insert
       f = n
       while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
@@ -102,7 +104,9 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
   fb.txn do |fbt|
-    raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
+    deleted = fbt.query("(eq #{fid} #{id})").delete!
+    raise(Fbe::Error, "No facts by #{fid} = #{id}") if deleted.zero?
+    raise(Fbe::Error, "#{deleted} facts share #{fid} = #{id}, cannot overwrite one of them") if deleted > 1
     n = fbt.insert
     f = n
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)

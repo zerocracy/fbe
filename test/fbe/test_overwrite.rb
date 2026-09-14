@@ -101,6 +101,19 @@ class TestOverwrite < Fbe::Test
     assert_equal(3, fb.size)
   end
 
+  def test_rejects_duplicate_fact_ids
+    fb = Factbase.new
+    first = fb.insert
+    first._id = 1
+    first.foo = 'first'
+    second = fb.insert
+    second._id = 1
+    second.foo = 'second'
+    error = assert_raises(Fbe::Error) { Fbe.overwrite(first, 'foo', 'updated', fb:) }
+    assert_equal('2 facts share _id = 1, cannot overwrite one of them', error.message)
+    assert_equal(2, fb.size)
+  end
+
   def test_overwrites_in_transaction
     $fb = Factbase.new
     $global = {}
