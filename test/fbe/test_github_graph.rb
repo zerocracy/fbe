@@ -401,6 +401,74 @@ class TestGitHubGraph < Fbe::Test
     end
   end
 
+  def test_stops_paging_releases_when_draft_sits_among_old_ones
+    seed = rand(1_000_000)
+    since = Time.at(Random.new(seed).rand(1_000_000_000..2_000_000_000)).utc
+    pages = [
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [
+              { 'isDraft' => true, 'publishedAt' => nil },
+              { 'isDraft' => false, 'publishedAt' => (since - 86_400).iso8601 }
+            ],
+            'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'r1' }
+          }
+        }
+      },
+      {
+        'repository' => {
+          'releases' => { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false } }
+        }
+      }
+    ]
+    g = Fbe::Graph.new(token: 'fake')
+    g.stub(:query, ->(_q) { pages.shift }) { g.total_releases_published('foo', 'bar', since) }
+    assert_equal(1, pages.size, "releases were paged past old ones with seed #{seed}")
+  end
+
+  def test_keeps_count_of_new_releases_when_draft_page_stops_paging
+    seed = rand(1_000_000)
+    since = Time.at(Random.new(seed).rand(1_000_000_000..2_000_000_000)).utc
+    pages =
+      [
+        [{ 'isDraft' => false, 'publishedAt' => (since + 3_600).iso8601 }, { 'isDraft' => true, 'publishedAt' => nil }],
+        [{ 'isDraft' => true, 'publishedAt' => nil }, { 'isDraft' => false, 'publishedAt' => (since - 3_600).iso8601 }],
+        [{ 'isDraft' => false, 'publishedAt' => (since + 60).iso8601 }]
+      ].map do |nodes|
+        { 'repository' => { 'releases' => { 'nodes' => nodes, 'pageInfo' => { 'hasNextPage' => true } } } }
+      end
+    g = Fbe::Graph.new(token: 'fake')
+    total = g.stub(:query, ->(_q) { pages.shift }) { g.total_releases_published('foo', 'bar', since) }
+    assert_equal({ 'releases' => 1 }, total, "releases were not counted up to the cutoff with seed #{seed}")
+  end
+
+  def test_keeps_paging_releases_past_page_of_only_drafts
+    seed = rand(1_000_000)
+    since = Time.at(Random.new(seed).rand(1_000_000_000..2_000_000_000)).utc
+    pages = [
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [{ 'isDraft' => true, 'publishedAt' => nil }, { 'isDraft' => true, 'publishedAt' => nil }],
+            'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'r1' }
+          }
+        }
+      },
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [{ 'isDraft' => false, 'publishedAt' => (since + 60).iso8601 }],
+            'pageInfo' => { 'hasNextPage' => false }
+          }
+        }
+      }
+    ]
+    g = Fbe::Graph.new(token: 'fake')
+    total = g.stub(:query, ->(_q) { pages.shift }) { g.total_releases_published('foo', 'bar', since) }
+    assert_equal({ 'releases' => 1 }, total, "releases after a page of drafts were lost with seed #{seed}")
+  end
+
   # rubocop:disable Naming/VariableNumber, Elegant/GoodVariableName
   def test_real_total_commits
     WebMock.disable_net_connect!
