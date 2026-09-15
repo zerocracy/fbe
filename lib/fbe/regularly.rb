@@ -7,6 +7,25 @@ require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
 
+# Reads a number of days out of a PMP fact.
+#
+# @param [Array<Factbase::Fact>] pmp The PMP facts of one area
+# @param [String] prop The name of the property to read
+# @param [Integer] fallback The number of days to use when the property is absent
+# @param [String] area The name of the PMP area, for the error message
+# @return [Integer] The number of days
+# @raise [Fbe::Error] If the property holds something that is not a number
+def Fbe.days(pmp, prop, fallback, area)
+  value = pmp.filter_map { |f| f[prop]&.first }.first || fallback
+  Integer(value)
+rescue TypeError, ArgumentError
+  raise(
+    Fbe::Error,
+    "The #{prop.inspect} of the #{area.inspect} PMP area must be a number " \
+    "of days, while #{value.inspect} was found there"
+  )
+end
+
 # Run the block provided every X days based on PMP configuration.
 #
 # Executes a block periodically based on PMP (Project Management Plan) settings.
@@ -21,7 +40,8 @@ require_relative 'fb'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield [Factbase::Fact] Fact to populate with judge execution details
 # @return [nil] Nothing
-# @raise [Fbe::Error] If required parameters or globals are nil
+# @raise [Fbe::Error] If required parameters or globals are nil, or a PMP
+#   interval is not a number of days
 # @note Skips execution if judge was run within the interval period
 # @note The 'since' property is added to the fact when p_since_days is provided
 # @example Run a cleanup task every 3 days
@@ -36,7 +56,9 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
-  interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
+  interval = Fbe.days(pmp, p_every_days, 7, area)
+  since = nil
+  since = Fbe.days(pmp, p_since_days, 28, area) unless p_since_days.nil?
   recent = fb.query(
     "(and
       (eq what '#{judge.gsub("'", "\\\\'")}')
@@ -54,11 +76,7 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     f = fbt.insert
     f.what = judge
     f.when = Time.now
-    unless p_since_days.nil?
-      days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28
-      since = Time.now - (days * 24 * 60 * 60)
-      f.since = since
-    end
+    f.since = Time.now - (since * 24 * 60 * 60) unless since.nil?
     yield(f)
   end
   nil

@@ -70,6 +70,44 @@ class TestRegularly < Fbe::Test
     refute_nil(fact.since)
   end
 
+  def test_reads_interval_stored_as_a_string
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = 'quality'
+      f.interval = '3'
+      f.days = '28'
+    end
+    loog = Loog::NULL
+    judge = 'test'
+    Fbe.regularly('quality', 'interval', 'days', fb:, loog:, judge:) do |f|
+      f.foo = 42
+    end
+    fact = fb.query("(eq what '#{judge}')").each.first
+    refute_nil(fact)
+    refute_nil(fact.since)
+  end
+
+  def test_refuses_an_interval_that_is_not_a_number
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = 'quality'
+      f.interval = 3
+      f.days = 'the day before yesterday'
+    end
+    loog = Loog::NULL
+    judge = 'test'
+    assert_raises(Fbe::Error) do
+      Fbe.regularly('quality', 'interval', 'days', fb:, loog:, judge:) do |f|
+        f.foo = 42
+      end
+    end
+    assert_equal(1, fb.size, 'a malformed interval must not reach the transaction')
+  end
+
   def test_area_with_single_quote
     fb = Factbase.new
     fb.txn do |fbt|
