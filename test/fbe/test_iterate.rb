@@ -122,6 +122,68 @@ class TestIterate < Fbe::Test
     end
   end
 
+  def test_refuses_a_repeats_that_is_not_an_integer
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('type_test')
+        by('(plus 1 1)')
+        repeats('many')
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_refuses_a_fractional_repeats
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('type_test')
+        by('(plus 1 1)')
+        repeats(2.5)
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_refuses_a_label_that_is_not_a_string
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as(42)
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_refuses_an_empty_query
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('empty_query_test')
+        by('')
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_refuses_an_empty_sort_field
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('empty_sort_test')
+        by('(plus 1 1)')
+        sort_by('')
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
   def test_raises_when_query_not_set
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)

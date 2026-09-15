@@ -142,6 +142,9 @@ class Fbe::Iterate
   #   iterator.repeats(100)
   def repeats(repeats)
     raise(Fbe::Error, 'Cannot set "repeats" to nil') if repeats.nil?
+    unless repeats.is_a?(Integer)
+      raise(Fbe::Error, "The \"repeats\" must be an Integer, not #{repeats.class}")
+    end
     raise(Fbe::Error, 'The "repeats" must be a positive integer') unless repeats.positive?
     @repeats = repeats
   end
@@ -178,6 +181,10 @@ class Fbe::Iterate
   def by(query)
     raise(Fbe::Error, 'Query is already set') unless @query.nil?
     raise(Fbe::Error, 'Cannot set query to nil') if query.nil?
+    unless query.is_a?(String)
+      raise(Fbe::Error, "The query must be a String, not #{query.class}")
+    end
+    raise(Fbe::Error, 'Cannot set query to an empty string') if query.strip.empty?
     @query = query
   end
 
@@ -196,6 +203,7 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Sort field is already set') unless @sorting.nil?
     raise(Fbe::Error, 'Cannot set sort field to nil') if prop.nil?
     raise(Fbe::Error, 'Sort field must be a String') unless prop.is_a?(String)
+    raise(Fbe::Error, 'Sort field cannot be empty') if prop.strip.empty?
     @sorting = prop
   end
 
@@ -213,6 +221,9 @@ class Fbe::Iterate
   def as(label)
     raise(Fbe::Error, 'Label is already set') unless @label.nil?
     raise(Fbe::Error, 'Cannot set "label" to nil') if label.nil?
+    unless label.is_a?(String)
+      raise(Fbe::Error, "The \"label\" must be a String, not #{label.class}")
+    end
     unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
       raise(Fbe::Error, "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*")
     end
