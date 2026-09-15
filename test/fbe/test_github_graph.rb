@@ -17,7 +17,11 @@ class TestGitHubGraph < Fbe::Test
     WebMock.disable_net_connect!
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    graph = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    assert_kind_of(Fbe::Graph::Fake, graph, 'testing mode must not reach the live API')
+    assert_same(graph, global[:github_graph], 'the client must be memoized')
+    again = Fbe.github_graph(options:, loog: Loog::NULL, global:)
+    assert_same(graph, again, 'a second call must return the memoized client')
   end
 
   def test_raises_when_graphql_response_carries_errors
@@ -91,7 +95,9 @@ class TestGitHubGraph < Fbe::Test
     $global = {}
     $options = Judges::Options.new({ 'testing' => true })
     $loog = Loog::NULL
-    Fbe.github_graph
+    graph = Fbe.github_graph
+    assert_kind_of(Fbe::Graph::Fake, graph, 'testing mode must not reach the live API')
+    assert_same(graph, $global[:github_graph], 'the client must be memoized globally')
     $global = nil
     $options = nil
     $loog = nil
