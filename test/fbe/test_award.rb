@@ -3,7 +3,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'loog'
 require_relative '../../lib/fbe/award'
 require_relative '../test__helper'
 
@@ -39,8 +38,7 @@ class TestAward < Fbe::Test
         (set b2 (if (lt b2 at_least) b2 0))
         (set b2 (between b2 3 120))
         (give b2 "for holding the bug open for too long (${days} days)"))
-      ',
-      judge: '', global: {}, loog: Loog::NULL, options: nil
+      '
     )
     b = a.bill(hours: 10)
     assert_operator(b.points, :<=, 100)
@@ -176,6 +174,26 @@ class TestAward < Fbe::Test
       '(award (give (if (lt 1 2) 5) "x"))'
     ].each do |q|
       assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill.points }
+    end
+  end
+
+  def test_cannot_build_award_without_query
+    assert_raises(ArgumentError, 'award was built without a bylaw query') { Fbe::Award.new }
+  end
+
+  def test_cannot_build_award_from_judge_name
+    seed = Random.new_seed
+    random = Random.new(seed)
+    judge = Array.new(random.rand(1..40)) { ['ж', '-', 'é', '字', 'a'].sample(random:) }.join
+    assert_raises(ArgumentError, "award was built from judge #{judge} with seed #{seed}") { Fbe::Award.new(judge:) }
+  end
+
+  def test_cannot_build_award_from_query_and_judge
+    seed = Random.new_seed
+    random = Random.new(seed)
+    text = Array.new(random.rand(0..60)) { ['ж', ' ', 'é', '字', 'a'].sample(random:) }.join
+    assert_raises(ArgumentError, "award was built from #{text} and a judge with seed #{seed}") do
+      Fbe::Award.new("(award (give 1 \"#{text}\"))", judge: 'fake', global: {})
     end
   end
 end
