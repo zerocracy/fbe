@@ -317,6 +317,22 @@ class TestConclude < Fbe::Test
     end
   end
 
+  def test_on_rejects_nil
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.conclude(judge: 'judge-query') do
+          quota_unaware
+          on(nil)
+        end
+      end
+    assert_equal('Cannot set query to nil', error.message)
+  end
+
   def test_catch_fbe_off_quota_exception_correctly
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
