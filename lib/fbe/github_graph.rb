@@ -371,6 +371,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #     end
   #   end
   def pull_request_reviews(owner, name, pulls: [])
+    return [] if pulls.empty?
     requests =
       pulls.map do |number, cursor|
         after = "after: #{literal(cursor)}, " unless cursor.nil?
