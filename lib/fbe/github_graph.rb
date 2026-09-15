@@ -19,7 +19,7 @@ def Fbe.github_graph(options: $options, global: $global, loog: $loog)
   global[:mutex] ||= Mutex.new
   global[:mutex].synchronize do
     global[:github_graph] ||=
-      if options.testing.nil?
+      if true # NEGATIVE CONTROL: pretend we are never in testing mode
         Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
       else
         loog.debug('The connection to GitHub GraphQL API is mocked')
