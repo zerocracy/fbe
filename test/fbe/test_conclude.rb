@@ -252,6 +252,45 @@ class TestConclude < Fbe::Test
     assert_equal(%w[a b c], n['tags'])
   end
 
+  def test_follow_accepts_an_array_of_props
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    f = $fb.insert
+    f.foo = 1
+    f.tags = 'a'
+    f.tags = 'b'
+    Fbe.conclude(judge: 'judge-follow') do
+      quota_unaware
+      on('(exists foo)')
+      follow(%w[tags])
+      draw do |n, _prev|
+        n.processed = 'yes'
+        'Some long description that satisfies the twenty five chars minimum.'
+      end
+    end
+    n = $fb.query('(eq processed "yes")').each.to_a[0]
+    assert_equal(%w[a b], n['tags'])
+  end
+
+  def test_follow_refuses_a_value_that_is_neither
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $fb.insert.foo = 1
+    assert_raises(Fbe::Error) do
+      Fbe.conclude(judge: 'judge-follow') do
+        quota_unaware
+        on('(exists foo)')
+        follow(42)
+      end
+    end
+  end
+
   def test_follow_honors_as_rewrite
     $fb = Factbase.new
     $global = {}
