@@ -26,6 +26,17 @@ class TestCopy < Fbe::Test
     assert_equal([42], target['foo'])
   end
 
+  def test_does_not_clone_the_identity
+    fb = Factbase.new
+    source = fb.insert
+    source._id = 1
+    source.foo = 42
+    target = fb.insert
+    Fbe.copy(source, target)
+    refute_equal(source['_id'], target['_id'], 'the source identity was cloned')
+    assert_equal(42, target.foo)
+  end
+
   def test_with_except
     fb = Factbase.new
     source = fb.insert
