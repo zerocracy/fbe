@@ -22,4 +22,12 @@ class TestWho < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_equal('@torvalds', Fbe.who(f, global:, options:, loog: Loog::NULL))
   end
+
+  def test_refuses_a_nil_fact
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.who(nil, global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+      end
+    assert_equal('The fact is nil', error.message)
+  end
 end
