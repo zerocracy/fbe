@@ -48,8 +48,11 @@ require_relative '../fbe'
 #   #        \"deduct ${fee} points\")
 #   #      )"
 def Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
+  raise(Fbe::Error, "The 'anger' must be an Integer: #{anger.inspect}") unless anger.is_a?(Integer)
   raise(Fbe::Error, "The 'anger' must be in the [0..4] interval: #{anger.inspect}") unless !anger.negative? && anger < 5
+  raise(Fbe::Error, "The 'love' must be an Integer: #{love.inspect}") unless love.is_a?(Integer)
   raise(Fbe::Error, "The 'love' must be in the [0..4] interval: #{love.inspect}") unless !love.negative? && love < 5
+  raise(Fbe::Error, "The 'paranoia' must be an Integer: #{paranoia.inspect}") unless paranoia.is_a?(Integer)
   unless paranoia.positive? && paranoia < 5
     raise(Fbe::Error, "The 'paranoia' must be in the [1..4] interval: #{paranoia.inspect}")
   end

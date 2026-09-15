@@ -146,4 +146,18 @@ class TestBylaws < Fbe::Test
       assert_match(/\A\(award\b/, formula.strip)
     end
   end
+
+  def test_rejects_non_integer_levels
+    values = ['2', nil]
+    %i[anger love paranoia].each do |name|
+      values.each do |value|
+        error =
+          assert_raises(Fbe::Error) do
+            Fbe.bylaws(**{ name => value })
+          end
+        assert_includes(error.message, "'#{name}'")
+        assert_includes(error.message, 'must be an Integer')
+      end
+    end
+  end
 end
