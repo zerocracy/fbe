@@ -1058,4 +1058,55 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_refuses_nil_global
+    opts = Judges::Options.new({ 'testing' => true })
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.github_graph(options: opts, global: nil, loog: Loog::NULL)
+      end
+    assert_equal('The $global is not set', error.message)
+  end
+
+  def test_refuses_nil_options
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.github_graph(options: nil, global: {}, loog: Loog::NULL)
+      end
+    assert_equal('The $options is not set', error.message)
+  end
+
+  def test_refuses_nil_loog
+    opts = Judges::Options.new({ 'testing' => true })
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.github_graph(options: opts, global: {}, loog: nil)
+      end
+    assert_equal('The $loog is not set', error.message)
+  end
+
+  def test_refuses_all_nil_context_and_checks_global_first
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.github_graph(options: nil, global: nil, loog: nil)
+      end
+    assert_equal('The $global is not set', error.message)
+  end
+
+  def test_refuses_nil_global_with_nil_options
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.github_graph(options: nil, global: nil, loog: Loog::NULL)
+      end
+    assert_equal('The $global is not set', error.message)
+  end
+
+  def test_refuses_missing_context_error_class
+    opts = Judges::Options.new({ 'testing' => true })
+    error =
+      assert_raises(StandardError) do
+        Fbe.github_graph(options: opts, global: nil, loog: Loog::NULL)
+      end
+    assert_kind_of(Fbe::Error, error)
+  end
 end
