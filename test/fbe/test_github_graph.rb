@@ -1058,4 +1058,11 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_refuses_a_missing_context
+    opts = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error) { Fbe.github_graph(options: opts, global: nil, loog: Loog::NULL) }
+    assert_raises(Fbe::Error) { Fbe.github_graph(options: nil, global: {}, loog: Loog::NULL) }
+    assert_raises(Fbe::Error) { Fbe.github_graph(options: opts, global: {}, loog: nil) }
+  end
 end
