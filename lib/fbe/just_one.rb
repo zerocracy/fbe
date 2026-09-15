@@ -31,8 +31,10 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase to search/insert into (defaults to Fbe.fb)
 # @yield [Factbase::Fact] Block to set attributes on the fact
 # @return [Factbase::Fact] The existing or newly created fact
+# @raise [Fbe::Error] When no block is given
 # @note System attributes (_id, _time, _version) are ignored when matching
 def Fbe.just_one(fb: Fbe.fb)
+  raise(Fbe::Error, 'A block is required by just_one') unless block_given?
   attrs = {}
   f =
     others(map: attrs) do |*args|
