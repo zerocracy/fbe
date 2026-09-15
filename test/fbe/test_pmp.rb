@@ -162,6 +162,20 @@ class TestPmp < Fbe::Test
     assert_equal(42, Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop)
   end
 
+  def test_enumerates_a_custom_area
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    fb = Fbe.fb(fb: Factbase.new, global: $global, options: $options, loog: $loog)
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'custom'
+    f.my_prop = 42
+    areas = Fbe.pmp(fb:, loog: Loog::NULL).areas
+    assert_includes(areas, 'custom', 'a custom area must be discoverable')
+    assert_includes(areas, 'hr', 'the built-in areas must stay')
+  end
+
   def test_custom_area_without_fact
     $global = {}
     $options = Judges::Options.new

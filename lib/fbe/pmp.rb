@@ -35,6 +35,8 @@ require_relative 'fb'
 #
 #   Fbe.pmp.my_custom.my_prop  # reads from factbase, no XML defaults
 #
+# Such an area is also reported by +areas+, alongside the built-in ones.
+#
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options Retained for compatibility with existing callers
@@ -78,7 +80,9 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
   Class.new do
     define_method(:areas) do
-      xml.xpath('/pmp/area/@name').map(&:value)
+      names = xml.xpath('/pmp/area/@name').map(&:value)
+      custom = fb.query("(eq what 'pmp')").each.filter_map { |f| f['area']&.first&.to_s }
+      names | custom
     end
     others do |*args1| # rubocop:disable Metrics/BlockLength
       area = args1.first.to_s
