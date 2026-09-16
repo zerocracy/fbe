@@ -115,4 +115,16 @@ class TestIfAbsent < Fbe::Test
       end
     refute_nil(n)
   end
+
+  def test_does_not_insert_duplicates_when_called_concurrently
+    fb = Factbase.new
+    threads =
+      Array.new(10) do
+        Thread.new do
+          Fbe.if_absent(fb:) { |f| f.foo = 'same' }
+        end
+      end
+    threads.each(&:join)
+    assert_equal(1, fb.size)
+  end
 end
