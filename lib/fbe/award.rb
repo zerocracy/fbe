@@ -226,6 +226,7 @@ class Fbe::Award
       when :total
         'total'
       when :if
+        raise(Fbe::Error, "The term 'if' needs three operands, #{@operands.size} given") unless @operands.size == 3
         "if #{to_p(@operands[0])} then #{to_p(@operands[1])} else #{to_p(@operands[2])}"
       when :and
         @operands.map { |o| to_p(o) }.join(' and ')
