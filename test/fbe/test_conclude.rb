@@ -139,13 +139,16 @@ class TestConclude < Fbe::Test
     fb = Factbase.new
     fb.insert.foo = 42
     options = Judges::Options.new('lifetime=1')
+    drawn = false
     Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, epoch: Time.now - 60) do
       quota_unaware
       on('(exists foo)')
       draw do
-        sleep(999)
+        drawn = true
+        'never reached'
       end
     end
+    refute(drawn, 'the block must not run once the lifetime is spent')
     assert_equal(1, fb.size)
   end
 
@@ -153,13 +156,16 @@ class TestConclude < Fbe::Test
     fb = Factbase.new
     fb.insert.foo = 42
     options = Judges::Options.new('timeout=1')
+    drawn = false
     Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, kickoff: Time.now - 60) do
       quota_unaware
       on('(exists foo)')
       draw do
-        sleep(999)
+        drawn = true
+        'never reached'
       end
     end
+    refute(drawn, 'the block must not run once the timeout is spent')
     assert_equal(1, fb.size)
   end
 
