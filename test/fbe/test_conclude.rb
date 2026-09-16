@@ -22,7 +22,7 @@ class TestConclude < Fbe::Test
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
-    $judge = ''
+    $judge = 'fake'
     Fbe.conclude do
       quota_unaware
     end
@@ -117,11 +117,11 @@ class TestConclude < Fbe::Test
   end
 
   def test_ignores_globals
-    $fb = nil
+    $fb = Factbase.new
     $epoch = Time.now
-    $loog = nil
-    $options = nil
-    $global = nil
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
     fb = Factbase.new
     fb.insert.foo = 1
     Fbe.conclude(fb:, judge: 'judge-xxx', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
@@ -133,6 +133,7 @@ class TestConclude < Fbe::Test
       end
     end
     assert_equal(2, fb.size)
+    assert_equal(0, $fb.size, 'the factbase in $fb must be left alone')
   end
 
   def test_respects_lifetime
