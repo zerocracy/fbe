@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'judges/options'
 require 'loog'
 require_relative '../../lib/fbe/award'
 require_relative '../test__helper'
@@ -40,7 +41,7 @@ class TestAward < Fbe::Test
         (set b2 (between b2 3 120))
         (give b2 "for holding the bug open for too long (${days} days)"))
       ',
-      judge: '', global: {}, loog: Loog::NULL, options: nil
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
     )
     b = a.bill(hours: 10)
     assert_operator(b.points, :<=, 100)
@@ -69,7 +70,7 @@ class TestAward < Fbe::Test
       '(award (give (between -3 -10 -50) "empty"))' => 0,
       '(award (give (between -100 -50 -10) "empty"))' => -50
     }.each do |q, v|
-      a = Fbe::Award.new(q)
+      a = Fbe::Award.new(q, judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new)
       assert_equal(v, a.bill.points, q)
     end
   end
@@ -81,7 +82,7 @@ class TestAward < Fbe::Test
       '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points. ',
       '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 points. '
     }.each do |q, v|
-      a = Fbe::Award.new(q)
+      a = Fbe::Award.new(q, judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new)
       assert_equal(v, a.bill.greeting, q)
     end
   end
@@ -100,7 +101,7 @@ class TestAward < Fbe::Test
       '(award (give (between -6 5 8)))' => -6,
       '(award (give (between -9 5 8)))' => -8
     }.each do |q, v|
-      a = Fbe::Award.new(q)
+      a = Fbe::Award.new(q, judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new)
       assert_equal(v, a.bill.points, q)
     end
   end
@@ -112,7 +113,7 @@ class TestAward < Fbe::Test
       '(award (aka (let x 17) (give x "hey") "add ${x} when necessary"))' =>
         'Just add **17** when necessary'
     }.each do |q, t|
-      md = Fbe::Award.new(q).bylaw.markdown
+      md = Fbe::Award.new(q, judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new).bylaw.markdown
       assert_includes(md, t, md)
     end
   end
@@ -128,45 +129,69 @@ class TestAward < Fbe::Test
   end
 
   def test_between_in_bylaw_markdown
-    a = Fbe::Award.new('(award (set b (between x 3 120)) (give b "test"))')
+    a = Fbe::Award.new(
+      '(award (set b (between x 3 120)) (give b "test"))',
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
+    )
     md = a.bylaw.markdown
     assert_includes(md, '_x_ clamped between **3** and **120**, or 0 if it is smaller than **3**', md)
   end
 
   def test_lines_add_up_to_the_total
-    b = Fbe::Award.new('(award (give 12 "as a basis") (give 7.6 "for comments"))').bill
+    b = Fbe::Award.new(
+      '(award (give 12 "as a basis") (give 7.6 "for comments"))',
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
+    ).bill
     g = b.greeting
     assert_equal(20, b.points, g)
     assert_equal("You've earned +20 points for this: +12 as a basis; +8 for comments. ", g)
   end
 
   def test_shorten_when_one_number
-    g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
+    g = Fbe::Award.new(
+      '(award (give 23 "for love"))',
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
+    ).bill.greeting
     assert_equal('You\'ve earned +23 points. ', g, g)
   end
 
   def test_shorten_when_nothing
-    g = Fbe::Award.new('(award (give 0 "for none"))').bill.greeting
+    g = Fbe::Award.new(
+      '(award (give 0 "for none"))',
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
+    ).bill.greeting
     assert_equal('You\'ve earned nothing. ', g, g)
   end
 
   def test_bill_raises_on_undefined_var
-    a = Fbe::Award.new('(award (give 10 "test ${missing}"))')
+    a = Fbe::Award.new(
+      '(award (give 10 "test ${missing}"))',
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
+    )
     assert_raises(Fbe::Error) { a.bill }
   end
 
   def test_bylaw_raises_on_undefined_var
-    a = Fbe::Award.new('(award (aka (give 10 "points") "${undefined} points"))')
+    a = Fbe::Award.new(
+      '(award (aka (give 10 "points") "${undefined} points"))',
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
+    )
     assert_raises(Fbe::Error) { a.bylaw }
   end
 
   def test_bylaw_reports_the_real_error
-    a = Fbe::Award.new('(award (aka (bogus 1) (give 5 "y") "summary"))')
+    a = Fbe::Award.new(
+      '(award (aka (bogus 1) (give 5 "y") "summary"))',
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
+    )
     assert_includes(assert_raises(Fbe::Error) { a.bylaw }.message, "Unknown term 'bogus'")
   end
 
   def test_division_by_zero_raises_error
-    a = Fbe::Award.new('(award (set x (div 10 0)) (give x "test"))')
+    a = Fbe::Award.new(
+      '(award (set x (div 10 0)) (give x "test"))',
+      judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new
+    )
     assert_raises(Fbe::Error) { a.bill }
   end
 
@@ -175,7 +200,9 @@ class TestAward < Fbe::Test
       '(award (give (if (gt 1 2) 5) "x"))',
       '(award (give (if (lt 1 2) 5) "x"))'
     ].each do |q|
-      assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill.points }
+      assert_raises(Fbe::Error, q) do
+        Fbe::Award.new(q, judge: '', global: {}, loog: Loog::NULL, options: Judges::Options.new).bill.points
+      end
     end
   end
 end
