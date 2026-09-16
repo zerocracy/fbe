@@ -107,31 +107,38 @@ class TestBylaws < Fbe::Test
         {} => -8
       }
     }
+    wrong = []
     awards.each do |title, pairs|
       formula = Fbe.bylaws[title]
       refute_nil(formula, title)
       a = Fbe::Award.new(formula)
-      help = [
-        "  '#{title.tr('_', '-')}' => {\n    ",
-        pairs.map do |args, _|
+      help =
+        lambda do
           [
-            '{',
-            args.empty? ? '' : "#{args.map { |k, v| " #{k}: #{v.to_s.gsub(/(?<!^)([0-9]{3})$/, '_\1')}" }.join(',')} ",
-            "} => #{a.bill(args).points}"
+            "  '#{title.tr('_', '-')}' => {\n    ",
+            pairs.map do |args, _|
+              [
+                '{',
+                if args.empty?
+                  ''
+                else
+                  "#{args.map { |k, v| " #{k}: #{v.to_s.gsub(/(?<!^)([0-9]{3})$/, '_\1')}" }.join(',')} "
+                end,
+                "} => #{a.bill(args).points}"
+              ].join
+            end.join(",\n    "),
+            "\n  },"
           ].join
-        end.join(",\n    "),
-        "\n  },"
-      ].join
+        end
       pairs.each do |args, points|
         b = a.bill(args)
         next if b.points == points
-        raise(
-          Fbe::Error,
+        wrong <<
           "Wrong reward of #{b.points} points from #{title}, " \
-          "while #{points} expected (#{args}): #{b.greeting}\n\n#{help}"
-        )
+          "while #{points} expected (#{args}): #{b.greeting}\n\n#{help.call}"
       end
     end
+    assert_empty(wrong, wrong.join("\n\n"))
   end
 
   def test_never_renders_a_negative_number_in_the_text
