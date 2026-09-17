@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'loog'
+require 'tmpdir'
 require_relative '../../lib/fbe/award'
 require_relative '../../lib/fbe/bylaws'
 require_relative '../test__helper'
@@ -138,6 +139,54 @@ class TestBylaws < Fbe::Test
     Fbe.bylaws(anger: 2, love: 2, paranoia: 2).each do |title, formula|
       md = Fbe::Award.new(formula).bylaw.markdown
       assert_empty(md.scan(/\*\*-[0-9.]+\*\*/), "The text of '#{title}' states a negative number: #{md}")
+    end
+  end
+
+  def test_strips_the_literal_template_suffix
+    seed = Random.new_seed
+    random = Random.new(seed)
+    stem = Array.new(random.rand(1..40)) { random.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join
+    Dir.mktmpdir do |dir|
+      file = File.join(dir, "#{stem}.fe.liquid")
+      File.write(file, '(award)')
+      Dir.stub(:[], [file]) do
+        assert_equal(
+          [stem], Fbe.bylaws(anger: 2, love: 2, paranoia: 2).keys,
+          "Bylaw name is not the template name without its suffix, seed #{seed}"
+        )
+      end
+    end
+  end
+
+  def test_keeps_a_suffix_that_only_resembles_the_template_one
+    seed = Random.new_seed
+    random = Random.new(seed)
+    name = "#{Array.new(random.rand(1..40)) { random.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join}.fe-liquid"
+    Dir.mktmpdir do |dir|
+      file = File.join(dir, name)
+      File.write(file, '(award)')
+      Dir.stub(:[], [file]) do
+        assert_equal(
+          [name], Fbe.bylaws(anger: 2, love: 2, paranoia: 2).keys,
+          "Bylaw name is cut by a suffix that is not the literal template one, seed #{seed}"
+        )
+      end
+    end
+  end
+
+  def test_strips_the_template_suffix_only_at_the_very_end
+    seed = Random.new_seed
+    random = Random.new(seed)
+    stem = Array.new(random.rand(1..40)) { random.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join
+    Dir.mktmpdir do |dir|
+      file = File.join(dir, "#{stem}.fe.liquid\n#{stem}.fe.liquid")
+      File.write(file, '(award)')
+      Dir.stub(:[], [file]) do
+        assert_equal(
+          ["#{stem}.fe.liquid\n#{stem}"], Fbe.bylaws(anger: 2, love: 2, paranoia: 2).keys,
+          "Bylaw name is stripped of a suffix that does not end the file name, seed #{seed}"
+        )
+      end
     end
   end
 
