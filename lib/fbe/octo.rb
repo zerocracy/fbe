@@ -125,6 +125,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.adapter(Faraday.default_adapter)
             end
           o.middleware = stack
+          twin = o.dup
+          twin.auto_paginate = false
+          twin = Verbose.new(twin, log: loog)
           o = Verbose.new(o, log: loog)
           unless token.nil? || token.empty?
             quota =
@@ -141,9 +144,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         else
           loog.debug('The connection to GitHub API is mocked')
           o = Fbe::FakeOctokit.new
+          twin = o
         end
         o =
-          decoor(o, loog:, trace:, limits:, mutex:) do # rubocop:disable Metrics/BlockLength
+          decoor(o, loog:, trace:, limits:, mutex:, twin:) do # rubocop:disable Metrics/BlockLength
             def print_trace!(all: false, max: 5)
               @mutex.synchronize do
                 if @trace.empty?
@@ -240,11 +244,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             #        octo.list_issue('zerocracy/fbe', per_page: 1).first
             #      end
             def with_disable_auto_paginate # rubocop:disable Layout/EmptyLineBetweenDefs
-              ap = @origin.auto_paginate
-              @origin.auto_paginate = false
-              yield(self) if block_given?
-            ensure
-              @origin.auto_paginate = ap
+              yield(@twin) if block_given?
             end
           end
         o =
