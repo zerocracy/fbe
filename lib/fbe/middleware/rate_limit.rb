@@ -44,7 +44,13 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def call(env)
     took = nil
     if env.url.path == '/rate_limit'
-      @lock.synchronize { handle_rate_limit_request(env) }
+      cached = @lock.synchronize { serve_cached(env) }
+      if cached.nil?
+        fresh = @app.call(env)
+        @lock.synchronize { remember(fresh) }
+      else
+        cached
+      end
     else
       @lock.synchronize { took = track_request(env.url.path) }
       @app.call(env).on_complete do |response_env|
@@ -68,21 +74,25 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
 
   private
 
-  # Handles requests to the rate_limit endpoint.
+  # Answers a rate_limit request from the cache, if the cache is warm enough.
   #
   # @param [Faraday::Env] env The request environment
-  # @return [Faraday::Response] Cached or fresh response
-  def handle_rate_limit_request(env)
-    if @cached.nil? || @counter >= 100
-      response = @app.call(env)
-      @cached = response
-      @remaining = extract_remaining_count(response)
-      @searchleft = extract_search_remaining_count(response)
-      @counter = 0
-      response
-    else
-      Faraday::Response.new(response_env(env, @cached))
-    end
+  # @return [Faraday::Response, nil] The cached response, or NIL if a fresh one is needed
+  def serve_cached(env)
+    return nil if @cached.nil? || @counter >= 100
+    Faraday::Response.new(response_env(env, @cached))
+  end
+
+  # Remembers the response the API has just given to a rate_limit request.
+  #
+  # @param [Faraday::Response] response The fresh response
+  # @return [Faraday::Response] The same response
+  def remember(response)
+    @cached = response
+    @remaining = extract_remaining_count(response)
+    @searchleft = extract_search_remaining_count(response)
+    @counter = 0
+    response
   end
 
   # Tracks non-rate_limit requests and decrements counter.
