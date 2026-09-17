@@ -88,13 +88,19 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.use(
                 Faraday::Retry::Middleware,
                 exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [
-                  Octokit::TooManyRequests, Octokit::ServiceUnavailable
+                  Octokit::ServerError, Octokit::ClientError
                 ],
                 max: 4,
                 interval: ENV['RACK_ENV'] == 'test' ? 0.01 : 4,
-                methods: [:get],
+                methods: [],
+                retry_if: lambda do |env, exception|
+                  next false unless env[:method] == :get
+                  next true unless exception.is_a?(Octokit::ClientError)
+                  exception.is_a?(Octokit::TooManyRequests) || exception.response_status == 429
+                end,
                 backoff_factor: 2
               )
+              builder.use(Octokit::Middleware::FollowRedirects)
               builder.use(Octokit::Response::RaiseError)
               builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
               builder.use(Fbe::Middleware::RateLimit, limits)
@@ -121,9 +127,15 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
           o.middleware = stack
           o = Verbose.new(o, log: loog)
           unless token.nil? || token.empty?
+            quota =
+              begin
+                "#{o.rate_limit.remaining} quota remaining"
+              rescue Octokit::Error, Faraday::Error => e
+                "quota unknown: #{e.message}"
+              end
             loog.info(
               "Accessing GitHub API with a token (#{token.length} chars, ending by #{token[-4..].inspect}, " \
-              "#{o.rate_limit.remaining} quota remaining)"
+              "#{quota})"
             )
           end
         else
@@ -185,7 +197,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 @loog.debug("Still #{left} #{label} quota left (>#{threshold})")
                 false
               end
-            rescue Octokit::ServerError, Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
+            rescue Octokit::ServerError, Octokit::Unauthorized, Octokit::Forbidden,
+                   Faraday::ConnectionFailed, Faraday::TimeoutError => e
               @loog.warn("Failed to check #{label} quota, assuming it is over: #{e.message}")
               true
             end

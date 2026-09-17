@@ -145,6 +145,38 @@ class TestIterate < Fbe::Test
     end
   end
 
+  def test_reports_the_iterator_when_the_block_returns_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.num = 10
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as('nil_test')
+          by('(agg (always) (max num))')
+          repeats(1)
+          over { |_, _| nil }
+        end
+      end
+    assert_includes(e.message, 'Iterator must return an Integer')
+    assert_empty(fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a)
+  end
+
+  def test_writes_no_marker_when_the_block_returns_a_string
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.num = 10
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('string_test')
+        by('(agg (always) (max num))')
+        repeats(1)
+        over { |_, _| 'not-an-integer' }
+      end
+    end
+    assert_empty(fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a)
+  end
+
   def test_raises_when_label_set_twice
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -228,7 +260,7 @@ class TestIterate < Fbe::Test
     assert_equal(15, markers.first.marker_test)
   end
 
-  def test_persists_restart_to_since_across_runs
+  def test_keeps_the_marker_when_the_queue_is_exhausted
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.then do |f|
@@ -244,7 +276,7 @@ class TestIterate < Fbe::Test
       repeats(10)
       over { |_, nxt| nxt }
     end
-    assert_equal(0, fb.query("(eq what 'iterate')").each.to_a.first.wrap_test)
+    assert_equal(10, fb.query("(eq what 'iterate')").each.to_a.first.wrap_test)
   end
 
   def test_multiple_repositories_with_different_progress
@@ -422,7 +454,15 @@ class TestIterate < Fbe::Test
       end
     end
     assert_equal(9, fb.query('(and (eq what "judge") (exists prop2))').each.to_a.size)
-    assert_equal(0, fb.query('(eq what "iterate")').each.to_a.first.marker)
+    assert_equal(20, fb.query('(eq what "iterate")').each.to_a.first.marker)
+    21.upto(30) do |i|
+      fb.insert.then do |f|
+        f.where = 'github'
+        f.what = 'judge'
+        f.repository = 680
+        f.issue = i
+      end
+    end
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
       as('marker')
       sort_by('issue')
@@ -448,7 +488,7 @@ class TestIterate < Fbe::Test
       end
     end
     assert_equal(5, fb.query('(and (eq what "judge") (exists prop3))').each.to_a.size)
-    assert_equal(10, fb.query('(eq what "iterate")').each.to_a.first.marker)
+    assert_equal(25, fb.query('(eq what "iterate")').each.to_a.first.marker)
   end
 
   def test_custom_since
@@ -594,5 +634,30 @@ class TestIterate < Fbe::Test
       end
     end
     assert_equal(1, cycles)
+  end
+
+  def test_continues_where_the_previous_run_stopped
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    [1, 2, 3].each do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    runs = []
+    3.times do
+      seen = []
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('cursor_test')
+        by('(agg (and (eq what "issue") (gt n $before)) (min n))')
+        repeats(2)
+        over do |_, nxt|
+          seen << nxt
+          nxt
+        end
+      end
+      runs << seen
+    end
+    assert_equal([[1, 2], [3], []], runs)
   end
 end

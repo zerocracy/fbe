@@ -46,6 +46,15 @@ class TestOcto < Fbe::Test
     assert_equal('User', o.user(42)[:type])
   end
 
+  def test_fake_events_have_one_repo_shape
+    events = Fbe::FakeOctokit.new.repository_events('yegor256/judges')
+    events.each do |e|
+      assert_kind_of(String, e[:id], e.inspect)
+      assert_equal(Fbe::FakeOctokit.new.name_to_number('yegor256/judges'), e[:repo][:id], e.inspect)
+      assert_equal('yegor256/judges', e[:repo][:name], e.inspect)
+    end
+  end
+
   def test_rate_limit
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)
@@ -188,6 +197,16 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     refute_predicate(o, :off_quota?)
     o.user(42)
+    assert_predicate(o, :off_quota?)
+  end
+
+  def test_off_quota_when_probe_is_forbidden
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      status: 403, body: '{"message":"You have exceeded a secondary rate limit"}',
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     assert_predicate(o, :off_quota?)
   end
 
@@ -433,6 +452,17 @@ class TestOcto < Fbe::Test
     assert_match(/Accessing GitHub API with a token \(19 chars, ending by "oken", 1234 quota remaining\)/, buf.to_s)
   end
 
+  def test_builds_client_when_quota_probe_fails
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      status: 403, body: '{"message":"You have exceeded a secondary rate limit"}',
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    buf = Loog::Buffer.new
+    Fbe.octo(loog: buf, global: {}, options: Judges::Options.new({ 'github_token' => 'secret_github_token' }))
+    assert_match(/quota unknown/, buf.to_s)
+  end
+
   def test_retrying
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
@@ -461,6 +491,47 @@ class TestOcto < Fbe::Test
       .then
       .to_return(body: '{}')
     o.user('yegor256')
+  end
+
+  def test_retrying_on_server_errors
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    [500, 502, 503].each do |code|
+      stub_request(:get, "https://api.github.com/repositories/#{code}")
+        .to_return(status: code)
+        .times(1)
+        .then
+        .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+      o.repository(code)
+    end
+  end
+
+  def test_retrying_on_too_many_requests
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repositories/429')
+      .to_return(status: 429)
+      .times(1)
+      .then
+      .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+    o.repository(429)
+  end
+
+  def test_not_retrying_on_not_found
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repositories/404').to_return(status: 404)
+    assert_raises(Octokit::NotFound) { o.repository(404) }
+    assert_requested(:get, 'https://api.github.com/repositories/404', times: 1)
   end
 
   def test_with_broken_token
@@ -1210,6 +1281,8 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     list = o.releases('yegor256/test')
     assert_equal(2, list.size)
+    refute_equal(list[0][:id], list[1][:id])
+    refute_equal(list[0][:tag_name], list[1][:tag_name])
     rel = o.release('https://example.com')
     assert_equal('0.19.0', rel[:tag_name])
   end
@@ -1229,11 +1302,23 @@ class TestOcto < Fbe::Test
     assert_equal('CHANGES_REQUESTED', reviews[0][:state])
   end
 
+  def test_fake_pull_request_matches_the_list
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.pull_requests('yegor256/test').each do |listed|
+      fetched = o.pull_request('yegor256/test', listed[:number])
+      assert_equal(listed[:id], fetched[:id])
+      assert_equal(listed[:state], fetched[:state])
+    end
+  end
+
+  def test_fake_issue_counts_its_comments
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(o.issue_comments('foo/bar', 42).size, o.issue('foo/bar', 42)[:comments])
+  end
+
   def test_fake_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    comments = o.review_comments('yegor256/test', 100)
-    assert_equal(3, comments.size)
-    assert_equal('Some comment 1', comments[0][:body])
+    assert_equal(o.pull_request_comments('yegor256/test', 100), o.review_comments('yegor256/test', 100))
   end
 
   def test_fake_create_commit_comment

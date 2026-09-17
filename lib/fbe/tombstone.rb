@@ -96,6 +96,7 @@ class Fbe::Tombstone
     ).each.first
     return false if f.nil?
     issue = [issue] unless issue.is_a?(Array)
+    return false if issue.empty?
     issue.all? do |i|
       f['issues'].any? do |ii|
         a, b = ii.split('-').map { |i| Integer(i, 10) }

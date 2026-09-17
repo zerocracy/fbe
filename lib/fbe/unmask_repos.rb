@@ -59,7 +59,7 @@ end
 # @param [Boolean] lifetime_aware Should we stop if lifetime is over?
 # @param [Boolean] timeout_aware Should we stop if timeout is over?
 # @return [Array<String>] Shuffled list of repository full names (e.g., 'org/repo')
-# @raise [RuntimeError] If no repositories match the provided masks
+# @raise [Fbe::Error] If no repositories match the provided masks
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
 # @note A mask whose expansion fails on GitHub is skipped, an absent repository is dropped,
@@ -102,7 +102,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     re = Fbe.mask_to_regex(mask[1..])
     repos.reject! { |r| re.match?(r) }
   end
-  repos.uniq!
+  repos.uniq!(&:downcase)
   repos.reject! do |repo|
     octo.repository(repo)[:archived]
   rescue Octokit::NotFound => e
