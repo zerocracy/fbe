@@ -75,7 +75,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           <<~GRAPHQL
             {
               repository(owner: #{literal(owner)}, name: #{literal(name)}) {
-                pullRequest(number: #{number}) {
+                pullRequest(number: #{numeric(number)}) {
                   reviewThreads(#{after}first: 100) {
                     nodes {
                       id
@@ -373,9 +373,10 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   def pull_request_reviews(owner, name, pulls: [])
     requests =
       pulls.map do |number, cursor|
+        num = numeric(number)
         after = "after: #{literal(cursor)}, " unless cursor.nil?
         <<~GRAPHQL
-          pr_#{number}: pullRequest(number: #{number}) {
+          pr_#{num}: pullRequest(number: #{num}) {
             id
             number
             reviews(#{after}first: 100) {
@@ -554,6 +555,21 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @return [String] The literal, its quotes included
   def literal(value)
     value.to_s.to_json
+  end
+
+  # Renders a pull request number, refusing anything that is not one.
+  #
+  # A number is pasted into the query text as it is, without quotes around it,
+  # so a value that is not an Integer would become a part of the query and
+  # could add fields to it or change the ones already there.
+  #
+  # @param [Integer] value The number to render
+  # @return [Integer] The same number
+  def numeric(value)
+    unless value.is_a?(Integer)
+      raise(Fbe::Error, "A pull request number must be an Integer, while #{value.class} was given")
+    end
+    value
   end
 
   # Reads the rest of the comments of one review thread.
