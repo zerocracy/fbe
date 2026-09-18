@@ -33,6 +33,7 @@ require_relative 'fb'
 # @param [Boolean] always If true, return the object in any case
 # @yield [Factbase::Fact] A proxy fact object to set properties on
 # @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
+# @raise [Fbe::Error] When the block sets no attributes except _id, _time and _version
 # @note String values are properly escaped in queries
 # @note Time values are converted to UTC ISO8601 format for comparison
 # @example Ensure unique user registration
@@ -62,7 +63,9 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
+  criteria = attrs.except(:_id, :_time, :_version)
+  raise(Fbe::Error, "No attributes to match a fact by in if_absent, the block set #{attrs.keys}") if criteria.empty?
+  q = criteria.map do |k, v|
     vv = v.to_s
     if v.is_a?(String)
       vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
