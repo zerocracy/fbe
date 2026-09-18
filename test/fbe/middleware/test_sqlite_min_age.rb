@@ -27,11 +27,7 @@ class SqliteMinAgeTest < Fbe::Test
       store.write('one', value)
       back = store.read('one')
       back.each_with_index do |pair, i|
-        assert_equal(
-          'public, max-age=300',
-          JSON.parse(pair[1])['response_headers']['cache-control'],
-          "variant #{i}"
-        )
+        assert_equal('public, max-age=300', JSON.parse(pair[1])['response_headers']['cache-control'], "variant #{i}")
       end
       store.close
     end
