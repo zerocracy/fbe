@@ -28,8 +28,10 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
     before[k] = fact[k]
   end
   return unless before[prop]
-  nv = before[prop] - [value]
-  return if nv == before[prop]
+  nv = before[prop].dup
+  at = nv.index(value)
+  return if at.nil?
+  nv.delete_at(at)
   before[prop] = nv
   before.delete(prop) if nv.empty?
   fb.txn do |fbt|
