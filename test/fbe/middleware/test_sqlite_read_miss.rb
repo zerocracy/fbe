@@ -22,12 +22,13 @@ class SqliteReadMissTest < Fbe::Test
         [[JSON.dump({ 'method' => 'get', 'url' => 'https://api.github.com/x' }), JSON.dump({ 'status' => 200 })]]
       )
       seen = []
-      spy = Module.new do
-        define_method(:execute) do |sql, *args|
-          seen << sql
-          super(sql, *args)
+      spy =
+        Module.new do
+          define_method(:execute) do |sql, *args|
+            seen << sql
+            super(sql, *args)
+          end
         end
-      end
       store.instance_variable_get(:@db).singleton_class.prepend(spy)
       assert_nil(store.read('absent-key'))
       assert_empty(seen.grep(/UPDATE/), 'a read that found nothing still updated the row')
