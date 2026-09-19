@@ -115,4 +115,11 @@ class TestIfAbsent < Fbe::Test
       end
     refute_nil(n)
   end
+
+  def test_raises_without_block
+    fb = Factbase.new
+    error = assert_raises(Fbe::Error) { Fbe.if_absent(fb:) }
+    assert_equal('A block is required by if_absent', error.message)
+    assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
+  end
 end
