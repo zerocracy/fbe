@@ -115,4 +115,14 @@ class TestIfAbsent < Fbe::Test
       end
     refute_nil(n)
   end
+
+  def test_ignores_value_ending_with_backslash
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    value = "#{Array.new(rnd.rand(1..32)) { rnd.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join}\\"
+    fb = Factbase.new
+    fb.insert.foo = value
+    n = Fbe.if_absent(fb:) { |f| f.foo = value }
+    assert_nil(n, "fact with a value ending in a backslash was injected twice, seed #{seed}")
+  end
 end

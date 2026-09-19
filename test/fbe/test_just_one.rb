@@ -73,4 +73,14 @@ class TestJustOne < Fbe::Test
     end
     assert_equal(0, fb.size, 'just_one inserted a fact without a block')
   end
+
+  def test_finds_value_ending_with_backslash
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    value = "#{Array.new(rnd.rand(1..32)) { rnd.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join}\\"
+    fb = Factbase.new
+    fb.insert.foo = value
+    Fbe.just_one(fb:) { |f| f.foo = value }
+    assert_equal(1, fb.size, "fact with a value ending in a backslash was inserted twice, seed #{seed}")
+  end
 end
