@@ -60,6 +60,11 @@ class TestAward < Fbe::Test
     ].each { |t| assert_includes(md, t, md) }
   end
 
+  def test_makes_every_trailing_digit_a_subscript
+    md = Fbe::Award.new('(award (explain "test") (in var10 "a variable"))').bylaw.markdown
+    assert_includes(md, '_var₁₀_', md)
+  end
+
   def test_some_terms
     {
       '(let x 25)' => 0,
