@@ -48,7 +48,13 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     else
       @lock.synchronize { took = track_request(env.url.path) }
       @app.call(env).on_complete do |response_env|
-        @lock.synchronize { sync(response_env, env.url.path) }
+        @lock.synchronize do
+          if response_env[:http_cache_trace]&.include?(:fresh)
+            untrack_request(took)
+          else
+            sync(response_env, env.url.path)
+          end
+        end
       end
     end
   rescue StandardError
@@ -117,25 +123,22 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
 
   # Syncs the internal remaining count from a real API response header.
   #
-  # When the response was served by Faraday::HttpCache from cache
-  # (indicated by +http_cache_trace+ containing +:fresh+), the
-  # +x-ratelimit-remaining+ header is stale, so we keep our
-  # decremented count. When the API was actually contacted,
-  # we seed unknown counters from headers, but avoid raising
-  # a counter already decremented by this middleware.
+  # GitHub itself is the authority on what is left, so a header from a real
+  # response replaces whatever this middleware has been guessing. A response
+  # served by Faraday::HttpCache never gets here, since it spends no quota
+  # and its header is stale anyway.
   #
   # @param [Faraday::Env] response_env The response environment
   def sync(response_env, path = nil)
-    return if response_env[:http_cache_trace]&.include?(:fresh)
     headers = response_env.response_headers
     return unless headers
     remaining = headers['x-ratelimit-remaining']
     return unless remaining
     count = Integer(remaining)
     if path&.start_with?('/search/')
-      @searchleft = @searchleft.nil? ? count : [@searchleft, count].min
+      @searchleft = count
     else
-      @remaining = @remaining.nil? ? count : [@remaining, count].min
+      @remaining = count
     end
   end
 
