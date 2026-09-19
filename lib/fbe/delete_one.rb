@@ -5,6 +5,7 @@
 
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'term'
 
 # Delete one value of a property.
 #
@@ -27,13 +28,12 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   fact.all_properties.each do |k|
     before[k] = fact[k]
   end
-  return unless before[prop]
-  nv = before[prop] - [value]
-  return if nv == before[prop]
-  before[prop] = nv
-  before.delete(prop) if nv.empty?
+  rest = before.fetch(prop, []) - [value]
+  return if rest == before.fetch(prop, [])
+  before[prop] = rest
+  before.delete(prop) if rest.empty?
   fb.txn do |fbt|
-    fbt.query("(eq #{id} #{i})").delete!
+    raise(Fbe::Error, "No facts by #{id} = #{i.inspect}") if fbt.query(Fbe::Term.new(id, i).to_s).delete!.zero?
     c = fbt.insert
     f = c
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
