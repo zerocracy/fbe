@@ -37,20 +37,20 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
   interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
-  recent = fb.query(
-    "(and
-      (eq what '#{judge.gsub("'", "\\\\'")}')
-      (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
-  ).each.first
-  if recent
-    loog.info(
-      "#{judge} statistics were collected #{recent.when.ago} ago, " \
-      "skipping now (we run it every #{interval} days)"
-    )
-    return
-  end
-  loog.info("#{judge} statistics weren't collected for the last #{interval} days")
   fb.txn do |fbt|
+    recent = fbt.query(
+      "(and
+        (eq what '#{judge.gsub("'", "\\\\'")}')
+        (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
+    ).each.first
+    if recent
+      loog.info(
+        "#{judge} statistics were collected #{recent.when.ago} ago, " \
+        "skipping now (we run it every #{interval} days)"
+      )
+      next
+    end
+    loog.info("#{judge} statistics weren't collected for the last #{interval} days")
     f = fbt.insert
     f.what = judge
     f.when = Time.now
