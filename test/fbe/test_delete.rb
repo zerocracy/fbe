@@ -31,8 +31,17 @@ class TestDelete < Fbe::Test
     fb = Factbase.new
     f = fb.insert
     f.foo = 42
+    f._id = 555
     Fbe.delete(f, 'bar', fb:)
     assert_equal(1, fb.size)
+  end
+
+  def test_refuses_idless_fact_when_property_is_absent
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.delete(f, 'bar', fb:) }
+    assert_equal('There is no "_id" in the fact', error.message)
   end
 
   def test_deletes_when_many
