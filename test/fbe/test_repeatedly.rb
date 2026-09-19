@@ -29,6 +29,23 @@ class TestRepeatedly < Fbe::Test
     assert_equal(42, $fb.query('(always)').each.first.foo)
   end
 
+  def test_uses_today_for_scheduling_and_marker
+    original = ENV.fetch('TODAY', nil)
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    runs = 0
+    %w[2000-01-01T00:00:00Z 2000-01-01T00:00:00Z 2000-01-03T00:00:00Z].each do |today|
+      ENV['TODAY'] = today
+      Fbe.repeatedly('quality', 'interval', fb:, loog: Loog::NULL, judge: 'test') do |_fact|
+        runs += 1
+      end
+      assert_equal(Time.parse(today), fb.query("(eq what 'test')").each.first.when)
+    end
+    assert_equal(2, runs)
+    assert_equal(1, fb.size)
+  ensure
+    ENV['TODAY'] = original
+  end
+
   def test_log_uses_judge_parameter_not_global
     $judge = 'global_judge'
     fb = Factbase.new

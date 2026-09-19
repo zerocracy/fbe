@@ -25,6 +25,28 @@ class TestRegularly < Fbe::Test
     assert_equal(1, fb.size)
   end
 
+  def test_uses_today_for_scheduling_and_lookback
+    original = ENV.fetch('TODAY', nil)
+    fb = Factbase.new
+    collected = []
+    %w[2000-01-01T00:00:00Z 2000-01-01T00:00:00Z 2000-01-09T00:00:00Z].each do |today|
+      ENV['TODAY'] = today
+      Fbe.regularly('quality', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') do |fact|
+        collected << [fact.when, fact.since]
+      end
+    end
+    assert_equal(
+      [
+        [Time.utc(2000, 1, 1), Time.utc(1999, 12, 4)],
+        [Time.utc(2000, 1, 9), Time.utc(1999, 12, 12)]
+      ],
+      collected
+    )
+    assert_equal(2, fb.size)
+  ensure
+    ENV['TODAY'] = original
+  end
+
   def test_rolls_back
     fb = Factbase.new
     loog = Loog::NULL
