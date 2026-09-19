@@ -292,11 +292,15 @@ class Fbe::Award
         bylaw.intro(to_p(@operands[0]))
       when :in
         bylaw.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
-      when :let
-        bylaw.line("let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}")
+      when :let, :set
+        bylaw.line(
+          if @op == :let
+            "let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}"
+          else
+            "set #{to_p(@operands[0])} to #{to_p(@operands[1])}"
+          end
+        )
         bylaw.let(@operands[0], @operands[1])
-      when :set
-        bylaw.line("set #{to_p(@operands[0])} to #{to_p(@operands[1])}")
       when :give
         bylaw.line("award #{to_p(@operands[0])}")
       else
