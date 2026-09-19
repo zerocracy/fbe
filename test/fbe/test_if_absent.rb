@@ -14,6 +14,31 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestIfAbsent < Fbe::Test
+  def test_tells_apart_two_times_inside_one_second
+    fb = Factbase.new
+    t1 = Time.utc(2026, 9, 17, 20, 6, 10, 100_000)
+    t2 = Time.utc(2026, 9, 17, 20, 6, 10, 900_000)
+    refute_nil(
+      Fbe.if_absent(fb:) do |f|
+        f.what = 'thing'
+        f.when = t1
+      end
+    )
+    refute_nil(
+      Fbe.if_absent(fb:) do |f|
+        f.what = 'thing'
+        f.when = t2
+      end
+    )
+    assert_nil(
+      Fbe.if_absent(fb:) do |f|
+        f.what = 'thing'
+        f.when = t1
+      end
+    )
+    assert_equal(2, fb.size)
+  end
+
   def test_ignores
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
