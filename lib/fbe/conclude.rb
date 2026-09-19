@@ -120,6 +120,7 @@ class Fbe::Conclude
   # @return [nil] Nothing is returned
   def on(query)
     raise(Fbe::Error, 'Query is already set') unless @query.nil?
+    raise(Fbe::Error, 'Cannot set query to nil') if query.nil?
     @query = query
   end
 
