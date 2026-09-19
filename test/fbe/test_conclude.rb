@@ -252,6 +252,42 @@ class TestConclude < Fbe::Test
     assert_equal(%w[a b c], n['tags'])
   end
 
+  def test_follow_accepts_arrays_and_whitespace_delimited_strings
+    [%w[tags when].freeze, "  tags\twhen\n"].each do |props|
+      fb = Factbase.new
+      source = fb.insert
+      source.foo = 1
+      source.tags = 'a'
+      source.tags = 'b'
+      source.when = Time.utc(2024, 1, 2)
+      Fbe.conclude(fb:, judge: 'judge-follow', loog: Loog::NULL, options: Judges::Options.new, global: {}) do
+        quota_unaware
+        on('(exists foo)')
+        follow(props)
+        draw do |n, _prev|
+          n.processed = 'yes'
+          'A conclusion with copied properties from the source fact.'
+        end
+      end
+      result = fb.query('(eq processed "yes")').each.to_a.fetch(0)
+      assert_equal(%w[a b], result['tags'])
+      assert_equal(source.when, result.when)
+    end
+  end
+
+  def test_follow_rejects_unsupported_property_lists
+    [nil, 42, { tags: true }, ['tags', 42]].each do |props|
+      assert_raises(Fbe::Error) do
+        Fbe.conclude(
+          fb: Factbase.new, judge: 'judge-follow', loog: Loog::NULL,
+          options: Judges::Options.new, global: {}
+        ) do
+          follow(props)
+        end
+      end
+    end
+  end
+
   def test_follow_honors_as_rewrite
     $fb = Factbase.new
     $global = {}
