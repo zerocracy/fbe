@@ -59,7 +59,9 @@ def Fbe.just_one(fb: Fbe.fb)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.first
+  before = fb.query(q).each.find do |f|
+    attrs.all? { |k, v| !v.is_a?(Time) || [f.public_send(k)].flatten.include?(v) }
+  end
   return before unless before.nil?
   n = fb.insert
   attrs.each { |k, v| n.public_send(:"#{k}=", v) }
