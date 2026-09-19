@@ -3,10 +3,13 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'monitor'
 require 'others'
 require 'time'
 require_relative '../fbe'
 require_relative 'fb'
+
+Fbe::IF_ABSENT_MONITOR = Monitor.new unless Fbe.const_defined?(:IF_ABSENT_MONITOR)
 
 # Injects a fact if it's absent in the factbase, otherwise returns nil.
 #
@@ -72,10 +75,12 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.first
-  return before if before && always
-  return nil if before
-  n = fb.insert
-  attrs.each { |k, v| n.public_send(:"#{k}=", v) }
-  n
+  Fbe::IF_ABSENT_MONITOR.synchronize do
+    before = fb.query(q).each.first
+    return before if before && always
+    return nil if before
+    n = fb.insert
+    attrs.each { |k, v| n.public_send(:"#{k}=", v) }
+    n
+  end
 end
