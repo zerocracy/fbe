@@ -16,24 +16,24 @@ require_relative '../test__helper'
 class TestIfAbsent < Fbe::Test
   def test_tells_apart_two_times_inside_one_second
     fb = Factbase.new
-    t1 = Time.utc(2026, 9, 17, 20, 6, 10, 100_000)
-    t2 = Time.utc(2026, 9, 17, 20, 6, 10, 900_000)
+    early = Time.utc(2026, 9, 17, 20, 6, 10, 100_000)
+    late = Time.utc(2026, 9, 17, 20, 6, 10, 900_000)
     refute_nil(
       Fbe.if_absent(fb:) do |f|
         f.what = 'thing'
-        f.when = t1
+        f.when = early
       end
     )
     refute_nil(
       Fbe.if_absent(fb:) do |f|
         f.what = 'thing'
-        f.when = t2
+        f.when = late
       end
     )
     assert_nil(
       Fbe.if_absent(fb:) do |f|
         f.what = 'thing'
-        f.when = t1
+        f.when = early
       end
     )
     assert_equal(2, fb.size)
