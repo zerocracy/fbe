@@ -141,4 +141,14 @@ class TestTombstone < Fbe::Test
     refute(ts.has?('github', 42, []))
     refute(ts.has?('github', 43, []))
   end
+
+  def test_where_with_a_quote
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    where = "git'hub"
+    ts.bury!(where, 42, 7)
+    assert_equal([7], ts.issues(where, 42))
+    assert(ts.has?(where, 42, 7))
+    refute(ts.has?('github', 42, 7))
+  end
 end
