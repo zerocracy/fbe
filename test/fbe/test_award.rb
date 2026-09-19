@@ -60,6 +60,11 @@ class TestAward < Fbe::Test
     ].each { |t| assert_includes(md, t, md) }
   end
 
+  def test_says_lost_when_total_is_negative
+    g = Fbe::Award.new('(award (give -16 "for a push to master"))').bill.greeting
+    assert_equal('You\'ve lost 16 points. ', g, g)
+  end
+
   def test_some_terms
     {
       '(let x 25)' => 0,
