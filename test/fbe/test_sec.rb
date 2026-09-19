@@ -56,4 +56,9 @@ class TestSec < Fbe::Test
       assert_equal('2h', Fbe.sec(f))
     end
   end
+
+  def test_refuses_a_nil_fact
+    error = assert_raises(Fbe::Error) { Fbe.sec(nil) }
+    assert_equal('The fact is nil', error.message)
+  end
 end
