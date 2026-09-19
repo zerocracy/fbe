@@ -390,7 +390,7 @@ class Fbe::Award
     #   bill.line(25, "for documentation")
     #   bill.greeting #=> "You've earned +75 points for this: +50 for code review; +25 for documentation. "
     def greeting
-      items = @lines.reject { |l| l[:t].strip.empty? }.map { |l| "#{format('%+d', whole(l[:v]))} #{l[:t]}" }
+      items = @lines.filter_map { |l| "#{format('%+d', whole(l[:v]))} #{l[:t]}" unless l[:t].strip.empty? }
       if @lines.empty?
         "You've earned nothing. "
       elsif items.empty?
