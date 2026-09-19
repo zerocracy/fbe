@@ -18,7 +18,7 @@ require_relative 'octo'
 # @param [Hash] global The hash for global caching (uses $global)
 # @param [Loog] loog The logging facility (uses $loog global)
 # @return [String] Formatted issue reference (e.g., "owner/repo#123")
-# @raise [Fbe::Error] If fact is nil or required properties are missing
+# @raise [Fbe::Error] If fact is nil or required properties are missing or multi-valued
 # @raise [Fbe::Error] If required global variables are not set
 # @note Requires 'repository' and 'issue' properties in the fact
 # @note Repository names are cached to reduce GitHub API calls
@@ -34,9 +34,11 @@ def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   rid = fact['repository']
   raise(Fbe::Error, "There is no 'repository' property") if rid.nil?
+  raise(Fbe::Error, "The 'repository' property must have exactly one value") unless rid.size == 1
   rid = Integer(rid.first.to_s, 10)
   issue = fact['issue']
   raise(Fbe::Error, "There is no 'issue' property") if issue.nil?
+  raise(Fbe::Error, "The 'issue' property must have exactly one value") unless issue.size == 1
   issue = Integer(issue.first.to_s, 10)
   "#{Fbe.octo(global:, options:, loog:).repo_name_by_id(rid)}##{issue}"
 end

@@ -19,7 +19,7 @@ require_relative 'octo'
 # @param [Hash] global The hash for global caching (uses $global)
 # @param [Loog] loog The logging facility (uses $loog global)
 # @return [String] Formatted username with @ prefix (e.g., "@yegor256")
-# @raise [Fbe::Error] If the specified property doesn't exist in the fact
+# @raise [Fbe::Error] If the specified property is missing or has multiple values
 # @note Results are cached to reduce GitHub API calls
 # @note Subject to GitHub API rate limits
 # @example Convert user ID to username
@@ -29,6 +29,7 @@ require_relative 'octo'
 def Fbe.who(fact, prop = :who, options: $options, global: $global, loog: $loog)
   id = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if id.nil?
+  raise(Fbe::Error, "The #{prop.inspect} property must have exactly one value") unless id.size == 1
   id = Integer(id.first.to_s, 10)
   "@#{Fbe.octo(options:, global:, loog:).user_name_by_id(id)}"
 end

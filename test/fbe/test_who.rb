@@ -22,4 +22,20 @@ class TestWho < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_equal('@torvalds', Fbe.who(f, global:, options:, loog: Loog::NULL))
   end
+
+  def test_rejects_ambiguous_identifiers_before_lookup
+    %i[who author_id].each do |prop|
+      fact = Factbase.new.insert
+      fact.public_send("#{prop}=", 444)
+      fact.public_send("#{prop}=", 555)
+      Fbe.stub(:octo, ->(**) { flunk('Ambiguous identifiers must not request a GitHub client') }) do
+        error =
+          assert_raises(Fbe::Error) do
+            Fbe.who(fact, prop, global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+          end
+        assert_includes(error.message, prop.to_s)
+        assert_includes(error.message, 'exactly one')
+      end
+    end
+  end
 end
