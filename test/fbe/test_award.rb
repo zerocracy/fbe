@@ -130,7 +130,11 @@ class TestAward < Fbe::Test
   def test_between_in_bylaw_markdown
     a = Fbe::Award.new('(award (set b (between x 3 120)) (give b "test"))')
     md = a.bylaw.markdown
-    assert_includes(md, '_x_ clamped between **3** and **120**, or 0 if it is smaller than **3**', md)
+    assert_includes(
+      md,
+      '_x_ clamped by absolute value between **3** and **120**, or 0 if its absolute value is smaller than both',
+      md
+    )
   end
 
   def test_lines_add_up_to_the_total
