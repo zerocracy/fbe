@@ -57,6 +57,7 @@ class Fbe::Award
   # @return [Fbe::Award::Bylaw] The bylaw
   def bylaw
     term = Factbase::Syntax.new(@query).to_term
+    term.redress!(Fbe::Award::BTerm)
     term.redress!(Fbe::Award::PTerm)
     bylaw = Bylaw.new
     term.publish_to(bylaw)
@@ -294,7 +295,7 @@ class Fbe::Award
         bylaw.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
       when :let
         bylaw.line("let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}")
-        bylaw.let(@operands[0], @operands[1])
+        bylaw.let(@operands[0], to_val(@operands[1], bylaw))
       when :set
         bylaw.line("set #{to_p(@operands[0])} to #{to_p(@operands[1])}")
       when :give
@@ -427,7 +428,7 @@ class Fbe::Award
     def initialize
       @lines = []
       @intro = ''
-      @lets = {}
+      @vars = {}
     end
 
     # How many lines are in the bylaw already.
@@ -477,8 +478,8 @@ class Fbe::Award
       line =
         line.gsub(/\$\{([a-z_0-9]+)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
-          raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @lets.key?(k)
-          "**#{@lets[k]}**"
+          raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @vars.key?(k)
+          "**#{@vars[k]}**"
         end
       @lines << line
     end
@@ -492,7 +493,7 @@ class Fbe::Award
     #   bylaw = Fbe::Award::Bylaw.new
     #   bylaw.let(:points, 50)
     def let(key, value)
-      @lets[key] = value
+      @vars[key] = value
     end
 
     # Generates a Markdown-formatted representation of the bylaw.

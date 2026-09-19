@@ -60,6 +60,13 @@ class TestAward < Fbe::Test
     ].each { |t| assert_includes(md, t, md) }
   end
 
+  def test_let_publishes_the_value_of_an_expression
+    md = Fbe::Award.new(
+      '(award (explain "t") (let x (plus 2 3)) (aka (give 1 "for x=${x}") "award ${x} points"))'
+    ).bylaw.markdown
+    assert_includes(md, 'award **5** points', md)
+  end
+
   def test_some_terms
     {
       '(let x 25)' => 0,
