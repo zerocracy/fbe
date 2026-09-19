@@ -49,6 +49,7 @@ Elegant/GoodMethodName:
     - delete_one
     - dump_headers
     - extract_remaining_count
+    - extract_reset_time
     - extract_search_remaining_count
     - faraday_value
     - github_graph
