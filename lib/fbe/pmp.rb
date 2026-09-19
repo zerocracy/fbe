@@ -144,6 +144,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                   "'#{param}' in area '#{area}': #{e.message}"
                 )
               end
+            next result if type == 'bool'
             pmpv.new(result, default, type, memo)
           end
         end.new
