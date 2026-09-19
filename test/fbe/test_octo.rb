@@ -23,6 +23,12 @@ class TestOcto < Fbe::Test
     refute_nil(o.commit_pulls('foo/foo', 'sha'))
   end
 
+  def test_gives_different_ids_to_names_with_the_same_letters
+    o = Fbe::FakeOctokit.new
+    refute_equal(o.name_to_number('zerocracy/fbe'), o.name_to_number('zerocracy/feb'))
+    refute_equal(o.repository('zerocracy/fbe')[:id], o.repository('zerocracy/feb')[:id])
+  end
+
   def test_post_comment
     global = {}
     options = Judges::Options.new({ 'testing' => true })
