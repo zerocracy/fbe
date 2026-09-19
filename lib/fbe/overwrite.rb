@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase/light'
 require_relative '../fbe'
 require_relative 'fb'
 
@@ -65,7 +66,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     end
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
-    fb.txn do |fbt|
+    Fbe.atomically(fb) do |fbt|
       raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
       n = fbt.insert
       f = n
@@ -101,7 +102,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   end
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
-  fb.txn do |fbt|
+  Fbe.atomically(fb) do |fbt|
     raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
     n = fbt.insert
     f = n
@@ -120,4 +121,30 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     end
   end
   nil
+end
+
+# Runs the block against the factbase, opening a transaction only when there
+# is no transaction open yet.
+#
+# @param [Factbase] fb The factbase to run against
+# @yield [Factbase] The factbase the block must use
+# @return [nil] Nothing
+def Fbe.atomically(fb, &)
+  if Fbe.transactional?(fb)
+    yield(fb)
+  else
+    fb.txn(&)
+  end
+  nil
+end
+
+# Checks whether the factbase is already inside a transaction.
+#
+# @param [Factbase] fb The factbase to check, possibly decorated
+# @return [Boolean] TRUE if a transaction is already open
+def Fbe.transactional?(fb)
+  return true if fb.is_a?(Factbase::Light)
+  iv = %i[@fb @origin].find { |i| fb.instance_variable_defined?(i) }
+  return false if iv.nil?
+  Fbe.transactional?(fb.instance_variable_get(iv))
 end

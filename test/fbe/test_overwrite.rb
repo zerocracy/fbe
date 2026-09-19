@@ -454,4 +454,28 @@ class TestOverwrite < Fbe::Test
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
+
+  def test_overwrites_inside_transaction
+    fb = Factbase.new
+    fb.insert.then do |f|
+      f._id = 1
+      f.foo = 'hey you друг'
+    end
+    fb.txn do |fbt|
+      Fbe.overwrite(fbt.query('(exists foo)').each.first, 'foo', 'привет', fb: fbt)
+    end
+    assert_equal('привет', fb.query('(exists foo)').each.first['foo'].first)
+  end
+
+  def test_overwrites_hash_inside_transaction
+    fb = Factbase.new
+    fb.insert.then do |f|
+      f._id = 1
+      f.foo = 'x'
+    end
+    fb.txn do |fbt|
+      Fbe.overwrite(fbt.query('(exists foo)').each.first, { foo: 'ünï', bar: 7 }, fb: fbt)
+    end
+    assert_equal(7, fb.query('(exists bar)').each.first['bar'].first)
+  end
 end
