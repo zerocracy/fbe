@@ -840,9 +840,9 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
     assert(o.auto_paginate)
     issues =
-      o.with_disable_auto_paginate do
-        refute(o.auto_paginate)
-        o.list_issues('foo/bar')
+      o.with_disable_auto_paginate do |octo|
+        refute(octo.auto_paginate)
+        octo.list_issues('foo/bar')
       end
     assert_kind_of(Array, issues)
     assert(o.auto_paginate)
@@ -858,12 +858,54 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
     assert(o.auto_paginate)
     assert_raises(Fbe::Error) do
-      o.with_disable_auto_paginate do
-        refute(o.auto_paginate)
+      o.with_disable_auto_paginate do |octo|
+        refute(octo.auto_paginate)
         raise(Fbe::Error, 'some error')
       end
     end
     assert(o.auto_paginate)
+  end
+
+  def test_keeps_auto_paginate_on_shared_client_while_block_runs
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+      )
+    o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
+    assert(o.with_disable_auto_paginate { o.auto_paginate }, 'shared client lost its pagination while the block ran')
+  end
+
+  def test_keeps_auto_paginate_after_overlapping_blocks
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+      )
+    o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
+    inside = Queue.new
+    done = Queue.new
+    first =
+      Thread.new do
+        o.with_disable_auto_paginate do
+          inside << :first
+          done.pop(timeout: 5)
+        end
+      end
+    inside.pop(timeout: 5)
+    second =
+      Thread.new do
+        o.with_disable_auto_paginate do
+          done << :second
+          inside.pop(timeout: 5)
+        end
+      end
+    first.join(5)
+    inside << :main
+    second.join(5)
+    assert(o.auto_paginate, 'shared client lost its pagination after two overlapping blocks')
   end
 
   def test_print_trace
