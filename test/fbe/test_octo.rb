@@ -1363,6 +1363,52 @@ class TestOcto < Fbe::Test
     assert_equal(5, events.size)
   end
 
+  def test_fake_repository_events_come_newest_first
+    seed = Random.new_seed
+    repo = "яндекс/тест-#{Random.new(seed).rand(1_000_000)}"
+    ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { Integer(_1[:id], 10) }
+    assert_equal(ids.sort.reverse!, ids, "events of #{repo} are not newest first (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_start_with_the_newest
+    seed = Random.new_seed
+    repo = "zerocracy/#{'ж' * Random.new(seed).rand(1..100)}"
+    ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { Integer(_1[:id], 10) }
+    assert_equal(ids.max, ids.first, "the first event of #{repo} is not the newest one (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_dont_repeat_ids
+    seed = Random.new_seed
+    repo = "#{Random.new(seed).rand(1_000_000)}/ünïcødé"
+    ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:id] }
+    assert_equal(ids.uniq, ids, "events of #{repo} carry repeating ids (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_order_dont_depend_on_repo
+    seed = Random.new_seed
+    rand = Random.new(seed)
+    one = Fbe::FakeOctokit.new.repository_events("a/#{rand.rand(1_000_000)}", {}).map { _1[:id] }
+    two = Fbe::FakeOctokit.new.repository_events("ы/#{'д' * rand.rand(1..50)}", {}).map { _1[:id] }
+    assert_equal(one, two, "events of two repos come in different order (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_keep_order_between_calls
+    seed = Random.new_seed
+    repo = "#{'щ' * Random.new(seed).rand(1..80)}/тест"
+    o = Fbe::FakeOctokit.new
+    one = o.repository_events(repo, {}).map { _1[:id] }
+    two = o.repository_events(repo, {}).map { _1[:id] }
+    assert_equal(one, two, "events of #{repo} come in another order on a second call (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_come_newest_first_through_octo
+    seed = Random.new_seed
+    repo = "yegor256/#{Random.new(seed).rand(1_000_000)}"
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    ids = o.repository_events(repo, {}).map { Integer(_1[:id], 10) }
+    assert_equal(ids.sort.reverse!, ids, "events of #{repo} from octo are not newest first (seed: #{seed})")
+  end
+
   def test_fake_pull_request_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     comments = o.pull_request_comments('yegor256/test', 42)
