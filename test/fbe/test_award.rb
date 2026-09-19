@@ -67,6 +67,13 @@ class TestAward < Fbe::Test
     assert_includes(md, 'award **5** points', md)
   end
 
+  def test_single_line_greeting_says_the_reason
+    g = Fbe::Award.new(
+      '(award (explain "t") (aka (let bonus 10) (give bonus "for a specific reason") "award ${bonus} points"))'
+    ).bill.greeting
+    assert_includes(g, '+10 for a specific reason', g)
+  end
+
   def test_some_terms
     {
       '(let x 25)' => 0,
@@ -85,8 +92,8 @@ class TestAward < Fbe::Test
     {
       '(award (give (times 7 0.25 "fun")))' => 'You\'ve earned +2 points. ',
       '(award (give (times 5 0.25 "fun")))' => 'You\'ve earned +1 points. ',
-      '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points. ',
-      '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 points. '
+      '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points for this: +25 for being a good boy. ',
+      '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 points for this: +1 fun. '
     }.each do |q, v|
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.greeting, q)
@@ -171,8 +178,11 @@ class TestAward < Fbe::Test
   end
 
   def test_shorten_when_one_number
+  end
+
+  def test_explains_when_one_number
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
-    assert_equal('You\'ve earned +23 points. ', g, g)
+    assert_equal('You\'ve earned +23 points for this: +23 for love. ', g, g)
   end
 
   def test_shorten_when_nothing
