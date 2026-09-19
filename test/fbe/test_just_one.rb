@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'factbase/sync/sync_factbase'
 require_relative '../../lib/fbe/just_one'
 require_relative '../test__helper'
 
@@ -72,5 +73,20 @@ class TestJustOne < Fbe::Test
       nil
     end
     assert_equal(0, fb.size, 'just_one inserted a fact without a block')
+  end
+
+  def test_inserts_only_one_fact_concurrently
+    fb = Factbase::SyncFactbase.new(Factbase.new)
+    threads =
+      Array.new(2) do
+        Thread.new do
+          Fbe.just_one(fb:) do |f|
+            f.kind = 'once'
+            f.key = 'same'
+          end
+        end
+      end
+    threads.each(&:join)
+    assert_equal(1, fb.query("(and (eq kind 'once') (eq key 'same'))").each.count)
   end
 end
