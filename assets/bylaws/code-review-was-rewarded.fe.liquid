@@ -43,9 +43,7 @@
   (aka
     (let comments_k {{ 0.125 | times: love }})
     (let comments_max 8)
-    (let comments_min 5)
-    (set bonus_for_comments (times comments comments_k))
-    (set bonus_for_comments (between bonus_for_comments comments_min comments_max))
+    (set bonus_for_comments (min (times comments comments_k) comments_max))
     (set bonus_for_comments (if (eq self 1) 0 bonus_for_comments))
     (give bonus_for_comments "for the ${comments} comment(s) that you have made")
     "add ${comments_k} points for each comment during the review, but not more than ${comments_max} points")
