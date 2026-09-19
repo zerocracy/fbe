@@ -39,21 +39,65 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}') (exists #{p_every_hours}))").each.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
-  recent = fb.query(
+  mine = "(and (eq what '#{judge.gsub("'", "\\\\'")}'))"
+  fresh =
     "(and
       (eq what '#{judge.gsub("'", "\\\\'")}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
-  ).each.first
+  recent, born, previous = Fbe.claim(fb, mine, fresh, judge)
   if recent
     loog.info("#{judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
     return
   end
-  f = fb.query("(and (eq what '#{judge.gsub("'", "\\\\'")}'))").each.first
-  if f.nil?
-    f = fb.insert
-    f.what = judge
+  begin
+    yield(fb.query(mine).each.first)
+  rescue StandardError
+    if born
+      fb.query(mine).delete!
+    elsif previous
+      Fbe.overwrite(fb.query(mine).each.first, 'when', previous, fb:)
+    end
+    raise
   end
-  yield(fb.query("(and (eq what '#{judge.gsub("'", "\\\\'")}'))").each.first)
-  Fbe.overwrite(f, 'when', Time.now, fb:)
   nil
+end
+
+# Claim the interval marker of a judge, so that nobody else starts the same work.
+#
+# The check for a recent run and the write of the marker happen in one
+# transaction. When the factbase is already inside a transaction, that one is
+# used, since Factbase refuses a nested transaction and the outer one gives the
+# same atomicity.
+#
+# @param [Factbase] fb The factbase to work with
+# @param [String] mine The query that finds the fact of this judge
+# @param [String] fresh The query that finds the fact if it is recent enough
+# @param [String] judge The name of the judge
+# @return [Array] The recent fact (or nil), whether the fact was just born,
+#   and the timestamp the marker carried before
+def Fbe.claim(fb, mine, fresh, judge)
+  recent = nil
+  born = false
+  previous = nil
+  once =
+    lambda do |f|
+      recent = f.query(fresh).each.first
+      next unless recent.nil?
+      fact = f.query(mine).each.first
+      if fact.nil?
+        fact = f.insert
+        fact.what = judge
+        born = true
+      else
+        previous = fact['when']&.first
+      end
+      Fbe.overwrite(fact, 'when', Time.now, fb: f)
+    end
+  begin
+    fb.txn { |fbt| once.call(fbt) }
+  rescue StandardError => e
+    raise(e) unless e.message.include?('inside another transaction')
+    once.call(fb)
+  end
+  [recent, born, previous]
 end

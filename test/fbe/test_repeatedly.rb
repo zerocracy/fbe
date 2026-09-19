@@ -121,4 +121,39 @@ class TestRepeatedly < Fbe::Test
     end
     assert_equal(2, fb.size)
   end
+
+  def test_claims_the_marker_before_the_block_runs
+    fb = Factbase.new
+    $fb = fb
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
+    seen = nil
+    Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'test') do |_f|
+      seen = fb.query("(and (eq what 'test') (exists when))").each.to_a.size
+    end
+    assert_equal(
+      1, seen,
+      'the marker must be in place before the block runs, or a second judge starts the very same work'
+    )
+  end
+
+  def test_restores_the_previous_marker_when_the_block_fails
+    $fb = Factbase.new
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: $options, loog: Loog::NULL)
+    Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'test') { |f| f.foo = 42 }
+    was = fb.query("(and (eq what 'test'))").each.first['when'].first
+    Time.stub(:now, Time.now + (25 * 60 * 60)) do
+      assert_raises(RuntimeError) do
+        Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'test') { |_f| raise(RuntimeError, 'oops') }
+      end
+    end
+    assert_equal(
+      was, fb.query("(and (eq what 'test'))").each.first['when'].first,
+      'a failed run must give the marker back, so the work is tried again'
+    )
+  end
 end
