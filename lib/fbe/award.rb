@@ -360,13 +360,13 @@ class Fbe::Award
     #   bill = Fbe::Award::Bill.new
     #   bill.line(50, "for code review")
     def line(value, text)
-      return if value.zero?
       text =
         text.gsub(/\$\{([a-z_0-9]+)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in award text: #{text}") unless @vars.key?(k)
           @vars[k]
         end
+      return if value.zero?
       @lines << { v: value, t: text }
     end
 
