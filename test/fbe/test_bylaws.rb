@@ -14,6 +14,11 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class TestBylaws < Fbe::Test
+  def test_rejects_negative_revert_count
+    bylaw = Fbe::Award::Bylaw.new
+    assert_raises(Fbe::Error) { bylaw.revert(-1) }
+  end
+
   def test_simple
     laws = Fbe.bylaws
     assert_operator(laws.size, :>, 1)

@@ -451,6 +451,9 @@ class Fbe::Award
     #   bylaw.line("award 30 points")
     #   bylaw.revert(1) # Removes "award 30 points"
     def revert(num)
+      unless num.is_a?(Integer) && num >= 0
+        raise(Fbe::Error, "The number of lines to revert must be a non-negative integer: #{num.inspect}")
+      end
       @lines.slice!(-num, num)
     end
 
