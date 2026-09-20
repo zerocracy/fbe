@@ -422,8 +422,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [Time] since The datetime from
+  # @param [Time] till The datetime to, the moment of the call by default
   # @return [Hash] A hash with total commits and hocs
-  def total_commits_pushed(owner, name, since)
+  def total_commits_pushed(owner, name, since, till = Time.now)
     cursor = nil
     total = 0
     hoc = 0
@@ -436,7 +437,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
               defaultBranchRef {
                 target {
                   ... on Commit {
-                    history(#{after}first: 100, since: "#{since.utc.iso8601}") {
+                    history(#{after}first: 100, since: "#{since.utc.iso8601}", until: "#{till.utc.iso8601}") {
                       totalCount
                       nodes {
                         oid
@@ -822,7 +823,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       ]
     end
 
-    def total_commits_pushed(_owner, _name, _since)
+    def total_commits_pushed(_owner, _name, _since, _till = Time.now)
       {
         'commits' => 29,
         'hoc' => 1857
