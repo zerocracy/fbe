@@ -378,7 +378,7 @@ class Fbe::Award
     #   bill.line(42.5, "for answer")
     #   bill.points #=> 43
     def points
-      @lines.sum { |l| whole(l[:v]) }
+      whole(@lines.sum { |l| l[:v] })
     end
 
     # Generates a human-readable summary of the bill.
