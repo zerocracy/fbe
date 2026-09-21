@@ -364,7 +364,7 @@ class Fbe::Award
         text.gsub(/\$\{([a-z_0-9]+)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in award text: #{text}") unless @vars.key?(k)
-          @vars[k]
+          @vars[k].is_a?(Float) ? whole(@vars[k]) : @vars[k]
         end
       return if value.zero?
       @lines << { v: value, t: text }
