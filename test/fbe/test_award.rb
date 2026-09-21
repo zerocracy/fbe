@@ -236,4 +236,9 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_bylaw_without_lines_has_no_dangling_header
+    md = Fbe::Award.new('(award (explain "Nothing is awarded here"))').bylaw.markdown
+    assert_equal('Nothing is awarded here.', md)
+  end
 end
