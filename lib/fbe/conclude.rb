@@ -80,7 +80,7 @@ class Fbe::Conclude
     @kickoff = kickoff
     @slot = slot
     @query = nil
-    @follows = []
+    @follows = nil
     @lifetime = true
     @timeout = true
     @quota = true
@@ -129,7 +129,7 @@ class Fbe::Conclude
   # @return [nil] Nothing
   # @raise [Fbe::Error] If +what+ or +details+ is in the list, since +draw+ sets them
   def follow(props)
-    raise(Fbe::Error, 'Follow is already set') unless @follows.empty?
+    raise(Fbe::Error, 'Follow is already set') unless @follows.nil?
     list = props.strip.split.compact
     bad = list & %w[what details]
     raise(Fbe::Error, "Can't follow #{bad.join(' and ')}, the judge sets it in the new fact") unless bad.empty?
@@ -280,7 +280,7 @@ class Fbe::Conclude
   #     end
   #   end
   def fill(fact, prev)
-    @follows.each do |follow|
+    @follows.to_a.each do |follow|
       key = follow.to_s
       values = prev[key]
       next if values.nil?
