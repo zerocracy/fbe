@@ -147,6 +147,13 @@ class TestBylaws < Fbe::Test
     end
   end
 
+  def test_never_exposes_a_bare_set_in_the_text
+    Fbe.bylaws.each do |title, formula|
+      md = Fbe::Award.new(formula).bylaw.markdown
+      refute_includes(md, 'set _', "The text of '#{title}' exposes an internal variable: #{md}")
+    end
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
