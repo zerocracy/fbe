@@ -121,8 +121,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # (indicated by +http_cache_trace+ containing +:fresh+), the
   # +x-ratelimit-remaining+ header is stale, so we keep our
   # decremented count. When the API was actually contacted,
-  # we seed unknown counters from headers, but avoid raising
-  # a counter already decremented by this middleware.
+  # the header is the truth, so we take it as is, even when it
+  # raises the counter after GitHub has reset the quota.
   #
   # @param [Faraday::Env] response_env The response environment
   def sync(response_env, path = nil)
@@ -133,9 +133,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     return unless remaining
     count = Integer(remaining)
     if path&.start_with?('/search/')
-      @searchleft = @searchleft.nil? ? count : [@searchleft, count].min
+      @searchleft = count
     else
-      @remaining = @remaining.nil? ? count : [@remaining, count].min
+      @remaining = count
     end
   end
 

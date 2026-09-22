@@ -369,6 +369,23 @@ class RateLimitTest < Fbe::Test
     assert_equal(4900, response.body['rate']['remaining'])
   end
 
+  def test_raises_remaining_after_quota_reset
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user').to_return(
+      { status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '3' } },
+      { status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' } }
+    )
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    conn.get('/user')
+    assert_equal(3, tracker[:rate_limit].remaining)
+    conn.get('/user')
+    assert_equal(5000, tracker[:rate_limit].remaining)
+  end
+
   def test_syncs_search_remaining_from_response_header
     payload = {
       'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
