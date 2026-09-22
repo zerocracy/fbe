@@ -461,6 +461,22 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_drops_previous_value_when_refusing_to_write
+    with_tmpfile('refuse.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, maxvsize: '1Kb').then do |store|
+        [
+          'b' * 5000,
+          [['this is not json', '{}']],
+          faraday_value(req: { 'method' => 'post', 'url' => 'https://example.com/test' })
+        ].each do |refused|
+          store.write('k', 'a' * 100)
+          store.write('k', refused)
+          assert_nil(store.read('k'))
+        end
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
