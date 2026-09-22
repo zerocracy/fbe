@@ -148,7 +148,8 @@ class Fbe::Conclude
   # This snippet will find all facts that have +win+ property and will create
   # new facts for all of them, passing them one by one in to the block of
   # the +draw+, where +n+ would be the new created fact and the +w+ would
-  # be the fact found.
+  # be the fact found. If the block writes nothing into the new fact,
+  # the fact is not kept.
   #
   # @yield [Array<Factbase::Fact,Factbase::Fact>] New fact and seen fact
   # @return [Integer] The count of the facts processed
@@ -156,6 +157,7 @@ class Fbe::Conclude
     roll do |fbt, a|
       n = fbt.insert
       fill(n, a, &)
+      throw(:rollback) if n.all_properties.all? { |p| p.start_with?('_') }
       n
     end
   end
