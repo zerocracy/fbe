@@ -866,6 +866,25 @@ class TestOcto < Fbe::Test
     assert(o.auto_paginate)
   end
 
+  def test_print_trace_counts_only_printed_requests
+    loog = Loog::Buffer.new
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    stub_request(:get, %r{https://api.github.com/repos/foo/bar/issues/\d+}).to_return(
+      body: '{"number":1}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
+    total = 10
+    total.times { |i| octo.issue('foo/bar', i + 1) }
+    octo.print_trace!(max: 9_999)
+    head, *lines = loog.to_s.lines.drop_while { |l| !l.include?('GitHub API trace') }
+    shown, skipped = head.match(/URLs vs (\d+) requests, (\d+) fast ones skipped/).captures.map { |i| Integer(i, 10) }
+    assert_equal(lines.sum { |l| Integer(l[/: (\d+) \(/, 1], 10) }, shown)
+    assert_operator(shown + skipped, :>=, total)
+  end
+
   def test_print_trace
     loog = Loog::Buffer.new
     WebMock.disable_net_connect!
