@@ -142,13 +142,13 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # Extracts the remaining count from the response body.
   #
   # @param [Faraday::Response] response The API response
-  # @return [Integer] The remaining requests count
+  # @return [Integer, nil] The remaining requests count, or nil when it is unknown
   def extract_remaining_count(response)
     body = response.body
     body = JSON.parse(body) if body.is_a?(String)
     value = body.dig('rate', 'remaining') if body.is_a?(Hash)
     value ||= response.headers['x-ratelimit-remaining']
-    Integer(value || 0)
+    value.nil? ? nil : Integer(value)
   end
 
   # Extracts the search-resource remaining count from the response body.

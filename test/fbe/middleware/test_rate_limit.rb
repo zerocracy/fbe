@@ -100,6 +100,21 @@ class RateLimitTest < Fbe::Test
     assert_empty(response.body)
   end
 
+  def test_leaves_remaining_unknown_when_response_has_no_count
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(
+        status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+      )
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    assert_nil(tracker[:rate_limit].remaining)
+    conn.get('/user')
+    assert_equal(4999, tracker[:rate_limit].remaining)
+  end
+
   def test_handles_zero_remaining_count
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
