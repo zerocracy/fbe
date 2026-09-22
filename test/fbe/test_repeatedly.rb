@@ -86,6 +86,20 @@ class TestRepeatedly < Fbe::Test
     assert_equal(7, fb.query('(always)').each.first['bar'].first)
   end
 
+  def test_replaces_properties_set_in_previous_run
+    opts = Judges::Options.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    3.times do |i|
+      Time.stub(:now, Time.now + (i * 25 * 60 * 60)) do
+        Fbe.repeatedly('monitoring', 'hours_between_checks', fb:, judge: 'test', loog: Loog::NULL) do |f|
+          f.servers_checked = i + 1
+        end
+      end
+    end
+    assert_equal(1, fb.size)
+    assert_equal([3], fb.query('(always)').each.first['servers_checked'])
+  end
+
   def test_area_with_single_quote
     fb = Factbase.new
     $fb = fb
