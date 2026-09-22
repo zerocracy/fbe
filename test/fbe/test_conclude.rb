@@ -195,6 +195,23 @@ class TestConclude < Fbe::Test
     assert_equal(0, fb.query('(exists sum)').each.to_a.size)
   end
 
+  def test_slot_is_reserved_on_top_of_over_margin
+    [['timeout=100', { kickoff: Time.now - 85 }], ['lifetime=100', { epoch: Time.now - 85 }]].each do |opt, start|
+      fb = Factbase.new
+      fb.insert.foo = 1
+      options = Judges::Options.new(opt)
+      Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, slot: 6, **start) do
+        quota_unaware
+        on('(exists foo)')
+        draw do |n, prev|
+          n.sum = prev.foo
+          'A long enough description to satisfy the requirements of the draw.'
+        end
+      end
+      assert_equal(0, fb.query('(exists sum)').each.to_a.size, opt)
+    end
+  end
+
   def test_default_slot_does_not_stop_early
     fb = Factbase.new
     fb.insert.foo = 1
