@@ -123,7 +123,8 @@ class Fbe::Middleware::SqliteStore
         @loog.info("Failed to parse response to rewrite the cache age: #{e.message}")
         resp = nil
       end
-      control = resp.dig('response_headers', 'cache-control') if resp.is_a?(Hash)
+      header = resp['response_headers']&.keys&.find { |h| h.casecmp?('cache-control') } if resp.is_a?(Hash)
+      control = resp.dig('response_headers', header) if header
       if control && !control.empty?
         %w[max-age s-maxage].each do |key|
           matched = control.scan(/#{key}=(\d+)/i).first&.first
@@ -133,7 +134,7 @@ class Fbe::Middleware::SqliteStore
             control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
           end
         end
-        resp['response_headers']['cache-control'] = control
+        resp['response_headers'][header] = control
         value = value.dup
         value[0] = value[0].dup
         value[0][1] = JSON.dump(resp)

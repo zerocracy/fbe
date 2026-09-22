@@ -450,6 +450,17 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_overwrite_cache_control_ignoring_header_case
+    %w[cache-control Cache-Control CACHE-CONTROL].each do |header|
+      with_tmpfile('header.db') do |f|
+        store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)
+        store.write('test', faraday_value(resp: { 'response_headers' => { header => 'private, max-age=60' } }))
+        assert_equal({ header => 'private, max-age=300' }, JSON.parse(store.read('test')[0][1])['response_headers'])
+        store.close
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
