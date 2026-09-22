@@ -133,6 +133,15 @@ class TestAward < Fbe::Test
     assert_includes(md, '_x_ clamped between **3** and **120**, or 0 if it is smaller than **3**', md)
   end
 
+  def test_bylaw_markdown_keeps_unrelated_step_apart_from_award
+    a = Fbe::Award.new('(award (in x "the input") (set d (div x 24)) (give 8 "b") (set b (plus d 1)) (give b "bonus"))')
+    assert_equal(
+      "Here is how it's calculated: First, assume that _x_ is the input. " \
+      'Then, set _d_ to _x_ ÷ **24**. Then, award **8**. Then, set _b_ to _d_ + **1**, and award _b_.',
+      a.bylaw.markdown
+    )
+  end
+
   def test_lines_add_up_to_the_total
     b = Fbe::Award.new('(award (give 12 "as a basis") (give 7.6 "for comments"))').bill
     g = b.greeting

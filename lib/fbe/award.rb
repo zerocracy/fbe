@@ -516,7 +516,9 @@ class Fbe::Award
       else
         pars += @lines.each_with_index.map { |t, i| "#{i.zero? ? 'First' : 'Then'}, #{t}." }
       end
-      pars.join(' ').gsub('. Then, award ', ', and award ').gsub(/\s{2,}/, ' ')
+      pars.join(' ')
+        .gsub(/(\bset (_[^_\s]+_) to (?:(?!\. ).)*)\. Then, award \2\./, '\1, and award \2.')
+        .gsub(/\s{2,}/, ' ')
     end
   end
 end
