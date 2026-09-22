@@ -146,8 +146,11 @@ class Fbe::Award
       if any.is_a?(BTerm)
         any.calc(bill)
       elsif any.is_a?(Symbol)
+        unless bill.vars.key?(any)
+          raise(Fbe::Error, "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}")
+        end
         v = bill.vars[any]
-        raise(Fbe::Error, "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}") if v.nil?
+        raise(Fbe::Error, "The value of #{any.inspect} is nil") if v.nil?
         v
       else
         any

@@ -170,6 +170,12 @@ class TestAward < Fbe::Test
     assert_includes(assert_raises(Fbe::Error) { a.bylaw }.message, "Unknown term 'bogus'")
   end
 
+  def test_bill_reports_nil_value_apart_from_unknown_name
+    a = Fbe::Award.new('(award (give (plus x 1) "test"))')
+    assert_includes(assert_raises(Fbe::Error) { a.bill(x: nil) }.message, 'The value of :x is nil')
+    assert_includes(assert_raises(Fbe::Error) { a.bill }.message, 'Unknown name :x')
+  end
+
   def test_division_by_zero_raises_error
     a = Fbe::Award.new('(award (set x (div 10 0)) (give x "test"))')
     assert_raises(Fbe::Error) { a.bill }
