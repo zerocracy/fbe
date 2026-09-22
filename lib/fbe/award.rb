@@ -361,7 +361,7 @@ class Fbe::Award
     #   bill.line(50, "for code review")
     def line(value, text)
       text =
-        text.gsub(/\$\{([a-z_0-9]+)\}/) do |_x|
+        text.gsub(/\$\{([^}]*)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in award text: #{text}") unless @vars.key?(k)
           @vars[k]
@@ -478,7 +478,7 @@ class Fbe::Award
     #   bylaw.line("award ${points} points")
     def line(line)
       line =
-        line.gsub(/\$\{([a-z_0-9]+)\}/) do |_x|
+        line.gsub(/\$\{([^}]*)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @lets.key?(k)
           "**#{@lets[k]}**"
