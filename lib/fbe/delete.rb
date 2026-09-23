@@ -29,8 +29,7 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
   raise(Fbe::Error, "There is no #{id.inspect} in the fact") if i.nil?
   i = i.first
   before = {}
-  fact.all_properties.each do |k|
-    next if props.include?(k)
+  (fact.all_properties - props.map(&:to_s)).each do |k|
     before[k] = fact[k]
   end
   fb.txn do |fbt|
