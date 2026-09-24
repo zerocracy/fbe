@@ -99,4 +99,19 @@ class TestRegularly < Fbe::Test
     end
     assert_equal(2, fb.size)
   end
+
+  def test_area_and_judge_ending_with_backslash
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    name = "#{Array.new(rnd.rand(1..32)) { rnd.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join}\\"
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = name
+      f.interval = 3
+    end
+    2.times { Fbe.regularly(name, 'interval', 'days', fb:, loog: Loog::NULL, judge: name) { |f| f.foo = 42 } }
+    assert_equal(2, fb.size, "judge ending in a backslash was not recognized as recent, seed #{seed}")
+  end
 end

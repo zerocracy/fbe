@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: MIT
 
 require 'others'
-require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 
@@ -49,17 +48,9 @@ def Fbe.just_one(fb: Fbe.fb)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
-    "(eq #{k} #{vv})"
-  end.join(' ')
-  q = "(and #{q})"
-  before = fb.query(q).each.first
+  criteria = attrs.except(:_id, :_time, :_version)
+  term = criteria.keys.map { |k| "(eq #{k} $#{k})" }.join(' ')
+  before = fb.query("(and #{term})").each(fb, criteria).first
   return before unless before.nil?
   n = fb.insert
   attrs.each { |k, v| n.public_send(:"#{k}=", v) }

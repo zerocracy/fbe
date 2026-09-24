@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: MIT
 
 require 'others'
-require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 
@@ -33,8 +32,7 @@ require_relative 'fb'
 # @param [Boolean] always If true, return the object in any case
 # @yield [Factbase::Fact] A proxy fact object to set properties on
 # @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
-# @note String values are properly escaped in queries
-# @note Time values are converted to UTC ISO8601 format for comparison
+# @note Values are bound to the query as parameters, so any string can be matched
 # @example Ensure unique user registration
 #   user = Fbe.if_absent do |f|
 #     f.type = 'user'
@@ -62,17 +60,9 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
-    "(eq #{k} #{vv})"
-  end.join(' ')
-  q = "(and #{q})"
-  before = fb.query(q).each.first
+  criteria = attrs.except(:_id, :_time, :_version)
+  term = criteria.keys.map { |k| "(eq #{k} $#{k})" }.join(' ')
+  before = fb.query("(and #{term})").each(fb, criteria).first
   return before if before && always
   return nil if before
   n = fb.insert
