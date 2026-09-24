@@ -170,6 +170,18 @@ class TestAward < Fbe::Test
     assert_includes(assert_raises(Fbe::Error) { a.bylaw }.message, "Unknown term 'bogus'")
   end
 
+  def test_bylaw_dont_expose_empty_vars
+    seed = Random.new_seed
+    q = "(award (let bonus #{Random.new(seed).rand(1..10_000)}) (give bonus \"Ωλ\"))"
+    assert_raises(NoMethodError, "bylaw of #{q} answers vars, seed is #{seed}") { Fbe::Award.new(q).bylaw.vars }
+  end
+
+  def test_bylaw_without_lets_dont_expose_vars
+    seed = Random.new_seed
+    q = "(award (give #{Random.new(seed).rand(1..10_000)} \"für Größe\"))"
+    assert_raises(NoMethodError, "bylaw of #{q} answers vars, seed is #{seed}") { Fbe::Award.new(q).bylaw.vars }
+  end
+
   def test_division_by_zero_raises_error
     a = Fbe::Award.new('(award (set x (div 10 0)) (give x "test"))')
     assert_raises(Fbe::Error) { a.bill }
