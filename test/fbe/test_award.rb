@@ -183,4 +183,51 @@ class TestAward < Fbe::Test
       assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill.points }
     end
   end
+
+  def test_cannot_publish_if_with_extra_operand
+    seed = Random.new_seed
+    extra = Random.new(seed).rand(1..1_000)
+    a = Fbe::Award.new(
+      "(award (let b (if (lt 1 2) 1 2 #{extra})) (give b \"x\"))",
+      judge: '', global: {}, options: nil, loog: Loog::NULL
+    )
+    assert_raises(Fbe::Error, "the extra operand of 'if' is not rejected, seed: #{seed}") { a.bylaw }
+  end
+
+  def test_cannot_publish_if_without_else
+    a = Fbe::Award.new(
+      '(award (let b (if (lt 1 2) 1)) (give b "x"))',
+      judge: '', global: {}, options: nil, loog: Loog::NULL
+    )
+    assert_raises(Fbe::Error, "the 'if' without an else branch is not rejected") { a.bylaw }
+  end
+
+  def test_cannot_publish_if_with_only_condition
+    a = Fbe::Award.new('(award (give (if (lt 1 2)) "x"))', judge: '', global: {}, options: nil, loog: Loog::NULL)
+    assert_raises(Fbe::Error, "the 'if' with a condition alone is not rejected") { a.bylaw }
+  end
+
+  def test_cannot_publish_if_with_extra_operand_in_set
+    a = Fbe::Award.new(
+      '(award (set b (if (lt 1 2) 1 2 99)) (give b "x"))',
+      judge: '', global: {}, options: nil, loog: Loog::NULL
+    )
+    assert_raises(Fbe::Error, "the extra operand of 'if' in 'set' is not rejected") { a.bylaw }
+  end
+
+  def test_cannot_publish_nested_if_with_extra_operand
+    a = Fbe::Award.new(
+      '(award (let b (if (lt 1 2) (if (gt 3 4) 5 6 7) 2)) (give b "x"))',
+      judge: '', global: {}, options: nil, loog: Loog::NULL
+    )
+    assert_raises(Fbe::Error, "the extra operand of a nested 'if' is not rejected") { a.bylaw }
+  end
+
+  def test_publishes_if_with_three_operands
+    md = Fbe::Award.new(
+      '(award (let b (if (lt 1 2) 1 2)) (give b "x"))',
+      judge: '', global: {}, options: nil, loog: Loog::NULL
+    ).bylaw.markdown
+    assert_includes(md, 'if **1** < **2** then **1** else **2**', md)
+  end
 end
