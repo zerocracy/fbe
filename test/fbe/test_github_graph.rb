@@ -798,4 +798,11 @@ class TestGitHubGraph < Fbe::Test
     graph.total_releases_published('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
     refute_includes(captured, 'after: ""')
   end
+
+  def test_refuses_a_missing_context
+    opts = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error) { Fbe.github_graph(options: opts, global: nil, loog: Loog::NULL) }
+    assert_raises(Fbe::Error) { Fbe.github_graph(options: nil, global: {}, loog: Loog::NULL) }
+    assert_raises(Fbe::Error) { Fbe.github_graph(options: opts, global: {}, loog: nil) }
+  end
 end
