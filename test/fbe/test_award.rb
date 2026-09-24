@@ -183,4 +183,42 @@ class TestAward < Fbe::Test
       assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill.points }
     end
   end
+
+  def test_cannot_bill_if_with_fourth_operand
+    [
+      '(award (give (if (gt 1 2) 1 2 99) "points"))',
+      '(award (give (if (lt 1 2) 1 2 99) "points"))'
+    ].each do |q|
+      assert_raises(Fbe::Error, "extra operand is not rejected in #{q}") do
+        Fbe::Award.new(q, judge: '', global: {}, options: nil, loog: Loog::NULL).bill.points
+      end
+    end
+  end
+
+  def test_cannot_bill_if_with_many_extra_operands
+    seed = Random.new_seed
+    extra = Array.new(Random.new(seed).rand(2..40)) { |i| "\"ж#{i}\"" }.join(' ')
+    q = "(award (give (if (lt 1 2) 1 2 #{extra}) \"points\"))"
+    assert_raises(Fbe::Error, "extra operands are not rejected with seed #{seed} in #{q}") do
+      Fbe::Award.new(q, judge: '', global: {}, options: nil, loog: Loog::NULL).bill.points
+    end
+  end
+
+  def test_cannot_bill_nested_if_with_fourth_operand
+    q = '(award (set b (if (gt 1 2) 1 (if (lt 1 2) 2 3 4))) (give b "points"))'
+    assert_raises(Fbe::Error, "nested extra operand is not rejected in #{q}") do
+      Fbe::Award.new(q, judge: '', global: {}, options: nil, loog: Loog::NULL).bill.points
+    end
+  end
+
+  def test_bills_if_with_exactly_three_operands
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    yes = rnd.rand(1..900)
+    q = "(award (give (if (lt 1 2) #{yes} #{rnd.rand(1..900)}) \"points\"))"
+    assert_equal(
+      yes, Fbe::Award.new(q, judge: '', global: {}, options: nil, loog: Loog::NULL).bill.points,
+      "then branch is not billed with seed #{seed} in #{q}"
+    )
+  end
 end
