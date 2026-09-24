@@ -115,4 +115,46 @@ class TestIfAbsent < Fbe::Test
       end
     refute_nil(n)
   end
+
+  def test_raises_on_block_without_attributes
+    seed = Random.new_seed
+    fb = Factbase.new
+    fb.insert.kind = "чужой факт #{Random.new(seed).rand(1_000_000)}"
+    assert_raises(Fbe::Error, "if_absent matched an unrelated fact by an empty key, seed #{seed}") do
+      Fbe.if_absent(fb:, always: false) { nil }
+    end
+  end
+
+  def test_raises_on_block_without_attributes_when_always
+    seed = Random.new_seed
+    fb = Factbase.new
+    fb.insert.kind = "чужой факт #{Random.new(seed).rand(1_000_000)}"
+    assert_raises(Fbe::Error, "if_absent returned an unrelated fact by an empty key, seed #{seed}") do
+      Fbe.if_absent(fb:, always: true) { nil }
+    end
+  end
+
+  def test_raises_on_block_with_only_system_attributes
+    seed = Random.new_seed
+    random = Random.new(seed)
+    fb = Factbase.new
+    fb.insert.kind = "чужой факт #{random.rand(1_000_000)}"
+    assert_raises(Fbe::Error, "if_absent matched an unrelated fact by system attributes, seed #{seed}") do
+      Fbe.if_absent(fb:, always: false) do |f|
+        f._id = random.rand(1..1_000_000)
+        f._time = Time.at(random.rand(1_000_000_000)).utc
+        f._version = random.rand(1..1_000)
+      end
+    end
+  end
+
+  def test_dont_insert_fact_without_attributes
+    fb = Factbase.new
+    begin
+      Fbe.if_absent(fb:, always: false) { nil }
+    rescue Fbe::Error
+      nil
+    end
+    assert_equal(0, fb.size, 'if_absent inserted a blank fact for an empty key')
+  end
 end
