@@ -5,7 +5,7 @@
 
 require 'factbase/syntax'
 require 'joined'
-require_relative 'fb'
+require_relative '../fbe'
 
 # A generator of awards.
 #
@@ -31,13 +31,8 @@ require_relative 'fb'
 # License:: MIT
 class Fbe::Award
   # Ctor.
-  # @param [String, nil] query The query with the bylaw
-  # @param [String] judge The name of the judge
-  # @param [Hash] global The hash for global caching
-  # @param [Judges::Options] options The options coming from the +judges+ tool
-  # @param [Loog] loog The logging facility
-  def initialize(query = nil, judge: $judge, global: $global, options: $options, loog: $loog)
-    query = Fbe.pmp(fb: Fbe.fb, global:, options:, loog:).hr.public_send(judge.tr('-', '_')) if query.nil?
+  # @param [String] query The query with the bylaw
+  def initialize(query, **nil)
     @query = query
   end
 
