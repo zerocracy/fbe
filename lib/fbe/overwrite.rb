@@ -65,23 +65,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     end
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
-    fb.txn do |fbt|
-      raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
-      n = fbt.insert
-      f = n
-      while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
-        iv = f.instance_variable_defined?(:@fact) ? :@fact : :@origin
-        f = f.instance_variable_get(iv)
-      end
-      map = f.instance_variable_get(:@map)
-      %w[_id _time _version _job].each { |k| map.delete(k) if before.key?(k) }
-      before.each do |k, vv|
-        next unless n[k].nil?
-        vv.each do |v|
-          n.public_send(:"#{k}=", v)
-        end
-      end
-    end
+    Fbe.replace(fb, fid, id, before)
     return
   end
   property = property_or_hash
@@ -101,23 +85,46 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   end
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
-  fb.txn do |fbt|
-    raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
-    n = fbt.insert
-    f = n
-    while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
-      iv = f.instance_variable_defined?(:@fact) ? :@fact : :@origin
-      f = f.instance_variable_get(iv)
-    end
-    map = f.instance_variable_get(:@map)
-    %w[_id _time _version _job].each { |k| map.delete(k) if before.key?(k) }
-    before[property.to_s] = values
-    before.each do |k, vv|
-      next unless n[k].nil?
-      vv.each do |v|
-        n.public_send(:"#{k}=", v)
+  before[property.to_s] = values
+  Fbe.replace(fb, fid, id, before)
+  nil
+end
+
+# Replace a fact by its ID with a new one that carries the given properties.
+#
+# The replacement is one transaction. When the factbase is already inside a
+# transaction, that one is used, since Factbase refuses a nested transaction
+# and the outer one gives the same atomicity.
+#
+# @param [Factbase] fb The factbase to work with
+# @param [String] fid The name of the ID property
+# @param [Object] id The value of the ID property of the fact to replace
+# @param [Hash] before The properties of the new fact
+# @return [nil] Nothing
+def Fbe.replace(fb, fid, id, before)
+  put =
+    lambda do |fbt|
+      raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
+      n = fbt.insert
+      f = n
+      while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
+        iv = f.instance_variable_defined?(:@fact) ? :@fact : :@origin
+        f = f.instance_variable_get(iv)
+      end
+      map = f.instance_variable_get(:@map)
+      %w[_id _time _version _job].each { |k| map.delete(k) if before.key?(k) }
+      before.each do |k, vv|
+        next unless n[k].nil?
+        vv.each do |v|
+          n.public_send(:"#{k}=", v)
+        end
       end
     end
+  begin
+    fb.txn { |fbt| put.call(fbt) }
+  rescue StandardError => e
+    raise(e) unless e.message.include?('inside another transaction')
+    put.call(fb)
   end
   nil
 end
