@@ -10,9 +10,7 @@
   (aka
     (let hoc_k {{ 0.005 | times: love }})
     (let hoc_max 24)
-    (let hoc_min 4)
-    (set b1 (times hoc hoc_k))
-    (set b1 (between b1 hoc_min hoc_max))
+    (set b1 (min (times hoc hoc_k) hoc_max))
     (give b1 "for ${hoc} hits-of-code")
     "add ${hoc_k} points for each
       [hit-of-code](https://www.yegor256.com/2014/11/14/hits-of-code.html),
