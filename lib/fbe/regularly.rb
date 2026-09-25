@@ -21,7 +21,7 @@ require_relative 'fb'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield [Factbase::Fact] Fact to populate with judge execution details
 # @return [nil] Nothing
-# @raise [Fbe::Error] If required parameters or globals are nil
+# @raise [Fbe::Error] If required context is nil or configured days are not finite numbers
 # @note Skips execution if judge was run within the interval period
 # @note The 'since' property is added to the fact when p_since_days is provided
 # @example Run a cleanup task every 3 days
@@ -29,14 +29,22 @@ require_relative 'fb'
 #     f.total_cleaned = cleanup_old_records
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
-def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &) # rubocop:disable Metrics/AbcSize
   raise(Fbe::Error, 'The area is nil') if area.nil?
   raise(Fbe::Error, 'The p_every_days is nil') if p_every_days.nil?
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
-  interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
+  number =
+    lambda do |property, fallback|
+      value = Float(pmp.filter_map { |f| f[property]&.first }.first || fallback, exception: false)
+      unless value&.finite?
+        raise(Fbe::Error, "Invalid PMP value for '#{property}' in '#{area}': must be a finite number")
+      end
+      value
+    end
+  interval = number.call(p_every_days, 7)
   recent = fb.query(
     "(and
       (eq what '#{judge.gsub("'", "\\\\'")}')
@@ -49,13 +57,13 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     )
     return
   end
+  days = number.call(p_since_days, 28) unless p_since_days.nil?
   loog.info("#{judge} statistics weren't collected for the last #{interval} days")
   fb.txn do |fbt|
     f = fbt.insert
     f.what = judge
     f.when = Time.now
     unless p_since_days.nil?
-      days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28
       since = Time.now - (days * 24 * 60 * 60)
       f.since = since
     end
