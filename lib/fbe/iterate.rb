@@ -197,6 +197,9 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Sort field is already set') unless @sorting.nil?
     raise(Fbe::Error, 'Cannot set sort field to nil') if prop.nil?
     raise(Fbe::Error, 'Sort field must be a String') unless prop.is_a?(String)
+    unless prop.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
+      raise(Fbe::Error, "Wrong sort field format '#{prop}', use [_a-z][a-zA-Z0-9_]*")
+    end
     @sorting = prop
   end
 
@@ -309,9 +312,7 @@ class Fbe::Iterate
         end
         nxt =
           if @sorting
-            values[repo] ||= @fb.query(@query).each(
-              @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.sort.each
+            values[repo] ||= sorted_values(repo, before[repo])
             begin
               values[repo].next
             rescue StopIteration
@@ -371,5 +372,22 @@ class Fbe::Iterate
         Fbe.overwrite(f, @label, latest[repo], fb: @fb)
       end
     end
+  end
+
+  private
+
+  # Fetches and sorts the values of the +sort_by+ field for one repository.
+  #
+  # @param [Integer] repo The repository ID
+  # @param [Object] since The +$before+ value to run the query with
+  # @return [Enumerator] The sorted values, ready for +.next+
+  # @raise [Fbe::Error] If matched facts exist but none of them carry the sort field
+  def sorted_values(repo, since)
+    raw = @fb.query(@query).each(@fb, before: since, repository: repo).to_a
+    sorted = raw.filter_map { _1[@sorting]&.first }
+    if sorted.empty? && !raw.empty?
+      raise(Fbe::Error, "None of the #{raw.size} matched facts in ##{repo} carry the '#{@sorting}' property")
+    end
+    sorted.sort.each
   end
 end
