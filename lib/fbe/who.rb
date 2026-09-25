@@ -27,6 +27,7 @@ require_relative 'octo'
 #   contributor.author_id = 526301
 #   puts Fbe.who(contributor, :author_id)  # => "@yegor256"
 def Fbe.who(fact, prop = :who, options: $options, global: $global, loog: $loog)
+  raise(Fbe::Error, 'The fact is nil') if fact.nil?
   id = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if id.nil?
   id = Integer(id.first.to_s, 10)
