@@ -188,6 +188,16 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(['bar/baz'], list, 'the absent repo is not dropped')
   end
 
+  def test_does_not_raise_off_quota_regardless_of_quota_aware
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '40' } }
+    )
+    options = Judges::Options.new({ 'repositories' => 'foo/bar' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL, quota_aware: false)
+    assert_equal(['foo/bar'], list, 'the repo is not kept when the quota check itself is off-quota')
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })
