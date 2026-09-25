@@ -207,7 +207,7 @@ class Fbe::Iterate
   #
   # @param [String] label Unique identifier for this iteration type
   # @return [nil] Nothing is returned
-  # @raise [Fbe::Error] If label is already set or nil
+  # @raise [Fbe::Error] If label is already set, nil, or a property of the marker fact
   # @example Set label for issue processing
   #   iterator.as('issue_processor')
   def as(label)
@@ -216,6 +216,8 @@ class Fbe::Iterate
     unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
       raise(Fbe::Error, "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*")
     end
+    raise(Fbe::Error, "The label '#{label}' clashes with a property of the marker fact") if
+      %w[what where repository].include?(label)
     @label = label
   end
 
