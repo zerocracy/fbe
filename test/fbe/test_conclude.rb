@@ -50,6 +50,64 @@ class TestConclude < Fbe::Test
     assert_includes(f.details, 'funny')
   end
 
+  def test_class_docstring_example_works_as_written
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new(['testing=true'])
+    $judge = 'judge-two'
+    $fb.insert.bad = 1
+    Fbe.conclude do
+      on('(exists bad)')
+      follow('when')
+      draw do |n, _b|
+        n.good = 'yes!'
+        'A bad fact was found and a good fact was created for it.'
+      end
+    end
+    f = $fb.query('(exists good)').each.to_a[0]
+    assert_equal('yes!', f.good)
+  end
+
+  def test_draw_method_docstring_example_works_as_written
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new(['testing=true'])
+    $judge = 'judge-three'
+    $fb.insert.win = 1
+    Fbe.conclude do
+      on('(exists win)')
+      follow('win when')
+      draw do |n, _w|
+        n.reward = 10
+        'A win fact was found and a reward fact was created for it.'
+      end
+    end
+    f = $fb.query('(exists reward)').each.to_a[0]
+    assert_equal(10, f.reward)
+  end
+
+  def test_consider_method_docstring_example_works_as_written
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new(['testing=true'])
+    $judge = 'judge-four'
+    $fb.insert.foo = 1
+    Fbe.conclude do
+      on('(always)')
+      consider do |f|
+        f.when = Time.new
+      end
+    end
+    f = $fb.query('(exists when)').each.to_a[0]
+    refute_nil(f)
+  end
+
   def test_draw_with_rollback
     $fb = Factbase.new
     $global = {}
