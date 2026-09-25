@@ -158,15 +158,18 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           }
         GRAPHQL
       end
-    result = query("{\n#{requests.join("\n")}\n}")
     if owner && name && branch
+      result = query("{\n#{requests.join("\n")}\n}")
       ref = result.repo_0&.ref
       raise(Fbe::Error, "Repository '#{owner}/#{name}' or branch '#{branch}' not found") unless ref&.target&.history
       ref.target.history.total_count
     else
-      repos.each_with_index.map do |(owner, name, branch), i|
-        ref = result.public_send(:"repo_#{i}")&.ref
-        raise(Fbe::Error, "Repository '#{owner}/#{name}' or branch '#{branch}' not found") unless ref&.target&.history
+      data = query_with_partial_data("{\n#{requests.join("\n")}\n}")
+      failed = data.errors.messages
+      repos.each_with_index.filter_map do |(owner, name, branch), i|
+        next if failed["repo_#{i}"]&.any?
+        ref = data.public_send(:"repo_#{i}")&.ref
+        next unless ref&.target&.history
         {
           'owner' => owner,
           'name' => name,
@@ -549,6 +552,22 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   end
 
   private
+
+  # Executes a batch GraphQL query, tolerating a per-alias error.
+  #
+  # Unlike {#query}, this does not raise when one aliased top-level field
+  # (e.g. one repository in a batch) carries its own error, only when the
+  # query as a whole failed. The caller is expected to check
+  # +data.errors.messages[alias]+ before reading a given alias.
+  #
+  # @param [String] qry The GraphQL query to execute
+  # @return [GraphQL::Client::Response] The (possibly partial) query result data
+  def query_with_partial_data(qry)
+    result = client.query(client.parse(qry))
+    messages = result.errors.messages.values.flatten
+    raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}") unless messages.empty?
+    result.data
+  end
 
   # Renders a value as a GraphQL string literal, quotes and escaping included.
   #
