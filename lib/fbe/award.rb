@@ -284,12 +284,14 @@ class Fbe::Award
         end
       when :aka
         before = bylaw.size
+        before_intro = bylaw.intro_text
         @operands[0..-2].each do |o|
           o.publish_to(bylaw)
         rescue StandardError => e
           raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
         bylaw.revert(bylaw.size - before)
+        bylaw.intro(before_intro)
         bylaw.line(to_p(@operands[-1]))
       when :explain
         bylaw.intro(to_p(@operands[0]))
@@ -469,6 +471,13 @@ class Fbe::Award
     #   bylaw.intro("This bylaw determines rewards for code contributions")
     def intro(text)
       @intro = text
+    end
+
+    # The introductory text set so far.
+    #
+    # @return [String] The introductory text
+    def intro_text
+      @intro
     end
 
     # Adds a line of text to the bylaw, replacing variable references.
