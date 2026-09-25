@@ -27,6 +27,9 @@ def Fbe.copy(source, target, except: [])
   raise(Fbe::Error, 'The source is nil') if source.nil?
   raise(Fbe::Error, 'The target is nil') if target.nil?
   raise(Fbe::Error, 'The except is nil') if except.nil?
+  unless except.is_a?(Array)
+    raise(Fbe::Error, "The except must be an Array of property names, while #{except.class} provided")
+  end
   copied = 0
   source.all_properties.each do |k|
     next unless target[k].nil?
