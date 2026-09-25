@@ -61,7 +61,7 @@ class TestBylaws < Fbe::Test
         { hoc: 30_000, contributors: 1 } => 32
       },
       'resolved-bug-was-rewarded' => {
-        { hours: 1, self: 0 } => 12,
+        { hours: 1, self: 0 } => 16,
         { hours: 48, self: 0 } => 6,
         { hours: 80, self: 0 } => 5,
         { hours: 300, self: 0 } => 4,
@@ -157,6 +157,14 @@ class TestBylaws < Fbe::Test
       md = Fbe::Award.new(formula).bylaw.markdown
       refute_includes(md, 'set _', "The text of '#{title}' exposes an internal variable: #{md}")
     end
+  end
+
+  def test_resolved_bug_best_case_reaches_the_stated_cap
+    formula = Fbe.bylaws(anger: 2, love: 2, paranoia: 2)['resolved-bug-was-rewarded']
+    a = Fbe::Award.new(formula)
+    md = a.bylaw.markdown
+    assert_includes(md, 'not larger than **16** points', md)
+    assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
   end
 
   def test_strips_the_literal_template_suffix
