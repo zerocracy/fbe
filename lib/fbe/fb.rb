@@ -26,13 +26,19 @@ require_relative '../fbe'
 # @param [Judges::Options] options The options coming from the +judges+ tool
 # @param [Loog] loog The logging facility
 # @return [Factbase] The global factbase
-def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog)
+# @raise [Fbe::Error] If the +global+ already caches a factbase built from another +fb+
+def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
   raise(Fbe::Error, 'The $global is not set') if global.nil?
   raise(Fbe::Error, 'The $options is not set') if options.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   global[:mutex] ||= Mutex.new
   global[:mutex].synchronize do
+    if global[:fb].nil?
+      global[:fb_origin] = fb
+    elsif !fb.equal?(global[:fb]) && !fb.equal?(global[:fb_origin])
+      raise(Fbe::Error, 'The global already has a factbase built from another fb')
+    end
     global[:fb] ||=
       begin
         rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }
