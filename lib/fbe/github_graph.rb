@@ -473,24 +473,26 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     }
   end
 
-  # Get total count issues and pulls created from the specified date
+  # Get total count issues and pulls created within the specified window
   #
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [Time] since The datetime from
+  # @param [Time] till The datetime to
   # @return [Hash] A hash with total issues and pulls
-  def total_issues_created(owner, name, since)
+  def total_issues_created(owner, name, since, till = Time.now)
+    window = "created:#{since.utc.iso8601}..#{till.utc.iso8601}"
     result = query(
       <<~GRAPHQL
         {
           issues: search(
-            query: "repo:#{owner}/#{name} type:issue created:>#{since.utc.iso8601}",
+            query: "repo:#{owner}/#{name} type:issue #{window}",
             type: ISSUE
           ) {
             issueCount
           },
           pulls: search(
-            query: "repo:#{owner}/#{name} type:pr created:>#{since.utc.iso8601}",
+            query: "repo:#{owner}/#{name} type:pr #{window}",
             type: ISSUE
           ) {
             issueCount
@@ -832,7 +834,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       }
     end
 
-    def total_issues_created(_owner, _name, _since)
+    def total_issues_created(_owner, _name, _since, _till = Time.now)
       {
         'issues' => 17,
         'pulls' => 8

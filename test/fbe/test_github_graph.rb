@@ -379,7 +379,9 @@ class TestGitHubGraph < Fbe::Test
   def test_fake_total_issues_created
     WebMock.disable_net_connect!
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
-    h = graph.total_issues_created('foo', 'foo', Time.parse('2025-12-12T15:00:00Z'))
+    h = graph.total_issues_created(
+      'foo', 'foo', Time.parse('2025-12-12T15:00:00Z'), Time.parse('2025-12-13T15:00:00Z')
+    )
     h = h.transform_keys(&:to_sym)
     assert_pattern do
       h => {
@@ -635,7 +637,7 @@ class TestGitHubGraph < Fbe::Test
     graph.define_singleton_method(:query) do |_qry|
       { 'issues' => { 'issueCount' => 10 }, 'pulls' => { 'issueCount' => 3 } }
     end
-    result = graph.total_issues_created('foo', 'bar', Time.parse('2025-01-01'))
+    result = graph.total_issues_created('foo', 'bar', Time.parse('2025-01-01'), Time.parse('2025-02-01'))
     assert_equal(10, result['issues'])
     assert_equal(3, result['pulls'])
   end
@@ -646,9 +648,47 @@ class TestGitHubGraph < Fbe::Test
     graph.define_singleton_method(:query) do |_qry|
       {}
     end
-    result = graph.total_issues_created('foo', 'bar', Time.parse('2025-01-01'))
+    result = graph.total_issues_created('foo', 'bar', Time.parse('2025-01-01'), Time.parse('2025-02-01'))
     assert_equal(0, result['issues'])
     assert_equal(0, result['pulls'])
+  end
+
+  def test_real_total_issues_created_bounds_the_issue_search
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    since = Time.parse('2020-01-01T00:00:00Z') + random.rand(1..100_000_000)
+    till = since + random.rand(1..1_000_000)
+    graph = Fbe::Graph.new(token: 'test')
+    asked = ''
+    graph.define_singleton_method(:query) do |qry|
+      asked = qry
+      { 'issues' => { 'issueCount' => 1 }, 'pulls' => { 'issueCount' => 1 } }
+    end
+    graph.total_issues_created('foo', 'bar', since, till)
+    assert_includes(
+      asked, "type:issue created:#{since.utc.iso8601}..#{till.utc.iso8601}",
+      "the issue search is not bounded by the window given, seed #{seed}"
+    )
+  end
+
+  def test_real_total_issues_created_bounds_the_pull_search
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    since = Time.parse('2020-01-01T00:00:00Z') + random.rand(1..100_000_000)
+    till = since + random.rand(1..1_000_000)
+    graph = Fbe::Graph.new(token: 'test')
+    asked = ''
+    graph.define_singleton_method(:query) do |qry|
+      asked = qry
+      { 'issues' => { 'issueCount' => 1 }, 'pulls' => { 'issueCount' => 1 } }
+    end
+    graph.total_issues_created('foo', 'bar', since, till)
+    assert_includes(
+      asked, "type:pr created:#{since.utc.iso8601}..#{till.utc.iso8601}",
+      "the pull search is not bounded by the window given, seed #{seed}"
+    )
   end
 
   def test_real_total_releases_published
