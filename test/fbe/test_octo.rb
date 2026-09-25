@@ -1475,5 +1475,16 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.repository_workflow_runs('yegor256/test')
     assert_equal(2, result[:total_count])
+    result[:workflow_runs].each { |run| assert_equal('completed', run[:status]) }
+  end
+
+  def test_fake_workflow_run_always_has_status
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [10_438_531_072, 10_438_531_077, 999].each do |id|
+      result = o.workflow_run('yegor256/test', id)
+      assert_equal('completed', result[:status], "for workflow run #{id}")
+      refute_nil(result[:head_sha], "for workflow run #{id}")
+      refute_nil(result[:repository], "for workflow run #{id}")
+    end
   end
 end
