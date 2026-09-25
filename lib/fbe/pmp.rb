@@ -76,7 +76,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       Integer(f)
     end
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
-  find_fact_with = ->(area, param) { query.call(area).each.find { |f| !f[param].nil? } }
+  owner = ->(area, param) { query.call(area).each.find { |f| !f[param].nil? } }
   Class.new do
     define_method(:areas) do
       xml.xpath('/pmp/area/@name').map(&:value)
@@ -91,7 +91,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           end
           others do |*args2|
             param = args2.first.to_s
-            result = find_fact_with.call(area, param)&.[](param)&.first
+            result = owner.call(area, param)&.[](param)&.first
             raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
             pmpv.new(result, nil, nil, nil)
           end
@@ -103,7 +103,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           end
           others do |*args2|
             param = args2.first.to_s
-            result = find_fact_with.call(area, param)&.[](param)&.first
+            result = owner.call(area, param)&.[](param)&.first
             prop = node.at_xpath('p[name=$name]', nil, 'name' => param)
             default = nil
             type = nil
