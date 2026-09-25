@@ -59,9 +59,12 @@ def Fbe.just_one(fb: Fbe.fb)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.first
-  return before unless before.nil?
-  n = fb.insert
-  attrs.each { |k, v| n.public_send(:"#{k}=", v) }
-  n
+  one = nil
+  fb.txn do |fbt|
+    one = fbt.query(q).each.first
+    next unless one.nil?
+    one = fbt.insert
+    attrs.each { |k, v| one.public_send(:"#{k}=", v) }
+  end
+  one
 end
