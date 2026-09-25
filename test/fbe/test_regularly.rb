@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'factbase/sync/sync_factbase'
 require 'loog'
 require_relative '../../lib/fbe/regularly'
 require_relative '../test__helper'
@@ -98,5 +99,25 @@ class TestRegularly < Fbe::Test
       f.foo = 42
     end
     assert_equal(2, fb.size)
+  end
+
+  def test_dont_run_twice_when_called_concurrently
+    seed = Random.new_seed
+    judge = "судья-#{Random.new(seed).rand(1_000_000)}"
+    fb = Factbase::SyncFactbase.new(Factbase.new)
+    origin = fb.method(:txn)
+    lag =
+      lambda do |&block|
+        sleep(0.1)
+        origin.call(&block)
+      end
+    fb.stub(:txn, lag) do
+      Array.new(2) do
+        Thread.new do
+          Fbe.regularly('pmp', 'interval', 'days', fb:, loog: Loog::NULL, judge:) { |f| f.foo = 42 }
+        end
+      end.each { |t| t.join(10) }
+    end
+    assert_equal(1, fb.size, "judge #{judge} ran twice in one interval with seed #{seed}")
   end
 end
