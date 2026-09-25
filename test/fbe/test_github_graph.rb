@@ -631,6 +631,54 @@ class TestGitHubGraph < Fbe::Test
     assert_raises(Fbe::Error) { graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01')) }
   end
 
+  def test_real_total_commits_pushed_bounds_history_by_till
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    qry = ''
+    graph.define_singleton_method(:query) do |q|
+      qry = q
+      { 'repository' => { 'defaultBranchRef' => nil } }
+    end
+    graph.total_commits_pushed('foo', 'bar', Time.parse('2024-01-05T07:00:00Z'), Time.parse('2024-02-09T21:13:44Z'))
+    assert_includes(qry, 'until: "2024-02-09T21:13:44Z"', 'the history has no upper bound on the commit date')
+  end
+
+  def test_real_total_commits_pushed_keeps_till_on_every_page
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    pages = []
+    graph.define_singleton_method(:query) do |q|
+      pages << q
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 2,
+                'nodes' => [{ 'oid' => 'a1', 'parents' => { 'totalCount' => 1 }, 'additions' => 7, 'deletions' => 3 }],
+                'pageInfo' => { 'endCursor' => 'Y3Vyc29y', 'hasNextPage' => pages.size < 2 }
+              }
+            }
+          }
+        }
+      }
+    end
+    graph.total_commits_pushed('foo', 'bar', Time.parse('2024-01-05T07:00:00Z'), Time.parse('2024-02-09T21:13:44Z'))
+    assert_equal(
+      2, pages.count { _1.include?('until: "2024-02-09T21:13:44Z"') },
+      'a page of the history goes out without the upper bound on the commit date'
+    )
+  end
+
+  def test_fake_total_commits_pushed_takes_till
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.total_commits_pushed(
+      'foo', 'foo', Time.parse('2025-12-11T15:00:00Z'), Time.parse('2025-12-25T15:00:00Z')
+    )
+    assert_equal(29, h['commits'], 'the fake does not take the upper bound on the commit date')
+  end
+
   def test_real_total_issues_created
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
