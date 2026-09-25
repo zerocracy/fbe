@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'loog'
+require 'tmpdir'
 require_relative '../../lib/fbe/award'
 require_relative '../../lib/fbe/bylaws'
 require_relative '../test__helper'
@@ -13,6 +14,11 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class TestBylaws < Fbe::Test
+  def test_rejects_negative_revert_count
+    bylaw = Fbe::Award::Bylaw.new
+    assert_raises(Fbe::Error) { bylaw.revert(-1) }
+  end
+
   def test_simple
     laws = Fbe.bylaws
     assert_operator(laws.size, :>, 1)
@@ -28,6 +34,19 @@ class TestBylaws < Fbe::Test
         "Bylaw #{title.inspect} contains a backslash-escaped apostrophe in: #{markdown.inspect}"
       )
     end
+  end
+
+  def test_comments_penalty_counts_above_the_threshold
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(
+      a.bill({ hoc: 150, comments: 8, reviews: 1 }).points - 8,
+      a.bill({ hoc: 150, comments: 48, reviews: 1 }).points
+    )
+  end
+
+  def test_few_comments_text_excludes_silent_review
+    md = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'comments made during review, but at least one', md)
   end
 
   def test_check_all_bills
@@ -74,7 +93,7 @@ class TestBylaws < Fbe::Test
         { hoc: 180, comments: 7, reviews: 2 } => 24,
         { hoc: 199, comments: 8, reviews: 3 } => 24,
         { hoc: 150, comments: 5, reviews: 1 } => 24,
-        { hoc: 500, comments: 25, reviews: 2 } => 4,
+        { hoc: 500, comments: 25, reviews: 2 } => 8,
         { hoc: 99, comments: 6, reviews: 1 } => 16,
         { hoc: 200, comments: 0, reviews: 1 } => 8,
         { hoc: 542, comments: 0, reviews: 1 } => 8,
@@ -123,6 +142,74 @@ class TestBylaws < Fbe::Test
           "while #{points} expected (#{args}): #{b.greeting}\n\n#{help}"
         )
       end
+    end
+  end
+
+  def test_never_renders_a_negative_number_in_the_text
+    Fbe.bylaws(anger: 2, love: 2, paranoia: 2).each do |title, formula|
+      md = Fbe::Award.new(formula).bylaw.markdown
+      assert_empty(md.scan(/\*\*-[0-9.]+\*\*/), "The text of '#{title}' states a negative number: #{md}")
+    end
+  end
+
+  def test_never_exposes_a_bare_set_in_the_text
+    Fbe.bylaws.each do |title, formula|
+      md = Fbe::Award.new(formula).bylaw.markdown
+      refute_includes(md, 'set _', "The text of '#{title}' exposes an internal variable: #{md}")
+    end
+  end
+
+  def test_strips_the_literal_template_suffix
+    seed = Random.new_seed
+    random = Random.new(seed)
+    stem = Array.new(random.rand(1..40)) { random.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join
+    Dir.mktmpdir do |dir|
+      file = File.join(dir, "#{stem}.fe.liquid")
+      File.write(file, '(award)')
+      Dir.stub(:[], [file]) do
+        assert_equal(
+          [stem], Fbe.bylaws(anger: 2, love: 2, paranoia: 2).keys,
+          "Bylaw name is not the template name without its suffix, seed #{seed}"
+        )
+      end
+    end
+  end
+
+  def test_keeps_a_suffix_that_only_resembles_the_template_one
+    seed = Random.new_seed
+    random = Random.new(seed)
+    name = "#{Array.new(random.rand(1..40)) { random.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join}.fe-liquid"
+    Dir.mktmpdir do |dir|
+      file = File.join(dir, name)
+      File.write(file, '(award)')
+      Dir.stub(:[], [file]) do
+        assert_equal(
+          [name], Fbe.bylaws(anger: 2, love: 2, paranoia: 2).keys,
+          "Bylaw name is cut by a suffix that is not the literal template one, seed #{seed}"
+        )
+      end
+    end
+  end
+
+  def test_strips_the_template_suffix_only_at_the_very_end
+    seed = Random.new_seed
+    random = Random.new(seed)
+    stem = Array.new(random.rand(1..40)) { random.rand(0x400..0x4ff).chr(Encoding::UTF_8) }.join
+    Dir.mktmpdir do |dir|
+      file = File.join(dir, "#{stem}.fe.liquid\n#{stem}.fe.liquid")
+      File.write(file, '(award)')
+      Dir.stub(:[], [file]) do
+        assert_equal(
+          ["#{stem}.fe.liquid\n#{stem}"], Fbe.bylaws(anger: 2, love: 2, paranoia: 2).keys,
+          "Bylaw name is stripped of a suffix that does not end the file name, seed #{seed}"
+        )
+      end
+    end
+  end
+
+  def test_returns_s_expressions
+    Fbe.bylaws.each_value do |formula|
+      assert_match(/\A\(award\b/, formula.strip)
     end
   end
 end

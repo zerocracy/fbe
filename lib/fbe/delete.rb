@@ -17,7 +17,7 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] id The property name used as unique identifier (defaults to '_id')
 # @return [nil] Nothing
-# @raise [RuntimeError] If fact is nil, has no ID, or ID property doesn't exist
+# @raise [Fbe::Error] If fact is nil, has no ID, or ID property doesn't exist
 # @example Delete multiple properties from a fact
 #   fact = fb.query('(eq type "user")').first
 #   new_fact = Fbe.delete(fact, 'age', 'city')
@@ -29,8 +29,7 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
   raise(Fbe::Error, "There is no #{id.inspect} in the fact") if i.nil?
   i = i.first
   before = {}
-  fact.all_properties.each do |k|
-    next if props.include?(k)
+  (fact.all_properties - props.map(&:to_s)).each do |k|
     before[k] = fact[k]
   end
   fb.txn do |fbt|

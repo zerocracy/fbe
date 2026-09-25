@@ -57,4 +57,20 @@ class TestJustOne < Fbe::Test
       end
     end
   end
+
+  def test_raises_without_block
+    assert_raises(Fbe::Error, 'just_one accepted a call without a block') do
+      Fbe.just_one(fb: Factbase.new)
+    end
+  end
+
+  def test_dont_insert_fact_without_block
+    fb = Factbase.new
+    begin
+      Fbe.just_one(fb:)
+    rescue Fbe::Error
+      nil
+    end
+    assert_equal(0, fb.size, 'just_one inserted a fact without a block')
+  end
 end

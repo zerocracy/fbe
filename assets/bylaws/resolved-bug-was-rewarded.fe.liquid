@@ -2,7 +2,6 @@
   (explain "When a bug is resolved, the person who was assigned to it receives a bonus")
   (in hours "how many hours it took to resolve the bug")
   (in self "1 if the bug was reported and resolved by the same person, otherwise zero")
-  (set days (div hours 24))
   (aka
     (let basis {{ 4 | times: love }})
     (give basis "as a basis")
@@ -22,12 +21,14 @@
     "deduct ${self_fee} points if they resolved the bug earlier reported by themselves")
 
   (aka
+    (set days (div hours 24))
     (let day_fee {{ 0.5 | times: anger }})
     (set b2 (times -1 (times days day_fee)))
     (let days_fee_max -20)
+    (let days_fee_cap 20)
     (set b2 (max b2 days_fee_max))
     (give b2 "for ${days} days of delay")
-    "deduct ${day_fee} points for each day of delay, but no more than ${days_fee_max} points")
+    "deduct ${day_fee} points for each day of delay, but no more than ${days_fee_cap} points")
 
   (aka
     (let max 16)

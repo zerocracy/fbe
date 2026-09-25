@@ -127,9 +127,13 @@ class Fbe::Conclude
   #
   # @param [Array<String>] props List of property names
   # @return [nil] Nothing
+  # @raise [Fbe::Error] If +what+ or +details+ is in the list, since +draw+ sets them
   def follow(props)
     raise(Fbe::Error, 'Follow is already set') unless @follows.empty?
-    @follows = props.strip.split.compact
+    list = props.strip.split.compact
+    bad = list & %w[what details]
+    raise(Fbe::Error, "Can't follow #{bad.join(' and ')}, the judge sets it in the new fact") unless bad.empty?
+    @follows = list
   end
 
   # Create new fact from every fact found by the query.
@@ -148,7 +152,8 @@ class Fbe::Conclude
   # This snippet will find all facts that have +win+ property and will create
   # new facts for all of them, passing them one by one in to the block of
   # the +draw+, where +n+ would be the new created fact and the +w+ would
-  # be the fact found.
+  # be the fact found. If the block writes nothing into the new fact,
+  # the fact is not kept.
   #
   # @yield [Array<Factbase::Fact,Factbase::Fact>] New fact and seen fact
   # @return [Integer] The count of the facts processed
@@ -156,6 +161,7 @@ class Fbe::Conclude
     roll do |fbt, a|
       n = fbt.insert
       fill(n, a, &)
+      throw(:rollback) if n.all_properties.all? { |p| p.start_with?('_') }
       n
     end
   end
@@ -191,10 +197,10 @@ class Fbe::Conclude
   #
   # Besides the {Fbe.over?} check (which stops once the elapsed time crosses
   # the fixed 90% margin of the timeout), the loop also reserves one +@slot+
-  # up front: it stops before starting a new iteration when fewer than +@slot+
-  # seconds remain in the timeout (or lifetime) budget. This prevents a slow
-  # single step from starting late and overrunning the hard timeout enforced
-  # by the +judges+ gem.
+  # on top of that margin: it stops before starting a new iteration when fewer
+  # than +@slot+ seconds remain until 90% of the timeout (or lifetime) is spent.
+  # This prevents a slow single step from starting late and overrunning the
+  # hard timeout enforced by the +judges+ gem.
   #
   # @yield [Factbase::Transaction, Factbase::Fact] Transaction and the matching fact
   # @return [Integer] The count of facts processed
@@ -219,11 +225,11 @@ class Fbe::Conclude
         global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
         quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
       )
-      if @timeout && @options.timeout && @options.timeout - (Time.now - @kickoff) < @slot
+      if @timeout && @options.timeout && (@options.timeout * 0.9) - (Time.now - @kickoff) < @slot
         @loog.info("Less than #{@slot}s left before the timeout, must stop here")
         break
       end
-      if @lifetime && @options.lifetime && @options.lifetime - (Time.now - @epoch) < @slot
+      if @lifetime && @options.lifetime && (@options.lifetime * 0.9) - (Time.now - @epoch) < @slot
         @loog.info("Less than #{@slot}s left before the lifetime ends, must stop here")
         break
       end

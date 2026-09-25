@@ -108,9 +108,13 @@ class Fbe::Middleware::SqliteStore
   # @note Values larger than 10KB are not cached
   # @note Non-GET requests and URLs with query parameters are not cached
   def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Metrics/AbcSize
-    return if value.is_a?(Array) && value.any? do |vv|
-      req = JSON.parse(vv[0])
-      req['method'] != 'get'
+    if value.is_a?(Array)
+      begin
+        return if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
+      rescue TypeError, JSON::ParserError => e
+        @loog.info("Failed to parse request to decide whether to cache it: #{e.message}")
+        return
+      end
     end
     if @minage && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
       begin
@@ -119,24 +123,26 @@ class Fbe::Middleware::SqliteStore
         @loog.info("Failed to parse response to rewrite the cache age: #{e.message}")
         resp = nil
       end
-      control = resp.dig('response_headers', 'cache-control') if resp.is_a?(Hash)
+      header = resp['response_headers']&.keys&.find { |h| h.casecmp?('cache-control') } if resp.is_a?(Hash)
+      control = resp.dig('response_headers', header) if header
       if control && !control.empty?
         %w[max-age s-maxage].each do |key|
           matched = control.scan(/#{key}=(\d+)/i).first&.first
           age = matched.nil? ? nil : Integer(matched, 10)
           if age
             age = [age, @minage].max
-            control = control.sub(/#{key}=(\d+)/, "#{key}=#{age}")
+            control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
           end
         end
-        resp['response_headers']['cache-control'] = control
+        resp['response_headers'][header] = control
         value = value.dup
         value[0] = value[0].dup
         value[0][1] = JSON.dump(resp)
       end
     end
-    value = Zlib::Deflate.deflate(JSON.dump(value))
-    return if value.bytesize > @maxvsize
+    json = JSON.dump(value)
+    return if json.bytesize > @maxvsize
+    value = Zlib::Deflate.deflate(json)
     perform do |t|
       t.execute(<<~SQL, [key, value, Time.now.utc.iso8601])
         INSERT INTO cache(key, value, touched_at, created_at) VALUES(?1, ?2, ?3, ?3)

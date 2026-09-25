@@ -100,6 +100,21 @@ class RateLimitTest < Fbe::Test
     assert_empty(response.body)
   end
 
+  def test_leaves_remaining_unknown_when_response_has_no_count
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(
+        status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+      )
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    assert_nil(tracker[:rate_limit].remaining)
+    conn.get('/user')
+    assert_equal(4999, tracker[:rate_limit].remaining)
+  end
+
   def test_handles_zero_remaining_count
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -217,6 +232,60 @@ class RateLimitTest < Fbe::Test
     assert_equal(0, response.body['resources']['search']['remaining'])
   end
 
+  def test_restores_the_counter_at_zero_after_a_failed_request
+    payload = {
+      'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+      'resources' => {
+        'core' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => 1_672_531_200 }
+      }
+    }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+      .times(1)
+    stub_request(:get, 'https://api.github.com/user').to_raise(Faraday::ConnectionFailed.new('no network'))
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/user') }
+    assert_equal(1, conn.get('/rate_limit').body['resources']['core']['remaining'])
+  end
+
+  def test_gives_nothing_back_when_the_quota_is_out
+    payload = {
+      'rate' => { 'limit' => 5000, 'remaining' => 0, 'reset' => 1_672_531_200 },
+      'resources' => {
+        'core' => { 'limit' => 5000, 'remaining' => 0, 'reset' => 1_672_531_200 },
+        'search' => { 'limit' => 30, 'remaining' => 0, 'reset' => 1_672_531_200 }
+      }
+    }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+      .times(1)
+    stub_request(:get, 'https://api.github.com/user').to_raise(Faraday::ConnectionFailed.new('no network'))
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/user') }
+    assert_equal(0, conn.get('/rate_limit').body['resources']['core']['remaining'])
+  end
+
+  def test_restores_the_search_counter_at_zero
+    payload = {
+      'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+      'resources' => {
+        'core' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 },
+        'search' => { 'limit' => 30, 'remaining' => 1, 'reset' => 1_672_531_200 }
+      }
+    }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+      .times(1)
+    stub_request(:get, 'https://api.github.com/search/issues?q=z').to_raise(Faraday::ConnectionFailed.new('nope'))
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/search/issues?q=z') }
+    assert_equal(1, conn.get('/rate_limit').body['resources']['search']['remaining'])
+  end
+
   def test_search_remaining_absent_when_payload_lacks_resources
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -313,6 +382,23 @@ class RateLimitTest < Fbe::Test
     conn.get('/user')
     response = conn.get('/rate_limit')
     assert_equal(4900, response.body['rate']['remaining'])
+  end
+
+  def test_raises_remaining_after_quota_reset
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user').to_return(
+      { status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '3' } },
+      { status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' } }
+    )
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    conn.get('/user')
+    assert_equal(3, tracker[:rate_limit].remaining)
+    conn.get('/user')
+    assert_equal(5000, tracker[:rate_limit].remaining)
   end
 
   def test_syncs_search_remaining_from_response_header

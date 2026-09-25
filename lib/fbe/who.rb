@@ -19,7 +19,7 @@ require_relative 'octo'
 # @param [Hash] global The hash for global caching (uses $global)
 # @param [Loog] loog The logging facility (uses $loog global)
 # @return [String] Formatted username with @ prefix (e.g., "@yegor256")
-# @raise [RuntimeError] If the specified property doesn't exist in the fact
+# @raise [Fbe::Error] If the specified property doesn't exist in the fact
 # @note Results are cached to reduce GitHub API calls
 # @note Subject to GitHub API rate limits
 # @example Convert user ID to username

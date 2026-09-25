@@ -354,30 +354,36 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
 
   # Lists releases for a repository.
   #
-  # @param [String] _repo Repository name (ignored in mock)
+  # @param [String] repo Repository name
   # @param [Hash] _opts Options hash (ignored in mock)
   # @return [Array<Hash>] Array of release hashes
   # @example
   #   client.releases('octocat/Hello-World')
-  #   # => [{:tag_name=>"0.19.0", :name=>"just a fake name", ...}, ...]
-  def releases(_repo, _opts = {})
+  #   # => [{:id=>1, :tag_name=>"0.19.1", :name=>"just a fake name", ...}, ...]
+  def releases(repo, _opts = {})
     [
-      release('https://github...'),
-      release('https://gith')
+      release("https://api.github.com/repos/#{repo}/releases/1"),
+      release("https://api.github.com/repos/#{repo}/releases/2")
     ]
   end
 
   # Gets a single release.
   #
-  # @param [String] _url Release URL (ignored in mock)
+  # The identifier and the tag come out of the URL, so that two releases of
+  # one repository differ from each other the way real ones do.
+  #
+  # @param [String] url Release URL
   # @return [Hash] Release information
   # @example
   #   client.release('https://api.github.com/repos/octocat/Hello-World/releases/1')
-  #   # => {:tag_name=>"0.19.0", :name=>"just a fake name", ...}
-  def release(_url)
+  #   # => {:id=>1, :tag_name=>"0.19.1", :name=>"just a fake name", ...}
+  def release(url)
+    tail = url.to_s[%r{/releases/(\d+)\z}, 1]
+    n = tail.nil? ? nil : Integer(tail, 10)
     {
+      id: n || name_to_number(url),
       node_id: 'RE_kwDOL6GCO84J7Cen',
-      tag_name: '0.19.0',
+      tag_name: "0.19.#{n || 0}",
       target_commitish: 'master',
       name: 'just a fake name',
       draft: false,
@@ -538,7 +544,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         },
         created_at: Time.parse('2024-09-20 19:00:00 UTC')
       }
-    end
+    end.merge(comments: issue_comments(repo, number).size)
   end
 
   # Gets a single pull request.
@@ -615,7 +621,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         closed_at: Time.parse('2024-12-20'),
         merged_at: Time.parse('2024-12-20'),
         created_at: Time.parse('2024-09-20')
-      }
+      }.merge(pull_requests(repo).find { |p| p[:number] == number } || {})
     end
   end
 
@@ -717,35 +723,6 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     [
       { id: 22_447_120, user: { login: 'yegor256', id: 526_301, type: 'User' } },
       { id: 22_447_121, user: { login: 'yegor256', id: 526_301, type: 'User' } }
-    ]
-  end
-
-  def review_comments(_repo, _number)
-    [
-      {
-        pull_request_review_id: 22_687_249,
-        id: 17_361_949,
-        body: 'Some comment 1',
-        user: { login: 'yegor256', id: 526_301, type: 'User' },
-        created_at: Time.parse('2024-09-05 15:31:06 UTC'),
-        updated_at: Time.parse('2024-09-05 15:33:04 UTC')
-      },
-      {
-        pull_request_review_id: 22_687_503,
-        id: 17_361_950,
-        body: 'Some comment 2',
-        user: { login: 'yegor256', id: 526_301, type: 'User' },
-        created_at: Time.parse('2024-09-06 14:20:00 UTC'),
-        updated_at: Time.parse('2024-09-06 14:20:50 UTC')
-      },
-      {
-        pull_request_review_id: 22_687_255,
-        id: 17_361_970,
-        body: 'Some comment 3',
-        user: { login: 'yegor256', id: 526_301, type: 'User' },
-        created_at: Time.parse('2024-09-06 20:45:30 UTC'),
-        updated_at: Time.parse('2024-09-06 20:45:30 UTC')
-      }
     ]
   end
 
@@ -1036,11 +1013,15 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         public: true
       },
       {
-        id: 42,
+        id: '42',
         created_at: Time.now,
         actor: { id: 42 },
         type: 'PullRequestEvent',
-        repo: { id: repo },
+        repo: {
+          id: name_to_number(repo),
+          name: repo,
+          url: "https://api.github.com/repos/#{repo}"
+        },
         payload: {
           action: 'closed',
           number: 172,
@@ -1052,8 +1033,9 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
               ref: 'master',
               sha: '93fe488b9967de0f690805c6943e78db42a294c1a',
               repo: {
-                id: repo,
-                name: 'baza'
+                id: name_to_number(repo),
+                name: repo,
+                url: "https://api.github.com/repos/#{repo}"
               }
             },
             head: {
@@ -1064,11 +1046,15 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         }
       },
       {
-        id: 43,
+        id: '43',
         created_at: Time.now,
         actor: { id: 42 },
         type: 'PullRequestEvent',
-        repo: { id: repo },
+        repo: {
+          id: name_to_number(repo),
+          name: repo,
+          url: "https://api.github.com/repos/#{repo}"
+        },
         payload: {
           action: 'closed',
           number: 172,
@@ -1080,8 +1066,9 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
               ref: 'master',
               sha: '125f234967de0f690805c6943e78db42a294c1a',
               repo: {
-                id: repo,
-                name: 'judges-action'
+                id: name_to_number(repo),
+                name: repo,
+                url: "https://api.github.com/repos/#{repo}"
               }
             },
             head: {
@@ -1209,6 +1196,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       }
     ]
   end
+
+  alias review_comments pull_request_comments
 
   def issue_comments(_name, _number)
     [

@@ -27,6 +27,21 @@ class TestFb < Fbe::Test
     assert_includes(stdout, 'Inserted new fact #1', stdout)
   end
 
+  def test_refuses_another_fb_for_the_same_global
+    opts = Judges::Options.new
+    global = {}
+    first = Factbase.new
+    decorated = Fbe.fb(fb: first, global:, options: opts, loog: Loog::NULL)
+    assert_same(decorated, Fbe.fb(fb: first, global:, options: opts, loog: Loog::NULL))
+    assert_same(decorated, Fbe.fb(fb: decorated, global:, options: opts, loog: Loog::NULL))
+    assert_raises(Fbe::Error) { Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL) }
+    global.delete(:fb)
+    second = Factbase.new
+    Fbe.fb(fb: second, global:, options: opts, loog: Loog::NULL).insert.foo = 1
+    assert_equal(1, Fbe.fb(fb: second, global:, options: opts, loog: Loog::NULL).size)
+    assert_equal(0, first.size)
+  end
+
   def test_defends_against_improper_facts
     $fb = Factbase.new
     $global = {}

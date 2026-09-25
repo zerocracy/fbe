@@ -37,8 +37,8 @@ require_relative 'fb'
 #
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching
-# @param [Judges::Options] options The options coming from the +judges+ tool
-# @param [Loog] loog The logging facility
+# @param [Judges::Options] options Retained for compatibility with existing callers
+# @param [Loog] loog Retained for compatibility with existing callers
 # @return [Object] A proxy object that allows method chaining to access PMP properties
 # @example
 #   # Get HR reward points from PMP configuration
@@ -52,8 +52,12 @@ require_relative 'fb'
 #
 #   # Read custom property (nil default/type/memo)
 #   val = Fbe.pmp.my_custom.my_prop
-def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
-  xml = Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
+def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Lint/UnusedMethodArgument
+  global[:mutex] ||= Mutex.new
+  xml =
+    global[:mutex].synchronize do
+      global[:pmp_xml] ||= Nokogiri::XML(File.read(File.join(__dir__, '../../assets/pmp.xml')))
+    end
   pmpv =
     Class.new(SimpleDelegator) do
       attr_reader :default, :type, :memo, :value # rubocop:disable Layout/EmptyLinesAroundAttributeAccessor
@@ -65,7 +69,13 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
         @memo = memo
       end
     end
-  query = ->(area) { Fbe.fb(global:, fb:, options:, loog:).query("(and (eq what 'pmp') (eq area '#{area}'))") }
+  whole =
+    lambda do |value|
+      f = Float(value)
+      raise(ArgumentError, "#{value} is not a whole number") unless (f % 1).zero?
+      Integer(f)
+    end
+  query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
   Class.new do
     define_method(:areas) do
       xml.xpath('/pmp/area/@name').map(&:value)
@@ -81,6 +91,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           others do |*args2|
             param = args2.first.to_s
             result = query.call(area).each.first&.[](param)&.first
+            raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
             pmpv.new(result, nil, nil, nil)
           end
         end.new
@@ -92,7 +103,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           others do |*args2|
             param = args2.first.to_s
             result = query.call(area).each.first&.[](param)&.first
-            prop = node.at_xpath("p[name='#{param}']")
+            prop = node.at_xpath('p[name=$name]', nil, 'name' => param)
             default = nil
             type = nil
             memo = nil
@@ -117,10 +128,11 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                 end
             end
             result ||= default
+            raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
             result =
               begin
                 case type
-                when 'int' then Integer(Float(result).truncate)
+                when 'int' then whole.call(result)
                 when 'float' then Float(result)
                 when 'bool' then result.to_s == 'true'
                 else result

@@ -42,16 +42,17 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Env] env The request environment
   # @return [Faraday::Response] The response from cache or the next middleware
   def call(env)
+    took = nil
     if env.url.path == '/rate_limit'
       @lock.synchronize { handle_rate_limit_request(env) }
     else
-      @lock.synchronize { track_request(env.url.path) }
+      @lock.synchronize { took = track_request(env.url.path) }
       @app.call(env).on_complete do |response_env|
         @lock.synchronize { sync(response_env, env.url.path) }
       end
     end
   rescue StandardError
-    @lock.synchronize { untrack_request(env.url.path) } unless env.url.path == '/rate_limit'
+    @lock.synchronize { untrack_request(took) } unless env.url.path == '/rate_limit'
     raise
   end
 
@@ -85,22 +86,31 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   end
 
   # Tracks non-rate_limit requests and decrements counter.
+  #
+  # @return [Symbol, nil] The counter the request was taken off, or NIL if none was
   def track_request(path = nil)
     @counter += 1
     if path&.start_with?('/search/')
-      @searchleft -= 1 if @searchleft&.positive?
-    elsif @remaining&.positive?
+      return nil unless @searchleft&.positive?
+      @searchleft -= 1
+      :search
+    else
+      return nil unless @remaining&.positive?
       @remaining -= 1
+      :core
     end
   end
 
   # Reverts the counter decrement when the request fails.
-  def untrack_request(path = nil)
+  #
+  # @param [Symbol, nil] took What +track_request+ answered for this request
+  def untrack_request(took = nil)
     return unless @counter&.positive?
     @counter -= 1
-    if path&.start_with?('/search/')
-      @searchleft += 1 if @searchleft&.positive?
-    elsif @remaining&.positive?
+    case took
+    when :search
+      @searchleft += 1
+    when :core
       @remaining += 1
     end
   end
@@ -111,8 +121,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # (indicated by +http_cache_trace+ containing +:fresh+), the
   # +x-ratelimit-remaining+ header is stale, so we keep our
   # decremented count. When the API was actually contacted,
-  # we seed unknown counters from headers, but avoid raising
-  # a counter already decremented by this middleware.
+  # the header is the truth, so we take it as is, even when it
+  # raises the counter after GitHub has reset the quota.
   #
   # @param [Faraday::Env] response_env The response environment
   def sync(response_env, path = nil)
@@ -123,22 +133,22 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     return unless remaining
     count = Integer(remaining)
     if path&.start_with?('/search/')
-      @searchleft = @searchleft.nil? ? count : [@searchleft, count].min
+      @searchleft = count
     else
-      @remaining = @remaining.nil? ? count : [@remaining, count].min
+      @remaining = count
     end
   end
 
   # Extracts the remaining count from the response body.
   #
   # @param [Faraday::Response] response The API response
-  # @return [Integer] The remaining requests count
+  # @return [Integer, nil] The remaining requests count, or nil when it is unknown
   def extract_remaining_count(response)
     body = response.body
     body = JSON.parse(body) if body.is_a?(String)
     value = body.dig('rate', 'remaining') if body.is_a?(Hash)
     value ||= response.headers['x-ratelimit-remaining']
-    Integer(value || 0)
+    value.nil? ? nil : Integer(value)
   end
 
   # Extracts the search-resource remaining count from the response body.

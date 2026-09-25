@@ -195,6 +195,23 @@ class TestConclude < Fbe::Test
     assert_equal(0, fb.query('(exists sum)').each.to_a.size)
   end
 
+  def test_slot_is_reserved_on_top_of_over_margin
+    [['timeout=100', { kickoff: Time.now - 85 }], ['lifetime=100', { epoch: Time.now - 85 }]].each do |opt, start|
+      fb = Factbase.new
+      fb.insert.foo = 1
+      options = Judges::Options.new(opt)
+      Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, slot: 6, **start) do
+        quota_unaware
+        on('(exists foo)')
+        draw do |n, prev|
+          n.sum = prev.foo
+          'A long enough description to satisfy the requirements of the draw.'
+        end
+      end
+      assert_equal(0, fb.query('(exists sum)').each.to_a.size, opt)
+    end
+  end
+
   def test_default_slot_does_not_stop_early
     fb = Factbase.new
     fb.insert.foo = 1
@@ -226,6 +243,18 @@ class TestConclude < Fbe::Test
     end
     f = $fb.query('(exists score)').each.to_a[0]
     assert_equal(42, f.score)
+  end
+
+  def test_draw_does_not_keep_empty_fact
+    [Factbase.new, Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)].each do |fb|
+      fb.insert.foo = 1
+      Fbe.conclude(fb:, judge: 'judge-empty', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+        quota_unaware
+        on('(exists foo)')
+        draw { |_n, _prev| nil }
+      end
+      assert_equal(1, fb.size)
+    end
   end
 
   def test_follow_multivalued
@@ -314,6 +343,22 @@ class TestConclude < Fbe::Test
           'Some long description that satisfies the twenty five chars minimum.'
         end
       end
+    end
+  end
+
+  def test_follow_refuses_properties_set_by_judge
+    %w[what details].each do |prop|
+      fb = Factbase.new
+      fb.insert.foo = 1
+      e =
+        assert_raises(Fbe::Error, prop) do
+          Fbe.conclude(fb:, judge: 'judge-follow', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+            quota_unaware
+            on('(exists foo)')
+            follow("foo #{prop}")
+          end
+        end
+      assert_includes(e.message, "Can't follow #{prop}", prop)
     end
   end
 

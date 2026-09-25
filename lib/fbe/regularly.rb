@@ -21,7 +21,7 @@ require_relative 'fb'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield [Factbase::Fact] Fact to populate with judge execution details
 # @return [nil] Nothing
-# @raise [RuntimeError] If required parameters or globals are nil
+# @raise [Fbe::Error] If required parameters or globals are nil
 # @note Skips execution if judge was run within the interval period
 # @note The 'since' property is added to the fact when p_since_days is provided
 # @example Run a cleanup task every 3 days
@@ -35,11 +35,11 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}'))").each.to_a
+  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
   interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
   recent = fb.query(
     "(and
-      (eq what '#{judge}')
+      (eq what '#{judge.gsub("'", "\\\\'")}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
   ).each.first
   if recent

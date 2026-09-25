@@ -18,8 +18,8 @@ require_relative 'octo'
 # @param [Hash] global The hash for global caching (uses $global)
 # @param [Loog] loog The logging facility (uses $loog global)
 # @return [String] Formatted issue reference (e.g., "owner/repo#123")
-# @raise [RuntimeError] If fact is nil or required properties are missing
-# @raise [RuntimeError] If required global variables are not set
+# @raise [Fbe::Error] If fact is nil or required properties are missing
+# @raise [Fbe::Error] If required global variables are not set
 # @note Requires 'repository' and 'issue' properties in the fact
 # @note Repository names are cached to reduce GitHub API calls
 # @example Format an issue reference

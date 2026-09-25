@@ -26,15 +26,27 @@ require_relative '../fbe'
 #   - 2: Balanced requirements (default)
 #   - 4: Very difficult to earn rewards
 # @return [Hash<String, String>] Hash mapping bylaw names to their formulas
-# @raise [RuntimeError] If parameters are out of valid ranges
+# @raise [Fbe::Error] If parameters are out of valid ranges
 # @example Generate balanced bylaws
 #   bylaws = Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
 #   bylaws['bug-report-was-rewarded']
-#   # => "award { 2 * love * paranoia }"
+#   # => "(award
+#   #      (explain \"When a bug is reported and accepted by the team, ...\")
+#   #      (aka
+#   #        (let bonus 12)
+#   #        (give bonus \"as a basis\")
+#   #        \"award ${bonus} points\")
+#   #      )"
 # @example Generate strict bylaws with minimal rewards
 #   bylaws = Fbe.bylaws(anger: 4, love: 1, paranoia: 3)
 #   bylaws['dud-was-punished']
-#   # => "award { -16 * anger }"
+#   # => "(award
+#   #      (explain \"When an issue is submitted but then rejected by the team, ...\")
+#   #      (aka
+#   #        (let fee -32)
+#   #        (give fee \"as a basis\")
+#   #        \"deduct ${fee} points\")
+#   #      )"
 def Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
   raise(Fbe::Error, "The 'anger' must be in the [0..4] interval: #{anger.inspect}") unless !anger.negative? && anger < 5
   raise(Fbe::Error, "The 'love' must be in the [0..4] interval: #{love.inspect}") unless !love.negative? && love < 5
@@ -45,6 +57,6 @@ def Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
   raise(Fbe::Error, "The directory with templates is absent #{home.inspect}") unless File.exist?(home)
   Dir[File.join(home, '*.fe.liquid')].to_h do |f|
     formula = Liquid::Template.parse(File.read(f)).render('anger' => anger, 'love' => love, 'paranoia' => paranoia)
-    [File.basename(f).gsub(/\.fe.liquid$/, ''), formula]
+    [File.basename(f, '.fe.liquid'), formula]
   end
 end

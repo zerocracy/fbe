@@ -74,7 +74,7 @@ class TraceTest < Fbe::Test
     assert_equal('http://example.com/error', entry[:url])
   end
 
-  def test_handles_connection_errors
+  def test_handles_connection_errors # rubocop:disable Minitest/MultipleAssertions
     trace = []
     stub_request(:get, 'http://example.com/timeout').to_timeout
     conn =
@@ -85,7 +85,12 @@ class TraceTest < Fbe::Test
     assert_raises(Faraday::ConnectionFailed) do
       conn.get('http://example.com/timeout')
     end
-    assert_equal(0, trace.size)
+    assert_equal(1, trace.size)
+    entry = trace.first
+    assert_equal('http://example.com/timeout', entry[:url])
+    refute_nil(entry[:error])
+    assert_nil(entry[:status])
+    assert_instance_of(Float, entry[:duration])
   end
 
   def test_preserves_request_with_query_params # rubocop:disable Minitest/MultipleAssertions

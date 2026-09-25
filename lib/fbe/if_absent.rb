@@ -33,6 +33,7 @@ require_relative 'fb'
 # @param [Boolean] always If true, return the object in any case
 # @yield [Factbase::Fact] A proxy fact object to set properties on
 # @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
+# @raise [Fbe::Error] When no block is given
 # @note String values are properly escaped in queries
 # @note Time values are converted to UTC ISO8601 format for comparison
 # @example Ensure unique user registration
@@ -47,6 +48,7 @@ require_relative 'fb'
 #     puts "User already exists"
 #   end
 def Fbe.if_absent(fb: Fbe.fb, always: false)
+  raise(Fbe::Error, 'A block is required by if_absent') unless block_given?
   attrs = {}
   f =
     others(map: attrs) do |*args|

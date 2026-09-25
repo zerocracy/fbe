@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'others'
 require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
@@ -13,7 +14,8 @@ require_relative 'overwrite'
 # Similar to Fbe.regularly but works with hour intervals instead of days.
 # Executes a block periodically, maintaining a single fact that tracks the
 # last execution time. The fact is overwritten on each run rather than
-# creating new facts.
+# creating new facts: a property set by the block replaces the value it
+# got in the previous run.
 #
 # @param [String] area The name of the PMP area
 # @param [String] p_every_hours PMP property name for interval (defaults to 24 hours if not in PMP)
@@ -22,7 +24,7 @@ require_relative 'overwrite'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield [Factbase::Fact] The judge fact to populate with execution details
 # @return [nil] Nothing
-# @raise [RuntimeError] If required parameters or globals are nil
+# @raise [Fbe::Error] If required parameters or globals are nil
 # @note Skips execution if judge was run within the interval period
 # @note Overwrites the 'when' property of existing judge fact
 # @example Run a monitoring task every 6 hours
@@ -37,23 +39,29 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}') (exists #{p_every_hours}))").each.first
+  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}') (exists #{p_every_hours}))").each.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
   recent = fb.query(
     "(and
-      (eq what '#{judge}')
+      (eq what '#{judge.gsub("'", "\\\\'")}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
   ).each.first
   if recent
     loog.info("#{judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
     return
   end
-  f = fb.query("(and (eq what '#{judge}'))").each.first
+  f = fb.query("(and (eq what '#{judge.gsub("'", "\\\\'")}'))").each.first
   if f.nil?
     f = fb.insert
     f.what = judge
   end
-  yield(fb.query("(and (eq what '#{judge}'))").each.first)
-  Fbe.overwrite(f, 'when', Time.now)
+  attrs = {}
+  yield(
+    others(fact: f, map: attrs) do |k, *rest|
+      next @fact.public_send(k, *rest) unless k.end_with?('=')
+      (@map[k[0..-2]] ||= []) << rest.first
+    end
+  )
+  Fbe.overwrite(f, attrs.merge('when' => Time.now), fb:)
   nil
 end

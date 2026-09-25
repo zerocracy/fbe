@@ -26,6 +26,33 @@ class TestPmp < Fbe::Test
     assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_uses_explicit_factbase_after_global_cache_is_primed
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    Fbe.fb
+    other = Factbase.new
+    f = other.insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.days_to_reward = 99
+    assert_equal(99, Fbe.pmp(fb: other).hr.days_to_reward)
+    assert_equal(14, Fbe.pmp.hr.days_to_reward)
+  end
+
+  def test_reads_the_xml_once
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    Fbe.pmp(loog: Loog::NULL).areas
+    xml = $global[:pmp_xml]
+    refute_nil(xml)
+    Fbe.pmp(loog: Loog::NULL).areas
+    assert_same(xml, $global[:pmp_xml])
+  end
+
   def test_some_defaults
     $fb = Factbase.new
     $global = {}
@@ -44,9 +71,21 @@ class TestPmp < Fbe::Test
     f = Fbe.fb(loog: Loog::NULL).insert
     f.what = 'pmp'
     f.area = 'hr'
-    f.days_to_reward = 88.5
+    f.days_to_reward = 88.0
     $loog = Loog::NULL
     assert_equal(88, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
+  end
+
+  def test_rejects_fractional_int
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.days_to_reward = 88.5
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error) { Fbe.pmp(loog: Loog::NULL).hr.days_to_reward }
   end
 
   def test_reads_meta_info
@@ -107,7 +146,7 @@ class TestPmp < Fbe::Test
            '<default>true</default><type>bool</type><memo>x</memo></p></area></pmp>'
     orig = File.method(:read)
     File.stub(:read, ->(p, **k) { p.end_with?('pmp.xml') ? cust : orig.call(p, **k) }) do
-      assert(Fbe.pmp(loog: Loog::NULL).t.f)
+      assert(Fbe.pmp(loog: Loog::NULL).t.x)
     end
   end
 
@@ -128,8 +167,9 @@ class TestPmp < Fbe::Test
     $options = Judges::Options.new
     $loog = Loog::NULL
     fb = Factbase.new
-    v = Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop
-    assert_nil(v.value)
+    assert_raises(Fbe::Error) do
+      Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop
+    end
   end
 
   def test_custom_area_properties
@@ -145,5 +185,55 @@ class TestPmp < Fbe::Test
     props = Fbe.pmp(loog: Loog::NULL).custom.properties
     assert_includes(props, 'prop_a')
     assert_includes(props, 'prop_b')
+  end
+
+  def test_cannot_read_property_with_apostrophe
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'apostrophe in a property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"hour'ly_rate")
+    end
+  end
+
+  def test_cannot_read_property_that_injects_xpath
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'an injected XPath predicate matches a foreign property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"anger' or '1'='1")
+    end
+  end
+
+  def test_cannot_read_property_with_quote
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'double quote in a property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:'hour"ly_rate')
+    end
+  end
+
+  def test_cannot_read_property_with_unicode
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'non-ASCII property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"дни'к_награде")
+    end
+  end
+
+  def test_cannot_read_property_with_empty_name
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'empty property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"")
+    end
   end
 end
