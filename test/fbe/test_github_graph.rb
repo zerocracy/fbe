@@ -763,6 +763,30 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(1, pulls.size)
   end
 
+  def test_pull_request_reviews_skips_pending_review
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pr_2' => {
+            'id' => 'PR_2',
+            'number' => 2,
+            'reviews' => {
+              'nodes' => [
+                { 'id' => 'rev_1', 'submittedAt' => '2025-10-02T12:58:42Z' },
+                { 'id' => 'rev_2', 'submittedAt' => nil }
+              ],
+              'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil }
+            }
+          }
+        }
+      }
+    end
+    pulls = graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil]])
+    assert_equal(['rev_1'], pulls[0]['reviews'].map { _1['id'] })
+  end
+
   def test_pull_request_reviews_returns_empty_when_all_pulls_no_longer_exist
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')

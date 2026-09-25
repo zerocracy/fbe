@@ -405,7 +405,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       {
         'id' => v['id'],
         'number' => v['number'],
-        'reviews' => v.dig('reviews', 'nodes').map do |r|
+        'reviews' => v.dig('reviews', 'nodes').filter_map do |r|
+          next if r['submittedAt'].nil?
           {
             'id' => r['id'],
             'submitted_at' => Time.parse(r['submittedAt'])
