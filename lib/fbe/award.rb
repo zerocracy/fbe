@@ -284,14 +284,14 @@ class Fbe::Award
         end
       when :aka
         before = bylaw.size
-        before_intro = bylaw.intro_text
+        saved = bylaw.intro_text
         @operands[0..-2].each do |o|
           o.publish_to(bylaw)
         rescue StandardError => e
           raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
         bylaw.revert(bylaw.size - before)
-        bylaw.intro(before_intro)
+        bylaw.intro(saved)
         bylaw.line(to_p(@operands[-1]))
       when :explain
         bylaw.intro(to_p(@operands[0]))
