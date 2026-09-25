@@ -127,6 +127,13 @@ class TestAward < Fbe::Test
     assert_includes(md, 'summary of the aka', md)
   end
 
+  def test_explain_inside_aka_does_not_wipe_top_level_intro
+    a = Fbe::Award.new('(award (explain "TOP INTRO") (aka (explain "INNER") (give 5 "y") "summary"))')
+    md = a.bylaw.markdown
+    assert_includes(md, 'TOP INTRO', md)
+    refute_includes(md, 'INNER', md)
+  end
+
   def test_between_in_bylaw_markdown
     a = Fbe::Award.new('(award (set b (between x 3 120)) (give b "test"))')
     md = a.bylaw.markdown
