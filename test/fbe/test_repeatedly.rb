@@ -100,6 +100,24 @@ class TestRepeatedly < Fbe::Test
     assert_equal([3], fb.query('(always)').each.first['servers_checked'])
   end
 
+  def test_does_not_adopt_a_conclusion_fact_as_its_marker
+    fb = Factbase.new
+    judge = 'my-judge'
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = judge
+      f.details = 'Something long enough to satisfy the rules of the game'
+      f.when = Time.now
+    end
+    Fbe.repeatedly('pmp', 'every_x_hours', fb:, loog: Loog::NULL, judge:) do |f|
+      f.total = 42
+    end
+    conclusion = fb.query("(eq what '#{judge}')").each.first
+    assert_nil(conclusion['total'], 'the conclusion fact must not be touched by the marker')
+    marker = fb.query("(and (eq what 'repeatedly') (eq judge '#{judge}'))").each.first
+    refute_nil(marker, 'a dedicated marker fact must exist')
+  end
+
   def test_area_with_single_quote
     fb = Factbase.new
     $fb = fb
