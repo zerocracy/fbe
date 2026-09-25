@@ -30,7 +30,7 @@ class TestAward < Fbe::Test
                 (not (eq hours 0)))
               fee 0))
           (give b1 "for resolving the bug in ${hours} (<${max}) hours")
-          "add ${+fee} if it was resolved in less than ${max} hours")
+          "add +${fee} if it was resolved in less than ${max} hours")
         (set days (div hours 24))
         (set b2 (times days -1))
         (let worst -20)
@@ -162,6 +162,14 @@ class TestAward < Fbe::Test
   def test_bill_raises_on_undefined_var
     a = Fbe::Award.new('(award (give 10 "test ${missing}"))')
     assert_raises(Fbe::Error) { a.bill }
+  end
+
+  def test_raises_on_placeholder_with_unusual_name
+    ['${Fee}', '${+fee}', '${fee-1}', '${ fee }', '${}'].each do |p|
+      a = Fbe::Award.new("(award (let fee 10) (aka (give fee \"bonus #{p}\") \"add #{p} points\"))")
+      assert_raises(Fbe::Error, p) { a.bill }
+      assert_raises(Fbe::Error, p) { a.bylaw }
+    end
   end
 
   def test_bill_validates_zero_lines
