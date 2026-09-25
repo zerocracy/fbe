@@ -80,7 +80,13 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   masks.reject!(&:empty?)
   masks.reject { |m| m.start_with?('-') }.each do |mask|
     unless mask.include?('*')
-      repos << mask
+      repos <<
+        begin
+          octo.repository(mask)[:full_name] || mask
+        rescue Octokit::NotFound, Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError,
+               Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError
+          mask
+        end
       next
     end
     re = Fbe.mask_to_regex(mask)
@@ -103,16 +109,18 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     repos.reject! { |r| re.match?(r) }
   end
   repos.uniq!(&:downcase)
-  repos.reject! do |repo|
-    octo.repository(repo)[:archived]
-  rescue Octokit::NotFound => e
-    loog.warn("Repository #{repo.inspect} is absent, dropping it: #{e.message}")
-    true
-  rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError, Octokit::Unauthorized,
-         Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
-    loog.warn("Cannot tell whether #{repo.inspect} is archived, assuming it is not: #{e.message}")
-    false
-  end
+  repos =
+    repos.filter_map do |repo|
+      r = octo.repository(repo)
+      r[:archived] ? nil : (r[:full_name] || repo)
+    rescue Octokit::NotFound => e
+      loog.warn("Repository #{repo.inspect} is absent, dropping it: #{e.message}")
+      nil
+    rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError, Octokit::Unauthorized,
+           Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
+      loog.warn("Cannot tell whether #{repo.inspect} is archived, assuming it is not: #{e.message}")
+      repo
+    end
   raise(Fbe::Error, "No repos found matching: #{options.repositories.inspect}") if repos.empty?
   repos.shuffle!
   loog.debug("Scanning #{repos.size} repositories: #{repos.joined}...")
