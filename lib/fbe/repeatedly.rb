@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'others'
 require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
@@ -13,7 +14,8 @@ require_relative 'overwrite'
 # Similar to Fbe.regularly but works with hour intervals instead of days.
 # Executes a block periodically, maintaining a single fact that tracks the
 # last execution time. The fact is overwritten on each run rather than
-# creating new facts.
+# creating new facts: a property set by the block replaces the value it
+# got in the previous run.
 #
 # @param [String] area The name of the PMP area
 # @param [String] p_every_hours PMP property name for interval (defaults to 24 hours if not in PMP)
@@ -53,7 +55,13 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
     f = fb.insert
     f.what = judge
   end
-  yield(fb.query("(and (eq what '#{judge.gsub("'", "\\\\'")}'))").each.first)
-  Fbe.overwrite(f, 'when', Time.now, fb:)
+  attrs = {}
+  yield(
+    others(fact: f, map: attrs) do |k, *rest|
+      next @fact.public_send(k, *rest) unless k.end_with?('=')
+      (@map[k[0..-2]] ||= []) << rest.first
+    end
+  )
+  Fbe.overwrite(f, attrs.merge('when' => Time.now), fb:)
   nil
 end
