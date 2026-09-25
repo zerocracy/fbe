@@ -16,7 +16,9 @@ require_relative '../fbe'
 # @param [Judges::Options] options The options from judges tool (uses $options if not provided)
 # @param [Loog] loog The logging facility (uses $loog if not provided)
 # @yield Block to execute within the valve context
-# @return [Object] The result of the yielded block
+# @return [String] The result of the valve, always as a string, whether
+#   it comes from a fresh run of the block (on a miss) or from what was
+#   previously stored (on a hit)
 # @raise [Fbe::Error] If badge, why, or required globals are nil
 # @note Requires $options and $loog global variables to be set
 # @note In testing mode (options.testing != nil), bypasses valve recording
@@ -34,5 +36,5 @@ def Fbe.enter(badge, why, options: $options, loog: $loog, &)
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   return yield unless options.testing.nil?
   baza = BazaRb.new('api.zerocracy.com', 443, options.zerocracy_token, loog:)
-  baza.enter(options.job_name, badge, why, options.job_id.nil? ? nil : Integer(options.job_id.to_s, 10), &)
+  baza.enter(options.job_name, badge, why, options.job_id.nil? ? nil : Integer(options.job_id.to_s, 10), &).to_s
 end
