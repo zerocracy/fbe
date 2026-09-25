@@ -357,7 +357,6 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       GRAPHQL
     ).to_h
     nodes = result.dig('repository', 'pullRequests', 'nodes')
-    raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if nodes.nil?
     exhausted = !nodes.empty? && nodes.all? { Time.parse(_1['updatedAt']) < since }
     {
       'pulls_with_reviews' => nodes.filter_map do |pull|
@@ -484,7 +483,6 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         GRAPHQL
       ).to_h
       repository = result['repository']
-      raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if repository.nil?
       commits = repository.dig('defaultBranchRef', 'target', 'history', 'nodes')
       hoc += commits.nil? ? 0 : commits.sum { (_1['additions'] || 0) + (_1['deletions'] || 0) }
       total = repository.dig('defaultBranchRef', 'target', 'history', 'totalCount') || 0
