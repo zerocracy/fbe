@@ -206,4 +206,9 @@ class TestAward < Fbe::Test
       assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill.points }
     end
   end
+
+  def test_rounds_float_variable_in_award_text
+    g = Fbe::Award.new('(award (set d (div 47.9 24)) (give 8 "a") (give -2 "for ${d} days"))').bill.greeting
+    assert_includes(g, '-2 for 2 days', g)
+  end
 end
