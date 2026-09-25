@@ -127,9 +127,13 @@ class Fbe::Conclude
   #
   # @param [Array<String>] props List of property names
   # @return [nil] Nothing
+  # @raise [Fbe::Error] If +what+ or +details+ is in the list, since +draw+ sets them
   def follow(props)
     raise(Fbe::Error, 'Follow is already set') unless @follows.empty?
-    @follows = props.strip.split.compact
+    list = props.strip.split.compact
+    bad = list & %w[what details]
+    raise(Fbe::Error, "Can't follow #{bad.join(' and ')}, the judge sets it in the new fact") unless bad.empty?
+    @follows = list
   end
 
   # Create new fact from every fact found by the query.

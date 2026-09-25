@@ -334,6 +334,22 @@ class TestConclude < Fbe::Test
     end
   end
 
+  def test_follow_refuses_properties_set_by_judge
+    %w[what details].each do |prop|
+      fb = Factbase.new
+      fb.insert.foo = 1
+      e =
+        assert_raises(Fbe::Error, prop) do
+          Fbe.conclude(fb:, judge: 'judge-follow', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+            quota_unaware
+            on('(exists foo)')
+            follow("foo #{prop}")
+          end
+        end
+      assert_includes(e.message, "Can't follow #{prop}", prop)
+    end
+  end
+
   def test_catch_fbe_off_quota_exception_correctly
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
