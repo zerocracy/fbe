@@ -245,6 +245,18 @@ class TestConclude < Fbe::Test
     assert_equal(42, f.score)
   end
 
+  def test_draw_does_not_keep_empty_fact
+    [Factbase.new, Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)].each do |fb|
+      fb.insert.foo = 1
+      Fbe.conclude(fb:, judge: 'judge-empty', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+        quota_unaware
+        on('(exists foo)')
+        draw { |_n, _prev| nil }
+      end
+      assert_equal(1, fb.size)
+    end
+  end
+
   def test_follow_multivalued
     $fb = Factbase.new
     $global = {}
