@@ -44,6 +44,11 @@ class TestBylaws < Fbe::Test
     )
   end
 
+  def test_few_comments_text_excludes_silent_review
+    md = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'comments made during review, but at least one', md)
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
