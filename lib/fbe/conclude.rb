@@ -45,11 +45,12 @@ end
 # For example, you want to make a new +good+ fact for every +bad+ fact found:
 #
 #  require 'fbe/conclude'
-#  conclude do
+#  Fbe.conclude do
 #    on '(exists bad)'
 #    follow 'when'
 #    draw do |n, b|
 #      n.good = 'yes!'
+#      'A bad fact was found and a good fact was created for it.'
 #    end
 #  end
 #
@@ -141,11 +142,12 @@ class Fbe::Conclude
   # For example, you want to conclude a +reward+ from every +win+ fact:
   #
   #  require 'fbe/conclude'
-  #  conclude do
+  #  Fbe.conclude do
   #    on '(exists win)'
   #    follow 'win when'
   #    draw do |n, w|
   #      n.reward = 10
+  #      'A win fact was found and a reward fact was created for it.'
   #    end
   #  end
   #
@@ -171,7 +173,7 @@ class Fbe::Conclude
   # For example, you want to add +when+ property to every fact:
   #
   #  require 'fbe/conclude'
-  #  conclude do
+  #  Fbe.conclude do
   #    on '(always)'
   #    consider do |f|
   #      f.when = Time.new
