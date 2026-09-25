@@ -1382,6 +1382,22 @@ class TestOcto < Fbe::Test
     assert_equal(123, commits[0][:stats][:total])
   end
 
+  def test_fake_commits
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    commits = o.commits('yegor256/test', per_page: 1)
+    refute_empty(commits)
+  end
+
+  def test_fake_last_response
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_nil(o.last_response.rels[:last])
+  end
+
+  def test_fake_get
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal({}, o.get('/rate_limit'))
+  end
+
   def test_fake_search_commits
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.search_commits('repo:yegor256/test')
