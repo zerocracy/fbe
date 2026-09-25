@@ -149,8 +149,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 if @trace.empty?
                   @loog.debug('GitHub API trace is empty')
                 else
+                  shown = @trace.select { |e| e[:duration] > 0.05 || all }
                   grouped =
-                    @trace.select { |e| e[:duration] > 0.05 || all }.group_by do |entry|
+                    shown.group_by do |entry|
                       uri = URI.parse(entry[:url])
                       query = uri.query
                       query = "?#{query.ellipsized(40)}" if query
@@ -170,7 +171,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                     .take(max)
                     .join("\n")
                   @loog.info(
-                    "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
+                    "GitHub API trace (#{grouped.count} URLs vs #{shown.count} requests, " \
+                    "#{@trace.count - shown.count} fast ones skipped, " \
                     "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
                   )
                   @trace.clear
