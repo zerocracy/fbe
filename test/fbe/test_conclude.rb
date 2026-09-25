@@ -9,6 +9,7 @@ require 'judges/options'
 require 'loog'
 require_relative '../../lib/fbe/conclude'
 require_relative '../../lib/fbe/fb'
+require_relative '../../lib/fbe/overwrite'
 require_relative '../test__helper'
 
 # Test.
@@ -82,6 +83,27 @@ class TestConclude < Fbe::Test
     end
     f = fb.query('(exists bar)').each.to_a[0]
     assert_equal(42, f.bar)
+  end
+
+  def test_consider_visits_every_fact_once_when_block_recreates_it
+    $epoch = Time.now
+    fb = Factbase.new
+    5.times do |i|
+      f = fb.insert
+      f._id = i
+      f.what = 'x'
+      f.tag = 'old'
+    end
+    visited = []
+    Fbe.conclude(fb:, judge: 'x', loog: Loog::NULL, options: Judges::Options.new, global: {}) do
+      quota_unaware
+      on("(eq what 'x')")
+      consider do |f|
+        visited << f._id
+        Fbe.overwrite(f, 'tag', 'new', fb:)
+      end
+    end
+    assert_equal([0, 1, 2, 3, 4], visited.sort)
   end
 
   def test_considers_until_quota
