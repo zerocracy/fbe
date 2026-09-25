@@ -97,6 +97,30 @@ class TestOcto < Fbe::Test
     assert_raises(Fbe::Error) { o.user_name_by_id(42) }
   end
 
+  def test_repo_id_by_name_raises_on_not_found
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repos/acme/absent').to_return(
+      status: 404, body: '{}', headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_raises(Fbe::Error) { o.repo_id_by_name('acme/absent') }
+  end
+
+  def test_repo_name_by_id_raises_on_not_found
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repositories/999999').to_return(
+      status: 404, body: '{}', headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_raises(Fbe::Error) { o.repo_name_by_id(999_999) }
+  end
+
   def test_reads_repo_id_by_name
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
