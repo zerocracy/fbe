@@ -509,8 +509,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [Time] since The datetime from
+  # @param [Time] till The datetime to, a release published later is not counted
   # @return [Hash] A hash with total releases
-  def total_releases_published(owner, name, since)
+  def total_releases_published(owner, name, since, till: Time.now)
     total = 0
     cursor = nil
     loop do
@@ -535,7 +536,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       ).to_h
       releases = result.dig('repository', 'releases', 'nodes')
       break if releases.nil? || releases.empty?
-      total += releases.count { !_1['isDraft'] && _1['publishedAt'] && Time.parse(_1['publishedAt']) > since }
+      dates = releases.reject { _1['isDraft'] }.filter_map { _1['publishedAt'] && Time.parse(_1['publishedAt']) }
+      total += dates.count { _1 > since && _1 <= till }
       break if releases.all? { _1['publishedAt'] && Time.parse(_1['publishedAt']) < since }
       break unless result.dig('repository', 'releases', 'pageInfo', 'hasNextPage')
       cursor = result.dig('repository', 'releases', 'pageInfo', 'endCursor')
@@ -837,8 +839,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       }
     end
 
-    def total_releases_published(_owner, _name, _since)
-      { 'releases' => 7 }
+    def total_releases_published(_owner, _name, since, till: Time.now)
+      { 'releases' => (1..7).count { since + (_1 * 60) <= till } }
     end
 
     private

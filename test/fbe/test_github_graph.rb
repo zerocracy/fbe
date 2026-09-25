@@ -822,4 +822,69 @@ class TestGitHubGraph < Fbe::Test
     graph.total_releases_published('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
     refute_includes(captured, 'after: ""')
   end
+
+  def test_total_releases_published_dont_count_after_till
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    owner = "Ω#{random.rand(1_000_000)}"
+    name = "λ#{random.rand(1_000_000)}"
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [
+              { 'isDraft' => false, 'publishedAt' => '2025-07-01T00:00:00Z' },
+              { 'isDraft' => false, 'publishedAt' => '2025-03-01T00:00:00Z' },
+              { 'isDraft' => false, 'publishedAt' => '2024-11-01T00:00:00Z' }
+            ],
+            'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+          }
+        }
+      }
+    end
+    result = graph.total_releases_published(
+      owner, name, Time.parse('2025-01-01T00:00:00Z'), till: Time.parse('2025-05-01T00:00:00Z')
+    )
+    assert_equal(1, result['releases'], "a release published after the till moment is counted, seed: #{seed}")
+  end
+
+  def test_total_releases_published_stops_paging_at_since_when_till_is_later
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    owner = "Ω#{random.rand(1_000_000)}"
+    name = "λ#{random.rand(1_000_000)}"
+    graph = Fbe::Graph.new(token: 'fake')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      raise(Fbe::Error, "too many pages of releases requested: #{calls}") if calls > 4
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [{ 'isDraft' => false, 'publishedAt' => '2023-02-01T00:00:00Z' }],
+            'pageInfo' => { 'endCursor' => 'MjU', 'hasNextPage' => true }
+          }
+        }
+      }
+    end
+    graph.total_releases_published(
+      owner, name, Time.parse('2024-01-01T00:00:00Z'), till: Time.parse('2030-01-01T00:00:00Z')
+    )
+    assert_equal(1, calls, "paging does not stop on a page older than since, seed: #{seed}")
+  end
+
+  def test_fake_total_releases_published_dont_count_after_till
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    owner = "Ω#{random.rand(1_000_000)}"
+    name = "λ#{random.rand(1_000_000)}"
+    since = Time.parse('2025-12-16T15:00:00Z') + random.rand(1..1_000)
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.total_releases_published(owner, name, since, till: since + 60)
+    assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
+  end
 end
