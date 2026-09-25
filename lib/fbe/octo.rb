@@ -43,7 +43,10 @@ Fbe::SEARCH_METHODS = %i[
 # @option options [String] :github_token GitHub API token for authentication
 # @option options [Boolean] :testing When true, uses FakeOctokit for testing
 # @option options [String] :sqlite_cache Path to SQLite cache file for HTTP responses
-# @option options [Integer] :sqlite_cache_maxsize Maximum size of SQLite cache in bytes (default: 10MB)
+# @option options [String, Integer] :sqlite_cache_maxsize Maximum size of SQLite cache, either
+#  a +Filesize+-compatible string (e.g. '100M') or a plain number of bytes (default: '100M')
+# @option options [String, Integer] :sqlite_cache_maxvsize Maximum size of SQLite cache values, either
+#  a +Filesize+-compatible string (e.g. '100K') or a plain number of bytes (default: '100K')
 # @param [Hash] global Hash of global options
 # @param [Loog] loog Logging facility
 # @return [Hash] Usually returns a JSON, as it comes from the GitHub API
@@ -106,8 +109,11 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.use(Fbe::Middleware::RateLimit, limits)
               builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh], mutex:)
               if options.sqlite_cache
-                maxsize = Integer(Filesize.from(options.sqlite_cache_maxsize || '100M'))
-                maxvsize = Integer(Filesize.from(options.sqlite_cache_maxvsize || '100K'))
+                bytes_of = lambda do |value, default|
+                  value.is_a?(Integer) ? value : Integer(Filesize.from(value || default))
+                end
+                maxsize = bytes_of.call(options.sqlite_cache_maxsize, '100M')
+                maxvsize = bytes_of.call(options.sqlite_cache_maxvsize, '100K')
                 minage = options.sqlite_cache_min_age.nil? ? nil : Integer(options.sqlite_cache_min_age.to_s, 10)
                 store = Fbe::Middleware::SqliteStore.new(
                   options.sqlite_cache, Fbe::VERSION, loog:, maxsize:, maxvsize:, ttl: 24, cache_min_age: minage
