@@ -1115,7 +1115,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           }
         }
       }
-    ]
+    ].sort_by { -Integer(_1[:id], 10) }
   end
 
   def issue_events(_repo, number)
