@@ -36,6 +36,22 @@ class TestEnter < Fbe::Test
     assert_equal('hi', Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { 'hi' })
   end
 
+  def test_same_type_on_miss_and_hit
+    WebMock.disable_net_connect!
+    options = Judges::Options.new({ 'zerocracy_token' => '00000-0000-0000-00000' })
+    stub_request(:get, 'https://api.zerocracy.com/csrf').to_return(body: 'token')
+    stub_request(:get, 'https://api.zerocracy.com/result?badge=foo').to_return(status: 204)
+    stub_request(:post, 'https://api.zerocracy.com/valves')
+      .with(body: '_csrf=token&badge=foo&pname&result=42&why=no%20reason')
+      .to_return(status: 302)
+    miss = Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { 42 }
+    stub_request(:get, 'https://api.zerocracy.com/result?badge=foo').to_return(status: 200, body: '42')
+    hit = Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { 42 }
+    assert_equal(miss.class, hit.class)
+    assert_equal('42', miss)
+    assert_equal('42', hit)
+  end
+
   def test_in_testing_mode
     WebMock.enable_net_connect!
     options = Judges::Options.new({ 'testing' => true })
