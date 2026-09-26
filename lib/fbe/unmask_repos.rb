@@ -95,7 +95,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
       repos << r[:full_name] if re.match?(r[:full_name])
     end
   rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::NotFound, Octokit::ServerError,
-         Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
+         Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
     loog.warn("Cannot expand the mask #{mask.inspect}, skipping it: #{e.message}")
   end
   masks.select { |m| m.start_with?('-') }.each do |mask|
@@ -109,7 +109,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     loog.warn("Repository #{repo.inspect} is absent, dropping it: #{e.message}")
     true
   rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError, Octokit::Unauthorized,
-         Faraday::ConnectionFailed, Faraday::TimeoutError => e
+         Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
     loog.warn("Cannot tell whether #{repo.inspect} is archived, assuming it is not: #{e.message}")
     false
   end
