@@ -64,9 +64,7 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
       f.since = moment - (days * 86_400)
     end
   end
-  mine =
-    "(and (eq what 'regularly') (eq judge '#{judge.gsub("'", "\\\\'")}') " \
-    "(eq when (to_time '#{moment.iso8601}')))"
+  mine = "(and (eq what 'regularly') (eq judge '#{judge.gsub("'", "\\\\'")}') (eq when (to_time '#{moment.iso8601}')))"
   begin
     yield(fb.query(mine).each.first)
   rescue Factbase::Rollback
