@@ -134,6 +134,19 @@ class TestDelete < Fbe::Test
     assert_nil(fact['_id'])
   end
 
+  def test_rejects_duplicate_fact_ids
+    fb = Factbase.new
+    first = fb.insert
+    first._id = 44
+    first.foo = 'first'
+    second = fb.insert
+    second._id = 44
+    second.foo = 'second'
+    error = assert_raises(Fbe::Error) { Fbe.delete(first, 'foo', fb:) }
+    assert_equal('2 facts share _id = 44, cannot delete one of them', error.message)
+    assert_equal(2, fb.size)
+  end
+
   def test_preserves_system_props_on_decorated_fb
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
