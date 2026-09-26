@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'time'
+require 'zlib'
 
 # Fake GitHub client for testing purposes.
 #
@@ -11,7 +12,7 @@ require 'time'
 # It returns predictable, deterministic data structures that mimic GitHub API
 # responses without making actual API calls. The mock data uses consistent
 # patterns:
-# - IDs are generated from string names using character code sums
+# - IDs are generated from string names with CRC-32, so the order of the characters counts
 # - Timestamps are random but within recent past
 # - Repository and user data follows GitHub's JSON structure
 #
@@ -36,15 +37,18 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
 
   # Converts a string name to a deterministic integer.
   #
+  # The checksum depends on the order of the characters, so two names built
+  # from the same letters do not meet on one number.
+  #
   # @param [String, Integer] name The name to convert or pass through
-  # @return [Integer, String] The sum of character codes if input is a string, otherwise the original input
+  # @return [Integer, String] The CRC-32 of the name if input is a string, otherwise the original input
   # @example
   #   fake_client = Fbe::FakeOctokit.new
-  #   fake_client.name_to_number("octocat") #=> 728
+  #   fake_client.name_to_number("octocat") #=> 1483505668
   #   fake_client.name_to_number(42) #=> 42
   def name_to_number(name)
     return name unless name.is_a?(String)
-    name.chars.sum(&:ord)
+    Zlib.crc32(name)
   end
 
   def auto_paginate=(_); end

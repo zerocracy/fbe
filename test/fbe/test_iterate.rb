@@ -305,7 +305,7 @@ class TestIterate < Fbe::Test
     fb.insert.then do |f|
       f.what = 'iterate'
       f.where = 'github'
-      f.repository = 680
+      f.repository = 3_861_188_962
       f.wrap_test = 10
     end
     fb.insert.num = 5
@@ -378,7 +378,7 @@ class TestIterate < Fbe::Test
     fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
-      assert_equal(680, f.repository)
+      assert_equal(3_861_188_962, f.repository)
       assert_equal(43, f.first_marker)
       assert_equal(44, f.second_marker)
     end
@@ -390,7 +390,7 @@ class TestIterate < Fbe::Test
     fb.insert.then do |f|
       f.what = 'iterate'
       f.where = 'github'
-      f.repository = 680
+      f.repository = 3_861_188_962
       f.first_marker = 40
       f.second_marker = 20
     end
@@ -407,7 +407,7 @@ class TestIterate < Fbe::Test
     fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
-      assert_equal(680, f.repository)
+      assert_equal(3_861_188_962, f.repository)
       assert_equal(43, f.first_marker)
       assert_equal(20, f.second_marker)
     end
@@ -421,7 +421,7 @@ class TestIterate < Fbe::Test
     fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
-      assert_equal(680, f.repository)
+      assert_equal(3_861_188_962, f.repository)
       assert_equal(43, f.first_marker)
       assert_equal(50, f.second_marker)
     end
@@ -434,14 +434,14 @@ class TestIterate < Fbe::Test
     fb.insert.then do |f|
       f.what = 'iterate'
       f.where = 'github'
-      f.repository = 680
+      f.repository = 3_861_188_962
       f.marker = 3
     end
     20.times do |i|
       fb.insert.then do |f|
         f.where = 'github'
         f.what = 'judge'
-        f.repository = 680
+        f.repository = 3_861_188_962
         f.issue = i + 1
         f.prop = 'prop' if i.even?
       end
@@ -498,7 +498,7 @@ class TestIterate < Fbe::Test
       fb.insert.then do |f|
         f.where = 'github'
         f.what = 'judge'
-        f.repository = 680
+        f.repository = 3_861_188_962
         f.issue = i
       end
     end
