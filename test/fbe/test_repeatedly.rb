@@ -67,6 +67,14 @@ class TestRepeatedly < Fbe::Test
     assert(ran)
   end
 
+  def test_requires_block_before_creating_a_fact
+    fb = Factbase.new
+    assert_raises(Fbe::Error) do
+      Fbe.repeatedly('pmp', 'every_x_hours', fb:, loog: Loog::NULL, judge: 'test')
+    end
+    assert_empty(fb.query('(always)').each.to_a)
+  end
+
   def test_writes_the_marker_into_the_given_factbase
     $fb = Factbase.new
     $loog = Loog::NULL
