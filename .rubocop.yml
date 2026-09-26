@@ -52,7 +52,6 @@ Elegant/GoodMethodName:
     - extract_search_remaining_count
     - faraday_value
     - github_graph
-    - handle_rate_limit_request
     - if_absent
     - intro_text
     - issue_comment_reactions
@@ -95,6 +94,7 @@ Elegant/GoodMethodName:
     - review_comments
     - search_commits
     - search_issues
+    - serve_cached
     - sort_by
     - timeout_unaware
     - total_commits
@@ -103,8 +103,8 @@ Elegant/GoodMethodName:
     - total_issues_created
     - total_releases_published
     - track_request
-    - untrack_request
     - unmask_repos
+    - untrack_request
     - update_organization_membership
     - user_name_by_id
     - user_repository_invitations
