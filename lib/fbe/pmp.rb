@@ -52,7 +52,7 @@ require_relative 'fb'
 #
 #   # Read custom property (nil default/type/memo)
 #   val = Fbe.pmp.my_custom.my_prop
-def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Lint/UnusedMethodArgument
+def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity, Lint/UnusedMethodArgument
   global[:mutex] ||= Mutex.new
   xml =
     global[:mutex].synchronize do
