@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'json'
 require 'judges/options'
 require 'loog'
 require_relative '../../lib/fbe/github_graph'
@@ -966,6 +967,55 @@ class TestGitHubGraph < Fbe::Test
     end
     graph.total_releases_published('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
     refute_includes(captured, 'after: ""')
+  end
+
+  def test_escapes_quotes_inside_repository_owner
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    seed = Random.new_seed
+    owner = "#{Random.new(seed).rand(1_000_000).to_s(36)}\") { id } repository(owner: \"\u00fc"
+    captured = nil
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      {}
+    end
+    graph.resolved_conversations(owner, 'bar', 42)
+    assert_includes(captured, "owner: #{JSON.dump(owner)},", "owner is not one escaped literal, seed #{seed}")
+  end
+
+  def test_escapes_quotes_inside_pagination_cursor
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    seed = Random.new_seed
+    cursor = "#{Random.new(seed).rand(1_000_000).to_s(36)}\", x: \"\u00df"
+    captured = nil
+    page = { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      { 'repository' => { 'pullRequests' => page } }
+    end
+    graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'), cursor:)
+    assert_includes(captured, "after: #{JSON.dump(cursor)},", "cursor is not one escaped literal, seed #{seed}")
+  end
+
+  def test_escapes_quotes_inside_search_query
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    seed = Random.new_seed
+    owner = "#{Random.new(seed).rand(1_000_000).to_s(36)}\", type: USER) { id } x: search(query: \"é"
+    since = Time.parse('2025-08-01T18:00:00Z')
+    till = Time.parse('2025-09-01T18:00:00Z')
+    captured = nil
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      {}
+    end
+    graph.total_issues_created(owner, 'bar', since, till)
+    assert_includes(
+      captured,
+      "query: #{JSON.dump("repo:#{owner}/bar type:pr created:#{since.utc.iso8601}..#{till.utc.iso8601}")},",
+      "search query is not one escaped literal, seed #{seed}"
+    )
   end
 
   def test_total_releases_published_dont_count_after_till

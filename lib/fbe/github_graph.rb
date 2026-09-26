@@ -510,13 +510,13 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       <<~GRAPHQL
         {
           issues: search(
-            query: "repo:#{owner}/#{name} type:issue #{window}",
+            query: #{literal("repo:#{owner}/#{name} type:issue #{window}")},
             type: ISSUE
           ) {
             issueCount
           },
           pulls: search(
-            query: "repo:#{owner}/#{name} type:pr #{window}",
+            query: #{literal("repo:#{owner}/#{name} type:pr #{window}")},
             type: ISSUE
           ) {
             issueCount
