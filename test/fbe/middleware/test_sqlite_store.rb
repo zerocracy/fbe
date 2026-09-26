@@ -70,11 +70,42 @@ class SqliteStoreTest < Fbe::Test
   def test_not_db_file
     with_tmpfile do |f|
       File.binwrite(f, Array.new(20) { rand(0..255) }.pack('C*'))
-      ex =
-        assert_raises(SQLite3::NotADatabaseException) do
-          Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog).read('my_key')
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      assert_nil(store.read('my_key'))
+    end
+  end
+
+  def test_recovers_from_a_corrupt_cache_file
+    with_tmpfile do |f|
+      File.binwrite(f, Array.new(20) { rand(0..255) }.pack('C*'))
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      store.write('my_key', 'my_value')
+      assert_equal('my_value', store.read('my_key'))
+    end
+  end
+
+  def test_disables_itself_when_the_file_stays_unusable
+    with_tmpfile do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      SQLite3::Database.stub(:new, ->(*_args) { raise(SQLite3::CantOpenException, 'always broken') }) do
+        assert_nil(store.read('my_key'))
+        store.write('my_key', 'my_value')
+        assert_nil(store.read('my_key'))
+      end
+    end
+  end
+
+  def test_rejects_an_unwritable_directory
+    with_tmpfile do |f|
+      dir = File.dirname(f)
+      File.chmod(0o500, dir)
+      begin
+        assert_raises(ArgumentError) do
+          Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
         end
-      assert_match('file is not a database', ex.message)
+      ensure
+        File.chmod(0o700, dir)
+      end
     end
   end
 

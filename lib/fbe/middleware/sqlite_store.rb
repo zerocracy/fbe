@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'filesize'
+require 'fileutils'
 require 'json'
 require 'loog'
 require 'sqlite3'
@@ -61,6 +62,7 @@ class Fbe::Middleware::SqliteStore
     raise(ArgumentError, 'Database path cannot be nil or empty') if path.nil? || path.empty?
     dir = File.dirname(path)
     raise(ArgumentError, "Directory #{dir} does not exist") unless File.directory?(dir)
+    raise(ArgumentError, "Directory #{dir} is not writable") unless File.writable?(dir)
     raise(ArgumentError, 'Version cannot be nil or empty') if version.nil? || version.empty?
     @path = File.absolute_path(path)
     @version = version
@@ -178,10 +180,30 @@ class Fbe::Middleware::SqliteStore
   private
 
   def perform(&)
+    return [] if @disabled
     @mutex.synchronize do
-      @db ||= init!
+      @db ||= open!
     end
+    return [] if @disabled
     @db.transaction(&)
+  end
+
+  # Opens the database, discarding and recreating an unusable cache file once.
+  #
+  # @return [SQLite3::Database, nil] The opened database, or nil if the cache
+  #   could not be made usable and has been disabled
+  def open!
+    init!
+  rescue SQLite3::Exception => e
+    @loog.warn("SQLite cache at #{@path} is unusable (#{e.message}), discarding it and starting fresh")
+    FileUtils.rm_f(@path)
+    begin
+      init!
+    rescue SQLite3::Exception => x
+      @loog.warn("SQLite cache at #{@path} could not be recreated (#{x.message}), disabling the cache")
+      @disabled = true
+      nil
+    end
   end
 
   def init! # rubocop:disable Metrics/AbcSize
