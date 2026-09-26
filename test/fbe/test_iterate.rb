@@ -530,6 +530,42 @@ class TestIterate < Fbe::Test
     assert_equal(25, fb.query('(eq what "iterate")').each.to_a.first.marker)
   end
 
+  def test_sort_by_rejects_a_bad_format
+    ex =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(
+          fb: Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL),
+          loog: Loog::NULL, options: Judges::Options.new, global: {}, epoch: Time.now, kickoff: Time.now
+        ) do
+          sort_by('9number')
+        end
+      end
+    assert_match(/Wrong sort field format/, ex.message)
+  end
+
+  def test_sort_by_reports_a_misspelled_field_instead_of_looking_exhausted
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    global = {}
+    fb = Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL)
+    fb.insert.then do |f|
+      f.where = 'github'
+      f.what = 'judge'
+      f.repository = 680
+      f.number = 1
+    end
+    ex =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
+          as('marker')
+          sort_by('nubmer')
+          by("(and (eq repository $repository) (eq where 'github') (eq what 'judge'))")
+          repeats(1)
+          over { |_repository, n| n }
+        end
+      end
+    assert_match(/carry the 'nubmer' property/, ex.message)
+  end
+
   def test_custom_since
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)

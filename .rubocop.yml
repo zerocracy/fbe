@@ -96,6 +96,7 @@ Elegant/GoodMethodName:
     - search_commits
     - search_issues
     - sort_by
+    - sorted_values
     - timeout_unaware
     - total_commits
     - total_commits_pushed
