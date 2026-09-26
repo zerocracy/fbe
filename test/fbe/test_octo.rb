@@ -940,13 +940,9 @@ class TestOcto < Fbe::Test
       { body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' } },
       { body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' } }
     )
-    stub_request(:get, 'https://api.github.com/user/123').to_return do
-      {
-        status: 200,
-        body: '{"id":123,"login":"test"}',
-        headers: { 'X-RateLimit-Remaining' => '221' }
-      }
-    end
+    stub_request(:get, 'https://api.github.com/user/123').to_return(
+      { status: 200, body: '{"id":123,"login":"test"}', headers: { 'X-RateLimit-Remaining' => '221' } }
+    )
     stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(
       { status: 200, body: '{"id":456,"full_name":"foo/bar"}', headers: { 'X-RateLimit-Remaining' => '220' } },
       { status: 200, body: '{"id":456,"full_name":"foo/bar"}', headers: { 'X-RateLimit-Remaining' => '219' } }
