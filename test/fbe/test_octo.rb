@@ -61,6 +61,36 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_events_grow_older_as_ids_shrink
+    seed = Random.new_seed
+    repo = "яндекс/тест-#{Random.new(seed).rand(1_000_000)}"
+    events = Fbe::FakeOctokit.new.repository_events(repo, {}).sort_by { Integer(_1[:id], 10) }
+    times = events.map { _1[:created_at] }
+    assert_equal(times.sort, times, "timestamps of #{repo} do not follow the ids (seed: #{seed})")
+  end
+
+  def test_fake_events_dont_share_timestamps
+    seed = Random.new_seed
+    repo = "zerocracy/#{'ж' * Random.new(seed).rand(1..100)}"
+    times = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:created_at] }
+    assert_equal(times.uniq, times, "two events of #{repo} share a timestamp (seed: #{seed})")
+  end
+
+  def test_fake_events_dont_happen_in_future
+    seed = Random.new_seed
+    repo = "#{Random.new(seed).rand(1_000_000)}/ünïcødé"
+    times = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:created_at] }
+    assert_operator(Time.now, :>=, times.max, "an event of #{repo} is dated in the future (seed: #{seed})")
+  end
+
+  def test_fake_events_grow_older_as_ids_shrink_through_octo
+    seed = Random.new_seed
+    repo = "yegor256/#{'щ' * Random.new(seed).rand(1..80)}"
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    times = o.repository_events(repo, {}).sort_by { Integer(_1[:id], 10) }.map { _1[:created_at] }
+    assert_equal(times.sort, times, "timestamps of #{repo} from octo do not follow the ids (seed: #{seed})")
+  end
+
   def test_rate_limit
     o = Fbe::FakeOctokit.new
     assert_equal(100, o.rate_limit.remaining)
