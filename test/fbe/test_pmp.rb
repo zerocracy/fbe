@@ -76,6 +76,20 @@ class TestPmp < Fbe::Test
     assert_equal(88, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_coerces_string_property_declared_as_string
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'cost'
+    f.slaves = 42
+    $loog = Loog::NULL
+    result = Fbe.pmp(loog: Loog::NULL).cost.slaves
+    assert_kind_of(String, result.value)
+    assert_equal('42', result)
+  end
+
   def test_rejects_fractional_int
     $fb = Factbase.new
     $global = {}

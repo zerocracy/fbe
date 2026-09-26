@@ -135,6 +135,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                 when 'int' then whole.call(result)
                 when 'float' then Float(result)
                 when 'bool' then result.to_s == 'true'
+                when 'string' then result.to_s
                 else result
                 end
               rescue ArgumentError, TypeError => e
