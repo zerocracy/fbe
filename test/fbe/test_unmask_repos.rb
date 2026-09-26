@@ -198,6 +198,25 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(['foo/bar'], list, 'the repo is not kept when the quota check itself is off-quota')
   end
 
+  def test_returns_canonical_case_for_exact_and_wildcard_masks
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/repos/ZEROCRACY/FBE').to_return(
+      body: '{"full_name":"zerocracy/fbe"}', headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, 'https://api.github.com/orgs/zerocracy/repos?per_page=100&type=all').to_return(
+      body: '[{"full_name":"zerocracy/fbe"}]', headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, 'https://api.github.com/repos/zerocracy/fbe').to_return(
+      body: '{"full_name":"zerocracy/fbe","archived":false}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'repositories' => 'ZEROCRACY/FBE,zerocracy/*' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(['zerocracy/fbe'], list, "expected canonical case, got #{list.inspect}")
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })
