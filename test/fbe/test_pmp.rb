@@ -26,6 +26,23 @@ class TestPmp < Fbe::Test
     assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_reads_property_from_second_fact_of_same_area
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    first = Fbe.fb(loog: Loog::NULL).insert
+    first.what = 'pmp'
+    first.area = 'hr'
+    first.anger = 4
+    second = Fbe.fb(loog: Loog::NULL).insert
+    second.what = 'pmp'
+    second.area = 'hr'
+    second.days_to_reward = 55
+    assert_equal(4, Fbe.pmp(loog: Loog::NULL).hr.anger)
+    assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
+  end
+
   def test_uses_explicit_factbase_after_global_cache_is_primed
     $fb = Factbase.new
     $global = {}
