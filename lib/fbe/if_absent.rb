@@ -49,7 +49,7 @@ require_relative 'same'
 #   else
 #     puts "User already exists"
 #   end
-def Fbe.if_absent(fb: Fbe.fb, always: false) # rubocop:disable Metrics/PerceivedComplexity
+def Fbe.if_absent(fb: Fbe.fb, always: false) # rubocop:disable Metrics/PerceivedComplexity,Metrics/AbcSize,Metrics/CyclomaticComplexity
   raise(Fbe::Error, 'A block is required by if_absent') unless block_given?
   attrs = {}
   f =
