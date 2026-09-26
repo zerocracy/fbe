@@ -7,6 +7,7 @@ require 'others'
 require 'time'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'same'
 
 # Injects a fact if it's absent in the factbase, otherwise returns nil.
 #
@@ -74,7 +75,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.first
+  before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }
   return before if before && always
   return nil if before
   n = fb.insert
