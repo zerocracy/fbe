@@ -19,8 +19,9 @@ require_relative 'fb'
 # @param [String, Hash] property_or_hash The name of the property to set, or a hash of properties
 # @param [Any] values The value to set (can be any type, including array) - ignored if first param is Hash
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
+# @param [String] fid The property used as the fact identifier (defaults to '_id')
 # @return [nil] Nothing
-# @raise [Fbe::Error] If fact is nil, has no _id, or property is not a String
+# @raise [Fbe::Error] If fact is nil, has no identifier, or property is neither a String nor a Hash
 # @note This operation preserves all other properties during recreation
 # @note If property already has the same single value, no changes are made
 # @example Update a user's status
@@ -29,7 +30,7 @@ require_relative 'fb'
 #   # All properties preserved, only 'status' is set to 'active'
 # @example Update multiple properties at once
 #   user = fb.query('(eq login "john")').first
-#   Fbe.overwrite(user, status: 'active', role: 'admin')
+#   Fbe.overwrite(user, { status: 'active', role: 'admin' })
 #   # All properties preserved, 'status' and 'role' are updated
 def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
