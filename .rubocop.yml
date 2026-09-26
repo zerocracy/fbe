@@ -81,6 +81,7 @@ Elegant/GoodMethodName:
     - pull_request_reviews
     - pull_requests
     - pull_requests_with_reviews
+    - query_with_partial_data
     - quota_unaware
     - random_time
     - rate_limit

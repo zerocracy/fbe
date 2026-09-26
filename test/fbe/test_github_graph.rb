@@ -436,39 +436,50 @@ class TestGitHubGraph < Fbe::Test
     assert_raises(Fbe::Error) { graph.total_commits('foo', 'bar', 'main') }
   end
 
+  def stub_repo_entry(count)
+    history = Object.new
+    history.define_singleton_method(:total_count) { count }
+    target = Object.new
+    target.define_singleton_method(:history) { history }
+    ref = Object.new
+    ref.define_singleton_method(:target) { target }
+    repo = Object.new
+    repo.define_singleton_method(:ref) { ref }
+    repo
+  end
+
+  def stub_batch_data(entries, failed: {})
+    obj = Object.new
+    entries.each { |alias_name, repo| obj.define_singleton_method(alias_name) { repo } }
+    errors = Object.new
+    errors.define_singleton_method(:messages) { failed }
+    obj.define_singleton_method(:errors) { errors }
+    obj
+  end
+
   def test_real_total_commits_with_repos_array
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
-    graph.define_singleton_method(:query) do |_qry|
-      obj = Object.new
-      target_zero = Object.new
-      target_zero.define_singleton_method(:history) do
-        h = Object.new
-        h.define_singleton_method(:total_count) { 10 }
-        h
-      end
-      ref_zero = Object.new
-      ref_zero.define_singleton_method(:target) { target_zero }
-      repo_zero = Object.new
-      repo_zero.define_singleton_method(:ref) { ref_zero }
-      obj.define_singleton_method(:repo_0) { repo_zero }
-      target_one = Object.new
-      target_one.define_singleton_method(:history) do
-        h = Object.new
-        h.define_singleton_method(:total_count) { 20 }
-        h
-      end
-      ref_one = Object.new
-      ref_one.define_singleton_method(:target) { target_one }
-      repo_one = Object.new
-      repo_one.define_singleton_method(:ref) { ref_one }
-      obj.define_singleton_method(:repo_1) { repo_one }
-      obj
-    end
+    data = stub_batch_data({ repo_0: stub_repo_entry(10), repo_1: stub_repo_entry(20) }) # rubocop:disable Naming/VariableNumber
+    graph.define_singleton_method(:query_with_partial_data) { |_qry| data }
     result = graph.total_commits(repos: [%w[foo bar main], %w[baz qux master]])
     assert_equal(2, result.size)
     assert_equal(10, result[0]['total_commits'])
     assert_equal(20, result[1]['total_commits'])
+  end
+
+  def test_total_commits_with_repos_array_skips_a_repo_with_a_batch_error
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    data = stub_batch_data(
+      { repo_0: stub_repo_entry(10) }, # rubocop:disable Naming/VariableNumber
+      failed: { 'repo_1' => ["Could not resolve to a Repository with the name 'zerocracy/gone'"] }
+    )
+    graph.define_singleton_method(:query_with_partial_data) { |_qry| data }
+    result = graph.total_commits(repos: [%w[foo bar main], %w[zerocracy gone master]])
+    assert_equal(1, result.size)
+    assert_equal('foo', result[0]['owner'])
+    assert_equal(10, result[0]['total_commits'])
   end
   # rubocop:enable Naming/VariableNumber, Elegant/GoodVariableName
 
