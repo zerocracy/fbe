@@ -84,7 +84,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
         begin
           octo.repository(mask)[:full_name] || mask
         rescue Octokit::NotFound, Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError,
-               Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError
+               Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota
           mask
         end
       next
