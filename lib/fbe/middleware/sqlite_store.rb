@@ -181,17 +181,19 @@ class Fbe::Middleware::SqliteStore
       return nil
     end
     return nil unless resp.is_a?(Hash)
-    header = resp['response_headers']&.keys&.find { |h| h.casecmp?('cache-control') }
-    return nil if header.nil?
-    control = resp.dig('response_headers', header)
-    return nil if control.nil? || control.empty?
+    headers = resp['response_headers']
+    return nil unless headers.is_a?(Hash)
+    header = headers.keys.find { |h| h.casecmp?('cache-control') } || 'cache-control'
+    control = headers[header].to_s.strip.split(/\s*,\s*/).reject { |d| d.empty? || d.casecmp?('no-cache') }
+    control << "max-age=#{@minage}" if control.none? { |d| d.match?(/\A(max-age|s-maxage)=/i) }
+    control = control.join(', ')
     %w[max-age s-maxage].each do |key|
       matched = control.scan(/#{key}=(\d+)/i).first&.first
       next if matched.nil?
       age = [Integer(matched, 10), @minage].max
       control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
     end
-    resp['response_headers'][header] = control
+    headers[header] = control
     JSON.dump(resp)
   end
 
