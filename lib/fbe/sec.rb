@@ -22,6 +22,7 @@ require_relative '../fbe'
 #   build_fact.duration = 7200  # 2 hours in seconds
 #   puts Fbe.sec(build_fact, :duration)  # => "2h"
 def Fbe.sec(fact, prop = :seconds)
+  raise(Fbe::Error, 'The fact is nil') if fact.nil?
   s = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if s.nil?
   s = Integer(Float(s.first).round)
