@@ -20,6 +20,7 @@ require_relative 'fb'
 # @return [nil] Nothing
 def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
+  prop = prop.to_s
   i = fact[id]
   raise(Fbe::Error, "There is no #{id.inspect} in the fact") if i.nil?
   i = i.first
