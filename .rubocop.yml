@@ -103,12 +103,13 @@ Elegant/GoodMethodName:
     - total_issues_created
     - total_releases_published
     - track_request
-    - untrack_request
     - unmask_repos
+    - untrack_request
     - update_organization_membership
     - user_name_by_id
     - user_repository_invitations
     - with_disable_auto_paginate
+    - with_min_age
     - workflow_run
     - workflow_run_job
     - workflow_run_usage

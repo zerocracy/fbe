@@ -112,7 +112,7 @@ class Fbe::Middleware::SqliteStore
   # @return [nil]
   # @note Values larger than 10KB are not cached
   # @note Non-GET requests and URLs with query parameters are not cached
-  def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Metrics/AbcSize
+  def write(key, value)
     if value.is_a?(Array)
       begin
         return delete(key) if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
@@ -121,32 +121,16 @@ class Fbe::Middleware::SqliteStore
         return delete(key)
       end
     end
-    if @minage && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
-      begin
-        resp = JSON.parse(value[0][1])
-      rescue TypeError, JSON::ParserError => e
-        @loog.info("Failed to parse response to rewrite the cache age: #{e.message}")
-        resp = nil
-      end
-      headers = resp['response_headers'] if resp.is_a?(Hash)
-      if headers.is_a?(Hash)
-        header = headers.keys.find { |h| h.casecmp?('cache-control') } || 'cache-control'
-        control = headers[header].to_s.strip.split(/\s*,\s*/).reject { |d| d.empty? || d.casecmp?('no-cache') }
-        control << "max-age=#{@minage}" if control.none? { |d| d.match?(/\A(max-age|s-maxage)=/i) }
-        control = control.join(', ')
-        %w[max-age s-maxage].each do |key|
-          matched = control.scan(/#{key}=(\d+)/i).first&.first
-          age = matched.nil? ? nil : Integer(matched, 10)
-          if age
-            age = [age, @minage].max
-            control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
-          end
+    if @minage && value.is_a?(Array)
+      value =
+        value.map do |pair|
+          next pair unless pair.is_a?(Array) && pair.size > 1
+          aged = with_min_age(pair[1])
+          next pair if aged.nil?
+          pair = pair.dup
+          pair[1] = aged
+          pair
         end
-        headers[header] = control
-        value = value.dup
-        value[0] = value[0].dup
-        value[0][1] = JSON.dump(resp)
-      end
     end
     json = JSON.dump(value)
     return delete(key) if json.bytesize > @maxvsize
@@ -184,6 +168,34 @@ class Fbe::Middleware::SqliteStore
   end
 
   private
+
+  # Raises the age of one cached response to the floor the store was made with.
+  #
+  # @param [String] json The response, as it was handed to the store
+  # @return [String, nil] The response with the age raised, or NIL if there was nothing to raise
+  def with_min_age(json)
+    begin
+      resp = JSON.parse(json)
+    rescue TypeError, JSON::ParserError => e
+      @loog.info("Failed to parse response to rewrite the cache age: #{e.message}")
+      return nil
+    end
+    return nil unless resp.is_a?(Hash)
+    headers = resp['response_headers']
+    return nil unless headers.is_a?(Hash)
+    header = headers.keys.find { |h| h.casecmp?('cache-control') } || 'cache-control'
+    control = headers[header].to_s.strip.split(/\s*,\s*/).reject { |d| d.empty? || d.casecmp?('no-cache') }
+    control << "max-age=#{@minage}" if control.none? { |d| d.match?(/\A(max-age|s-maxage)=/i) }
+    control = control.join(', ')
+    %w[max-age s-maxage].each do |key|
+      matched = control.scan(/#{key}=(\d+)/i).first&.first
+      next if matched.nil?
+      age = [Integer(matched, 10), @minage].max
+      control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
+    end
+    headers[header] = control
+    JSON.dump(resp)
+  end
 
   def perform(&)
     return [] if @disabled
