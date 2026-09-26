@@ -130,7 +130,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             quota =
               begin
                 "#{o.rate_limit.remaining} quota remaining"
-              rescue Octokit::Error, Faraday::Error => e
+              rescue Octokit::Error, Faraday::Error, JSON::ParserError => e
                 "quota unknown: #{e.message}"
               end
             loog.info(
