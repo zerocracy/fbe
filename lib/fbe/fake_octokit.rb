@@ -584,7 +584,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         base: {
           ref: 'master',
           sha: '125f234967de0f690805c6943e78db42a294c1a',
-          repo: { id: repo, name: 'judges' }
+          repo: repository(repo)
         },
         head: {
           ref: 'zerocracy/judges',
@@ -599,16 +599,12 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         changed_files: 2
       }
     else
+      fixture = pull_requests(repo).find { |p| p[:number] == number } || {}
       {
         id: 42,
         number:,
         repo: {
           full_name: repo
-        },
-        base: {
-          repo: {
-            full_name: repo
-          }
         },
         state: 'closed',
         user: { login: 'yegor256', id: 526_301, type: 'User' },
@@ -621,7 +617,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         closed_at: Time.parse('2024-12-20'),
         merged_at: Time.parse('2024-12-20'),
         created_at: Time.parse('2024-09-20')
-      }.merge(pull_requests(repo).find { |p| p[:number] == number } || {})
+      }.merge(fixture).merge(base: (fixture[:base] || {}).merge(repo: repository(repo)))
     end
   end
 

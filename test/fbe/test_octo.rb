@@ -805,6 +805,15 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_pull_request_base_repo_matches_requested_repo
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [42, 95, 100, 172].each do |number|
+      pr = o.pull_request('zerocracy/baza', number)
+      assert_equal('zerocracy/baza', pr.dig(:base, :repo, :full_name), "for pull request #{number}")
+      assert_kind_of(Integer, pr.dig(:base, :repo, :id), "for pull request #{number}")
+    end
+  end
+
   def test_fetch_fake_pull_request_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_request_review_comments('yegor256/test', 100, 100_001).then do |comments|
