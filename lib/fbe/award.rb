@@ -306,7 +306,7 @@ class Fbe::Award
             "set #{to_p(@operands[0])} to #{to_p(@operands[1])}"
           end
         )
-        bylaw.let(@operands[0], to_val(@operands[1], bylaw))
+        bylaw.let(@operands[0], @op == :let ? to_val(@operands[1], bylaw) : @operands[1])
       when :give
         bylaw.line("award #{to_p(@operands[0])}")
       else
