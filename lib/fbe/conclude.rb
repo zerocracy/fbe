@@ -220,7 +220,7 @@ class Fbe::Conclude
       quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
     )
     passed = 0
-    @fb.query(@query).each do |a|
+    @fb.query(@query).each.to_a.each do |a|
       break if Fbe.over?(
         global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
         quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
