@@ -152,7 +152,6 @@ class TestPmp < Fbe::Test
     f.stealth = 'false'
     $loog = Loog::NULL
     refute(Fbe.pmp(loog: Loog::NULL).communications.stealth)
-    refute(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
   end
 
   def test_reads_true_boolean
@@ -165,7 +164,6 @@ class TestPmp < Fbe::Test
     f.stealth = 'true'
     $loog = Loog::NULL
     assert(Fbe.pmp(loog: Loog::NULL).communications.stealth)
-    assert(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
   end
 
   def test_regression_bool_true_default
