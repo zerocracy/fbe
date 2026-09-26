@@ -409,7 +409,7 @@ class SqliteStoreTest < Fbe::Test
           'public, max-age=30, s-maxage=30',
           JSON.parse(store.read('test2')[0][1]).dig('response_headers', 'cache-control')
         )
-        assert_nil(JSON.parse(store.read('test3')[0][1]).dig('response_headers', 'cache-control'))
+        assert_equal('max-age=30', JSON.parse(store.read('test3')[0][1]).dig('response_headers', 'cache-control'))
         assert_nil(JSON.parse(store.read('test4')[0][1]).dig('response_headers', 'cache-control'))
         assert_nil(JSON.parse(store.read('test5')[0][1]).dig('response_headers', 'cache-control'))
         assert_equal(1, store.read('test6')[0][1])
@@ -452,6 +452,20 @@ class SqliteStoreTest < Fbe::Test
         'public, max-age=1555, s-maxage=1555',
         JSON.parse(store.read('test2')[0][1]).dig('response_headers', 'cache-control')
       )
+    end
+  end
+
+  def test_sets_cache_min_age_when_response_names_none
+    with_tmpfile('none.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)
+      store.write('absent', faraday_value(resp: { 'response_headers' => {} }))
+      store.write('nocache', faraday_value(resp: { 'response_headers' => { 'cache-control' => 'private, no-cache' } }))
+      assert_equal('max-age=300', JSON.parse(store.read('absent')[0][1]).dig('response_headers', 'cache-control'))
+      assert_equal(
+        'private, max-age=300',
+        JSON.parse(store.read('nocache')[0][1]).dig('response_headers', 'cache-control')
+      )
+      store.close
     end
   end
 
