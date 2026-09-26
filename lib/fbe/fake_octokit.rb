@@ -1765,3 +1765,5 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     ]
   end
 end
+
+require_relative 'fake_octokit/sawyered'
