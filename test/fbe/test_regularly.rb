@@ -34,7 +34,7 @@ class TestRegularly < Fbe::Test
       f.foo = 1
       Fbe.overwrite(f, 'foo', 2, fb:)
     end
-    assert_equal(2, fb.query("(eq what 'test')").each.first['foo'].first)
+    assert_equal(2, fb.query("(and (eq what 'regularly') (eq judge 'test'))").each.first['foo'].first)
   end
 
   def test_rolls_back
