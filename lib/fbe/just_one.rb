@@ -51,6 +51,7 @@ def Fbe.just_one(fb: Fbe.fb)
     end
   yield(f)
   q = attrs.except(:_id, :_time, :_version).map do |k, v|
+    raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
     vv = v.to_s
     if v.is_a?(String)
       vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
