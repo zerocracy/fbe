@@ -20,6 +20,21 @@ class TestGitHubGraph < Fbe::Test
     Fbe.github_graph(options:, loog: Loog::NULL, global:)
   end
 
+  def test_selects_fake_only_for_truthy_testing
+    fake = Fbe::Graph::Fake
+    graph = ->(value) { Fbe.github_graph(options: Judges::Options.new({ 'testing' => value }), loog: Loog::NULL, global: {}) }
+    assert_kind_of(fake, graph.call(true))
+    assert_kind_of(fake, graph.call('true'))
+    refute_kind_of(fake, graph.call(false))
+    refute_kind_of(fake, graph.call('false'))
+  end
+
+  def test_raises_on_unrecognized_testing_value
+    assert_raises(Fbe::Error) do
+      Fbe.github_graph(options: Judges::Options.new({ 'testing' => 42 }), loog: Loog::NULL, global: {})
+    end
+  end
+
   def test_raises_when_graphql_response_carries_errors
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'x')

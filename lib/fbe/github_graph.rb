@@ -19,12 +19,30 @@ def Fbe.github_graph(options: $options, global: $global, loog: $loog)
   global[:mutex] ||= Mutex.new
   global[:mutex].synchronize do
     global[:github_graph] ||=
-      if options.testing.nil?
-        Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
-      else
+      if Fbe.testing?(options)
         loog.debug('The connection to GitHub GraphQL API is mocked')
         Fbe::Graph::Fake.new
+      else
+        Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
       end
+  end
+end
+
+# Interprets the +testing+ option as a Boolean.
+#
+# @param [Judges::Options] options The options available globally
+# @return [Boolean] TRUE only when +testing+ is truthy and not the String "false"
+def Fbe.testing?(options)
+  case options.testing
+  when nil, false then false
+  when true then true
+  else
+    case options.testing.to_s.strip.downcase
+    when 'true' then true
+    when 'false' then false
+    else
+      raise(Fbe::Error, "Unrecognized value of the 'testing' option: #{options.testing.inspect}")
+    end
   end
 end
 
