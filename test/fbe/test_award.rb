@@ -218,4 +218,8 @@ class TestAward < Fbe::Test
     g = Fbe::Award.new('(award (set d (div 47.9 24)) (give 8 "a") (give -2 "for ${d} days"))').bill.greeting
     assert_includes(g, '-2 for 2 days', g)
   end
+
+  def test_div_does_not_truncate_integers
+    assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
+  end
 end
