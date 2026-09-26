@@ -65,6 +65,7 @@ Elegant/GoodMethodName:
     - last_response
     - lifetime_unaware
     - list_issues
+    - list_milestones
     - log_it
     - mask_to_regex
     - name_to_number
