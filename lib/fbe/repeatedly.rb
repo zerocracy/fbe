@@ -33,7 +33,7 @@ require_relative 'overwrite'
 #     f.issues_found = count_issues
 #     # PMP might have: hours_between_checks=6
 #   end
-def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &) # rubocop:disable Metrics/AbcSize
   raise(Fbe::Error, 'The area is nil') if area.nil?
   raise(Fbe::Error, 'The p_every_hours is nil') if p_every_hours.nil?
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
@@ -51,19 +51,21 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
     loog.info("#{judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
     return
   end
-  f = fb.query(marker).each.first
-  if f.nil?
-    f = fb.insert
-    f.what = 'repeatedly'
-    f.judge = judge
-  end
   attrs = {}
-  yield(
-    others(fact: f, map: attrs) do |k, *rest|
-      next @fact.public_send(k, *rest) unless k.end_with?('=')
-      (@map[k[0..-2]] ||= []) << rest.first
+  fb.txn do |fbt|
+    f = fbt.query(marker).each.first
+    if f.nil?
+      f = fbt.insert
+      f.what = 'repeatedly'
+      f.judge = judge
     end
-  )
-  Fbe.overwrite(f, attrs.merge('when' => Time.now), fb:)
+    yield(
+      others(fact: f, map: attrs) do |k, *rest|
+        next @fact.public_send(k, *rest) unless k.end_with?('=')
+        (@map[k[0..-2]] ||= []) << rest.first
+      end
+    )
+  end
+  Fbe.overwrite(fb.query(marker).each.first, attrs.merge('when' => Time.now), fb:)
   nil
 end
