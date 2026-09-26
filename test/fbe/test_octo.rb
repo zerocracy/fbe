@@ -741,6 +741,12 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fetch_fake_plain_issue_is_not_tagged_as_pull_request
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result = o.issue('yegor256/test', 42)
+    refute_includes(result.keys, :pull_request)
+  end
+
   def test_fetch_fake_issue_and_pr
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.issue('yegor256/test', 142)
@@ -776,12 +782,12 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.issue('yegor256/test', 94)
     refute_includes(result.keys, :user)
+    refute_includes(result.keys, :pull_request)
     assert_pattern do
       result => {
         id: Integer,
         number: 94,
         repo: Hash,
-        pull_request: Hash,
         created_at: Time
       }
     end
@@ -840,14 +846,16 @@ class TestOcto < Fbe::Test
 
   def test_fake_list_issues
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.list_issues('foo/bazz').each do |issue|
+      refute_includes(issue.keys, :pull_request)
+    end
     o.list_issues('foo/bazz').first.then do |issue|
       assert_pattern do
         issue => {
           id: Integer,
           number: 144,
           repo: { full_name: 'foo/bazz' },
-          user: { id: 526_301, ** },
-          pull_request: Hash
+          user: { id: 526_301, ** }
         }
       end
     end
@@ -858,7 +866,6 @@ class TestOcto < Fbe::Test
           number: Integer,
           repo: { full_name: String },
           user: { id: Integer },
-          pull_request: Hash,
           created_at: Time
         }
       end
