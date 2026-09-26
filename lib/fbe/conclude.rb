@@ -295,7 +295,9 @@ class Fbe::Conclude
         fact.public_send(:"#{follow}=", v)
       end
     end
+    before = fact.all_properties
     r = yield(fact, prev)
+    return if !r.is_a?(String) && (fact.all_properties - before).empty?
     fact.what = @judge
     fact.details = r if r.is_a?(String)
   end
