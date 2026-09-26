@@ -156,6 +156,13 @@ class TestAward < Fbe::Test
     assert_equal("You've earned +20 points for this: +12 as a basis; +8 for comments. ", g)
   end
 
+  def test_rounds_the_sum_once
+    bill = Fbe::Award::Bill.new
+    bill.line(0.5, 'first')
+    bill.line(0.5, 'second')
+    assert_equal(1, bill.points)
+  end
+
   def test_shorten_when_one_number
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
     assert_equal('You\'ve earned +23 points. ', g, g)
