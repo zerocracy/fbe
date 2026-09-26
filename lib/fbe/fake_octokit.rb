@@ -319,8 +319,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     {
       total_count: 2,
       workflow_runs: [
-        workflow_run(repo, 42),
-        workflow_run(repo, 7)
+        workflow_run(repo, 10_438_531_072),
+        workflow_run(repo, 10_438_531_073)
       ]
     }
   end
@@ -1504,82 +1504,26 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   end
 
   def workflow_run(repo, id)
-    [
-      {
-        id: 10_438_531_072,
-        event: 'pull_request',
-        conclusion: 'success',
-        name: 'make',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_073,
-        event: 'pull_request',
-        conclusion: 'success',
-        name: 'copyrights',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_074,
-        event: 'pull_request',
-        conclusion: 'success',
-        name: 'markdown-lint',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_075,
-        event: 'pull_request',
-        conclusion: 'failure',
-        name: 'pdd',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_076,
-        event: 'pull_request',
-        conclusion: 'success',
-        name: 'rake',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_077,
-        event: 'commit',
-        conclusion: 'success',
-        name: 'shellcheck',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_078,
-        event: 'pull_request',
-        conclusion: 'failure',
-        name: 'yamllint',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      }
-    ].find { |json| json[:id] == id } || {
-      id:,
-      name: 'copyrights',
+    known = [
+      { id: 10_438_531_072, event: 'pull_request', conclusion: 'success', name: 'make' },
+      { id: 10_438_531_073, event: 'pull_request', conclusion: 'success', name: 'copyrights' },
+      { id: 10_438_531_074, event: 'pull_request', conclusion: 'success', name: 'markdown-lint' },
+      { id: 10_438_531_075, event: 'pull_request', conclusion: 'failure', name: 'pdd' },
+      { id: 10_438_531_076, event: 'pull_request', conclusion: 'success', name: 'rake' },
+      { id: 10_438_531_077, event: 'commit', conclusion: 'success', name: 'shellcheck' },
+      { id: 10_438_531_078, event: 'pull_request', conclusion: 'failure', name: 'yamllint' }
+    ].find { |json| json[:id] == id } || { id:, event: 'push', conclusion: 'success', name: 'copyrights' }
+    {
       head_branch: 'master',
       head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
-      event: 'push',
       status: 'completed',
-      conclusion: 'success',
-      workflow_id: id,
+      started_at: '2024-08-18T08:04:44Z',
+      completed_at: '2024-08-18T08:20:17Z',
       created_at: random_time,
       run_started_at: random_time,
+      workflow_id: known[:id],
       repository: repository(repo)
-    }
+    }.merge(known)
   end
 
   def compare(_repo, _start, _end)
