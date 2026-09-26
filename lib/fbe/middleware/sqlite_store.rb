@@ -218,6 +218,7 @@ class Fbe::Middleware::SqliteStore
   # @param [SQLite3::Database] dbase The database to clean up
   # @return [nil]
   def evict!(dbase)
+    return unless File.exist?(@path)
     return if File.size(@path) <= @maxsize
     @loog.info(
       "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
@@ -279,7 +280,7 @@ class Fbe::Middleware::SqliteStore
     end
   end
 
-  def init! # rubocop:disable Metrics/AbcSize
+  def init!
     SQLite3::Database.new(@path).tap do |d| # rubocop:disable Metrics/BlockLength
       d.transaction do |t|
         t.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')
