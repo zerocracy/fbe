@@ -1526,4 +1526,24 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_works_with_integer_sqlite_cache_maxsize
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    Dir.mktmpdir do |dir|
+      cache = File.expand_path('test.db', dir)
+      options = Judges::Options.new(
+        { 'sqlite_cache' => cache, 'sqlite_cache_maxsize' => 10_000_000, 'sqlite_cache_maxvsize' => 100_000 }
+      )
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options:)
+      stub_request(:get, 'https://api.github.com/user/42').to_return(
+        status: 200,
+        body: { login: 'user1' }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      )
+      assert_equal('user1', o.user_name_by_id(42))
+    end
+  end
 end
