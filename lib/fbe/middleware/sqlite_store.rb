@@ -112,10 +112,10 @@ class Fbe::Middleware::SqliteStore
   def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Metrics/AbcSize
     if value.is_a?(Array)
       begin
-        return if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
+        return delete(key) if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
       rescue TypeError, JSON::ParserError => e
         @loog.info("Failed to parse request to decide whether to cache it: #{e.message}")
-        return
+        return delete(key)
       end
     end
     if @minage && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
@@ -143,7 +143,7 @@ class Fbe::Middleware::SqliteStore
       end
     end
     json = JSON.dump(value)
-    return if json.bytesize > @maxvsize
+    return delete(key) if json.bytesize > @maxvsize
     value = Zlib::Deflate.deflate(json)
     perform do |t|
       t.execute(<<~SQL, [key, value, Time.now.utc.iso8601])
