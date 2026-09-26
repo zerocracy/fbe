@@ -315,10 +315,11 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       <<~GRAPHQL
         {
           repository(owner: #{literal(owner)}, name: #{literal(name)}) {
-            pullRequests(#{after}first: 100) {
+            pullRequests(#{after}first: 100, orderBy: { field: UPDATED_AT, direction: DESC }) {
               nodes {
                 id
                 number
+                updatedAt
                 timelineItems(first: 1, itemTypes: [PULL_REQUEST_REVIEW], since: "#{since.utc.iso8601}") {
                   nodes {
                     ... on PullRequestReview { id }
@@ -336,6 +337,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     ).to_h
     nodes = result.dig('repository', 'pullRequests', 'nodes')
     raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if nodes.nil?
+    exhausted = !nodes.empty? && nodes.all? { Time.parse(_1['updatedAt']) < since }
     {
       'pulls_with_reviews' => nodes.filter_map do |pull|
         next if pull.dig('timelineItems', 'nodes').empty?
@@ -344,7 +346,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           'number' => pull['number']
         }
       end,
-      'has_next_page' => result.dig('repository', 'pullRequests', 'pageInfo', 'hasNextPage'),
+      'has_next_page' => !exhausted && result.dig('repository', 'pullRequests', 'pageInfo', 'hasNextPage'),
       'next_cursor' => result.dig('repository', 'pullRequests', 'pageInfo', 'endCursor')
     }
   end

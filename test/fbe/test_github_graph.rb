@@ -774,11 +774,13 @@ class TestGitHubGraph < Fbe::Test
               {
                 'id' => 'PR_1',
                 'number' => 1,
+                'updatedAt' => '2025-08-02T12:00:00Z',
                 'timelineItems' => { 'nodes' => [{ 'id' => 'rev_1' }] }
               },
               {
                 'id' => 'PR_2',
                 'number' => 2,
+                'updatedAt' => '2025-08-02T13:00:00Z',
                 'timelineItems' => { 'nodes' => [] }
               }
             ],
@@ -792,6 +794,30 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(1, result['pulls_with_reviews'][0]['number'])
     refute(result['has_next_page'])
     assert_nil(result['next_cursor'])
+  end
+
+  def test_pull_requests_with_reviews_stops_once_page_is_older_than_since
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pullRequests' => {
+            'nodes' => [
+              {
+                'id' => 'PR_1',
+                'number' => 1,
+                'updatedAt' => '2025-01-01T00:00:00Z',
+                'timelineItems' => { 'nodes' => [] }
+              }
+            ],
+            'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }
+          }
+        }
+      }
+    end
+    result = graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
+    refute(result['has_next_page'])
   end
 
   def test_real_pull_request_reviews
