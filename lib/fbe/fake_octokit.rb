@@ -539,7 +539,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       }
     else
       {
-        id: 42,
+        id: name_to_number(repo) + number,
         number:,
         repo: {
           full_name: repo
