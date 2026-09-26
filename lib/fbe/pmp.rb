@@ -40,6 +40,7 @@ require_relative 'fb'
 # @param [Judges::Options] options Retained for compatibility with existing callers
 # @param [Loog] loog Retained for compatibility with existing callers
 # @return [Object] A proxy object that allows method chaining to access PMP properties
+# @raise [Fbe::Error] If the factbase or any of the required globals is not set
 # @example
 #   # Get HR reward points from PMP configuration
 #   points = Fbe.pmp.hr.reward_points
@@ -52,7 +53,11 @@ require_relative 'fb'
 #
 #   # Read custom property (nil default/type/memo)
 #   val = Fbe.pmp.my_custom.my_prop
-def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Lint/UnusedMethodArgument
+def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+  raise(Fbe::Error, 'The fb is nil') if fb.nil?
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   global[:mutex] ||= Mutex.new
   xml =
     global[:mutex].synchronize do
