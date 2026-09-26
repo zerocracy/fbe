@@ -141,4 +141,14 @@ class TestTombstone < Fbe::Test
     refute(ts.has?('github', 42, []))
     refute(ts.has?('github', 43, []))
   end
+
+  def test_buries_second_issue_inside_transaction
+    fb = Factbase.new
+    fb.txn do |fbt|
+      ts = Fbe::Tombstone.new(fb: fbt, fid: '_id')
+      ts.bury!('github', 42, 7)
+      ts.bury!('github', 42, 9)
+    end
+    assert(Fbe::Tombstone.new(fb:, fid: '_id').has?('github', 42, 9))
+  end
 end
