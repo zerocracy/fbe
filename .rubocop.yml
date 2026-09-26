@@ -62,6 +62,7 @@ Elegant/GoodMethodName:
     - issue_type_event
     - just_one
     - kill_if
+    - last_response
     - lifetime_unaware
     - list_issues
     - log_it

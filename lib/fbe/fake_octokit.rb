@@ -821,6 +821,40 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     }
   end
 
+  # Lists commits on a repository.
+  #
+  # @param [String] repo Repository name ('owner/repo')
+  # @param [Hash] _options Additional options (not used in mock, e.g. +per_page+)
+  # @return [Array<Hash>] Array of commit hashes
+  # @example
+  #   client.commits('octocat/Hello-World', per_page: 1)
+  #   # => [{:sha=>"a1b2c3d4e5f6a1b2c3d4e5f6", :stats=>{:total=>123}}]
+  def commits(repo, _options = {})
+    commits_since(repo, nil)
+  end
+
+  # Returns the last HTTP response, used to read pagination links.
+  #
+  # @return [Object] An object with a +rels+ method that returns an empty Hash
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.last_response.rels[:last] #=> nil
+  def last_response
+    Veil.new(nil, rels: {})
+  end
+
+  # Performs a raw GET request against an arbitrary API path.
+  #
+  # @param [String] _path The API path (ignored in mock)
+  # @param [Hash] _options Additional options (not used in mock)
+  # @return [Hash] An empty Hash
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.get('/rate_limit') #=> {}
+  def get(_path, _options = {})
+    {}
+  end
+
   def search_commits(_query, _options = {})
     {
       total_count: 3,
