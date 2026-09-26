@@ -673,12 +673,13 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   result = fake.total_commits('owner', 'repo', 'main')
   #   # => 1484 (always returns the same value)
   class Fake
-    # Executes a GraphQL query (mock implementation).
+    # Ad hoc GraphQL queries have no fixed shape, so this fake cannot fabricate
+    # a response that matches what a real {Fbe::Graph#query} would return.
     #
     # @param [String] _query The GraphQL query (ignored)
-    # @return [Hash] Empty hash
+    # @raise [Fbe::Error] Always, ad hoc queries are not supported in testing mode
     def query(_query)
-      {}
+      raise(Fbe::Error, 'Fbe::Graph::Fake does not support ad hoc GraphQL queries, use one of its dedicated methods')
     end
 
     # Returns mock resolved conversation threads.

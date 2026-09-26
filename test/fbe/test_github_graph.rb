@@ -86,6 +86,11 @@ class TestGitHubGraph < Fbe::Test
     refute_empty(result.viewer.login)
   end
 
+  def test_fake_query_raises_instead_of_returning_wrong_shape
+    fake = Fbe::Graph::Fake.new
+    assert_raises(Fbe::Error) { fake.query('{ viewer { login } }') }
+  end
+
   def test_use_with_global_variables
     WebMock.disable_net_connect!
     $global = {}
