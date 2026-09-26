@@ -65,9 +65,26 @@ class TestRegularly < Fbe::Test
       f.foo = 42
     end
     assert_equal(2, fb.size)
-    fact = fb.query("(eq what '#{judge}')").each.first
+    fact = fb.query("(and (eq what 'regularly') (eq judge '#{judge}'))").each.first
     refute_nil(fact)
     refute_nil(fact.since)
+  end
+
+  def test_does_not_mistake_a_conclusion_fact_for_its_own_marker
+    fb = Factbase.new
+    judge = 'my-judge'
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = judge
+      f.details = 'Something long enough to satisfy the rules of the game'
+      f.when = Time.now
+    end
+    ran = false
+    Fbe.regularly('pmp', 'interval', 'days', fb:, loog: Loog::NULL, judge:) do |f|
+      ran = true
+      f.foo = 42
+    end
+    assert(ran, 'Fbe.regularly should have run: a conclusion fact is not its own marker')
   end
 
   def test_area_with_single_quote
