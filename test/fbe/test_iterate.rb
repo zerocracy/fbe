@@ -276,6 +276,29 @@ class TestIterate < Fbe::Test
     assert_equal(15, markers.first.marker_test)
   end
 
+  def test_persists_marker_twice_on_a_plain_factbase
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    fb.insert.num = 10
+    run =
+      lambda do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as('marker_test')
+          by('(agg (always) (max num))')
+          repeats(1)
+          over do |_, nxt|
+            nxt + 5
+          end
+        end
+      end
+    run.call
+    fb.insert.num = 20
+    run.call
+    markers = fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a
+    assert_equal(1, markers.size)
+    assert_equal(25, markers.first.marker_test)
+  end
+
   def test_keeps_the_marker_when_the_queue_is_exhausted
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)

@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'joined'
+require 'securerandom'
 require 'tago'
 require 'time'
 require_relative '../fbe'
@@ -366,6 +367,7 @@ class Fbe::Iterate
             n.where = 'github'
             n.repository = repo
           end
+        f._id = SecureRandom.random_number(9_999_999_999_999) if f['_id'].nil?
         Fbe.overwrite(f, @label, latest[repo], fb: @fb)
       end
     end
