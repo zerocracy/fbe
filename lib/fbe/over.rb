@@ -22,6 +22,9 @@ def Fbe.over?(
   epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
 )
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   if quota_aware
     octo = Fbe.octo(loog:, options:, global:)
     if octo.off_quota?(threshold: 100, resource: :core) ||
