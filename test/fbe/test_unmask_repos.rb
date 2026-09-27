@@ -149,6 +149,17 @@ class TestUnmaskRepos < Fbe::Test
     assert_raises(Fbe::Error) { Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL) }
   end
 
+  def test_cannot_unmask_repos_with_broken_inclusion_mask
+    ['justaword', 'a/b/c', 'yegor256/', '/tacit'].each do |mask|
+      options = Judges::Options.new({ 'testing' => true, 'repositories' => mask })
+      e =
+        assert_raises(Fbe::Error, "the mask #{mask.inspect} is accepted") do
+          Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+        end
+      assert_includes(e.message, "is not in the 'org/repo' format")
+    end
+  end
+
   def test_skips_mask_when_organization_listing_is_forbidden
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
