@@ -66,6 +66,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   def names
     @names ||= { 1439 => 'zerocracy/baza', 810 => 'foo/bazz' }
   end
+  private :names
 
   def auto_paginate=(_); end
 
