@@ -955,6 +955,32 @@ class TestGitHubGraph < Fbe::Test
     refute_includes(captured, 'after: ""')
   end
 
+  def test_pull_request_reviews_returns_empty_when_no_pulls_given
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |qry|
+      raise(Fbe::Error, "GitHub GraphQL query failed: empty selection in #{qry}")
+    end
+    pulls = graph.pull_request_reviews("владелец-#{random.rand(1000)}", "リポ-#{random.rand(1000)}", pulls: [])
+    assert_empty(pulls, "reviews are not empty for no pulls with seed #{seed}")
+  end
+
+  def test_pull_request_reviews_dont_query_github_when_no_pulls_given
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    graph = Fbe::Graph.new(token: 'fake')
+    sent = false
+    graph.define_singleton_method(:query) do |_qry|
+      sent = true
+      { 'repository' => {} }
+    end
+    graph.pull_request_reviews("ü-#{random.rand(1000)}", "ñ-#{random.rand(1000)}", pulls: [])
+    refute(sent, "query is sent to GitHub for no pulls with seed #{seed}")
+  end
+
   def test_total_releases_published_omits_after_when_cursor_is_nil
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
