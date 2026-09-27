@@ -897,6 +897,13 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_pull_request_keeps_the_rest_of_the_base
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    pr = o.pull_request('zerocracy/baza', 95)
+    assert_equal('master', pr.dig(:base, :ref))
+    assert_equal('5643eb3c7a0ccb3b', pr.dig(:base, :sha))
+  end
+
   def test_fetch_fake_pull_request_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_request_review_comments('yegor256/test', 100, 100_001).then do |comments|
