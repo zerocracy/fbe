@@ -628,7 +628,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         changed_files: 2
       }
     else
-      fixture = pull_requests(repo).find { |p| p[:number] == number } || {}
+      fixture = pull_requests(repo).find { |p| p[:number] == number }&.to_h || {}
       {
         id: 42,
         number:,
