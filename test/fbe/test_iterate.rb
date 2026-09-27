@@ -239,6 +239,32 @@ class TestIterate < Fbe::Test
     end
   end
 
+  def test_rejects_wrong_repeats_type
+    iterator = fresh_iterator
+    error = assert_raises(Fbe::Error) { iterator.repeats(2.5) }
+    assert_equal('The "repeats" must be an Integer, while Float provided', error.message)
+  end
+
+  def test_rejects_wrong_label_type
+    error = assert_raises(Fbe::Error) { fresh_iterator.as(:marker) }
+    assert_equal('Label must be a String, while Symbol provided', error.message)
+  end
+
+  def test_rejects_wrong_query_type
+    error = assert_raises(Fbe::Error) { fresh_iterator.by(42) }
+    assert_equal('Query must be a String, while Integer provided', error.message)
+  end
+
+  def test_rejects_empty_query
+    error = assert_raises(Fbe::Error) { fresh_iterator.by('') }
+    assert_equal('Query cannot be empty', error.message)
+  end
+
+  def test_rejects_empty_sort_field
+    error = assert_raises(Fbe::Error) { fresh_iterator.sort_by('') }
+    assert_equal('Sort field cannot be empty', error.message)
+  end
+
   def test_raises_when_label_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -698,5 +724,15 @@ class TestIterate < Fbe::Test
       runs << seen
     end
     assert_equal([[1, 2], [3], []], runs)
+  end
+
+  private
+
+  def fresh_iterator
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    Fbe::Iterate.new(
+      fb: Factbase.new, loog: Loog::NULL, options: opts, global: {},
+      epoch: Time.now, kickoff: Time.now
+    )
   end
 end
