@@ -267,13 +267,15 @@ class Fbe::Middleware::SqliteStore
         d.execute('VACUUM;')
       end
       unless @ttl.nil?
+        expired = 0
         d.transaction do |t|
           t.execute(<<~SQL, [(Time.now.utc - (@ttl * 60 * 60)).iso8601])
             DELETE FROM cache
             WHERE key IN (SELECT key FROM cache WHERE (created_at < ?));
           SQL
+          expired = t.changes
         end
-        d.execute('VACUUM;')
+        d.execute('VACUUM;') unless expired.zero?
       end
       if File.size(@path) > @maxsize
         @loog.info(
