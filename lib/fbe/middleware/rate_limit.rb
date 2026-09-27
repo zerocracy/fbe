@@ -34,6 +34,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @searchleft = nil
     @counter = 0
     @lock = Mutex.new
+    @refresh = Mutex.new
     tracker[:rate_limit] = self unless tracker.nil?
   end
 
@@ -44,7 +45,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def call(env)
     took = nil
     if env.url.path == '/rate_limit'
-      @lock.synchronize { handle_rate_limit_request(env) }
+      @refresh.synchronize { handle_rate_limit_request(env) }
     else
       @lock.synchronize { took = track_request(env.url.path) }
       @app.call(env).on_complete do |response_env|
@@ -73,16 +74,16 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Env] env The request environment
   # @return [Faraday::Response] Cached or fresh response
   def handle_rate_limit_request(env)
-    if @cached.nil? || @counter >= 100
-      response = @app.call(env)
+    stale = @lock.synchronize { @cached.nil? || @counter >= 100 }
+    return @lock.synchronize { Faraday::Response.new(response_env(env, @cached)) } unless stale
+    response = @app.call(env)
+    @lock.synchronize do
       @cached = response
       @remaining = extract_remaining_count(response)
       @searchleft = extract_search_remaining_count(response)
       @counter = 0
-      response
-    else
-      Faraday::Response.new(response_env(env, @cached))
     end
+    response
   end
 
   # Tracks non-rate_limit requests and decrements counter.
