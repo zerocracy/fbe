@@ -174,6 +174,18 @@ class TestAward < Fbe::Test
     assert_equal(1, bill.points)
   end
 
+  def test_tops_up_to_the_minimum_exactly
+    b =
+      Fbe::Award.new(
+        [
+          '(award (give 8 "as a basis") (give -12.5 "for delay")',
+          '(set least (if (lt (total) 4) (minus 4 (total)) 0))',
+          '(give least "to give you at least something"))'
+        ].join(' ')
+      ).bill
+    assert_equal(4, b.points, b.greeting)
+  end
+
   def test_shorten_when_one_number
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
     assert_equal('You\'ve earned +23 points. ', g, g)

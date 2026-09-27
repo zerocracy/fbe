@@ -176,7 +176,7 @@ class Fbe::Award
     def calc(bill) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
       case @op
       when :total
-        bill.points
+        bill.sum
       when :if
         raise(Fbe::Error, "The term 'if' needs three operands, #{@operands.size} given") if @operands.size < 3
         to_val(@operands[0], bill) ? to_val(@operands[1], bill) : to_val(@operands[2], bill)
@@ -384,7 +384,22 @@ class Fbe::Award
     #   bill.line(42.5, "for answer")
     #   bill.points #=> 43
     def points
-      whole(@lines.sum { |l| l[:v] })
+      whole(sum)
+    end
+
+    # Calculates the exact sum of all lines, before any rounding.
+    #
+    # The +(total)+ term reads this one, not +points+, so that a clause that
+    # tops the award up to a minimum, or cuts it down to a maximum, lands
+    # exactly on that number after the one rounding at the very end.
+    #
+    # @return [Integer, Float] The sum of all point values, not rounded
+    # @example
+    #   bill = Fbe::Award::Bill.new
+    #   bill.line(42.5, "for answer")
+    #   bill.sum #=> 42.5
+    def sum
+      @lines.sum { |l| l[:v] }
     end
 
     # Generates a human-readable summary of the bill.
