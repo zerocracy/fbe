@@ -1133,9 +1133,9 @@ class TestOcto < Fbe::Test
     loog = Loog::Buffer.new
     octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
     octo.user(456)
-    octo.print_trace!
-    output = loog.to_s
-    assert_includes(output, 'GitHub API trace')
+    octo.print_trace!(all: true)
+    octo.print_trace!(all: true)
+    assert_equal(1, loog.to_s.scan('GitHub API trace (').size, loog.to_s)
   end
 
   def test_works_via_sqlite_store
