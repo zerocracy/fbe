@@ -240,4 +240,12 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_prints_a_whole_number_without_a_decimal_part
+    bylaw = Fbe::Award::Bylaw.new
+    bylaw.let(:fee, 1.0)
+    bylaw.let(:rate, 0.5)
+    bylaw.line('deduct ${fee} points at ${rate} each')
+    assert_includes(bylaw.markdown, 'deduct **1** points at **0.5** each')
+  end
 end

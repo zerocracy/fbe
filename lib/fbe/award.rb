@@ -494,9 +494,22 @@ class Fbe::Award
         line.gsub(/\$\{([^}]*)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @vars.key?(k)
-          "**#{@vars[k]}**"
+          "**#{plain(@vars[k])}**"
         end
       @lines << line
+    end
+
+    # Renders a number the way a reader expects it, with no ".0" tail.
+    #
+    # @param [Object] value The value of a variable
+    # @return [Object] The value, with a whole Float turned into an Integer
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
+    #   bylaw.plain(1.0) #=> 1
+    def plain(value)
+      return value unless value.is_a?(Float)
+      return value unless (value % 1).zero?
+      Integer(value)
     end
 
     # Registers a variable with its value for substitution in lines.
