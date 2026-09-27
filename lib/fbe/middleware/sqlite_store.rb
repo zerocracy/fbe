@@ -112,7 +112,7 @@ class Fbe::Middleware::SqliteStore
   # @return [nil]
   # @note Values larger than 10KB are not cached
   # @note Non-GET requests are not cached
-  def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Metrics/AbcSize
+  def write(key, value)
     if value.is_a?(Array)
       begin
         return delete(key) if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
