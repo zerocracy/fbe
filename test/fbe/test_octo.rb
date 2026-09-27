@@ -1672,4 +1672,13 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_commit_has_the_shape_a_search_result_has
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    c = o.commits_since('foo/foo', Time.now).first
+    assert_kind_of(Time, c.dig(:commit, :author, :date))
+    assert_equal('foo/foo', c.dig(:repository, :full_name))
+    refute_empty(c[:parents])
+    assert_equal(123, c.dig(:stats, :total))
+  end
 end
