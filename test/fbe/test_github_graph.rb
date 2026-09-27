@@ -1058,4 +1058,13 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_fake_pull_request_reviews_answers_about_the_pulls_it_was_asked
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    assert_equal(
+      [1108, 5], graph.pull_request_reviews('foo', 'foo', pulls: [[1108, nil], [5, nil]]).map { |p| p['number'] }
+    )
+    assert_empty(graph.pull_request_reviews('foo', 'foo', pulls: []))
+  end
 end
