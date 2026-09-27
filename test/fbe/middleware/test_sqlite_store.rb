@@ -522,6 +522,17 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_skip_write_of_a_request_that_is_not_a_hash
+    with_tmpfile('scalar.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        ['null', 'true', 'false', '"text"'].each do |req|
+          store.write(req, [[req, '{}']])
+          assert_nil(store.read(req), "request #{req} must not be cached")
+        end
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
