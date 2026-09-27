@@ -267,4 +267,11 @@ class TestPmp < Fbe::Test
       Fbe.pmp(loog: Loog::NULL).hr.public_send(:"")
     end
   end
+
+  def test_refuses_a_missing_context
+    opts = Judges::Options.new
+    assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: nil, options: opts, loog: Loog::NULL) }
+    assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: nil, loog: Loog::NULL) }
+    assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: opts, loog: nil) }
+  end
 end
