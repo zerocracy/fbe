@@ -311,6 +311,6 @@ class TestPmp < Fbe::Test
     f.what = 'pmp'
     f.area = 'communications'
     f.stealth = 'TRUE'
-    assert(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
+    assert(Fbe.pmp(loog: Loog::NULL).communications.stealth)
   end
 end
