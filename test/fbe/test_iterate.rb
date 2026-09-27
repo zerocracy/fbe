@@ -749,6 +749,35 @@ class TestIterate < Fbe::Test
     assert_equal([[1, 2], [3], []], runs)
   end
 
+
+  def test_runs_the_examples_from_the_docstrings
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    f = fb.insert
+    f.what = 'issue'
+    f.created_at = 1
+    seen = []
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as 'issues_iterator'
+      by '(agg (and (eq what "issue") (gt created_at $before)) (min created_at))'
+      repeats 1
+      over do |_repository, issue_id|
+        seen << issue_id
+        issue_id + 1
+      end
+    end
+    assert_equal([1], seen)
+    iterator =
+      Fbe::Iterate.new(
+        fb:, loog: Loog::NULL, options: opts, global: {},
+        epoch: Time.now, kickoff: Time.now
+      )
+    iterator.as('pull_requests')
+    iterator.by('(agg (and (eq what "pull_request") (gt number $before)) (min number))')
+    iterator.repeats(1)
+    iterator.over { |_repo_id, pr_number| pr_number + 1 }
+  end
+
   private
 
   def fresh_iterator
