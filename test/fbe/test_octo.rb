@@ -1672,4 +1672,13 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_comment_sends_a_nil_where_github_sends_a_json_null
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [o.pull_request_comments('foo/foo', 42).first, o.issue_comments('foo/foo', 42).first].each do |c|
+      %i[start_line original_start_line start_side line position].each do |k|
+        assert_nil(c[k], "#{k} must be nil")
+      end
+    end
+  end
 end
