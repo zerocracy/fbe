@@ -599,7 +599,7 @@ class TestIterate < Fbe::Test
     fb.insert.then do |f|
       f.where = 'github'
       f.what = 'judge'
-      f.repository = 680
+      f.repository = 3_861_188_962
       f.number = 1
     end
     ex =
