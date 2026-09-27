@@ -522,6 +522,30 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_does_not_vacuum_when_nothing_expired
+    with_tmpfile('v.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24)
+      200.times { |i| store.write("k#{i}", 'x' * 4096) }
+      store.close
+      SQLite3::Database.new(f) do |d|
+        d.execute('DELETE FROM cache;')
+      end
+      free = nil
+      SQLite3::Database.new(f) do |d|
+        free = d.execute('SELECT freelist_count FROM pragma_freelist_count();').dig(0, 0)
+      end
+      assert_operator(free, :>, 0, 'the deletion must leave free pages behind')
+      reopened = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24)
+      reopened.read('k0')
+      reopened.close
+      after = nil
+      SQLite3::Database.new(f) do |d|
+        after = d.execute('SELECT freelist_count FROM pragma_freelist_count();').dig(0, 0)
+      end
+      assert_equal(free, after, 'the store must not rewrite the file when nothing expired')
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
