@@ -982,6 +982,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   end
 
   def repository_events(repo, _options = {}) # rubocop:disable Metrics/MethodLength
+    time = Time.now
     [
       {
         id: '123',
@@ -1002,7 +1003,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: time - 120,
         public: true
       },
       {
@@ -1024,7 +1025,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: time - 60,
         public: true
       },
       {
@@ -1046,12 +1047,12 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: time,
         public: true
       },
       {
         id: '42',
-        created_at: Time.now,
+        created_at: time - 240,
         actor: { id: 42 },
         type: 'PullRequestEvent',
         repo: {
@@ -1084,7 +1085,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       },
       {
         id: '43',
-        created_at: Time.now,
+        created_at: time - 180,
         actor: { id: 42 },
         type: 'PullRequestEvent',
         repo: {
