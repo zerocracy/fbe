@@ -70,4 +70,15 @@ class TestCopy < Fbe::Test
     target = fb.insert
     assert_equal(2, Fbe.copy(source, target), 'the internals are among the copied values')
   end
+
+  def test_with_except_as_symbol
+    fb = Factbase.new
+    source = fb.insert
+    source._id = 1
+    source.foo = 42
+    target = fb.insert
+    target._id = 2
+    Fbe.copy(source, target, except: [:foo])
+    assert_nil(target['foo'])
+  end
 end

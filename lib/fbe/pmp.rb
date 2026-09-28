@@ -32,6 +32,8 @@ require_relative 'fb'
 # accessing a property through a custom area, the returned value is read
 # directly from the factbase without XML defaults or type coercion. The
 # returned +Pmpv+ object will have +nil+ for +default+, +type+, and +memo+.
+# The +areas+ method lists both XML defaults and areas declared in PMP facts,
+# without duplicates.
 #
 #   Fbe.pmp.my_custom.my_prop  # reads from factbase, no XML defaults
 #
@@ -40,6 +42,7 @@ require_relative 'fb'
 # @param [Judges::Options] options Retained for compatibility with existing callers
 # @param [Loog] loog Retained for compatibility with existing callers
 # @return [Object] A proxy object that allows method chaining to access PMP properties
+# @raise [Fbe::Error] If the factbase or any of the required globals is not set
 # @example
 #   # Get HR reward points from PMP configuration
 #   points = Fbe.pmp.hr.reward_points
@@ -52,7 +55,11 @@ require_relative 'fb'
 #
 #   # Read custom property (nil default/type/memo)
 #   val = Fbe.pmp.my_custom.my_prop
-def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Lint/UnusedMethodArgument
+def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+  raise(Fbe::Error, 'The fb is nil') if fb.nil?
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   global[:mutex] ||= Mutex.new
   xml =
     global[:mutex].synchronize do
@@ -76,9 +83,12 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       Integer(f)
     end
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
+  owner = ->(area, param) { query.call(area).each.find { |f| !f[param].nil? } }
   Class.new do
     define_method(:areas) do
-      xml.xpath('/pmp/area/@name').map(&:value)
+      defaults = xml.xpath('/pmp/area/@name').map(&:value)
+      declared = fb.query("(eq what 'pmp')").each.flat_map { _1[:area] || [] }
+      defaults | declared
     end
     others do |*args1| # rubocop:disable Metrics/BlockLength
       area = args1.first.to_s
@@ -86,11 +96,11 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       if node.nil?
         Class.new do
           define_method(:properties) do
-            query.call(area).each.first&.all_properties&.map(&:to_s) || []
+            query.call(area).each.flat_map { |f| f.all_properties.map(&:to_s) }.uniq
           end
           others do |*args2|
             param = args2.first.to_s
-            result = query.call(area).each.first&.[](param)&.first
+            result = owner.call(area, param)&.[](param)&.first
             raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
             pmpv.new(result, nil, nil, nil)
           end
@@ -102,7 +112,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           end
           others do |*args2|
             param = args2.first.to_s
-            result = query.call(area).each.first&.[](param)&.first
+            result = owner.call(area, param)&.[](param)&.first
             prop = node.at_xpath('p[name=$name]', nil, 'name' => param)
             default = nil
             type = nil
@@ -135,6 +145,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                 when 'int' then whole.call(result)
                 when 'float' then Float(result)
                 when 'bool' then result.to_s == 'true'
+                when 'string' then result.to_s
                 else result
                 end
               rescue ArgumentError, TypeError => e
@@ -144,6 +155,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                   "'#{param}' in area '#{area}': #{e.message}"
                 )
               end
+            next result if type == 'bool'
             pmpv.new(result, default, type, memo)
           end
         end.new

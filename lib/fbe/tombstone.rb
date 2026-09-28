@@ -50,6 +50,7 @@ class Fbe::Tombstone
     unless issue.is_a?(Integer) || issue.is_a?(Array)
       raise(Fbe::Error, 'The type of "issue" is neither Integer nor Array')
     end
+    issue = numbers(issue)
     f =
       Fbe.if_absent(fb: @fb, always: true) do |n|
         n.what = 'tombstone'
@@ -62,7 +63,6 @@ class Fbe::Tombstone
         Integer(i, 10)
       end.then { |ii| ii.size == 1 ? ii << ii[0] : ii }
     end || []
-    issue = [issue] unless issue.is_a?(Array)
     issue.each do |i|
       nn << [i, i]
     end
@@ -91,17 +91,27 @@ class Fbe::Tombstone
     unless issue.is_a?(Integer) || issue.is_a?(Array)
       raise(Fbe::Error, 'The type of "issue" is neither Integer nor Array')
     end
+    issue = numbers(issue)
     f = @fb.query(
       "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
     ).each.first
     return false if f.nil?
-    issue = [issue] unless issue.is_a?(Array)
     return false if issue.empty?
     issue.all? do |i|
       f['issues'].any? do |ii|
         a, b = ii.split('-').map { |i| Integer(i, 10) }
         b.nil? ? a == i : (a..b).cover?(i)
       end
+    end
+  end
+
+  private
+
+  def numbers(issue)
+    list = issue.is_a?(Array) ? issue : [issue]
+    list.each do |i|
+      next if i.is_a?(Integer) && i.positive?
+      raise(Fbe::Error, "The issue #{i.inspect} is not a positive Integer")
     end
   end
 end
