@@ -28,4 +28,11 @@ class TestFbe < Fbe::Test
       end
     end
   end
+
+  def test_readme_lists_every_public_function
+    readme = File.read(File.join(__dir__, '../README.md'))
+    names = Dir[File.join(__dir__, '../lib/fbe/*.rb')].flat_map { |f| File.read(f).scan(/(?<=^def Fbe\.)\w+[?!]?/) }
+    missing = names.reject { |n| readme.include?("`Fbe.#{n}`") }
+    assert_empty(missing, 'these public functions are not listed in the README')
+  end
 end
