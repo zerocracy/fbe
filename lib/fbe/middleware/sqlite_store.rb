@@ -160,14 +160,14 @@ class Fbe::Middleware::SqliteStore
     nil
   end
 
-  # Clear all entries from the cache.
+  # Clear all entries from the cache, or do nothing when the cache is disabled.
   # @return [void]
   def clear
     perform do |t|
       t.execute('DELETE FROM cache;')
       t.execute("UPDATE meta SET value = ? WHERE key = 'version';", [@version])
     end
-    @db.execute('VACUUM;')
+    @db.execute('VACUUM;') unless @disabled
   end
 
   # Get all entries from the cache, in the form they are stored in, which
