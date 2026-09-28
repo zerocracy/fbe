@@ -29,7 +29,7 @@ class TestAward < Fbe::Test
                 (not (eq hours 0)))
               fee 0))
           (give b1 "for resolving the bug in ${hours} (<${max}) hours")
-          "add ${+fee} if it was resolved in less than ${max} hours")
+          "add +${fee} if it was resolved in less than ${max} hours")
         (set days (div hours 24))
         (set b2 (times days -1))
         (let worst -20)
@@ -56,6 +56,13 @@ class TestAward < Fbe::Test
       'First, assume that _hours_ is hours',
       ', and award _b₂_'
     ].each { |t| assert_includes(md, t, md) }
+  end
+
+  def test_let_publishes_the_value_of_an_expression
+    md = Fbe::Award.new(
+      '(award (explain "t") (let x (plus 2 3)) (aka (give 1 "for x=${x}") "award ${x} points"))'
+    ).bylaw.markdown
+    assert_includes(md, 'award **5** points', md)
   end
 
   def test_some_terms
@@ -125,10 +132,30 @@ class TestAward < Fbe::Test
     assert_includes(md, 'summary of the aka', md)
   end
 
+  def test_explain_inside_aka_does_not_wipe_top_level_intro
+    a = Fbe::Award.new('(award (explain "TOP INTRO") (aka (explain "INNER") (give 5 "y") "summary"))')
+    md = a.bylaw.markdown
+    assert_includes(md, 'TOP INTRO', md)
+    refute_includes(md, 'INNER', md)
+  end
+
   def test_between_in_bylaw_markdown
     a = Fbe::Award.new('(award (set b (between x 3 120)) (give b "test"))')
     md = a.bylaw.markdown
-    assert_includes(md, '_x_ clamped between **3** and **120**, or 0 if it is smaller than **3**', md)
+    assert_includes(
+      md,
+      '_x_ clamped by absolute value between **3** and **120**, or 0 if its absolute value is smaller than both',
+      md
+    )
+  end
+
+  def test_bylaw_markdown_keeps_unrelated_step_apart_from_award
+    a = Fbe::Award.new('(award (in x "the input") (set d (div x 24)) (give 8 "b") (set b (plus d 1)) (give b "bonus"))')
+    assert_equal(
+      "Here is how it's calculated: First, assume that _x_ is the input. " \
+      'Then, set _d_ to _x_ ÷ **24**. Then, award **8**. Then, set _b_ to _d_ + **1**, and award _b_.',
+      a.bylaw.markdown
+    )
   end
 
   def test_lines_add_up_to_the_total
@@ -136,6 +163,13 @@ class TestAward < Fbe::Test
     g = b.greeting
     assert_equal(20, b.points, g)
     assert_equal("You've earned +20 points for this: +12 as a basis; +8 for comments. ", g)
+  end
+
+  def test_rounds_the_sum_once
+    bill = Fbe::Award::Bill.new
+    bill.line(0.5, 'first')
+    bill.line(0.5, 'second')
+    assert_equal(1, bill.points)
   end
 
   def test_shorten_when_one_number
@@ -153,6 +187,19 @@ class TestAward < Fbe::Test
     assert_raises(Fbe::Error) { a.bill }
   end
 
+  def test_raises_on_placeholder_with_unusual_name
+    ['${Fee}', '${+fee}', '${fee-1}', '${ fee }', '${}'].each do |p|
+      a = Fbe::Award.new("(award (let fee 10) (aka (give fee \"bonus #{p}\") \"add #{p} points\"))")
+      assert_raises(Fbe::Error, p) { a.bill }
+      assert_raises(Fbe::Error, p) { a.bylaw }
+    end
+  end
+
+  def test_bill_validates_zero_lines
+    a = Fbe::Award.new('(award (give 0 "test ${missing}"))')
+    assert_raises(Fbe::Error) { a.bill }
+  end
+
   def test_bylaw_raises_on_undefined_var
     a = Fbe::Award.new('(award (aka (give 10 "points") "${undefined} points"))')
     assert_raises(Fbe::Error) { a.bylaw }
@@ -161,6 +208,12 @@ class TestAward < Fbe::Test
   def test_bylaw_reports_the_real_error
     a = Fbe::Award.new('(award (aka (bogus 1) (give 5 "y") "summary"))')
     assert_includes(assert_raises(Fbe::Error) { a.bylaw }.message, "Unknown term 'bogus'")
+  end
+
+  def test_bill_reports_nil_value_apart_from_unknown_name
+    a = Fbe::Award.new('(award (give (plus x 1) "test"))')
+    assert_includes(assert_raises(Fbe::Error) { a.bill(x: nil) }.message, 'The value of :x is nil')
+    assert_includes(assert_raises(Fbe::Error) { a.bill }.message, 'Unknown name :x')
   end
 
   def test_division_by_zero_raises_error
@@ -195,5 +248,14 @@ class TestAward < Fbe::Test
     assert_raises(ArgumentError, "award was built from #{text} and a judge with seed #{seed}") do
       Fbe::Award.new("(award (give 1 \"#{text}\"))", judge: 'fake', global: {})
     end
+  end
+
+  def test_rounds_float_variable_in_award_text
+    g = Fbe::Award.new('(award (set d (div 47.9 24)) (give 8 "a") (give -2 "for ${d} days"))').bill.greeting
+    assert_includes(g, '-2 for 2 days', g)
+  end
+
+  def test_div_does_not_truncate_integers
+    assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
 end

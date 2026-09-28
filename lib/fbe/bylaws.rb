@@ -48,8 +48,11 @@ require_relative '../fbe'
 #   #        \"deduct ${fee} points\")
 #   #      )"
 def Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
+  raise(Fbe::Error, "The 'anger' must be an Integer: #{anger.inspect}") unless anger.is_a?(Integer)
   raise(Fbe::Error, "The 'anger' must be in the [0..4] interval: #{anger.inspect}") unless !anger.negative? && anger < 5
+  raise(Fbe::Error, "The 'love' must be an Integer: #{love.inspect}") unless love.is_a?(Integer)
   raise(Fbe::Error, "The 'love' must be in the [0..4] interval: #{love.inspect}") unless !love.negative? && love < 5
+  raise(Fbe::Error, "The 'paranoia' must be an Integer: #{paranoia.inspect}") unless paranoia.is_a?(Integer)
   unless paranoia.positive? && paranoia < 5
     raise(Fbe::Error, "The 'paranoia' must be in the [1..4] interval: #{paranoia.inspect}")
   end
@@ -57,6 +60,6 @@ def Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
   raise(Fbe::Error, "The directory with templates is absent #{home.inspect}") unless File.exist?(home)
   Dir[File.join(home, '*.fe.liquid')].to_h do |f|
     formula = Liquid::Template.parse(File.read(f)).render('anger' => anger, 'love' => love, 'paranoia' => paranoia)
-    [File.basename(f).gsub(/\.fe.liquid$/, ''), formula]
+    [File.basename(f, '.fe.liquid'), formula]
   end
 end
