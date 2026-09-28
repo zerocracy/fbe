@@ -30,9 +30,9 @@ require_relative 'fb'
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
 def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
-  raise(Fbe::Error, 'The area is nil') if area.nil?
-  raise(Fbe::Error, 'The p_every_days is nil') if p_every_days.nil?
-  raise(Fbe::Error, 'The fb is nil') if fb.nil?
+  { 'area' => area, 'p_every_days' => p_every_days, 'fb' => fb }.each do |name, value|
+    raise(Fbe::Error, "The #{name} is nil") if value.nil?
+  end
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
@@ -40,7 +40,8 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   fb.txn do |fbt|
     recent = fbt.query(
       "(and
-        (eq what '#{judge.gsub("'", "\\\\'")}')
+        (eq what 'regularly')
+        (eq judge '#{judge.gsub("'", "\\\\'")}')
         (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
     ).each.first
     if recent
@@ -52,7 +53,8 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     end
     loog.info("#{judge} statistics weren't collected for the last #{interval} days")
     f = fbt.insert
-    f.what = judge
+    f.what = 'regularly'
+    f.judge = judge
     f.when = Time.now
     unless p_since_days.nil?
       days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28

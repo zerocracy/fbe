@@ -7,6 +7,7 @@ require 'others'
 require 'time'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'same'
 
 # Injects a fact if it's absent in the factbase, otherwise returns nil.
 #
@@ -33,6 +34,7 @@ require_relative 'fb'
 # @param [Boolean] always If true, return the object in any case
 # @yield [Factbase::Fact] A proxy fact object to set properties on
 # @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
+# @raise [Fbe::Error] When no block is given
 # @note String values are properly escaped in queries
 # @note Time values are converted to UTC ISO8601 format for comparison
 # @example Ensure unique user registration
@@ -47,6 +49,7 @@ require_relative 'fb'
 #     puts "User already exists"
 #   end
 def Fbe.if_absent(fb: Fbe.fb, always: false)
+  raise(Fbe::Error, 'A block is required by if_absent') unless block_given?
   attrs = {}
   f =
     others(map: attrs) do |*args|
@@ -63,6 +66,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     end
   yield(f)
   q = attrs.except(:_id, :_time, :_version).map do |k, v|
+    raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
     vv = v.to_s
     if v.is_a?(String)
       vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
@@ -72,7 +76,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.first
+  before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }
   return before if before && always
   return nil if before
   n = fb.insert

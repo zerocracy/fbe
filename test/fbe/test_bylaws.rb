@@ -14,6 +14,11 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class TestBylaws < Fbe::Test
+  def test_rejects_negative_revert_count
+    bylaw = Fbe::Award::Bylaw.new
+    assert_raises(Fbe::Error) { bylaw.revert(-1) }
+  end
+
   def test_simple
     laws = Fbe.bylaws
     assert_operator(laws.size, :>, 1)
@@ -39,6 +44,11 @@ class TestBylaws < Fbe::Test
     )
   end
 
+  def test_few_comments_text_excludes_silent_review
+    md = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'comments made during review, but at least one', md)
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
@@ -51,7 +61,7 @@ class TestBylaws < Fbe::Test
         { hoc: 30_000, contributors: 1 } => 32
       },
       'resolved-bug-was-rewarded' => {
-        { hours: 1, self: 0 } => 12,
+        { hours: 1, self: 0 } => 16,
         { hours: 48, self: 0 } => 6,
         { hours: 80, self: 0 } => 5,
         { hours: 300, self: 0 } => 4,
@@ -85,10 +95,12 @@ class TestBylaws < Fbe::Test
         { hoc: 150, comments: 5, reviews: 1 } => 24,
         { hoc: 500, comments: 25, reviews: 2 } => 8,
         { hoc: 99, comments: 6, reviews: 1 } => 16,
-        { hoc: 200, comments: 0, reviews: 1 } => 8,
+        { hoc: 200, comments: 0, reviews: 1 } => 16,
+        { hoc: 201, comments: 0, reviews: 1 } => 8,
         { hoc: 542, comments: 0, reviews: 1 } => 8,
         { hoc: 799, comments: 0, reviews: 1 } => 8,
-        { hoc: 800, comments: 0, reviews: 1 } => 4,
+        { hoc: 800, comments: 0, reviews: 1 } => 8,
+        { hoc: 801, comments: 0, reviews: 1 } => 4,
         { hoc: 1_500, comments: 3, reviews: 0 } => 4,
         { hoc: 15_000, comments: 40, reviews: 0 } => 4
       },
@@ -142,6 +154,21 @@ class TestBylaws < Fbe::Test
     end
   end
 
+  def test_never_exposes_a_bare_set_in_the_text
+    Fbe.bylaws.each do |title, formula|
+      md = Fbe::Award.new(formula).bylaw.markdown
+      refute_includes(md, 'set _', "The text of '#{title}' exposes an internal variable: #{md}")
+    end
+  end
+
+  def test_resolved_bug_best_case_reaches_the_stated_cap
+    formula = Fbe.bylaws(anger: 2, love: 2, paranoia: 2)['resolved-bug-was-rewarded']
+    a = Fbe::Award.new(formula)
+    md = a.bylaw.markdown
+    assert_includes(md, 'not larger than **16** points', md)
+    assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
@@ -193,6 +220,20 @@ class TestBylaws < Fbe::Test
   def test_returns_s_expressions
     Fbe.bylaws.each_value do |formula|
       assert_match(/\A\(award\b/, formula.strip)
+    end
+  end
+
+  def test_rejects_non_integer_levels
+    values = ['2', nil]
+    %i[anger love paranoia].each do |name|
+      values.each do |value|
+        error =
+          assert_raises(Fbe::Error) do
+            Fbe.bylaws(**{ name => value })
+          end
+        assert_includes(error.message, "'#{name}'")
+        assert_includes(error.message, 'must be an Integer')
+      end
     end
   end
 end
