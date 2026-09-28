@@ -40,19 +40,19 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   raise(Fbe::Error, 'A block is required by repeatedly') unless block_given?
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}') (exists #{p_every_hours}))").each.first
+  pmp = fb.query("(and (eq what 'pmp') (eq area $area) (exists #{p_every_hours}))").each(fb, area:).first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
-  marker = "(and (eq what 'repeatedly') (eq judge '#{judge.gsub("'", "\\\\'")}'))"
+  marker = "(and (eq what 'repeatedly') (eq judge $judge))"
   recent = fb.query(
     "(and
       #{marker}
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
-  ).each.first
+  ).each(fb, judge:).first
   if recent
     loog.info("#{judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
     return
   end
-  f = fb.query(marker).each.first
+  f = fb.query(marker).each(fb, judge:).first
   if f.nil?
     f = fb.insert
     f.what = 'repeatedly'
