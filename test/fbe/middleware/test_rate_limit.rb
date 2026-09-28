@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'faraday'
+require 'faraday/http_cache'
 require 'webmock'
 require_relative '../../../lib/fbe'
 require_relative '../../../lib/fbe/middleware'
@@ -463,6 +464,51 @@ class RateLimitTest < Fbe::Test
     conn.get('/search/issues?q=s')
     response = conn.get('/rate_limit')
     assert_equal(25, response.body['resources']['search']['remaining'])
+  end
+
+  def test_keeps_remaining_when_cached_response_is_fresh
+    seed = Random.new_seed
+    left = Random.new(seed).rand(100..4999)
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(
+        status: 200, body: '{"login":"x"}', headers: {
+          'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => left.to_s,
+          'Cache-Control' => 'public, max-age=60', 'Date' => Time.now.httpdate
+        }
+      )
+    tracker = {}
+    conn =
+      Faraday.new(url: 'https://api.github.com') do |f|
+        f.use(Fbe::Middleware::RateLimit, tracker)
+        f.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
+        f.adapter(:net_http)
+      end
+    2.times { conn.get('/user') }
+    assert_equal(left - 1, tracker[:rate_limit].remaining, "stale count of a cached response was taken, seed #{seed}")
+  end
+
+  def test_keeps_search_remaining_when_cached_response_is_fresh
+    seed = Random.new_seed
+    left = Random.new(seed).rand(2..30)
+    stub_request(:get, 'https://api.github.com/search/issues?q=%C3%BC')
+      .to_return(
+        status: 200, body: '{"items":[]}', headers: {
+          'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => left.to_s,
+          'Cache-Control' => 'public, max-age=60', 'Date' => Time.now.httpdate
+        }
+      )
+    tracker = {}
+    conn =
+      Faraday.new(url: 'https://api.github.com') do |f|
+        f.use(Fbe::Middleware::RateLimit, tracker)
+        f.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
+        f.adapter(:net_http)
+      end
+    2.times { conn.get('/search/issues?q=%C3%BC') }
+    assert_equal(
+      left - 1, tracker[:rate_limit].remaining(:search),
+      "stale search count of a cached response was taken, seed #{seed}"
+    )
   end
 
   def test_cached_body_is_not_leaked_to_callers
