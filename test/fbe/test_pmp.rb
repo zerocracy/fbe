@@ -26,6 +26,38 @@ class TestPmp < Fbe::Test
     assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_reads_property_from_second_fact_of_same_area
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    first = Fbe.fb(loog: Loog::NULL).insert
+    first.what = 'pmp'
+    first.area = 'hr'
+    first.anger = 4
+    second = Fbe.fb(loog: Loog::NULL).insert
+    second.what = 'pmp'
+    second.area = 'hr'
+    second.days_to_reward = 55
+    assert_equal(4, Fbe.pmp(loog: Loog::NULL).hr.anger)
+    assert_equal(55, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
+  end
+
+  def test_uses_explicit_factbase_after_global_cache_is_primed
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    Fbe.fb
+    other = Factbase.new
+    f = other.insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.days_to_reward = 99
+    assert_equal(99, Fbe.pmp(fb: other).hr.days_to_reward)
+    assert_equal(14, Fbe.pmp.hr.days_to_reward)
+  end
+
   def test_reads_the_xml_once
     $fb = Factbase.new
     $global = {}
@@ -59,6 +91,20 @@ class TestPmp < Fbe::Test
     f.days_to_reward = 88.0
     $loog = Loog::NULL
     assert_equal(88, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
+  end
+
+  def test_coerces_string_property_declared_as_string
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'cost'
+    f.slaves = 42
+    $loog = Loog::NULL
+    result = Fbe.pmp(loog: Loog::NULL).cost.slaves
+    assert_kind_of(String, result.value)
+    assert_equal('42', result)
   end
 
   def test_rejects_fractional_int
@@ -106,7 +152,6 @@ class TestPmp < Fbe::Test
     f.stealth = 'false'
     $loog = Loog::NULL
     refute(Fbe.pmp(loog: Loog::NULL).communications.stealth)
-    refute(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
   end
 
   def test_reads_true_boolean
@@ -119,7 +164,6 @@ class TestPmp < Fbe::Test
     f.stealth = 'true'
     $loog = Loog::NULL
     assert(Fbe.pmp(loog: Loog::NULL).communications.stealth)
-    assert(Fbe.pmp(loog: Loog::NULL).communications.stealth.value)
   end
 
   def test_regression_bool_true_default
@@ -144,7 +188,24 @@ class TestPmp < Fbe::Test
     f.what = 'pmp'
     f.area = 'custom'
     f.my_prop = 42
-    assert_equal(42, Fbe.pmp(fb:, loog: Loog::NULL).custom.my_prop)
+    pmp = Fbe.pmp(fb:, loog: Loog::NULL)
+    assert_equal(42, pmp.custom.my_prop)
+    assert_includes(pmp.areas, 'custom')
+  end
+
+  def test_areas_merges_defaults_and_pmp_facts_without_duplicates
+    fb = Factbase.new
+    %w[custom custom hr].each do |area|
+      f = fb.insert
+      f.what = 'pmp'
+      f.area = area
+    end
+    fb.insert.area = 'unrelated'
+    fb.insert.what = 'pmp'
+    areas = Fbe.pmp(fb:, global: {}).areas
+    assert_equal(1, areas.count('custom'))
+    assert_equal(1, areas.count('hr'))
+    refute_includes(areas, 'unrelated')
   end
 
   def test_custom_area_without_fact
@@ -170,5 +231,62 @@ class TestPmp < Fbe::Test
     props = Fbe.pmp(loog: Loog::NULL).custom.properties
     assert_includes(props, 'prop_a')
     assert_includes(props, 'prop_b')
+  end
+
+  def test_cannot_read_property_with_apostrophe
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'apostrophe in a property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"hour'ly_rate")
+    end
+  end
+
+  def test_cannot_read_property_that_injects_xpath
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'an injected XPath predicate matches a foreign property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"anger' or '1'='1")
+    end
+  end
+
+  def test_cannot_read_property_with_quote
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'double quote in a property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:'hour"ly_rate')
+    end
+  end
+
+  def test_cannot_read_property_with_unicode
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'non-ASCII property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"дни'к_награде")
+    end
+  end
+
+  def test_cannot_read_property_with_empty_name
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    assert_raises(Fbe::Error, 'empty property name is not reported as a missing property') do
+      Fbe.pmp(loog: Loog::NULL).hr.public_send(:"")
+    end
+  end
+
+  def test_refuses_a_missing_context
+    opts = Judges::Options.new
+    assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: nil, options: opts, loog: Loog::NULL) }
+    assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: nil, loog: Loog::NULL) }
+    assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: opts, loog: nil) }
   end
 end

@@ -149,6 +149,17 @@ class TestUnmaskRepos < Fbe::Test
     assert_raises(Fbe::Error) { Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL) }
   end
 
+  def test_cannot_unmask_repos_with_broken_inclusion_mask
+    ['justaword', 'a/b/c', 'yegor256/', '/tacit'].each do |mask|
+      options = Judges::Options.new({ 'testing' => true, 'repositories' => mask })
+      e =
+        assert_raises(Fbe::Error, "the mask #{mask.inspect} is accepted") do
+          Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+        end
+      assert_includes(e.message, "is not in the 'org/repo' format")
+    end
+  end
+
   def test_skips_mask_when_organization_listing_is_forbidden
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
@@ -186,6 +197,16 @@ class TestUnmaskRepos < Fbe::Test
     options = Judges::Options.new({ 'repositories' => 'foo/bar,bar/baz' })
     list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
     assert_equal(['bar/baz'], list, 'the absent repo is not dropped')
+  end
+
+  def test_does_not_raise_off_quota_regardless_of_quota_aware
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '40' } }
+    )
+    options = Judges::Options.new({ 'repositories' => 'foo/bar' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL, quota_aware: false)
+    assert_equal(['foo/bar'], list, 'the repo is not kept when the quota check itself is off-quota')
   end
 
   def test_live_usage

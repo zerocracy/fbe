@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'filesize'
+require 'fileutils'
 require 'json'
 require 'loog'
 require 'sqlite3'
@@ -23,7 +24,7 @@ require_relative '../../fbe/middleware'
 # - Size-based cache eviction (configurable, defaults to 10MB)
 # - Thread-safe SQLite transactions
 # - JSON serialization for cached values
-# - Filtering of non-cacheable requests (non-GET, URLs with query parameters)
+# - Filtering of non-cacheable requests (non-GET)
 #
 # Usage example:
 #   store = Fbe::Middleware::SqliteStore.new(
@@ -61,6 +62,7 @@ class Fbe::Middleware::SqliteStore
     raise(ArgumentError, 'Database path cannot be nil or empty') if path.nil? || path.empty?
     dir = File.dirname(path)
     raise(ArgumentError, "Directory #{dir} does not exist") unless File.directory?(dir)
+    raise(ArgumentError, "Directory #{dir} is not writable") unless File.writable?(dir)
     raise(ArgumentError, 'Version cannot be nil or empty') if version.nil? || version.empty?
     @path = File.absolute_path(path)
     @version = version
@@ -80,11 +82,14 @@ class Fbe::Middleware::SqliteStore
   # @param key [String] The cache key to read
   # @return [Object, nil] The cached value parsed from JSON, or nil if not found
   def read(key)
-    value = perform do |t|
-      t.execute('UPDATE cache SET touched_at = ?2 WHERE key = ?1;', [key, Time.now.utc.iso8601])
-      t.execute('SELECT value FROM cache WHERE key = ? LIMIT 1;', [key])
-    end.dig(0, 0)
+    value =
+      perform do |t|
+        t.execute('SELECT value FROM cache WHERE key = ? LIMIT 1;', [key])
+      end.dig(0, 0)
     return unless value
+    perform do |t|
+      t.execute('UPDATE cache SET touched_at = ?2 WHERE key = ?1;', [key, Time.now.utc.iso8601])
+    end
     begin
       JSON.parse(Zlib::Inflate.inflate(value))
     rescue Zlib::Error, JSON::ParserError, TypeError => e
@@ -106,14 +111,14 @@ class Fbe::Middleware::SqliteStore
   # @param value [Object] The value to cache (will be JSON encoded)
   # @return [nil]
   # @note Values larger than 10KB are not cached
-  # @note Non-GET requests and URLs with query parameters are not cached
+  # @note Non-GET requests are not cached
   def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Metrics/AbcSize
     if value.is_a?(Array)
       begin
-        return if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
+        return delete(key) if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
       rescue TypeError, JSON::ParserError => e
         @loog.info("Failed to parse request to decide whether to cache it: #{e.message}")
-        return
+        return delete(key)
       end
     end
     if @minage && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
@@ -123,24 +128,29 @@ class Fbe::Middleware::SqliteStore
         @loog.info("Failed to parse response to rewrite the cache age: #{e.message}")
         resp = nil
       end
-      control = resp.dig('response_headers', 'cache-control') if resp.is_a?(Hash)
-      if control && !control.empty?
+      headers = resp['response_headers'] if resp.is_a?(Hash)
+      if headers.is_a?(Hash)
+        header = headers.keys.find { |h| h.casecmp?('cache-control') } || 'cache-control'
+        control = headers[header].to_s.strip.split(/\s*,\s*/).reject { |d| d.empty? || d.casecmp?('no-cache') }
+        control << "max-age=#{@minage}" if control.none? { |d| d.match?(/\A(max-age|s-maxage)=/i) }
+        control = control.join(', ')
         %w[max-age s-maxage].each do |key|
           matched = control.scan(/#{key}=(\d+)/i).first&.first
           age = matched.nil? ? nil : Integer(matched, 10)
           if age
             age = [age, @minage].max
-            control = control.sub(/#{key}=(\d+)/, "#{key}=#{age}")
+            control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
           end
         end
-        resp['response_headers']['cache-control'] = control
+        headers[header] = control
         value = value.dup
         value[0] = value[0].dup
         value[0][1] = JSON.dump(resp)
       end
     end
-    value = Zlib::Deflate.deflate(JSON.dump(value))
-    return if value.bytesize > @maxvsize
+    json = JSON.dump(value)
+    return delete(key) if json.bytesize > @maxvsize
+    value = Zlib::Deflate.deflate(json)
     perform do |t|
       t.execute(<<~SQL, [key, value, Time.now.utc.iso8601])
         INSERT INTO cache(key, value, touched_at, created_at) VALUES(?1, ?2, ?3, ?3)
@@ -160,8 +170,9 @@ class Fbe::Middleware::SqliteStore
     @db.execute('VACUUM;')
   end
 
-  # Get all entries from the cache.
-  # @return [Array<Array>] Array of [key, value] pairs
+  # Get all entries from the cache, in the form they are stored in, which
+  # means every value is still compressed and has to be inflated by the caller.
+  # @return [Array<Array>] Array of [key, compressed value] pairs
   def all
     perform { _1.execute('SELECT key, value FROM cache') }
   end
@@ -176,10 +187,30 @@ class Fbe::Middleware::SqliteStore
   private
 
   def perform(&)
+    return [] if @disabled
     @mutex.synchronize do
-      @db ||= init!
+      @db ||= open!
     end
+    return [] if @disabled
     @db.transaction(&)
+  end
+
+  # Opens the database, discarding and recreating an unusable cache file once.
+  #
+  # @return [SQLite3::Database, nil] The opened database, or nil if the cache
+  #   could not be made usable and has been disabled
+  def open!
+    init!
+  rescue SQLite3::Exception => e
+    @loog.warn("SQLite cache at #{@path} is unusable (#{e.message}), discarding it and starting fresh")
+    FileUtils.rm_f(@path)
+    begin
+      init!
+    rescue SQLite3::Exception => x
+      @loog.warn("SQLite cache at #{@path} could not be recreated (#{x.message}), disabling the cache")
+      @disabled = true
+      nil
+    end
   end
 
   def init! # rubocop:disable Metrics/AbcSize
