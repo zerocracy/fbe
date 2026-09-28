@@ -219,28 +219,66 @@ class TestConclude < Fbe::Test
     fb = Factbase.new
     fb.insert.foo = 42
     options = Judges::Options.new('lifetime=1')
+    ran = false
     Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, epoch: Time.now - 60) do
       quota_unaware
       on('(exists foo)')
       draw do
-        sleep(999)
+        ran = true
       end
     end
-    assert_equal(1, fb.size)
+    refute(ran, 'draw block ran after the lifetime was over')
+  end
+
+  def test_runs_block_after_lifetime_when_lifetime_unaware
+    seed = Random.new_seed
+    fb = Factbase.new
+    fb.insert.foo = 42
+    options = Judges::Options.new('lifetime=1')
+    ran = false
+    epoch = Time.now - Random.new(seed).rand(2..9999)
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, epoch:, kickoff: Time.now) do
+      quota_unaware
+      lifetime_unaware
+      on('(exists foo)')
+      draw do
+        ran = true
+      end
+    end
+    assert(ran, "draw block did not run in a lifetime unaware judge, seed #{seed}")
   end
 
   def test_respects_timeout
     fb = Factbase.new
     fb.insert.foo = 42
     options = Judges::Options.new('timeout=1')
+    ran = false
     Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, kickoff: Time.now - 60) do
       quota_unaware
       on('(exists foo)')
       draw do
-        sleep(999)
+        ran = true
       end
     end
-    assert_equal(1, fb.size)
+    refute(ran, 'draw block ran after the timeout was over')
+  end
+
+  def test_runs_block_after_timeout_when_timeout_unaware
+    seed = Random.new_seed
+    fb = Factbase.new
+    fb.insert.foo = 42
+    options = Judges::Options.new('timeout=1')
+    ran = false
+    kickoff = Time.now - Random.new(seed).rand(2..9999)
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, epoch: Time.now, kickoff:) do
+      quota_unaware
+      timeout_unaware
+      on('(exists foo)')
+      draw do
+        ran = true
+      end
+    end
+    assert(ran, "draw block did not run in a timeout unaware judge, seed #{seed}")
   end
 
   def test_slot_stops_before_timeout_overrun
