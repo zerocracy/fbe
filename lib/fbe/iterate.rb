@@ -221,8 +221,8 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Label is already set') unless @label.nil?
     raise(Fbe::Error, 'Cannot set "label" to nil') if label.nil?
     raise(Fbe::Error, "Label must be a String, while #{label.class} provided") unless label.is_a?(String)
-    unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
-      raise(Fbe::Error, "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*")
+    unless label.match?(/\A[a-z][a-zA-Z0-9_]*\z/)
+      raise(Fbe::Error, "Wrong label format '#{label}', use [a-z][a-zA-Z0-9_]*")
     end
     raise(Fbe::Error, "The label '#{label}' clashes with a property of the marker fact") if
       %w[what where repository].include?(label)
