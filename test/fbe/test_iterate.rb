@@ -122,6 +122,22 @@ class TestIterate < Fbe::Test
     end
   end
 
+  def test_raises_when_label_clashes_with_marker_property
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    %w[what where repository].each do |label|
+      e =
+        assert_raises(Fbe::Error, label) do
+          Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+            as(label)
+            by('(plus 1 1)')
+            over { |_, nxt| nxt }
+          end
+        end
+      assert_includes(e.message, 'clashes', label)
+    end
+  end
+
   def test_raises_when_query_not_set
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -223,6 +239,32 @@ class TestIterate < Fbe::Test
     end
   end
 
+  def test_rejects_wrong_repeats_type
+    iterator = fresh_iterator
+    error = assert_raises(Fbe::Error) { iterator.repeats(2.5) }
+    assert_equal('The "repeats" must be an Integer, while Float provided', error.message)
+  end
+
+  def test_rejects_wrong_label_type
+    error = assert_raises(Fbe::Error) { fresh_iterator.as(:marker) }
+    assert_equal('Label must be a String, while Symbol provided', error.message)
+  end
+
+  def test_rejects_wrong_query_type
+    error = assert_raises(Fbe::Error) { fresh_iterator.by(42) }
+    assert_equal('Query must be a String, while Integer provided', error.message)
+  end
+
+  def test_rejects_empty_query
+    error = assert_raises(Fbe::Error) { fresh_iterator.by('') }
+    assert_equal('Query cannot be empty', error.message)
+  end
+
+  def test_rejects_empty_sort_field
+    error = assert_raises(Fbe::Error) { fresh_iterator.sort_by('') }
+    assert_equal('Sort field cannot be empty', error.message)
+  end
+
   def test_raises_when_label_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -260,13 +302,36 @@ class TestIterate < Fbe::Test
     assert_equal(15, markers.first.marker_test)
   end
 
+  def test_persists_marker_twice_on_a_plain_factbase
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Factbase.new
+    fb.insert.num = 10
+    run =
+      lambda do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as('marker_test')
+          by('(agg (always) (max num))')
+          repeats(1)
+          over do |_, nxt|
+            nxt + 5
+          end
+        end
+      end
+    run.call
+    fb.insert.num = 20
+    run.call
+    markers = fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a
+    assert_equal(1, markers.size)
+    assert_equal(25, markers.first.marker_test)
+  end
+
   def test_keeps_the_marker_when_the_queue_is_exhausted
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
     fb.insert.then do |f|
       f.what = 'iterate'
       f.where = 'github'
-      f.repository = 680
+      f.repository = 3_861_188_962
       f.wrap_test = 10
     end
     fb.insert.num = 5
@@ -339,7 +404,7 @@ class TestIterate < Fbe::Test
     fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
-      assert_equal(680, f.repository)
+      assert_equal(3_861_188_962, f.repository)
       assert_equal(43, f.first_marker)
       assert_equal(44, f.second_marker)
     end
@@ -351,7 +416,7 @@ class TestIterate < Fbe::Test
     fb.insert.then do |f|
       f.what = 'iterate'
       f.where = 'github'
-      f.repository = 680
+      f.repository = 3_861_188_962
       f.first_marker = 40
       f.second_marker = 20
     end
@@ -368,7 +433,7 @@ class TestIterate < Fbe::Test
     fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
-      assert_equal(680, f.repository)
+      assert_equal(3_861_188_962, f.repository)
       assert_equal(43, f.first_marker)
       assert_equal(20, f.second_marker)
     end
@@ -382,10 +447,33 @@ class TestIterate < Fbe::Test
     fb.query("(eq what 'iterate')").each.first.then do |f|
       refute_nil(f)
       assert_equal('github', f.where)
-      assert_equal(680, f.repository)
+      assert_equal(3_861_188_962, f.repository)
       assert_equal(43, f.first_marker)
       assert_equal(50, f.second_marker)
     end
+  end
+
+  def test_sort_by_visits_distinct_values_within_repeat_limit
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    [3, 2, 1, 2].each do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    seen = []
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('distinct_values')
+      by('(and (eq what "issue") (gt n $before))')
+      sort_by('n')
+      repeats(3)
+      over do |_repository, n|
+        seen << n
+        n
+      end
+    end
+    assert_equal([1, 2, 3], seen)
+    assert_equal(3, fb.query('(eq what "iterate")').each.first.distinct_values)
   end
 
   def test_sort_by_configuration # rubocop:disable Metrics/AbcSize
@@ -395,14 +483,14 @@ class TestIterate < Fbe::Test
     fb.insert.then do |f|
       f.what = 'iterate'
       f.where = 'github'
-      f.repository = 680
+      f.repository = 3_861_188_962
       f.marker = 3
     end
     20.times do |i|
       fb.insert.then do |f|
         f.where = 'github'
         f.what = 'judge'
-        f.repository = 680
+        f.repository = 3_861_188_962
         f.issue = i + 1
         f.prop = 'prop' if i.even?
       end
@@ -459,7 +547,7 @@ class TestIterate < Fbe::Test
       fb.insert.then do |f|
         f.where = 'github'
         f.what = 'judge'
-        f.repository = 680
+        f.repository = 3_861_188_962
         f.issue = i
       end
     end
@@ -659,5 +747,15 @@ class TestIterate < Fbe::Test
       runs << seen
     end
     assert_equal([[1, 2], [3], []], runs)
+  end
+
+  private
+
+  def fresh_iterator
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    Fbe::Iterate.new(
+      fb: Factbase.new, loog: Loog::NULL, options: opts, global: {},
+      epoch: Time.now, kickoff: Time.now
+    )
   end
 end

@@ -96,7 +96,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 retry_if: lambda do |env, exception|
                   next false unless env[:method] == :get
                   next true unless exception.is_a?(Octokit::ClientError)
-                  exception.is_a?(Octokit::TooManyRequests) || exception.response_status == 429
+                  Octokit::RATE_LIMITED_ERRORS.any? { |k| exception.is_a?(k) } || exception.response_status == 429
                 end,
                 backoff_factor: 2
               )
@@ -130,7 +130,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             quota =
               begin
                 "#{o.rate_limit.remaining} quota remaining"
-              rescue Octokit::Error, Faraday::Error => e
+              rescue Octokit::Error, Faraday::Error, JSON::ParserError => e
                 "quota unknown: #{e.message}"
               end
             loog.info(
@@ -149,8 +149,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 if @trace.empty?
                   @loog.debug('GitHub API trace is empty')
                 else
+                  shown = @trace.select { |e| e[:duration] > 0.05 || all }
                   grouped =
-                    @trace.select { |e| e[:duration] > 0.05 || all }.group_by do |entry|
+                    shown.group_by do |entry|
                       uri = URI.parse(entry[:url])
                       query = uri.query
                       query = "?#{query.ellipsized(40)}" if query
@@ -170,13 +171,22 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                     .take(max)
                     .join("\n")
                   @loog.info(
-                    "GitHub API trace (#{grouped.count} URLs vs #{@trace.count} requests, " \
+                    "GitHub API trace (#{grouped.count} URLs vs #{shown.count} requests, " \
+                    "#{@trace.count - shown.count} fast ones skipped, " \
                     "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
                   )
                   @trace.clear
                 end
               end
             end
+            # rubocop:disable Elegant/GoodMethodName, Style/OptionalBooleanParameter
+            def respond_to?(mtd, include_private = false) # rubocop:disable Layout/EmptyLineBetweenDefs
+              methods.include?(mtd.to_sym) || @origin.respond_to?(mtd, include_private)
+            end
+            def respond_to_missing?(mtd, include_private = false) # rubocop:disable Layout/EmptyLineBetweenDefs
+              respond_to?(mtd, include_private)
+            end
+            # rubocop:enable Elegant/GoodMethodName, Style/OptionalBooleanParameter
             def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs
               threshold ||= resource == :search ? 5 : 50
               label = resource == :search ? 'GitHub Search API' : 'GitHub API'
@@ -220,6 +230,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               raise(Fbe::Error, "Repository #{name} not found") if id.nil?
               @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
               id
+            rescue Octokit::NotFound, Octokit::Forbidden => e
+              raise(Fbe::Error, "GitHub repository #{name.inspect} is not accessible: #{e.message}")
             end
             def repo_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The ID of the repo is nil') if id.nil?
@@ -228,6 +240,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               name = json[:full_name].downcase
               @loog.debug("GitHub repository ##{id} has a name: #{name}")
               name
+            rescue Octokit::NotFound, Octokit::Forbidden => e
+              raise(Fbe::Error, "GitHub repository ##{id} is not accessible: #{e.message}")
             end
             # Disable auto pagination for octokit client called in block
             #
@@ -242,15 +256,17 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             def with_disable_auto_paginate # rubocop:disable Layout/EmptyLineBetweenDefs
               ap = @origin.auto_paginate
               @origin.auto_paginate = false
-              yield(self) if block_given?
+              yield(@top || self) if block_given?
             ensure
               @origin.auto_paginate = ap
             end
           end
+        client = o
         o =
-          intercepted(o) do |e, m, _args, _r|
+          intercepted(o) do |e, m, args, _r|
             next unless e == :before
-            next if %i[off_quota? print_trace! rate_limit].include?(m)
+            next if %i[off_quota? print_trace! rate_limit rate_limit!].include?(m)
+            next if m == :get && %w[/rate_limit rate_limit].include?(args.first)
             if Fbe::SEARCH_METHODS.include?(m)
               raise(Fbe::OffQuota, "We are off-quota on the search resource, can't do #{m}()") if
                 o.off_quota?(resource: :search)
@@ -259,6 +275,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               raise(Fbe::OffQuota, "We are off-quota (remaining: #{left}), can't do #{m}()")
             end
           end
+        client.instance_variable_set(:@top, o)
         o.instance_eval do
           def send(...)
             __send__(...)

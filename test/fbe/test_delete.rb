@@ -27,12 +27,32 @@ class TestDelete < Fbe::Test
     assert_equal(4, fb.query('(exists hey)').each.first.hey)
   end
 
+  def test_deletes_property_given_as_symbol
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    f.hey = 4
+    f._id = 555
+    Fbe.delete(f, :foo, fb:)
+    assert_equal(0, fb.query('(exists foo)').each.to_a.size)
+    assert_equal(1, fb.query('(exists hey)').each.to_a.size)
+  end
+
   def test_deletes_that_is_absent
     fb = Factbase.new
     f = fb.insert
     f.foo = 42
+    f._id = 555
     Fbe.delete(f, 'bar', fb:)
     assert_equal(1, fb.size)
+  end
+
+  def test_refuses_idless_fact_when_property_is_absent
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.delete(f, 'bar', fb:) }
+    assert_equal('There is no "_id" in the fact', error.message)
   end
 
   def test_deletes_when_many
@@ -121,6 +141,19 @@ class TestDelete < Fbe::Test
     Fbe.delete(f, '_id', fb:)
     fact = fb.query('(always)').each.first
     assert_nil(fact['_id'])
+  end
+
+  def test_rejects_duplicate_fact_ids
+    fb = Factbase.new
+    first = fb.insert
+    first._id = 44
+    first.foo = 'first'
+    second = fb.insert
+    second._id = 44
+    second.foo = 'second'
+    error = assert_raises(Fbe::Error) { Fbe.delete(first, 'foo', fb:) }
+    assert_equal('2 facts share _id = 44, cannot delete one of them', error.message)
+    assert_equal(2, fb.size)
   end
 
   def test_preserves_system_props_on_decorated_fb
