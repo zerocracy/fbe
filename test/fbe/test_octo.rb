@@ -622,6 +622,72 @@ class TestOcto < Fbe::Test
     o.repository(429)
   end
 
+  def test_dont_retry_post_on_bad_gateway
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    issue = Random.new(seed).rand(1..99_999)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    url = "https://api.github.com/repos/foo/bar/issues/#{issue}/comments"
+    calls = 0
+    stub_request(:post, url).to_return do
+      calls += 1
+      { status: 502 }
+    end
+    begin
+      o.add_comment('foo/bar', issue, 'привет')
+    rescue Octokit::BadGateway
+      nil
+    end
+    assert_equal(1, calls, "the POST was retried, seed #{seed}")
+  end
+
+  def test_dont_retry_patch_on_service_unavailable
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    issue = Random.new(seed).rand(1..99_999)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    url = "https://api.github.com/repos/foo/bar/issues/#{issue}"
+    calls = 0
+    stub_request(:patch, url).to_return do
+      calls += 1
+      { status: 503 }
+    end
+    begin
+      o.update_issue('foo/bar', issue, title: 'ünï')
+    rescue Octokit::ServiceUnavailable
+      nil
+    end
+    assert_equal(1, calls, "the PATCH was retried, seed #{seed}")
+  end
+
+  def test_dont_retry_delete_on_too_many_requests
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    comment = Random.new(seed).rand(1..99_999)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    url = "https://api.github.com/repos/foo/bar/issues/comments/#{comment}"
+    calls = 0
+    stub_request(:delete, url).to_return do
+      calls += 1
+      { status: 429 }
+    end
+    begin
+      o.delete_comment('foo/bar', comment)
+    rescue Octokit::ClientError
+      nil
+    end
+    assert_equal(1, calls, "the DELETE was retried, seed #{seed}")
+  end
+
   def test_not_retrying_on_not_found
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
