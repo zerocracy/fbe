@@ -103,6 +103,15 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_filters_credential_without_scheme_within_its_line
+    log_it(status: 500, request_headers: { 'Authorization' => 'ghs_secret42', 'Accept' => 'text/plain' }) do |loog|
+      str = loog.to_s
+      assert_match(/Authorization: "\[FILTERED\]"/, str)
+      assert_match(%r{Accept: "text/plain"}, str)
+      refute_match(/ghs_secret42/, str, 'credential without a scheme must never appear in the log')
+    end
+  end
+
   def test_truncate_body_for_error_text_response
     body = SecureRandom.alphanumeric(120)
     log_it(

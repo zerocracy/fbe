@@ -28,6 +28,17 @@ class TestDeleteOne < Fbe::Test
     assert_equal(['hello'], fb.query('(exists foo)').each.first['foo'])
   end
 
+  def test_deletes_one_value_with_symbol_property_name
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    f.foo = 'hello'
+    f._id = 555
+    Fbe.delete_one(f, :foo, 42, fb:)
+    assert_equal(1, fb.size)
+    assert_equal(['hello'], fb.query('(exists foo)').each.first['foo'])
+  end
+
   def test_deletes_when_many
     fb = Factbase.new
     f = fb.insert

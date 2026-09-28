@@ -100,6 +100,21 @@ class RateLimitTest < Fbe::Test
     assert_empty(response.body)
   end
 
+  def test_leaves_remaining_unknown_when_response_has_no_count
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(
+        status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+      )
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    assert_nil(tracker[:rate_limit].remaining)
+    conn.get('/user')
+    assert_equal(4999, tracker[:rate_limit].remaining)
+  end
+
   def test_handles_zero_remaining_count
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -352,6 +367,47 @@ class RateLimitTest < Fbe::Test
     assert_requested(:get, 'https://api.github.com/rate_limit', times: 1)
   end
 
+  def test_sends_request_while_rate_limit_request_is_in_flight
+    entered = Queue.new
+    gate = Queue.new
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return do
+      entered << true
+      gate.pop(timeout: 5)
+      { status: 200, body: '{"rate":{"remaining":4999}}', headers: { 'Content-Type' => 'application/json' } }
+    end
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(status: 200, body: '{"login":"x"}', headers: { 'Content-Type' => 'application/json' })
+    conn = create_connection
+    refresh = Thread.new { conn.get('/rate_limit') }
+    entered.pop(timeout: 5)
+    call = Thread.new { conn.get('/user') }
+    done = call.join(2)
+    gate << true
+    refresh.join(5)
+    call.join(5)
+    refute_nil(done, 'ordinary request did not go out while the rate_limit request was in flight')
+  end
+
+  def test_answers_remaining_while_rate_limit_request_is_in_flight
+    tracker = {}
+    entered = Queue.new
+    gate = Queue.new
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return do
+      entered << true
+      gate.pop(timeout: 5)
+      { status: 200, body: '{"rate":{"remaining":4999}}', headers: { 'Content-Type' => 'application/json' } }
+    end
+    conn = create_connection(tracker)
+    refresh = Thread.new { conn.get('/rate_limit') }
+    entered.pop(timeout: 5)
+    query = Thread.new { tracker[:rate_limit].remaining }
+    done = query.join(2)
+    gate << true
+    refresh.join(5)
+    query.join(5)
+    refute_nil(done, 'remaining count was not answered while the rate_limit request was in flight')
+  end
+
   def test_syncs_core_remaining_from_response_header
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
@@ -367,6 +423,23 @@ class RateLimitTest < Fbe::Test
     conn.get('/user')
     response = conn.get('/rate_limit')
     assert_equal(4900, response.body['rate']['remaining'])
+  end
+
+  def test_raises_remaining_after_quota_reset
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user').to_return(
+      { status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '3' } },
+      { status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' } }
+    )
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    conn.get('/user')
+    assert_equal(3, tracker[:rate_limit].remaining)
+    conn.get('/user')
+    assert_equal(5000, tracker[:rate_limit].remaining)
   end
 
   def test_syncs_search_remaining_from_response_header
