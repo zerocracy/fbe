@@ -114,4 +114,38 @@ class TestFb < Fbe::Test
     refute_nil(f._version)
     refute_nil(f._job)
   end
+
+  def test_names_broken_what_rule_in_error
+    seed = Random.new_seed
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    message =
+      begin
+        fb.insert.what = "ПЛОХО-#{Random.new(seed).rand(1_000_000)}"
+      rescue Fbe::Error => e
+        e.message
+      end
+    assert_includes(message, '(exists what)', "the broken rule is not named, seed #{seed}")
+  end
+
+  def test_names_broken_details_rule_in_transaction
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    message =
+      begin
+        fb.txn { |t| t.insert.details = 'Too short.' }
+      rescue Fbe::Error => e
+        e.message
+      end
+    assert_includes(message.to_s, '(exists details)', 'the rule broken in a transaction is not named')
+  end
+
+  def test_dont_quote_license_when_rule_is_broken
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    message =
+      begin
+        fb.insert.who = -7
+      rescue Fbe::Error => e
+        e.message
+      end
+    refute_includes(message.to_s, 'MIT License', 'the license header is quoted instead of the rule')
+  end
 end
