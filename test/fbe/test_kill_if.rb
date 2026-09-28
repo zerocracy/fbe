@@ -59,4 +59,39 @@ class TestKillIf < Fbe::Test
     assert_equal(0, Fbe.kill_if(fb.query('(always)').each.to_a, fb:) { false })
     assert_equal(2, fb.size)
   end
+
+  def test_cannot_kill_nil_facts
+    assert_raises(Fbe::Error, 'nil facts are not rejected with Fbe::Error') do
+      Fbe.kill_if(nil, fb: Factbase.new, fid: '_id')
+    end
+  end
+
+  def test_cannot_kill_nil_facts_with_a_block
+    assert_raises(Fbe::Error, 'nil facts with a block are not rejected with Fbe::Error') do
+      Fbe.kill_if(nil, fb: Factbase.new, fid: '_id') { true }
+    end
+  end
+
+  def test_keeps_all_facts_when_facts_are_nil
+    seed = Random.new_seed
+    count = Random.new(seed).rand(1..16)
+    fb = Factbase.new
+    count.times { |i| fb.insert._id = i + 1 }
+    begin
+      Fbe.kill_if(nil, fb:, fid: '_id') { true }
+    rescue Fbe::Error
+      nil
+    end
+    assert_equal(count, fb.size, "facts are not kept after nil input, seed #{seed}")
+  end
+
+  def test_dont_call_block_when_facts_are_nil
+    called = false
+    begin
+      Fbe.kill_if(nil, fb: Factbase.new, fid: '_id') { called = true }
+    rescue Fbe::Error
+      nil
+    end
+    refute(called, 'block is called for nil facts')
+  end
 end

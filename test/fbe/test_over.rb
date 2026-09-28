@@ -88,4 +88,17 @@ class TestOver < Fbe::Test
     loog = Loog::NULL
     refute(Fbe.over?(global:, options:, loog:, kickoff: Time.now - 120, timeout_aware: false))
   end
+
+  def test_refuses_a_missing_context
+    opts = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error) do
+      Fbe.over?(global: nil, options: opts, loog: Loog::NULL, quota_aware: false)
+    end
+    assert_raises(Fbe::Error) do
+      Fbe.over?(global: {}, options: nil, loog: Loog::NULL, quota_aware: false)
+    end
+    assert_raises(Fbe::Error) do
+      Fbe.over?(global: {}, options: opts, loog: nil, quota_aware: false)
+    end
+  end
 end

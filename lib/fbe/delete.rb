@@ -22,19 +22,19 @@ require_relative 'fb'
 #   fact = fb.query('(eq type "user")').first
 #   new_fact = Fbe.delete(fact, 'age', 'city')
 #   # new_fact will have all properties except 'age' and 'city'
-def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id')
+def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id') # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
-  return if props.all? { |k| fact[k].nil? }
   i = fact[id]
   raise(Fbe::Error, "There is no #{id.inspect} in the fact") if i.nil?
+  return if props.all? { |k| fact[k].nil? }
   i = i.first
   before = {}
-  fact.all_properties.each do |k|
-    next if props.include?(k)
+  (fact.all_properties - props.map(&:to_s)).each do |k|
     before[k] = fact[k]
   end
   fb.txn do |fbt|
-    fbt.query("(eq #{id} #{i})").delete!
+    deleted = fbt.query("(eq #{id} #{i})").delete!
+    raise(Fbe::Error, "#{deleted} facts share #{id} = #{i}, cannot delete one of them") if deleted > 1
     c = fbt.insert
     f = c
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
