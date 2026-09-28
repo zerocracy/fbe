@@ -141,4 +141,64 @@ class TestTombstone < Fbe::Test
     refute(ts.has?('github', 42, []))
     refute(ts.has?('github', 43, []))
   end
+
+  def test_cannot_bury_string_member
+    seed = Random.new_seed
+    member = "ж#{Random.new(seed).rand(1..10_000)}"
+    tombstone = Fbe::Tombstone.new(fb: Factbase.new)
+    assert_raises(Fbe::Error, "string member #{member.inspect} is buried, seed is #{seed}") do
+      tombstone.bury!('github', 42, [7, member])
+    end
+  end
+
+  def test_cannot_bury_nil_member
+    seed = Random.new_seed
+    repo = Random.new(seed).rand(1..10_000)
+    tombstone = Fbe::Tombstone.new(fb: Factbase.new)
+    assert_raises(Fbe::Error, "nil member is buried in repo #{repo}, seed is #{seed}") do
+      tombstone.bury!('github', repo, [nil])
+    end
+  end
+
+  def test_cannot_check_string_member
+    seed = Random.new_seed
+    member = "ж#{Random.new(seed).rand(1..10_000)}"
+    tombstone = Fbe::Tombstone.new(fb: Factbase.new)
+    tombstone.bury!('github', 42, 7)
+    assert_raises(Fbe::Error, "string member #{member.inspect} is checked, seed is #{seed}") do
+      tombstone.has?('github', 42, [7, member])
+    end
+  end
+
+  def test_cannot_check_nil_member
+    seed = Random.new_seed
+    repo = Random.new(seed).rand(1..10_000)
+    tombstone = Fbe::Tombstone.new(fb: Factbase.new)
+    tombstone.bury!('github', repo, 7)
+    assert_raises(Fbe::Error, "nil member is checked in repo #{repo}, seed is #{seed}") do
+      tombstone.has?('github', repo, [nil])
+    end
+  end
+
+  def test_cannot_check_negative_member
+    seed = Random.new_seed
+    member = -Random.new(seed).rand(1..10_000)
+    tombstone = Fbe::Tombstone.new(fb: Factbase.new)
+    tombstone.bury!('github', 42, 7)
+    assert_raises(Fbe::Error, "negative member #{member} is checked, seed is #{seed}") do
+      tombstone.has?('github', 42, [member])
+    end
+  end
+
+  def test_dont_touch_factbase_when_member_is_invalid
+    seed = Random.new_seed
+    member = "ж#{Random.new(seed).rand(1..10_000)}"
+    fb = Factbase.new
+    begin
+      Fbe::Tombstone.new(fb:).bury!('github', 42, [member])
+    rescue Fbe::Error
+      nil
+    end
+    assert_equal(0, fb.size, "factbase is touched by member #{member.inspect}, seed is #{seed}")
+  end
 end

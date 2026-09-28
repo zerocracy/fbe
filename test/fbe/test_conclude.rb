@@ -9,6 +9,7 @@ require 'judges/options'
 require 'loog'
 require_relative '../../lib/fbe/conclude'
 require_relative '../../lib/fbe/fb'
+require_relative '../../lib/fbe/overwrite'
 require_relative '../test__helper'
 
 # Test.
@@ -50,6 +51,64 @@ class TestConclude < Fbe::Test
     assert_includes(f.details, 'funny')
   end
 
+  def test_class_docstring_example_works_as_written
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new(['testing=true'])
+    $judge = 'judge-two'
+    $fb.insert.bad = 1
+    Fbe.conclude do
+      on('(exists bad)')
+      follow('when')
+      draw do |n, _b|
+        n.good = 'yes!'
+        'A bad fact was found and a good fact was created for it.'
+      end
+    end
+    f = $fb.query('(exists good)').each.to_a[0]
+    assert_equal('yes!', f.good)
+  end
+
+  def test_draw_method_docstring_example_works_as_written
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new(['testing=true'])
+    $judge = 'judge-three'
+    $fb.insert.win = 1
+    Fbe.conclude do
+      on('(exists win)')
+      follow('win when')
+      draw do |n, _w|
+        n.reward = 10
+        'A win fact was found and a reward fact was created for it.'
+      end
+    end
+    f = $fb.query('(exists reward)').each.to_a[0]
+    assert_equal(10, f.reward)
+  end
+
+  def test_consider_method_docstring_example_works_as_written
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new(['testing=true'])
+    $judge = 'judge-four'
+    $fb.insert.foo = 1
+    Fbe.conclude do
+      on('(always)')
+      consider do |f|
+        f.when = Time.new
+      end
+    end
+    f = $fb.query('(exists when)').each.to_a[0]
+    refute_nil(f)
+  end
+
   def test_draw_with_rollback
     $fb = Factbase.new
     $global = {}
@@ -82,6 +141,27 @@ class TestConclude < Fbe::Test
     end
     f = fb.query('(exists bar)').each.to_a[0]
     assert_equal(42, f.bar)
+  end
+
+  def test_consider_visits_every_fact_once_when_block_recreates_it
+    $epoch = Time.now
+    fb = Factbase.new
+    5.times do |i|
+      f = fb.insert
+      f._id = i
+      f.what = 'x'
+      f.tag = 'old'
+    end
+    visited = []
+    Fbe.conclude(fb:, judge: 'x', loog: Loog::NULL, options: Judges::Options.new, global: {}) do
+      quota_unaware
+      on("(eq what 'x')")
+      consider do |f|
+        visited << f._id
+        Fbe.overwrite(f, 'tag', 'new', fb:)
+      end
+    end
+    assert_equal([0, 1, 2, 3, 4], visited.sort)
   end
 
   def test_considers_until_quota
@@ -195,6 +275,23 @@ class TestConclude < Fbe::Test
     assert_equal(0, fb.query('(exists sum)').each.to_a.size)
   end
 
+  def test_slot_is_reserved_on_top_of_over_margin
+    [['timeout=100', { kickoff: Time.now - 85 }], ['lifetime=100', { epoch: Time.now - 85 }]].each do |opt, start|
+      fb = Factbase.new
+      fb.insert.foo = 1
+      options = Judges::Options.new(opt)
+      Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, slot: 6, **start) do
+        quota_unaware
+        on('(exists foo)')
+        draw do |n, prev|
+          n.sum = prev.foo
+          'A long enough description to satisfy the requirements of the draw.'
+        end
+      end
+      assert_equal(0, fb.query('(exists sum)').each.to_a.size, opt)
+    end
+  end
+
   def test_default_slot_does_not_stop_early
     fb = Factbase.new
     fb.insert.foo = 1
@@ -226,6 +323,18 @@ class TestConclude < Fbe::Test
     end
     f = $fb.query('(exists score)').each.to_a[0]
     assert_equal(42, f.score)
+  end
+
+  def test_draw_does_not_keep_empty_fact
+    [Factbase.new, Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)].each do |fb|
+      fb.insert.foo = 1
+      Fbe.conclude(fb:, judge: 'judge-empty', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+        quota_unaware
+        on('(exists foo)')
+        draw { |_n, _prev| nil }
+      end
+      assert_equal(1, fb.size)
+    end
   end
 
   def test_follow_multivalued
@@ -309,6 +418,43 @@ class TestConclude < Fbe::Test
         on('(exists foo)')
         follow('tags')
         follow('other')
+        draw do |n, _prev|
+          n.processed = 'yes'
+          'Some long description that satisfies the twenty five chars minimum.'
+        end
+      end
+    end
+  end
+
+  def test_follow_refuses_properties_set_by_judge
+    %w[what details].each do |prop|
+      fb = Factbase.new
+      fb.insert.foo = 1
+      e =
+        assert_raises(Fbe::Error, prop) do
+          Fbe.conclude(fb:, judge: 'judge-follow', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+            quota_unaware
+            on('(exists foo)')
+            follow("foo #{prop}")
+          end
+        end
+      assert_includes(e.message, "Can't follow #{prop}", prop)
+    end
+  end
+
+  def test_follow_raises_on_second_call_after_empty_one
+    $fb = Factbase.new
+    $global = {}
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $fb.insert.foo = 1
+    assert_raises(Fbe::Error) do
+      Fbe.conclude(judge: 'judge-follow') do
+        quota_unaware
+        on('(exists foo)')
+        follow('')
+        follow('when')
         draw do |n, _prev|
           n.processed = 'yes'
           'Some long description that satisfies the twenty five chars minimum.'
