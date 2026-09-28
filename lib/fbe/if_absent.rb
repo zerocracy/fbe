@@ -6,6 +6,7 @@
 require 'others'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'same'
 
 # Injects a fact if it's absent in the factbase, otherwise returns nil.
 #
@@ -32,6 +33,7 @@ require_relative 'fb'
 # @param [Boolean] always If true, return the object in any case
 # @yield [Factbase::Fact] A proxy fact object to set properties on
 # @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
+# @raise [Fbe::Error] When no block is given
 # @note Values are bound to the query as parameters, so any string can be matched
 # @example Ensure unique user registration
 #   user = Fbe.if_absent do |f|
@@ -45,6 +47,7 @@ require_relative 'fb'
 #     puts "User already exists"
 #   end
 def Fbe.if_absent(fb: Fbe.fb, always: false)
+  raise(Fbe::Error, 'A block is required by if_absent') unless block_given?
   attrs = {}
   f =
     others(map: attrs) do |*args|
@@ -61,8 +64,9 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     end
   yield(f)
   criteria = attrs.except(:_id, :_time, :_version)
+  criteria.each { |k, v| raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array) }
   term = criteria.keys.map { |k| "(eq #{k} $#{k})" }.join(' ')
-  before = fb.query("(and #{term})").each(fb, criteria).first
+  before = fb.query("(and #{term})").each(fb, criteria).find { |f| Fbe.same?(f, attrs) }
   return before if before && always
   return nil if before
   n = fb.insert

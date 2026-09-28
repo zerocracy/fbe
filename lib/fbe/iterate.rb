@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'joined'
+require 'securerandom'
 require 'tago'
 require 'time'
 require_relative '../fbe'
@@ -142,6 +143,9 @@ class Fbe::Iterate
   #   iterator.repeats(100)
   def repeats(repeats)
     raise(Fbe::Error, 'Cannot set "repeats" to nil') if repeats.nil?
+    unless repeats.is_a?(Integer)
+      raise(Fbe::Error, "The \"repeats\" must be an Integer, while #{repeats.class} provided")
+    end
     raise(Fbe::Error, 'The "repeats" must be a positive integer') unless repeats.positive?
     @repeats = repeats
   end
@@ -178,13 +182,15 @@ class Fbe::Iterate
   def by(query)
     raise(Fbe::Error, 'Query is already set') unless @query.nil?
     raise(Fbe::Error, 'Cannot set query to nil') if query.nil?
+    raise(Fbe::Error, "Query must be a String, while #{query.class} provided") unless query.is_a?(String)
+    raise(Fbe::Error, 'Query cannot be empty') if query.empty?
     @query = query
   end
 
   # Sets the field to sort results by in ascending order.
   #
-  # When set, all matching results will be fetched, sorted by the specified
-  # field, and iterated in order. This executes the query once per repository
+  # When set, all matching results will be fetched, and distinct values of the
+  # specified field will be iterated in ascending order. This executes the query once per repository
   # instead of calling one() repeatedly.
   #
   # @param [String] prop The fact attribute to sort by
@@ -196,6 +202,7 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Sort field is already set') unless @sorting.nil?
     raise(Fbe::Error, 'Cannot set sort field to nil') if prop.nil?
     raise(Fbe::Error, 'Sort field must be a String') unless prop.is_a?(String)
+    raise(Fbe::Error, 'Sort field cannot be empty') if prop.empty?
     @sorting = prop
   end
 
@@ -207,15 +214,18 @@ class Fbe::Iterate
   #
   # @param [String] label Unique identifier for this iteration type
   # @return [nil] Nothing is returned
-  # @raise [Fbe::Error] If label is already set or nil
+  # @raise [Fbe::Error] If label is already set, nil, or a property of the marker fact
   # @example Set label for issue processing
   #   iterator.as('issue_processor')
   def as(label)
     raise(Fbe::Error, 'Label is already set') unless @label.nil?
     raise(Fbe::Error, 'Cannot set "label" to nil') if label.nil?
+    raise(Fbe::Error, "Label must be a String, while #{label.class} provided") unless label.is_a?(String)
     unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
       raise(Fbe::Error, "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*")
     end
+    raise(Fbe::Error, "The label '#{label}' clashes with a property of the marker fact") if
+      %w[what where repository].include?(label)
     @label = label
   end
 
@@ -308,7 +318,7 @@ class Fbe::Iterate
           if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.sort.each
+            ).filter_map { _1[@sorting]&.first }.uniq.sort!.each
             begin
               values[repo].next
             rescue StopIteration
@@ -364,6 +374,7 @@ class Fbe::Iterate
             n.where = 'github'
             n.repository = repo
           end
+        f._id = SecureRandom.random_number(9_999_999_999_999) if f['_id'].nil?
         Fbe.overwrite(f, @label, latest[repo], fb: @fb)
       end
     end

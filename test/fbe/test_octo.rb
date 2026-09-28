@@ -23,6 +23,12 @@ class TestOcto < Fbe::Test
     refute_nil(o.commit_pulls('foo/foo', 'sha'))
   end
 
+  def test_gives_different_ids_to_names_with_the_same_letters
+    o = Fbe::FakeOctokit.new
+    refute_equal(o.name_to_number('zerocracy/fbe'), o.name_to_number('zerocracy/feb'))
+    refute_equal(o.repository('zerocracy/fbe')[:id], o.repository('zerocracy/feb')[:id])
+  end
+
   def test_post_comment
     global = {}
     options = Judges::Options.new({ 'testing' => true })
@@ -53,6 +59,36 @@ class TestOcto < Fbe::Test
       assert_equal(Fbe::FakeOctokit.new.name_to_number('yegor256/judges'), e[:repo][:id], e.inspect)
       assert_equal('yegor256/judges', e[:repo][:name], e.inspect)
     end
+  end
+
+  def test_fake_events_grow_older_as_ids_shrink
+    seed = Random.new_seed
+    repo = "яндекс/тест-#{Random.new(seed).rand(1_000_000)}"
+    events = Fbe::FakeOctokit.new.repository_events(repo, {}).sort_by { Integer(_1[:id], 10) }
+    times = events.map { _1[:created_at] }
+    assert_equal(times.sort, times, "timestamps of #{repo} do not follow the ids (seed: #{seed})")
+  end
+
+  def test_fake_events_dont_share_timestamps
+    seed = Random.new_seed
+    repo = "zerocracy/#{'ж' * Random.new(seed).rand(1..100)}"
+    times = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:created_at] }
+    assert_equal(times.uniq, times, "two events of #{repo} share a timestamp (seed: #{seed})")
+  end
+
+  def test_fake_events_dont_happen_in_future
+    seed = Random.new_seed
+    repo = "#{Random.new(seed).rand(1_000_000)}/ünïcødé"
+    times = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:created_at] }
+    assert_operator(Time.now, :>=, times.max, "an event of #{repo} is dated in the future (seed: #{seed})")
+  end
+
+  def test_fake_events_grow_older_as_ids_shrink_through_octo
+    seed = Random.new_seed
+    repo = "yegor256/#{'щ' * Random.new(seed).rand(1..80)}"
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    times = o.repository_events(repo, {}).sort_by { Integer(_1[:id], 10) }.map { _1[:created_at] }
+    assert_equal(times.sort, times, "timestamps of #{repo} from octo do not follow the ids (seed: #{seed})")
   end
 
   def test_rate_limit
@@ -97,6 +133,30 @@ class TestOcto < Fbe::Test
     assert_raises(Fbe::Error) { o.user_name_by_id(42) }
   end
 
+  def test_repo_id_by_name_raises_on_not_found
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repos/acme/absent').to_return(
+      status: 404, body: '{}', headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_raises(Fbe::Error) { o.repo_id_by_name('acme/absent') }
+  end
+
+  def test_repo_name_by_id_raises_on_not_found
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repositories/999999').to_return(
+      status: 404, body: '{}', headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_raises(Fbe::Error) { o.repo_name_by_id(999_999) }
+  end
+
   def test_reads_repo_id_by_name
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
@@ -127,6 +187,45 @@ class TestOcto < Fbe::Test
     )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     assert_raises(StandardError) { o.user(42) }
+  end
+
+  def test_rate_limit_bang_works_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 7 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '7' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'fake-token' }))
+    assert_predicate(o, :off_quota?)
+    assert_equal(7, o.rate_limit!.remaining)
+    assert_raises(Fbe::OffQuota) { o.user(42) }
+    assert_not_requested(:get, 'https://api.github.com/user/42')
+  end
+
+  def test_raw_rate_limit_works_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 7 }, resources: { search: { remaining: 30 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '7' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'fake-token' }))
+    assert_predicate(o, :off_quota?)
+    %w[/rate_limit rate_limit].each do |path|
+      assert_equal(30, o.get(path).dig(:resources, :search, :remaining))
+    end
+    assert_predicate(o, :off_quota?)
+  end
+
+  def test_unrelated_raw_gets_remain_blocked_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 7 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '7' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'fake-token' }))
+    %w[/user/42 /repos/foo/rate_limit https://example.com/rate_limit].each do |path|
+      assert_raises(Fbe::OffQuota) { o.get(path) }
+    end
   end
 
   def test_no_failure_on_printing_when_off_quota
@@ -249,7 +348,7 @@ class TestOcto < Fbe::Test
     )
     stub_request(:get, %r{https://api.github.com/search/issues}).to_return(
       body: { total_count: 0, incomplete_results: false, items: [] }.to_json,
-      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4' }
     )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     assert_equal(0, o.search_issues('repo:foo/bar type:issue')[:total_count])
@@ -703,6 +802,14 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fetch_fake_issue_always_has_state
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [42, 94, 144].each do |number|
+      result = o.issue('yegor256/test', number)
+      assert_equal('open', result[:state], "issue #{number} should have an open state")
+    end
+  end
+
   def test_fetch_fake_issue_and_pr
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.issue('yegor256/test', 142)
@@ -778,6 +885,15 @@ class TestOcto < Fbe::Test
           changed_files: 2
         }
       end
+    end
+  end
+
+  def test_fake_pull_request_base_repo_matches_requested_repo
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [42, 95, 100, 172].each do |number|
+      pr = o.pull_request('zerocracy/baza', number)
+      assert_equal('zerocracy/baza', pr.dig(:base, :repo, :full_name), "for pull request #{number}")
+      assert_kind_of(Integer, pr.dig(:base, :repo, :id), "for pull request #{number}")
     end
   end
 
@@ -866,6 +982,25 @@ class TestOcto < Fbe::Test
     assert(o.auto_paginate)
   end
 
+  def test_print_trace_counts_only_printed_requests
+    loog = Loog::Buffer.new
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    stub_request(:get, %r{https://api.github.com/repos/foo/bar/issues/\d+}).to_return(
+      body: '{"number":1}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
+    total = 10
+    total.times { |i| octo.issue('foo/bar', i + 1) }
+    octo.print_trace!(max: 9_999)
+    head, *lines = loog.to_s.lines.drop_while { |l| !l.include?('GitHub API trace') }
+    shown, skipped = head.match(/URLs vs (\d+) requests, (\d+) fast ones skipped/).captures.map { |i| Integer(i, 10) }
+    assert_equal(lines.sum { |l| Integer(l[/: (\d+) \(/, 1], 10) }, shown)
+    assert_operator(shown + skipped, :>=, total)
+  end
+
   def test_print_trace
     loog = Loog::Buffer.new
     WebMock.disable_net_connect!
@@ -878,16 +1013,13 @@ class TestOcto < Fbe::Test
       {
         status: 200,
         body: '{"id":123,"login":"test"}',
-        headers: { 'X-RateLimit-Remaining' => '222' }
+        headers: { 'X-RateLimit-Remaining' => '221' }
       }
     end
-    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return do
-      {
-        status: 200,
-        body: '{"id":456,"full_name":"foo/bar"}',
-        headers: { 'X-RateLimit-Remaining' => '222' }
-      }
-    end
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(
+      { status: 200, body: '{"id":456,"full_name":"foo/bar"}', headers: { 'X-RateLimit-Remaining' => '220' } },
+      { status: 200, body: '{"id":456,"full_name":"foo/bar"}', headers: { 'X-RateLimit-Remaining' => '219' } }
+    )
     octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
     octo.user(123)
     octo.repository('foo/bar')
@@ -1277,6 +1409,14 @@ class TestOcto < Fbe::Test
     assert_equal('yegor256/factbase', repos[1][:full_name])
   end
 
+  def test_fake_answer_reads_the_three_ways_a_real_one_reads
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    r = o.repository('foo/bar')
+    assert_equal('foo/bar', r.full_name)
+    assert_equal('foo/bar', r[:full_name])
+    assert_equal('foo/bar', r['full_name'])
+  end
+
   def test_fake_releases
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     list = o.releases('yegor256/test')
@@ -1285,6 +1425,29 @@ class TestOcto < Fbe::Test
     refute_equal(list[0][:tag_name], list[1][:tag_name])
     rel = o.release('https://example.com')
     assert_equal('0.19.0', rel[:tag_name])
+  end
+
+  def test_fake_milestones
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    list = o.list_milestones('yegor256/test', state: 'all')
+    assert_equal([1, 2], list.map { |m| m[:number] })
+    refute_equal(list.first[:id], list.last[:id])
+    list.each do |m|
+      refute_empty(m[:title])
+      assert_equal('open', m[:state])
+      assert_kind_of(Time, m[:created_at])
+      assert_kind_of(Integer, m.dig(:creator, :id))
+    end
+    assert_kind_of(Time, list.first[:due_on])
+    assert_nil(list.last[:due_on])
+  end
+
+  def test_fake_milestone_options
+    o = Fbe::FakeOctokit.new
+    assert_equal(
+      o.list_milestones('foo/bar').map { |m| m[:number] },
+      o.list_milestones('foo/bar', { state: 'all' }).map { |m| m[:number] }
+    )
   end
 
   def test_fake_pull_requests
@@ -1342,6 +1505,22 @@ class TestOcto < Fbe::Test
     assert_equal(123, commits[0][:stats][:total])
   end
 
+  def test_fake_commits
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    commits = o.commits('yegor256/test', per_page: 1)
+    refute_empty(commits)
+  end
+
+  def test_fake_last_response
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_nil(o.last_response.rels[:last])
+  end
+
+  def test_fake_get
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal({}, o.get('/rate_limit'))
+  end
+
   def test_fake_search_commits
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.search_commits('repo:yegor256/test')
@@ -1361,6 +1540,52 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     events = o.repository_events('yegor256/test')
     assert_equal(5, events.size)
+  end
+
+  def test_fake_repository_events_come_newest_first
+    seed = Random.new_seed
+    repo = "яндекс/тест-#{Random.new(seed).rand(1_000_000)}"
+    ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { Integer(_1[:id], 10) }
+    assert_equal(ids.sort.reverse!, ids, "events of #{repo} are not newest first (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_start_with_the_newest
+    seed = Random.new_seed
+    repo = "zerocracy/#{'ж' * Random.new(seed).rand(1..100)}"
+    ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { Integer(_1[:id], 10) }
+    assert_equal(ids.max, ids.first, "the first event of #{repo} is not the newest one (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_dont_repeat_ids
+    seed = Random.new_seed
+    repo = "#{Random.new(seed).rand(1_000_000)}/ünïcødé"
+    ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:id] }
+    assert_equal(ids.uniq, ids, "events of #{repo} carry repeating ids (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_order_dont_depend_on_repo
+    seed = Random.new_seed
+    rand = Random.new(seed)
+    one = Fbe::FakeOctokit.new.repository_events("a/#{rand.rand(1_000_000)}", {}).map { _1[:id] }
+    two = Fbe::FakeOctokit.new.repository_events("ы/#{'д' * rand.rand(1..50)}", {}).map { _1[:id] }
+    assert_equal(one, two, "events of two repos come in different order (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_keep_order_between_calls
+    seed = Random.new_seed
+    repo = "#{'щ' * Random.new(seed).rand(1..80)}/тест"
+    o = Fbe::FakeOctokit.new
+    one = o.repository_events(repo, {}).map { _1[:id] }
+    two = o.repository_events(repo, {}).map { _1[:id] }
+    assert_equal(one, two, "events of #{repo} come in another order on a second call (seed: #{seed})")
+  end
+
+  def test_fake_repository_events_come_newest_first_through_octo
+    seed = Random.new_seed
+    repo = "yegor256/#{Random.new(seed).rand(1_000_000)}"
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    ids = o.repository_events(repo, {}).map { Integer(_1[:id], 10) }
+    assert_equal(ids.sort.reverse!, ids, "events of #{repo} from octo are not newest first (seed: #{seed})")
   end
 
   def test_fake_pull_request_comments
@@ -1435,5 +1660,16 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.repository_workflow_runs('yegor256/test')
     assert_equal(2, result[:total_count])
+    result[:workflow_runs].each { |run| assert_equal('completed', run[:status]) }
+  end
+
+  def test_fake_workflow_run_always_has_status
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [10_438_531_072, 10_438_531_077, 999].each do |id|
+      result = o.workflow_run('yegor256/test', id)
+      assert_equal('completed', result[:status], "for workflow run #{id}")
+      refute_nil(result[:head_sha], "for workflow run #{id}")
+      refute_nil(result[:repository], "for workflow run #{id}")
+    end
   end
 end

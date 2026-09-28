@@ -59,7 +59,7 @@ end
 # @param [Boolean] lifetime_aware Should we stop if lifetime is over?
 # @param [Boolean] timeout_aware Should we stop if timeout is over?
 # @return [Array<String>] Shuffled list of repository full names (e.g., 'org/repo')
-# @raise [Fbe::Error] If no repositories match the provided masks
+# @raise [Fbe::Error] If a mask is not in the 'org/repo' format or no repositories match
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
 # @note A mask whose expansion fails on GitHub is skipped, an absent repository is dropped,
@@ -79,11 +79,11 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   masks.map!(&:strip)
   masks.reject!(&:empty?)
   masks.reject { |m| m.start_with?('-') }.each do |mask|
+    re = Fbe.mask_to_regex(mask)
     unless mask.include?('*')
       repos << mask
       next
     end
-    re = Fbe.mask_to_regex(mask)
     org = mask.split('/')[0]
     list =
       begin
@@ -95,7 +95,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
       repos << r[:full_name] if re.match?(r[:full_name])
     end
   rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::NotFound, Octokit::ServerError,
-         Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
+         Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
     loog.warn("Cannot expand the mask #{mask.inspect}, skipping it: #{e.message}")
   end
   masks.select { |m| m.start_with?('-') }.each do |mask|
@@ -109,7 +109,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     loog.warn("Repository #{repo.inspect} is absent, dropping it: #{e.message}")
     true
   rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError, Octokit::Unauthorized,
-         Faraday::ConnectionFailed, Faraday::TimeoutError => e
+         Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
     loog.warn("Cannot tell whether #{repo.inspect} is archived, assuming it is not: #{e.message}")
     false
   end
