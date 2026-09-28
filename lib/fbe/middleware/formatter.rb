@@ -49,7 +49,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   # @param [Hash] options Faraday formatter options
   def initialize(logger:, options:)
     super
-    filter(/(Authorization:\s*"?\s*\S+\s+)[^"\s]+/i, '\1[FILTERED]')
+    filter(/(Authorization:[ \t]*"?(?:[^"\s]+[ \t]+)?)[^"\s]+/i, '\1[FILTERED]')
   end
 
   # Ignores the request, since the same environment is handed to

@@ -7,6 +7,7 @@ require 'others'
 require 'time'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'same'
 
 # Ensures exactly one fact exists with the specified attributes in the factbase.
 #
@@ -50,6 +51,7 @@ def Fbe.just_one(fb: Fbe.fb)
     end
   yield(f)
   q = attrs.except(:_id, :_time, :_version).map do |k, v|
+    raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
     vv = v.to_s
     if v.is_a?(String)
       vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
@@ -59,7 +61,7 @@ def Fbe.just_one(fb: Fbe.fb)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.first
+  before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }
   return before unless before.nil?
   n = fb.insert
   attrs.each { |k, v| n.public_send(:"#{k}=", v) }
