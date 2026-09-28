@@ -43,4 +43,30 @@ class TestIssue < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
   end
+
+  def test_cannot_format_issue_with_non_finite_repository
+    seed = Random.new_seed
+    value = [Float::NAN, Float::INFINITY, -Float::INFINITY].sample(random: Random.new(seed))
+    fb = Factbase.new
+    f = fb.insert
+    f.repository = value
+    f.issue = 42
+    options = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error, "the repository #{value} is formatted, seed is #{seed}") do
+      Fbe.issue(f, global: {}, options:, loog: Loog::NULL)
+    end
+  end
+
+  def test_cannot_format_issue_with_non_finite_number
+    seed = Random.new_seed
+    value = [Float::NAN, Float::INFINITY, -Float::INFINITY].sample(random: Random.new(seed))
+    fb = Factbase.new
+    f = fb.insert
+    f.repository = 323
+    f.issue = value
+    options = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error, "the issue #{value} is formatted, seed is #{seed}") do
+      Fbe.issue(f, global: {}, options:, loog: Loog::NULL)
+    end
+  end
 end
