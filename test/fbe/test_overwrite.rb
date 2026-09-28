@@ -114,6 +114,36 @@ class TestOverwrite < Fbe::Test
     assert_equal(2, fb.size)
   end
 
+  def test_rejects_duplicate_fact_ids_in_hash_form
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..999_999)
+    fb = Factbase.new
+    first = fb.insert
+    first._id = id
+    first.foo = 'первый'
+    second = fb.insert
+    second._id = id
+    second.foo = 'второй'
+    assert_raises(Fbe::Error, "two facts with _id #{id} were overwritten as one, seed #{seed}") do
+      Fbe.overwrite(first, { foo: 'новый', bar: 'ü' }, fb:)
+    end
+  end
+
+  def test_rejects_duplicate_custom_ids_in_hash_form
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..999_999)
+    fb = Factbase.new
+    first = fb.insert
+    first.uid = id
+    first.foo = '日本'
+    second = fb.insert
+    second.uid = id
+    second.foo = '中国'
+    assert_raises(Fbe::Error, "two facts with uid #{id} were overwritten as one, seed #{seed}") do
+      Fbe.overwrite(first, { foo: '한국' }, fb:, fid: 'uid')
+    end
+  end
+
   def test_overwrites_in_transaction
     $fb = Factbase.new
     $global = {}
