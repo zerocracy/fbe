@@ -47,6 +47,22 @@ class TestSec < Fbe::Test
     assert_equal('-1d', Fbe.sec(f))
   end
 
+  def test_refuses_non_numeric_seconds
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 'abc'
+    error = assert_raises(Fbe::Error) { Fbe.sec(f) }
+    assert_equal('The :seconds property ("abc") is not a number', error.message)
+  end
+
+  def test_refuses_non_numeric_custom_property
+    fb = Factbase.new
+    f = fb.insert
+    f.duration = 'oops'
+    error = assert_raises(Fbe::Error) { Fbe.sec(f, :duration) }
+    assert_equal('The :duration property ("oops") is not a number', error.message)
+  end
+
   def test_elapsed_past
     fb = Factbase.new
     f = fb.insert
