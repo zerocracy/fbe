@@ -57,6 +57,17 @@ class TestIfAbsent < Fbe::Test
     end
   end
 
+  def test_cannot_match_by_nan
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    assert_raises(Fbe::Error, "if_absent matched by NaN, seed #{seed}") do
+      Fbe.if_absent(fb: Factbase.new) do |f|
+        f.foo = "héllo \u0434\u0440\u0443\u0433 #{rnd.rand(1000)}"
+        f.bar = Float::NAN
+      end
+    end
+  end
+
   def test_raises_on_nil
     fb = Factbase.new
     fb.insert.foo = 42
