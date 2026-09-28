@@ -39,7 +39,7 @@
 (explain (when
   (exists what)
   (and
-    (matches what "^[a-z]+(-[a-z]+)*$")
+    (matches what "\A[a-z]+(-[a-z]+)*\z")
     (one what))))
 
 (explain (when
@@ -47,8 +47,8 @@
   (and
     (one details)
     (not (matches details "  "))
-    (not (matches details "^.{,24}$"))
-    (not (matches details "[^.]$")))))
+    (not (matches details "\A(?m:.{,24})\z"))
+    (not (matches details "[^.]\z")))))
 
 (explain (when
   (exists where)
