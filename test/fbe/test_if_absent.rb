@@ -14,6 +14,31 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestIfAbsent < Fbe::Test
+  def test_tells_apart_two_times_inside_one_second
+    fb = Factbase.new
+    early = Time.utc(2026, 9, 17, 20, 6, 10, 100_000)
+    late = Time.utc(2026, 9, 17, 20, 6, 10, 900_000)
+    refute_nil(
+      Fbe.if_absent(fb:) do |f|
+        f.what = 'thing'
+        f.when = early
+      end
+    )
+    refute_nil(
+      Fbe.if_absent(fb:) do |f|
+        f.what = 'thing'
+        f.when = late
+      end
+    )
+    assert_nil(
+      Fbe.if_absent(fb:) do |f|
+        f.what = 'thing'
+        f.when = early
+      end
+    )
+    assert_equal(2, fb.size)
+  end
+
   def test_ignores
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
@@ -114,5 +139,12 @@ class TestIfAbsent < Fbe::Test
         f.bar = 3.15
       end
     refute_nil(n)
+  end
+
+  def test_raises_without_block
+    fb = Factbase.new
+    error = assert_raises(Fbe::Error) { Fbe.if_absent(fb:) }
+    assert_equal('A block is required by if_absent', error.message)
+    assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
   end
 end

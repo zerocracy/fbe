@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'time'
+require 'zlib'
 
 # Fake GitHub client for testing purposes.
 #
@@ -11,7 +12,7 @@ require 'time'
 # It returns predictable, deterministic data structures that mimic GitHub API
 # responses without making actual API calls. The mock data uses consistent
 # patterns:
-# - IDs are generated from string names using character code sums
+# - IDs are generated from string names with CRC-32, so the order of the characters counts
 # - Timestamps are random but within recent past
 # - Repository and user data follows GitHub's JSON structure
 #
@@ -36,15 +37,18 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
 
   # Converts a string name to a deterministic integer.
   #
+  # The checksum depends on the order of the characters, so two names built
+  # from the same letters do not meet on one number.
+  #
   # @param [String, Integer] name The name to convert or pass through
-  # @return [Integer, String] The sum of character codes if input is a string, otherwise the original input
+  # @return [Integer, String] The CRC-32 of the name if input is a string, otherwise the original input
   # @example
   #   fake_client = Fbe::FakeOctokit.new
-  #   fake_client.name_to_number("octocat") #=> 728
+  #   fake_client.name_to_number("octocat") #=> 1483505668
   #   fake_client.name_to_number(42) #=> 42
   def name_to_number(name)
     return name unless name.is_a?(String)
-    name.chars.sum(&:ord)
+    Zlib.crc32(name)
   end
 
   def auto_paginate=(_); end
@@ -319,8 +323,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     {
       total_count: 2,
       workflow_runs: [
-        workflow_run(repo, 42),
-        workflow_run(repo, 7)
+        workflow_run(repo, 10_438_531_072),
+        workflow_run(repo, 10_438_531_073)
       ]
     }
   end
@@ -365,6 +369,28 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       release("https://api.github.com/repos/#{repo}/releases/1"),
       release("https://api.github.com/repos/#{repo}/releases/2")
     ]
+  end
+
+  # Lists mock milestones, including one without a deadline.
+  #
+  # @param [String] _repo Repository name (ignored in mock)
+  # @param [Hash] _options Query options (ignored in mock)
+  # @return [Array<Hash>] Milestones with the fields used by milestone judges
+  # @example
+  #   client.list_milestones('octocat/Hello-World', state: 'all')
+  #   # => [{:id=>1, :number=>1, :title=>"Milestone 1", ...}, ...]
+  def list_milestones(_repo, _options = {})
+    [1, 2].map do |number|
+      {
+        id: number,
+        number:,
+        title: "Milestone #{number}",
+        state: 'open',
+        created_at: Time.utc(2026, 1, number),
+        due_on: number == 1 ? Time.utc(2026, 2, 1) : nil,
+        creator: user(526_301)
+      }
+    end
   end
 
   # Gets a single release.
@@ -495,6 +521,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         pull_request: {
           merged_at: nil
         },
+        state: 'open',
         created_at: Time.parse('2024-09-20 19:00:00 UTC')
       }
     when 142
@@ -529,6 +556,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         repo: { full_name: repo },
         user: { login: 'yegor256', id: 526_301, type: 'User' },
         pull_request: { merged_at: nil },
+        state: 'open',
         created_at: Time.parse('2025-05-29 17:00:55 UTC')
       }
     else
@@ -542,6 +570,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         pull_request: {
           merged_at: nil
         },
+        state: 'open',
         created_at: Time.parse('2024-09-20 19:00:00 UTC')
       }
     end.merge(comments: issue_comments(repo, number).size)
@@ -584,7 +613,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         base: {
           ref: 'master',
           sha: '125f234967de0f690805c6943e78db42a294c1a',
-          repo: { id: repo, name: 'judges' }
+          repo: repository(repo)
         },
         head: {
           ref: 'zerocracy/judges',
@@ -599,16 +628,12 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         changed_files: 2
       }
     else
+      fixture = pull_requests(repo).find { |p| p[:number] == number } || {}
       {
         id: 42,
         number:,
         repo: {
           full_name: repo
-        },
-        base: {
-          repo: {
-            full_name: repo
-          }
         },
         state: 'closed',
         user: { login: 'yegor256', id: 526_301, type: 'User' },
@@ -621,7 +646,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         closed_at: Time.parse('2024-12-20'),
         merged_at: Time.parse('2024-12-20'),
         created_at: Time.parse('2024-09-20')
-      }.merge(pull_requests(repo).find { |p| p[:number] == number } || {})
+      }.merge(fixture).merge(base: (fixture[:base] || {}).merge(repo: repository(repo)))
     end
   end
 
@@ -825,6 +850,40 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     }
   end
 
+  # Lists commits on a repository.
+  #
+  # @param [String] repo Repository name ('owner/repo')
+  # @param [Hash] _options Additional options (not used in mock, e.g. +per_page+)
+  # @return [Array<Hash>] Array of commit hashes
+  # @example
+  #   client.commits('octocat/Hello-World', per_page: 1)
+  #   # => [{:sha=>"a1b2c3d4e5f6a1b2c3d4e5f6", :stats=>{:total=>123}}]
+  def commits(repo, _options = {})
+    commits_since(repo, nil)
+  end
+
+  # Returns the last HTTP response, used to read pagination links.
+  #
+  # @return [Object] An object with a +rels+ method that returns an empty Hash
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.last_response.rels[:last] #=> nil
+  def last_response
+    Veil.new(nil, rels: {})
+  end
+
+  # Performs a raw GET request against an arbitrary API path.
+  #
+  # @param [String] _path The API path (ignored in mock)
+  # @param [Hash] _options Additional options (not used in mock)
+  # @return [Hash] An empty Hash
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   fake_client.get('/rate_limit') #=> {}
+  def get(_path, _options = {})
+    {}
+  end
+
   def search_commits(_query, _options = {})
     {
       total_count: 3,
@@ -945,6 +1004,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   end
 
   def repository_events(repo, _options = {}) # rubocop:disable Metrics/MethodLength
+    time = Time.now
     [
       {
         id: '123',
@@ -965,7 +1025,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: time - 120,
         public: true
       },
       {
@@ -987,7 +1047,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: time - 60,
         public: true
       },
       {
@@ -1009,12 +1069,12 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           login: 'torvalds',
           display_login: 'torvalds'
         },
-        created_at: random_time,
+        created_at: time,
         public: true
       },
       {
         id: '42',
-        created_at: Time.now,
+        created_at: time - 240,
         actor: { id: 42 },
         type: 'PullRequestEvent',
         repo: {
@@ -1047,7 +1107,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       },
       {
         id: '43',
-        created_at: Time.now,
+        created_at: time - 180,
         actor: { id: 42 },
         type: 'PullRequestEvent',
         repo: {
@@ -1078,7 +1138,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           }
         }
       }
-    ]
+    ].sort_by { -Integer(_1[:id], 10) }
   end
 
   def issue_events(_repo, number)
@@ -1504,82 +1564,26 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   end
 
   def workflow_run(repo, id)
-    [
-      {
-        id: 10_438_531_072,
-        event: 'pull_request',
-        conclusion: 'success',
-        name: 'make',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_073,
-        event: 'pull_request',
-        conclusion: 'success',
-        name: 'copyrights',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_074,
-        event: 'pull_request',
-        conclusion: 'success',
-        name: 'markdown-lint',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_075,
-        event: 'pull_request',
-        conclusion: 'failure',
-        name: 'pdd',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_076,
-        event: 'pull_request',
-        conclusion: 'success',
-        name: 'rake',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_077,
-        event: 'commit',
-        conclusion: 'success',
-        name: 'shellcheck',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      },
-      {
-        id: 10_438_531_078,
-        event: 'pull_request',
-        conclusion: 'failure',
-        name: 'yamllint',
-        started_at: '2024-08-18T08:04:44Z',
-        run_started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
-      }
-    ].find { |json| json[:id] == id } || {
-      id:,
-      name: 'copyrights',
+    known = [
+      { id: 10_438_531_072, event: 'pull_request', conclusion: 'success', name: 'make' },
+      { id: 10_438_531_073, event: 'pull_request', conclusion: 'success', name: 'copyrights' },
+      { id: 10_438_531_074, event: 'pull_request', conclusion: 'success', name: 'markdown-lint' },
+      { id: 10_438_531_075, event: 'pull_request', conclusion: 'failure', name: 'pdd' },
+      { id: 10_438_531_076, event: 'pull_request', conclusion: 'success', name: 'rake' },
+      { id: 10_438_531_077, event: 'commit', conclusion: 'success', name: 'shellcheck' },
+      { id: 10_438_531_078, event: 'pull_request', conclusion: 'failure', name: 'yamllint' }
+    ].find { |json| json[:id] == id } || { id:, event: 'push', conclusion: 'success', name: 'copyrights' }
+    {
       head_branch: 'master',
       head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
-      event: 'push',
       status: 'completed',
-      conclusion: 'success',
-      workflow_id: id,
+      started_at: '2024-08-18T08:04:44Z',
+      completed_at: '2024-08-18T08:20:17Z',
       created_at: random_time,
       run_started_at: random_time,
+      workflow_id: known[:id],
       repository: repository(repo)
-    }
+    }.merge(known)
   end
 
   def compare(_repo, _start, _end)
@@ -1784,3 +1788,5 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     ]
   end
 end
+
+require_relative 'fake_octokit/sawyered'
