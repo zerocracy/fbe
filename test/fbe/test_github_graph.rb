@@ -1016,7 +1016,7 @@ class TestGitHubGraph < Fbe::Test
       }
     end
     result = graph.total_releases_published(
-      owner, name, Time.parse('2025-01-01T00:00:00Z'), till: Time.parse('2025-05-01T00:00:00Z')
+      owner, name, Time.parse('2025-01-01T00:00:00Z'), Time.parse('2025-05-01T00:00:00Z')
     )
     assert_equal(1, result['releases'], "a release published after the till moment is counted, seed: #{seed}")
   end
@@ -1042,7 +1042,7 @@ class TestGitHubGraph < Fbe::Test
       }
     end
     graph.total_releases_published(
-      owner, name, Time.parse('2024-01-01T00:00:00Z'), till: Time.parse('2030-01-01T00:00:00Z')
+      owner, name, Time.parse('2024-01-01T00:00:00Z'), Time.parse('2030-01-01T00:00:00Z')
     )
     assert_equal(1, calls, "paging does not stop on a page older than since, seed: #{seed}")
   end
@@ -1055,7 +1055,41 @@ class TestGitHubGraph < Fbe::Test
     name = "λ#{random.rand(1_000_000)}"
     since = Time.parse('2025-12-16T15:00:00Z') + random.rand(1..1_000)
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
-    h = graph.total_releases_published(owner, name, since, till: since + 60)
+    h = graph.total_releases_published(owner, name, since, since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
+  end
+
+  def test_total_releases_published_counts_release_at_till
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    till = Time.parse('2025-05-01T00:00:00Z') + random.rand(1..1_000_000)
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [{ 'isDraft' => false, 'publishedAt' => till.utc.iso8601 }],
+            'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+          }
+        }
+      }
+    end
+    result =
+      graph.total_releases_published(
+        "Ω#{random.rand(1_000_000)}", "λ#{random.rand(1_000_000)}", till - random.rand(60..86_400), till
+      )
+    assert_equal(1, result['releases'], "a release published right at the till moment is not counted, seed: #{seed}")
+  end
+
+  def test_fake_total_releases_published_counts_nothing_when_till_precedes_since
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    since = Time.parse('2025-12-16T15:00:00Z') + random.rand(1..1_000)
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    till = since - random.rand(1..1_000)
+    h = graph.total_releases_published("Ω#{random.rand(1_000)}", "λ#{random.rand(1_000)}", since, till)
+    assert_equal(0, h['releases'], "the fake counts releases when till precedes since, seed: #{seed}")
   end
 end
