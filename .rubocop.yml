@@ -54,6 +54,7 @@ Elegant/GoodMethodName:
     - github_graph
     - handle_rate_limit_request
     - if_absent
+    - intro_text
     - issue_comment_reactions
     - issue_comments
     - issue_events
@@ -61,8 +62,10 @@ Elegant/GoodMethodName:
     - issue_type_event
     - just_one
     - kill_if
+    - last_response
     - lifetime_unaware
     - list_issues
+    - list_milestones
     - log_it
     - mask_to_regex
     - name_to_number
@@ -79,6 +82,7 @@ Elegant/GoodMethodName:
     - pull_request_reviews
     - pull_requests
     - pull_requests_with_reviews
+    - query_with_partial_data
     - quota_unaware
     - random_time
     - rate_limit

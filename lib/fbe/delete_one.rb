@@ -21,6 +21,7 @@ require_relative 'term'
 # @return [nil] Nothing
 def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
+  prop = prop.to_s
   i = fact[id]
   raise(Fbe::Error, "There is no #{id.inspect} in the fact") if i.nil?
   i = i.first
@@ -28,10 +29,13 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   fact.all_properties.each do |k|
     before[k] = fact[k]
   end
-  rest = before.fetch(prop, []) - [value]
-  return if rest == before.fetch(prop, [])
-  before[prop] = rest
-  before.delete(prop) if rest.empty?
+  return unless before[prop]
+  nv = before[prop].dup
+  at = nv.index(value)
+  return if at.nil?
+  nv.delete_at(at)
+  before[prop] = nv
+  before.delete(prop) if nv.empty?
   fb.txn do |fbt|
     raise(Fbe::Error, "No facts by #{id} = #{i.inspect}") if fbt.query(Fbe::Term.new(id, i).to_s).delete!.zero?
     c = fbt.insert
