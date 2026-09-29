@@ -494,7 +494,7 @@ class Fbe::Award
         line.gsub(/\$\{([^}]*)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @vars.key?(k)
-          "**#{@vars[k]}**"
+          "**#{@vars[k].is_a?(Float) ? short(@vars[k]) : @vars[k]}**"
         end
       @lines << line
     end
@@ -532,6 +532,17 @@ class Fbe::Award
       pars.join(' ')
         .gsub(/(\bset (_[^_\s]+_) to (?:(?!\. ).)*)\. Then, award \2\./, '\1, and award \2.')
         .gsub(/\s{2,}/, ' ')
+    end
+
+    private
+
+    # Rounds a Float to two decimals, dropping the fraction when it is zero.
+    #
+    # @param [Float] value The value to print in a line of the bylaw
+    # @return [Float, Integer] The value as short as it can be printed
+    def short(value)
+      r = value.round(2)
+      r == r.round ? r.round : r
     end
   end
 end
