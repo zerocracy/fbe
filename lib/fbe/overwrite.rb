@@ -21,7 +21,8 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] fid The property used as the fact identifier (defaults to '_id')
 # @return [nil] Nothing
-# @raise [Fbe::Error] If fact is nil, has no identifier, or property is neither a String nor a Hash
+# @raise [Fbe::Error] If fact is nil, has no identifier, property is neither a String nor a Hash,
+#   or a value is nil or an empty Array
 # @note This operation preserves all other properties during recreation
 # @note If property already has the same single value, no changes are made
 # @example Update a user's status
@@ -45,6 +46,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     property_or_hash.each do |k, vv|
       sk = k.to_s
       raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
+      raise(Fbe::Error, "The value for #{k} is an empty array") if vv == []
       vv = [vv] unless vv.is_a?(Array)
       existing = before[sk]
       next if existing == vv
@@ -90,6 +92,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   property = property_or_hash
   raise(Fbe::Error, "The property is not a String but #{property.class} (#{property})") unless property.is_a?(String)
   raise(Fbe::Error, 'The values is nil') if values.nil?
+  raise(Fbe::Error, "The values for #{property} are an empty array") if values == []
   values = [values] unless values.is_a?(Array)
   return if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
   if fact[property].nil?
