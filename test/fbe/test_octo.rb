@@ -1672,4 +1672,48 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_repo_id_by_name_raises_on_legal_block
+    o = unreachable('repos/foo/dmca', 451)
+    assert_raises(Fbe::Error, 'raw error escapes for a repo blocked by law') { o.repo_id_by_name('foo/dmca') }
+  end
+
+  def test_repo_id_by_name_raises_on_gone
+    o = unreachable('repos/foo/gone', 410)
+    assert_raises(Fbe::Error, 'raw error escapes for a gone repo') { o.repo_id_by_name('foo/gone') }
+  end
+
+  def test_repo_name_by_id_raises_on_legal_block
+    o = unreachable('repositories/777', 451)
+    assert_raises(Fbe::Error, 'raw error escapes for a repo id blocked by law') { o.repo_name_by_id(777) }
+  end
+
+  def test_repo_name_by_id_raises_on_gone
+    o = unreachable('repositories/778', 410)
+    assert_raises(Fbe::Error, 'raw error escapes for a gone repo id') { o.repo_name_by_id(778) }
+  end
+
+  def test_user_name_by_id_raises_on_gone
+    o = unreachable('user/888', 410)
+    assert_raises(Fbe::Error, 'raw error escapes for a gone user') { o.user_name_by_id(888) }
+  end
+
+  def test_user_name_by_id_raises_on_legal_block
+    o = unreachable('user/889', 451)
+    assert_raises(Fbe::Error, 'raw error escapes for a user blocked by law') { o.user_name_by_id(889) }
+  end
+
+  private
+
+  def unreachable(path, status)
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":4000}}',
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4000' }
+    )
+    stub_request(:get, "https://api.github.com/#{path}").to_return(
+      status:, body: '{"message":"Ω blocked"}', headers: { 'Content-Type' => 'application/json' }
+    )
+    Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+  end
 end
