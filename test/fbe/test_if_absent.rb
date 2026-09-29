@@ -123,6 +123,36 @@ class TestIfAbsent < Fbe::Test
     assert_nil(n)
   end
 
+  def test_ignores_time_when_matching
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    name = "ёжик #{rnd.rand(1000)}"
+    old = fb.insert
+    old.foo = name
+    old._time = Time.utc(2025, 1, 1) + rnd.rand(86_400)
+    n =
+      Fbe.if_absent(fb:) do |f|
+        f.foo = name
+        f._time = Time.utc(2026, 1, 1) + rnd.rand(86_400)
+      end
+    assert_nil(n, "if_absent matched on _time and returned a new fact, seed #{seed}")
+  end
+
+  def test_ignores_fact_without_time
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    name = "ürün #{rnd.rand(1000)}"
+    fb.insert.foo = name
+    n =
+      Fbe.if_absent(fb:) do |f|
+        f.foo = name
+        f._time = Time.utc(2026, 1, 1) + rnd.rand(86_400)
+      end
+    assert_nil(n, "if_absent did not find the fact that has no _time, seed #{seed}")
+  end
+
   def test_complex_injects
     fb = Factbase.new
     fact = fb.insert
