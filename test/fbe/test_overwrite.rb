@@ -467,4 +467,56 @@ class TestOverwrite < Fbe::Test
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
+
+  def test_cannot_overwrite_with_empty_array
+    seed = Random.new_seed
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = "Ω#{Random.new(seed).rand(1_000_000)}"
+    assert_raises(Fbe::Error, "empty array is accepted, seed #{seed}") { Fbe.overwrite(f, 'foo', [], fb:) }
+  end
+
+  def test_cannot_add_absent_property_with_empty_array
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    assert_raises(Fbe::Error, 'empty array is accepted for an absent property') { Fbe.overwrite(f, 'foo', [], fb:) }
+  end
+
+  def test_cannot_overwrite_with_hash_holding_empty_array
+    seed = Random.new_seed
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = Random.new(seed).rand(1_000_000)
+    f.bar = 'друг'
+    assert_raises(Fbe::Error, "empty array is accepted in a hash, seed #{seed}") do
+      Fbe.overwrite(f, { 'foo' => [], 'bar' => 'z' }, fb:)
+    end
+  end
+
+  def test_cannot_add_absent_property_with_hash_holding_empty_array
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    assert_raises(Fbe::Error, 'empty array is accepted in a hash for an absent property') do
+      Fbe.overwrite(f, { foo: [] }, fb:)
+    end
+  end
+
+  def test_keeps_fact_when_empty_array_is_refused
+    seed = Random.new_seed
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = Random.new(seed).rand(1_000_000)
+    f.bar = 'друг'
+    begin
+      Fbe.overwrite(f, { 'bar' => 'z', 'foo' => [] }, fb:)
+    rescue Fbe::Error
+      nil
+    end
+    assert_equal(%w[_id bar foo], fb.query('(always)').each.first.all_properties.sort, "fact is changed, seed #{seed}")
+  end
 end
