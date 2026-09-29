@@ -9,6 +9,30 @@ require_relative '../fbe'
 require_relative 'fb'
 require_relative 'same'
 
+module Fbe::IfAbsent
+  # Builds a factbase query from the attributes being checked for uniqueness.
+  #
+  # @param [Hash] attrs The attributes to compare
+  # @return [String] The query expression
+  def self.query(attrs)
+    terms =
+      attrs.except(:_id, :_time, :_version).map do |key, value|
+        raise(Fbe::Error, "Can't match #{key} by an array, only by one value") if value.is_a?(Array)
+        literal =
+          case value
+          when String
+            "'#{value.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
+          when Time
+            value.utc.iso8601
+          else
+            value.to_s
+          end
+        "(eq #{key} #{literal})"
+      end
+    "(and #{terms.join(' ')})"
+  end
+end
+
 # Injects a fact if it's absent in the factbase, otherwise returns nil.
 #
 # Checks if a fact with the same property values already exists. If not,
@@ -65,17 +89,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
-    raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
-    "(eq #{k} #{vv})"
-  end.join(' ')
-  q = "(and #{q})"
+  q = Fbe::IfAbsent.query(attrs)
   before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }
   return before if before && always
   return nil if before
