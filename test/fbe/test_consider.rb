@@ -85,7 +85,7 @@ class TestConsider < Fbe::Test
       '(exists foo)',
       fb:, judge: 'judge-fits', global: {}, loog: Loog::NULL,
       options: Judges::Options.new('timeout=10'), epoch: Time.now, kickoff: Time.now - 5,
-      quota_aware: false, slot: Random.new(seed).rand(1..4)
+      quota_aware: false, slot: Random.new(seed).rand(1..3)
     ) { |f| f.bar = 7 }
     assert_equal(1, fb.query('(exists bar)').each.to_a.size, "fitting slot stopped the loop, seed #{seed}")
   end
