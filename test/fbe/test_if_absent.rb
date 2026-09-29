@@ -39,6 +39,26 @@ class TestIfAbsent < Fbe::Test
     assert_equal(2, fb.size)
   end
 
+  def test_does_not_change_a_non_utc_time
+    fb = Factbase.new
+    time = Time.new(2025, 1, 1, 12, 0, 0, '+03:00')
+    fb.insert.when = Time.utc(2025, 1, 1, 9)
+    result = Fbe.if_absent(fb:) { |f| f.when = time }
+    assert_nil(result)
+    assert_equal(1, fb.size)
+    assert_equal([12, 10_800], [time.hour, time.utc_offset])
+  end
+
+  def test_matches_a_frozen_non_utc_time
+    fb = Factbase.new
+    time = Time.new(2025, 1, 1, 12, 0, 0, '+03:00').freeze
+    fb.insert.when = Time.utc(2025, 1, 1, 9)
+    result = Fbe.if_absent(fb:) { |f| f.when = time }
+    assert_nil(result)
+    assert_equal(1, fb.size)
+    assert_equal(10_800, time.utc_offset)
+  end
+
   def test_ignores
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
