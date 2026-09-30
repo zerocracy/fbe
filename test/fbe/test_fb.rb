@@ -114,4 +114,52 @@ class TestFb < Fbe::Test
     refute_nil(f._version)
     refute_nil(f._job)
   end
+
+  def test_dont_reuse_id_of_deleted_fact
+    seed = Random.new_seed
+    count = Random.new(seed).rand(2..16)
+    fbx = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    count.times { |i| fbx.insert.foo = i }
+    fbx.query("(eq _id #{count})").delete!
+    f = fbx.insert
+    f.foo = 'ünïque'
+    assert_equal(count + 1, f._id, "id of a deleted fact is given out again, seed #{seed}")
+  end
+
+  def test_dont_reuse_ids_when_every_fact_is_deleted
+    seed = Random.new_seed
+    count = Random.new(seed).rand(1..16)
+    fbx = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    count.times { |i| fbx.insert.foo = i }
+    fbx.query('(always)').delete!
+    f = fbx.insert
+    f.foo = 'ünïque'
+    assert_equal(count + 1, f._id, "numbering starts over after deleting every fact, seed #{seed}")
+  end
+
+  def test_numbers_after_highest_id_of_origin
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..1_000_000)
+    fb = Factbase.new
+    fb.insert._id = id
+    fbx = Fbe.fb(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    f = fbx.insert
+    f.foo = 'ünïque'
+    assert_equal(id + 1, f._id, "new fact does not follow the highest id of the origin, seed #{seed}")
+  end
+
+  def test_dont_reuse_id_of_fact_deleted_in_the_same_transaction
+    seed = Random.new_seed
+    count = Random.new(seed).rand(1..16)
+    fbx = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    count.times { |i| fbx.insert.foo = i }
+    fbx.txn do |fbt|
+      fbt.query("(eq _id #{count})").delete!
+      fbt.insert.foo = 'ünïque'
+    end
+    assert_equal(
+      [count + 1], fbx.query("(eq foo 'ünïque')").each.first['_id'],
+      "id is given out twice in a transaction, seed #{seed}"
+    )
+  end
 end
