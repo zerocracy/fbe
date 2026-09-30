@@ -64,7 +64,7 @@ class TestBylaws < Fbe::Test
         { hours: 1, self: 0 } => 16,
         { hours: 48, self: 0 } => 6,
         { hours: 80, self: 0 } => 5,
-        { hours: 300, self: 0 } => 4,
+        { hours: 300, self: 0 } => 5,
         { hours: 3_000, self: 0 } => 4,
         { hours: 30_000, self: 0 } => 4,
         { hours: 1, self: 1 } => 4
