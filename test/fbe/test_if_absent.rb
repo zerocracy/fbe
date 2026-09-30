@@ -147,4 +147,30 @@ class TestIfAbsent < Fbe::Test
     assert_equal('A block is required by if_absent', error.message)
     assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
   end
+
+  def test_cannot_set_property_twice
+    seed = Random.new_seed
+    tag = "tæg#{Random.new(seed).rand(1_000_000)}"
+    assert_raises(Fbe::Error, "second value of a property is accepted, seed #{seed}") do
+      Fbe.if_absent(fb: Factbase.new) do |f|
+        f.tag = tag
+        f.tag = "#{tag}ü"
+      end
+    end
+  end
+
+  def test_dont_insert_fact_when_property_is_set_twice
+    seed = Random.new_seed
+    tag = "tæg#{Random.new(seed).rand(1_000_000)}"
+    fb = Factbase.new
+    begin
+      Fbe.if_absent(fb:) do |f|
+        f.tag = tag
+        f.tag = tag
+      end
+    rescue Fbe::Error
+      nil
+    end
+    assert_equal(0, fb.size, "a fact is inserted for a property set twice, seed #{seed}")
+  end
 end
