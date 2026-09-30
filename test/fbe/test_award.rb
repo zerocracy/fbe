@@ -174,6 +174,24 @@ class TestAward < Fbe::Test
     assert_equal(1, bill.points)
   end
 
+  def test_rounds_the_total_and_not_every_line
+    b = Fbe::Award.new('(award (give 8 "as a basis") (give -0.5 "for one day of delay"))').bill
+    assert_equal(8, b.points, b.greeting)
+    b = Fbe::Award.new('(award (give 8 "as a basis") (give -1.5 "for three days of delay"))').bill
+    assert_equal(7, b.points, b.greeting)
+  end
+
+  def test_lines_add_up_to_the_total_with_halves
+    b = Fbe::Award.new('(award (give 8 "as a basis") (give -1.5 "for delay"))').bill
+    g = b.greeting
+    assert_equal("You've earned +7 points for this: +8 as a basis; -1 for delay. ", g)
+  end
+
+  def test_skips_a_line_that_is_worth_nothing
+    g = Fbe::Award.new('(award (give 8 "as a basis") (give -0.4 "for delay"))').bill.greeting
+    assert_equal("You've earned +8 points. ", g)
+  end
+
   def test_shorten_when_one_number
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
     assert_equal('You\'ve earned +23 points. ', g, g)
