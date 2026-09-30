@@ -397,7 +397,7 @@ class Fbe::Award
     #   bill.greeting #=> "You've earned +75 points for this: +50 for code review; +25 for documentation. "
     def greeting
       return "You've earned nothing. " if @lines.empty?
-      items = shares.reject { |l| l[:v].zero? }.map { |l| "#{format('%+d', l[:v])} #{l[:t]}" }
+      items = shares.filter_map { |l| "#{format('%+d', l[:v])} #{l[:t]}" unless l[:v].zero? }
       return "You've earned #{format('%+d', points)} points. " if @lines.size == 1 || items.empty?
       "You've earned #{format('%+d', points)} points for this: #{items.join('; ')}. "
     end
@@ -410,7 +410,7 @@ class Fbe::Award
     def shares
       parts = @lines.map { |l| { v: Float(l[:v]).floor, t: l[:t], r: Float(l[:v]) - Float(l[:v]).floor } }
       extra = points - parts.sum { |l| l[:v] }
-      parts.each_with_index.sort_by { |l, i| [-l[:r], i] }.first(extra).each { |l, _| l[:v] += 1 }
+      parts.sort_by.with_index { |l, i| [-l[:r], i] }.first(extra).each { |l| l[:v] += 1 }
       parts
     end
 

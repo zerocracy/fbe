@@ -81,6 +81,17 @@ class TestAward < Fbe::Test
     end
   end
 
+  def test_greeting_lines_add_up_to_the_total
+    {
+      '(award (give 0.4 "a") (give 0.4 "b") (give 0.4 "c"))' => "You've earned +1 points for this: +1 a. ",
+      '(award (give 0.5 "a") (give 0.5 "b"))' => "You've earned +1 points for this: +1 a. ",
+      '(award (give -3.5 "a") (give 1 "b"))' => "You've earned -3 points for this: -4 a; +1 b. ",
+      '(award (give 0.2 "a") (give 0.2 "b"))' => "You've earned +0 points. "
+    }.each do |q, v|
+      assert_equal(v, Fbe::Award.new(q).bill.greeting, q)
+    end
+  end
+
   def test_some_greetings
     {
       '(award (give (times 7 0.25 "fun")))' => 'You\'ve earned +2 points. ',
