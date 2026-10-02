@@ -214,7 +214,8 @@ class Fbe::Middleware::SqliteStore
   end
 
   def init! # rubocop:disable Metrics/AbcSize
-    SQLite3::Database.new(@path).tap do |d| # rubocop:disable Metrics/BlockLength
+    db = SQLite3::Database.new(@path)
+    db.tap do |d| # rubocop:disable Metrics/BlockLength
       d.transaction do |t|
         t.execute('CREATE TABLE IF NOT EXISTS cache(key TEXT UNIQUE NOT NULL, value TEXT);')
         t.execute('CREATE INDEX IF NOT EXISTS cache_key_idx ON cache(key);')
@@ -308,5 +309,8 @@ class Fbe::Middleware::SqliteStore
         )
       end
     end
+  rescue StandardError
+    db&.close
+    raise
   end
 end
