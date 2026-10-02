@@ -66,9 +66,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   result = graph.query('{viewer {login}}')
   #   puts result.viewer.login #=> "octocat"
   def query(qry)
-    result = client.query(client.parse(qry))
-    messages = result.errors.messages.values.flatten
-    messages += result.data.errors.messages.values.flatten if result.data
+    result = execute_query(qry)
+    messages = graphql_messages(result)
     raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}") unless messages.empty?
     result.data
   end
@@ -585,10 +584,45 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] qry The GraphQL query to execute
   # @return [GraphQL::Client::Response] The (possibly partial) query result data
   def query_with_partial_data(qry)
-    result = client.query(client.parse(qry))
+    result = execute_query(qry)
     messages = result.errors.messages.values.flatten
     raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}") unless messages.empty?
     result.data
+  end
+
+  # Executes a query while keeping the separate GraphQL quota current.
+  #
+  # @param [String] qry The GraphQL query to execute
+  # @return [GraphQL::Client::Response] The response
+  def execute_query(qry)
+    graphql = client
+    raise_graphql_off_quota if http.remaining == 0
+    result = graphql.query(graphql.parse(qry))
+    raise_graphql_off_quota if http.remaining == 0 && !graphql_messages(result).empty?
+    result
+  rescue Fbe::OffQuota
+    raise
+  rescue StandardError
+    raise_graphql_off_quota if @http&.remaining == 0
+    raise
+  end
+
+  # Collects errors returned at the query and data levels.
+  #
+  # @param [GraphQL::Client::Response] result The GraphQL response
+  # @return [Array<String>] The error messages
+  def graphql_messages(result)
+    messages = result.errors.messages.values.flatten
+    messages += result.data.errors.messages.values.flatten if result.data
+    messages
+  end
+
+  # Raises the shared quota signal used by conclude and iterate.
+  def raise_graphql_off_quota
+    reset = http.reset_at
+    message = 'GitHub GraphQL quota is exhausted'
+    message += " until Unix time #{reset}" unless reset.nil?
+    raise(Fbe::OffQuota, message)
   end
 
   # Renders a value as a GraphQL string literal, quotes and escaping included.
@@ -666,12 +700,18 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   def client
     @client ||=
       begin
-        http = HTTP.new(@token, @host)
         schema = GraphQL::Client.load_schema(http)
         c = GraphQL::Client.new(schema:, execute: http)
         c.allow_dynamic_queries = true
         c
       end
+  end
+
+  # The GraphQL transport shared by schema loading and regular queries.
+  #
+  # @return [HTTP] The configured GraphQL transport
+  def http
+    @http ||= HTTP.new(@token, @host)
   end
 
   # HTTP transport class for GraphQL client to communicate with GitHub API
@@ -694,6 +734,29 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     # @return [Hash] Headers for the request
     def headers(_context)
       { Authorization: "Bearer #{@token}" }
+    end
+
+    # Remaining points in the current GraphQL rate-limit window.
+    #
+    # @return [Integer, nil] Remaining points, or nil when the response lacks a valid header
+    def remaining
+      header_integer('x-ratelimit-remaining')
+    end
+
+    # Unix timestamp when the current GraphQL rate-limit window resets.
+    #
+    # @return [Integer, nil] Reset timestamp, or nil when the response lacks a valid header
+    def reset_at
+      header_integer('x-ratelimit-reset')
+    end
+
+    private
+
+    def header_integer(name)
+      value = last_response&.dig(name)&.first
+      value.nil? ? nil : Integer(value, 10)
+    rescue ArgumentError, TypeError
+      nil
     end
   end
 
