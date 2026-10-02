@@ -85,6 +85,51 @@ class TestGitHubGraph < Fbe::Test
     assert_same(data, graph.query('{ viewer { login } }'))
   end
 
+  def test_reads_graphql_quota_headers
+    WebMock.disable_net_connect!
+    http = Fbe::Graph::HTTP.new('x', 'api.github.com')
+    http.instance_variable_set(
+      :@last_response,
+      { 'x-ratelimit-remaining' => ['0'], 'x-ratelimit-reset' => ['1799000000'] }
+    )
+    assert_equal(0, http.remaining)
+    assert_equal(1_799_000_000, http.reset_at)
+  end
+
+  def test_stops_before_a_query_when_graphql_quota_is_exhausted
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |query| query }
+    fake_client.define_singleton_method(:query) { |_query| flunk('must not send a GraphQL query') }
+    graph.define_singleton_method(:client) { fake_client }
+    http = Struct.new(:remaining, :reset_at).new(0, 1_799_000_000)
+    graph.instance_variable_set(:@http, http)
+    error = assert_raises(Fbe::OffQuota) { graph.query('{ viewer { login } }') }
+    assert_match(/GraphQL quota is exhausted/, error.message)
+    assert_match(/1799000000/, error.message)
+  end
+
+  def test_reports_quota_exhaustion_from_a_graphql_response
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    raw = [{ 'message' => 'API rate limit exceeded', 'path' => ['viewer'] }]
+    GraphQL::Client::Errors.normalize_error_paths(nil, raw)
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { nil }
+    http = Struct.new(:remaining, :reset_at).new(1, 1_799_000_000)
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |query| query }
+    fake_client.define_singleton_method(:query) do |_query|
+      http.remaining = 0
+      response
+    end
+    graph.define_singleton_method(:client) { fake_client }
+    graph.instance_variable_set(:@http, http)
+    assert_raises(Fbe::OffQuota) { graph.query('{ viewer { login } }') }
+  end
+
   def test_simple_use_graph
     skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!

@@ -11,4 +11,6 @@
 module Fbe
   VERSION = '0.0.0' unless const_defined?(:VERSION)
   class Error < StandardError; end
+  # Raised when an API quota is exhausted and the current cycle must stop.
+  class OffQuota < StandardError; end
 end
