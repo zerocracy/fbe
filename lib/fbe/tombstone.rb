@@ -51,6 +51,7 @@ class Fbe::Tombstone
       raise(Fbe::Error, 'The type of "issue" is neither Integer nor Array')
     end
     issue = numbers(issue)
+    return if issue.empty?
     f =
       Fbe.if_absent(fb: @fb, always: true) do |n|
         n.what = 'tombstone'
