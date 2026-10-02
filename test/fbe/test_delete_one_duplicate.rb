@@ -23,4 +23,24 @@ class TestDeleteOneDuplicate < Fbe::Test
     Fbe.delete_one(f, 'tags', 'x', fb:)
     assert_equal(%w[y x], fb.query("(eq what 'dup')").each.first['tags'])
   end
+
+  def test_rejects_duplicate_ids_without_dropping_facts
+    fb = Factbase.new
+    first = fb.insert
+    first._id = 1
+    first.what = 'first'
+    first.tags = 'old'
+    first.tags = 'keep'
+    second = fb.insert
+    second._id = 1
+    second.what = 'second'
+    second.tags = 'old'
+    second.tags = 'keep'
+
+    error = assert_raises(Fbe::Error) { Fbe.delete_one(first, 'tags', 'old', fb:) }
+
+    assert_match(/2 facts share _id = 1/, error.message)
+    assert_equal(%w[old keep], fb.query("(eq what 'first')").each.first['tags'])
+    assert_equal(%w[old keep], fb.query("(eq what 'second')").each.first['tags'])
+  end
 end
