@@ -70,7 +70,7 @@ class TestAward < Fbe::Test
   def test_some_terms
     {
       '(let x 25)' => 0,
-      '(award (give (times 5 0.25 "fun")))' => 1,
+      '(award (give (times 5 0.25)))' => 1,
       '(award (give 25 "for being a good boy"))' => 25,
       '(award (give (between 42 -10 -50) "empty"))' => 42,
       '(award (give (between -3 -10 -50) "empty"))' => 0,
@@ -83,8 +83,8 @@ class TestAward < Fbe::Test
 
   def test_some_greetings
     {
-      '(award (give (times 7 0.25 "fun")))' => 'You\'ve earned +2 points. ',
-      '(award (give (times 5 0.25 "fun")))' => 'You\'ve earned +1 points. ',
+      '(award (give (times 7 0.25)))' => 'You\'ve earned +2 points. ',
+      '(award (give (times 5 0.25)))' => 'You\'ve earned +1 points. ',
       '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points. ',
       '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 points. '
     }.each do |q, v|
@@ -230,6 +230,34 @@ class TestAward < Fbe::Test
     ].each do |q|
       assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill.points }
     end
+  end
+
+  def test_rejects_extra_operands_in_fixed_arity_expressions
+    [
+      '(plus 1 2 100)',
+      '(times 2 3 100)',
+      '(div 10 2 100)',
+      '(minus 10 2 100)',
+      '(max 10 2 100)',
+      '(min 10 2 100)',
+      '(eq 1 2 100)',
+      '(lt 1 2 100)',
+      '(lte 1 2 100)',
+      '(gt 1 2 100)',
+      '(gte 1 2 100)',
+      '(not true false)',
+      '(if true 1 0 100)',
+      '(between 1 0 2 100)'
+    ].each do |expression|
+      query = "(award (give #{expression} \"calculation\"))"
+      error = assert_raises(Fbe::Error, query) { Fbe::Award.new(query).bill }
+      assert_includes(error.message, 'needs exactly', query)
+    end
+  end
+
+  def test_rejects_extra_operands_in_bylaw_expressions
+    query = '(award (give (plus 1 2 100) "calculation"))'
+    assert_raises(Fbe::Error) { Fbe::Award.new(query).bylaw }
   end
 
   def test_rounds_float_variable_in_award_text
