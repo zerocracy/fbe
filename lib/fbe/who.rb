@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require_relative '../fbe'
+require_relative 'id'
 require_relative 'octo'
 
 # Converts a GitHub user ID into a formatted username string.
@@ -29,10 +30,6 @@ require_relative 'octo'
 def Fbe.who(fact, prop = :who, options: $options, global: $global, loog: $loog)
   id = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if id.nil?
-  begin
-    id = Integer(Float(id.first).round)
-  rescue ArgumentError, TypeError
-    raise(Fbe::Error, "The #{prop.inspect} property (#{id.first.inspect}) is not a number")
-  end
+  id = Fbe.whole_id(id.first, "#{prop.inspect} property")
   "@#{Fbe.octo(options:, global:, loog:).user_name_by_id(id)}"
 end
