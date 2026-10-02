@@ -476,6 +476,29 @@ class TestIterate < Fbe::Test
     assert_equal(3, fb.query('(eq what "iterate")').each.first.distinct_values)
   end
 
+  def test_sort_by_handles_mixed_value_types
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    [2, 'alpha'].each do |rank|
+      fact = fb.insert
+      fact.what = 'issue'
+      fact.rank = rank
+    end
+    seen = []
+
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('mixed_values')
+      by('(eq what "issue")')
+      sort_by('rank')
+      over do |_repository, rank|
+        seen << rank
+        0
+      end
+    end
+
+    assert_equal([2, 'alpha'], seen)
+  end
+
   def test_sort_by_configuration # rubocop:disable Metrics/AbcSize
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     global = {}
