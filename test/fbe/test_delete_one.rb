@@ -105,4 +105,15 @@ class TestDeleteOne < Fbe::Test
     assert_equal(snapshot[:job], after._job)
     assert_equal([22], after['bar'])
   end
+
+  def test_deletes_one_value_with_string_identifier
+    fb = Factbase.new
+    f = fb.insert
+    f.key = 'customid'
+    f.tags = %w[keep remove]
+    Fbe.delete_one(f, 'tags', 'remove', fb:, id: 'key')
+    assert_equal(1, fb.size)
+    assert_equal('customid', fb.query('(eq key "customid")').each.first['key'].first)
+    assert_equal(['keep'], fb.query('(eq key "customid")').each.first['tags'])
+  end
 end
