@@ -44,7 +44,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     overwrites = false
     property_or_hash.each do |k, vv|
       sk = k.to_s
-      raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
+    raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
       vv = [vv] unless vv.is_a?(Array)
       existing = before[sk]
       next if existing == vv
@@ -67,7 +67,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
     fb.txn do |fbt|
-      deleted = fbt.query("(eq #{fid} #{id})").delete!
+      deleted = fbt.query(Factbase::Term.new(:eq, [fid.to_sym, id])).delete!
       raise(Fbe::Error, "No facts by #{fid} = #{id}") if deleted.zero?
       raise(Fbe::Error, "#{deleted} facts share #{fid} = #{id}, cannot overwrite one of them") if deleted > 1
       n = fbt.insert
@@ -105,7 +105,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
   fb.txn do |fbt|
-    deleted = fbt.query("(eq #{fid} #{id})").delete!
+    deleted = fbt.query(Factbase::Term.new(:eq, [fid.to_sym, id])).delete!
     raise(Fbe::Error, "No facts by #{fid} = #{id}") if deleted.zero?
     raise(Fbe::Error, "#{deleted} facts share #{fid} = #{id}, cannot overwrite one of them") if deleted > 1
     n = fbt.insert
