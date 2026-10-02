@@ -190,8 +190,9 @@ class Fbe::Iterate
   # Sets the field to sort results by in ascending order.
   #
   # When set, all matching results will be fetched, and distinct values of the
-  # specified field will be iterated in ascending order. This executes the query once per repository
-  # instead of calling one() repeatedly.
+  # specified field will be iterated in ascending order. Mixed types use the
+  # factbase serialization order: numbers, times, then other values by text.
+  # This executes the query once per repository instead of calling one() repeatedly.
   #
   # @param [String] prop The fact attribute to sort by
   # @return [nil] Nothing is returned
@@ -318,7 +319,7 @@ class Fbe::Iterate
           if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.uniq.sort!.each
+            ).filter_map { _1[@sorting]&.first }.uniq.sort_by { |value| type_aware_sort_key(value) }.each
             begin
               values[repo].next
             rescue StopIteration
@@ -377,6 +378,16 @@ class Fbe::Iterate
         f._id = SecureRandom.random_number(9_999_999_999_999) if f['_id'].nil?
         Fbe.overwrite(f, @label, latest[repo], fb: @fb)
       end
+    end
+  end
+
+  private
+
+  def type_aware_sort_key(value)
+    case value
+    when Numeric then [0, value]
+    when Time then [1, value.to_f]
+    else [2, value.to_s]
     end
   end
 end
