@@ -3,7 +3,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'factbase/flatten'
 require 'joined'
 require 'securerandom'
 require 'tago'
@@ -320,7 +319,7 @@ class Fbe::Iterate
           if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.uniq.sort_by { |value| Factbase::Flatten.key(value) }.each
+            ).filter_map { _1[@sorting]&.first }.uniq.sort_by { |value| type_aware_sort_key(value) }.each
             begin
               values[repo].next
             rescue StopIteration
@@ -379,6 +378,16 @@ class Fbe::Iterate
         f._id = SecureRandom.random_number(9_999_999_999_999) if f['_id'].nil?
         Fbe.overwrite(f, @label, latest[repo], fb: @fb)
       end
+    end
+  end
+
+  private
+
+  def type_aware_sort_key(value)
+    case value
+    when Numeric then [0, value]
+    when Time then [1, value.to_f]
+    else [2, value.to_s]
     end
   end
 end
