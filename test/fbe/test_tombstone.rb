@@ -33,6 +33,15 @@ class TestTombstone < Fbe::Test
     refute(ts.has?(where, 8, 7))
   end
 
+  def test_reads_entries_when_where_has_an_apostrophe
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    where = "o'reilly"
+    ts.bury!(where, 7, 42)
+    assert_equal([42], ts.issues(where, 7))
+    assert(ts.has?(where, 7, 42))
+  end
+
   def test_bury_twice
     fb = Factbase.new
     ts = Fbe::Tombstone.new(fb:)
