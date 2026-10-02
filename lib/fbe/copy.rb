@@ -16,7 +16,7 @@ require_relative 'fb'
 # @param [Factbase::Fact] target The target fact to copy to
 # @param [Array<String>] except List of property names to NOT copy (defaults to empty)
 # @return [Integer] The number of property values that were copied
-# @raise [RuntimeError] If source, target, or except is nil
+# @raise [Fbe::Error] If source, target, or except is nil
 # @note Existing properties in target are preserved (not overwritten)
 # @example Copy all properties except timestamps
 #   source = fb.query('(eq type "user")').first
@@ -27,6 +27,7 @@ def Fbe.copy(source, target, except: [])
   raise(Fbe::Error, 'The source is nil') if source.nil?
   raise(Fbe::Error, 'The target is nil') if target.nil?
   raise(Fbe::Error, 'The except is nil') if except.nil?
+  except = except.map(&:to_s)
   copied = 0
   source.all_properties.each do |k|
     next unless target[k].nil?

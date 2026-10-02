@@ -34,7 +34,7 @@ They help with formatting:
 
 * `Fbe.who` formats user name.
 * `Fbe.issue` formats issue number.
-* `Fbe.award` calculates award by the bylaw.
+* `Fbe::Award` calculates award by the bylaw.
 * `Fbe.sec` formats seconds.
 
 They help with external connections:

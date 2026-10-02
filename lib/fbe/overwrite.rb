@@ -19,8 +19,9 @@ require_relative 'fb'
 # @param [String, Hash] property_or_hash The name of the property to set, or a hash of properties
 # @param [Any] values The value to set (can be any type, including array) - ignored if first param is Hash
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
+# @param [String] fid The property used as the fact identifier (defaults to '_id')
 # @return [nil] Nothing
-# @raise [RuntimeError] If fact is nil, has no _id, or property is not a String
+# @raise [Fbe::Error] If fact is nil, has no identifier, or property is neither a String nor a Hash
 # @note This operation preserves all other properties during recreation
 # @note If property already has the same single value, no changes are made
 # @example Update a user's status
@@ -29,7 +30,7 @@ require_relative 'fb'
 #   # All properties preserved, only 'status' is set to 'active'
 # @example Update multiple properties at once
 #   user = fb.query('(eq login "john")').first
-#   Fbe.overwrite(user, status: 'active', role: 'admin')
+#   Fbe.overwrite(user, { status: 'active', role: 'admin' })
 #   # All properties preserved, 'status' and 'role' are updated
 def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
@@ -51,7 +52,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
       modified = true
       overwrites = true unless existing.nil?
     end
-    return fact unless modified
+    return unless modified
     unless overwrites
       property_or_hash.each do |k, vv|
         sk = k.to_s
@@ -66,7 +67,9 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
     fb.txn do |fbt|
-      raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
+      deleted = fbt.query("(eq #{fid} #{id})").delete!
+      raise(Fbe::Error, "No facts by #{fid} = #{id}") if deleted.zero?
+      raise(Fbe::Error, "#{deleted} facts share #{fid} = #{id}, cannot overwrite one of them") if deleted > 1
       n = fbt.insert
       f = n
       while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
@@ -88,7 +91,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   raise(Fbe::Error, "The property is not a String but #{property.class} (#{property})") unless property.is_a?(String)
   raise(Fbe::Error, 'The values is nil') if values.nil?
   values = [values] unless values.is_a?(Array)
-  return fact if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
+  return if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
   if fact[property].nil?
     values.each do |v|
       fact.public_send(:"#{property}=", v)
@@ -102,7 +105,9 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
   fb.txn do |fbt|
-    raise(Fbe::Error, "No facts by #{fid} = #{id}") if fbt.query("(eq #{fid} #{id})").delete!.zero?
+    deleted = fbt.query("(eq #{fid} #{id})").delete!
+    raise(Fbe::Error, "No facts by #{fid} = #{id}") if deleted.zero?
+    raise(Fbe::Error, "#{deleted} facts share #{fid} = #{id}, cannot overwrite one of them") if deleted > 1
     n = fbt.insert
     f = n
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)

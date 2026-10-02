@@ -21,7 +21,7 @@ require_relative 'fb'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield [Factbase::Fact] Fact to populate with judge execution details
 # @return [nil] Nothing
-# @raise [RuntimeError] If required parameters or globals are nil
+# @raise [Fbe::Error] If required parameters or globals are nil
 # @note Skips execution if judge was run within the interval period
 # @note The 'since' property is added to the fact when p_since_days is provided
 # @example Run a cleanup task every 3 days
@@ -30,16 +30,17 @@ require_relative 'fb'
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
 def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
-  raise(Fbe::Error, 'The area is nil') if area.nil?
-  raise(Fbe::Error, 'The p_every_days is nil') if p_every_days.nil?
-  raise(Fbe::Error, 'The fb is nil') if fb.nil?
+  { 'area' => area, 'p_every_days' => p_every_days, 'fb' => fb }.each do |name, value|
+    raise(Fbe::Error, "The #{name} is nil") if value.nil?
+  end
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area}'))").each.to_a
+  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
   interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
   recent = fb.query(
     "(and
-      (eq what '#{judge}')
+      (eq what 'regularly')
+      (eq judge '#{judge.gsub("'", "\\\\'")}')
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
   ).each.first
   if recent
@@ -52,7 +53,8 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   loog.info("#{judge} statistics weren't collected for the last #{interval} days")
   fb.txn do |fbt|
     f = fbt.insert
-    f.what = judge
+    f.what = 'regularly'
+    f.judge = judge
     f.when = Time.now
     unless p_since_days.nil?
       days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28

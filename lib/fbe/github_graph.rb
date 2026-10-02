@@ -5,6 +5,7 @@
 
 require 'graphql/client'
 require 'graphql/client/http'
+require 'json'
 require 'loog'
 require_relative '../fbe'
 
@@ -18,12 +19,30 @@ def Fbe.github_graph(options: $options, global: $global, loog: $loog)
   global[:mutex] ||= Mutex.new
   global[:mutex].synchronize do
     global[:github_graph] ||=
-      if options.testing.nil?
-        Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
-      else
+      if Fbe.testing?(options)
         loog.debug('The connection to GitHub GraphQL API is mocked')
         Fbe::Graph::Fake.new
+      else
+        Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
       end
+  end
+end
+
+# Interprets the +testing+ option as a Boolean.
+#
+# @param [Judges::Options] options The options available globally
+# @return [Boolean] TRUE only when +testing+ is truthy and not the String "false"
+def Fbe.testing?(options)
+  case options.testing
+  when nil, false then false
+  when true then true
+  else
+    case options.testing.to_s.strip.downcase
+    when 'true' then true
+    when 'false' then false
+    else
+      raise(Fbe::Error, "Unrecognized value of the 'testing' option: #{options.testing.inspect}")
+    end
   end
 end
 
@@ -65,35 +84,51 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   threads = graph.resolved_conversations('octocat', 'Hello-World', 42)
   #   threads.first['comments']['nodes'].first['body'] #=> "Great work!"
   def resolved_conversations(owner, name, number)
-    result = query(
-      <<~GRAPHQL
-        {
-          repository(owner: "#{owner}", name: "#{name}") {
-            pullRequest(number: #{number}) {
-              reviewThreads(first: 100) {
-                nodes {
-                  id
-                  isResolved
-                  comments(first: 100) {
+    threads = []
+    cursor = nil
+    loop do
+      after = "after: #{literal(cursor)}, " unless cursor.nil?
+      page =
+        query(
+          <<~GRAPHQL
+            {
+              repository(owner: #{literal(owner)}, name: #{literal(name)}) {
+                pullRequest(number: #{numeric(number)}) {
+                  reviewThreads(#{after}first: 100) {
                     nodes {
                       id
-                      body
-                      author {
-                        login
+                      isResolved
+                      comments(first: 100) {
+                        nodes {
+                          id
+                          body
+                          author {
+                            login
+                          }
+                          createdAt
+                        }
+                        pageInfo {
+                          endCursor
+                          hasNextPage
+                        }
                       }
-                      createdAt
+                    }
+                    pageInfo {
+                      endCursor
+                      hasNextPage
                     }
                   }
                 }
               }
             }
-          }
-        }
-      GRAPHQL
-    )
-    nodes = result&.to_h&.dig('repository', 'pullRequest', 'reviewThreads', 'nodes')
-    return [] if nodes.nil?
-    nodes.select { |thread| thread['isResolved'] }
+          GRAPHQL
+        )&.to_h&.dig('repository', 'pullRequest', 'reviewThreads')
+      break if page.nil?
+      threads.concat(page['nodes'] || [])
+      break unless page.dig('pageInfo', 'hasNextPage')
+      cursor = page.dig('pageInfo', 'endCursor')
+    end
+    threads.select { |thread| thread['isResolved'] }.each { |thread| with_comments(thread) }
   end
 
   # Gets the total number of commits in a branch.
@@ -128,8 +163,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     requests =
       repos.each_with_index.map do |(owner, name, branch), i|
         <<~GRAPHQL
-          repo_#{i}: repository(owner: "#{owner}", name: "#{name}") {
-            ref(qualifiedName: "#{branch}") {
+          repo_#{i}: repository(owner: #{literal(owner)}, name: #{literal(name)}) {
+            ref(qualifiedName: #{literal(branch)}) {
               target {
                 ... on Commit {
                   history {
@@ -141,15 +176,18 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           }
         GRAPHQL
       end
-    result = query("{\n#{requests.join("\n")}\n}")
     if owner && name && branch
+      result = query("{\n#{requests.join("\n")}\n}")
       ref = result.repo_0&.ref
       raise(Fbe::Error, "Repository '#{owner}/#{name}' or branch '#{branch}' not found") unless ref&.target&.history
       ref.target.history.total_count
     else
-      repos.each_with_index.map do |(owner, name, branch), i|
-        ref = result.public_send(:"repo_#{i}")&.ref
-        raise(Fbe::Error, "Repository '#{owner}/#{name}' or branch '#{branch}' not found") unless ref&.target&.history
+      data = query_with_partial_data("{\n#{requests.join("\n")}\n}")
+      failed = data.errors.messages
+      repos.each_with_index.filter_map do |(owner, name, branch), i|
+        next if failed["repo_#{i}"]&.any?
+        ref = data.public_send(:"repo_#{i}")&.ref
+        next unless ref&.target&.history
         {
           'owner' => owner,
           'name' => name,
@@ -173,7 +211,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     result = query(
       <<~GRAPHQL
         {
-          repository(owner: "#{owner}", name: "#{name}") {
+          repository(owner: #{literal(owner)}, name: #{literal(name)}) {
             issues {
               totalCount
             }
@@ -198,7 +236,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     result = query(
       <<~GRAPHQL
         {
-          node(id: "#{node_id}") {
+          node(id: #{literal(node_id)}) {
             __typename
             ... on IssueTypeAddedEvent {
               id
@@ -293,15 +331,16 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #     cursor = json['next_cursor']
   #   end
   def pull_requests_with_reviews(owner, name, since, cursor: nil)
-    after = "after: \"#{cursor}\", " unless cursor.nil?
+    after = "after: #{literal(cursor)}, " unless cursor.nil?
     result = query(
       <<~GRAPHQL
         {
-          repository(owner: "#{owner}", name: "#{name}") {
-            pullRequests(#{after}first: 100) {
+          repository(owner: #{literal(owner)}, name: #{literal(name)}) {
+            pullRequests(#{after}first: 100, orderBy: { field: UPDATED_AT, direction: DESC }) {
               nodes {
                 id
                 number
+                updatedAt
                 timelineItems(first: 1, itemTypes: [PULL_REQUEST_REVIEW], since: "#{since.utc.iso8601}") {
                   nodes {
                     ... on PullRequestReview { id }
@@ -319,6 +358,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     ).to_h
     nodes = result.dig('repository', 'pullRequests', 'nodes')
     raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if nodes.nil?
+    exhausted = !nodes.empty? && nodes.all? { Time.parse(_1['updatedAt']) < since }
     {
       'pulls_with_reviews' => nodes.filter_map do |pull|
         next if pull.dig('timelineItems', 'nodes').empty?
@@ -327,7 +367,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           'number' => pull['number']
         }
       end,
-      'has_next_page' => result.dig('repository', 'pullRequests', 'pageInfo', 'hasNextPage'),
+      'has_next_page' => !exhausted && result.dig('repository', 'pullRequests', 'pageInfo', 'hasNextPage'),
       'next_cursor' => result.dig('repository', 'pullRequests', 'pageInfo', 'endCursor')
     }
   end
@@ -354,11 +394,13 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #     end
   #   end
   def pull_request_reviews(owner, name, pulls: [])
+    return [] if pulls.empty?
     requests =
       pulls.map do |number, cursor|
-        after = "after: \"#{cursor}\", " unless cursor.nil?
+        num = numeric(number)
+        after = "after: #{literal(cursor)}, " unless cursor.nil?
         <<~GRAPHQL
-          pr_#{number}: pullRequest(number: #{number}) {
+          pr_#{num}: pullRequest(number: #{num}) {
             id
             number
             reviews(#{after}first: 100) {
@@ -377,7 +419,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     result = query(
       <<~GRAPHQL
         {
-          repository(owner: "#{owner}", name: "#{name}") {
+          repository(owner: #{literal(owner)}, name: #{literal(name)}) {
             #{requests.join("\n")}
           }
         }
@@ -388,7 +430,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       {
         'id' => v['id'],
         'number' => v['number'],
-        'reviews' => v.dig('reviews', 'nodes').map do |r|
+        'reviews' => v.dig('reviews', 'nodes').filter_map do |r|
+          next if r['submittedAt'].nil?
           {
             'id' => r['id'],
             'submitted_at' => Time.parse(r['submittedAt'])
@@ -405,21 +448,22 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [Time] since The datetime from
+  # @param [Time] till The datetime to, the moment of the call by default
   # @return [Hash] A hash with total commits and hocs
-  def total_commits_pushed(owner, name, since)
+  def total_commits_pushed(owner, name, since, till = Time.now)
     cursor = nil
     total = 0
     hoc = 0
     loop do
-      after = "after: \"#{cursor}\", " unless cursor.nil?
+      after = "after: #{literal(cursor)}, " unless cursor.nil?
       result = query(
         <<~GRAPHQL
           {
-            repository(owner: "#{owner}", name: "#{name}") {
+            repository(owner: #{literal(owner)}, name: #{literal(name)}) {
               defaultBranchRef {
                 target {
                   ... on Commit {
-                    history(#{after}first: 100, since: "#{since.utc.iso8601}") {
+                    history(#{after}first: 100, since: "#{since.utc.iso8601}", until: "#{till.utc.iso8601}") {
                       totalCount
                       nodes {
                         oid
@@ -455,24 +499,26 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     }
   end
 
-  # Get total count issues and pulls created from the specified date
+  # Get total count issues and pulls created within the specified window
   #
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [Time] since The datetime from
+  # @param [Time] till The datetime to
   # @return [Hash] A hash with total issues and pulls
-  def total_issues_created(owner, name, since)
+  def total_issues_created(owner, name, since, till = Time.now)
+    window = "created:#{since.utc.iso8601}..#{till.utc.iso8601}"
     result = query(
       <<~GRAPHQL
         {
           issues: search(
-            query: "repo:#{owner}/#{name} type:issue created:>#{since.utc.iso8601}",
+            query: "repo:#{owner}/#{name} type:issue #{window}",
             type: ISSUE
           ) {
             issueCount
           },
           pulls: search(
-            query: "repo:#{owner}/#{name} type:pr created:>#{since.utc.iso8601}",
+            query: "repo:#{owner}/#{name} type:pr #{window}",
             type: ISSUE
           ) {
             issueCount
@@ -491,16 +537,17 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [Time] since The datetime from
+  # @param [Time] till The datetime to, a release published later is not counted
   # @return [Hash] A hash with total releases
-  def total_releases_published(owner, name, since)
+  def total_releases_published(owner, name, since, till: Time.now)
     total = 0
     cursor = nil
     loop do
-      after = "after: \"#{cursor}\", " unless cursor.nil?
+      after = "after: #{literal(cursor)}, " unless cursor.nil?
       result = query(
         <<~GRAPHQL
           {
-            repository(owner: "#{owner}", name: "#{name}") {
+            repository(owner: #{literal(owner)}, name: #{literal(name)}) {
               releases(#{after}first: 25, orderBy: { field: CREATED_AT, direction: DESC }) {
                 nodes {
                   isDraft
@@ -518,7 +565,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       ).to_h
       releases = result.dig('repository', 'releases', 'nodes')
       break if releases.nil? || releases.empty?
-      total += releases.count { !_1['isDraft'] && _1['publishedAt'] && Time.parse(_1['publishedAt']) > since }
+      dates = releases.reject { _1['isDraft'] }.filter_map { _1['publishedAt'] && Time.parse(_1['publishedAt']) }
+      total += dates.count { _1 > since && _1 <= till }
       break if releases.all? { _1['createdAt'] && Time.parse(_1['createdAt']) < since }
       break unless result.dig('repository', 'releases', 'pageInfo', 'hasNextPage')
       cursor = result.dig('repository', 'releases', 'pageInfo', 'endCursor')
@@ -527,6 +575,91 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   end
 
   private
+
+  # Executes a batch GraphQL query, tolerating a per-alias error.
+  #
+  # Unlike {#query}, this does not raise when one aliased top-level field
+  # (e.g. one repository in a batch) carries its own error, only when the
+  # query as a whole failed. The caller is expected to check
+  # +data.errors.messages[alias]+ before reading a given alias.
+  #
+  # @param [String] qry The GraphQL query to execute
+  # @return [GraphQL::Client::Response] The (possibly partial) query result data
+  def query_with_partial_data(qry)
+    result = client.query(client.parse(qry))
+    messages = result.errors.messages.values.flatten
+    raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}") unless messages.empty?
+    result.data
+  end
+
+  # Renders a value as a GraphQL string literal, quotes and escaping included.
+  #
+  # A repository, a branch or a cursor is text that GitHub gave us or that a
+  # user chose, and a quote is legal in a branch name, so pasting it between
+  # two quotes of our own would end the literal early and break the query.
+  #
+  # @param [String] value The value to render
+  # @return [String] The literal, its quotes included
+  def literal(value)
+    value.to_s.to_json
+  end
+
+  # Renders a pull request number, refusing anything that is not one.
+  #
+  # A number is pasted into the query text as it is, without quotes around it,
+  # so a value that is not an Integer would become a part of the query and
+  # could add fields to it or change the ones already there.
+  #
+  # @param [Integer] value The number to render
+  # @return [Integer] The same number
+  def numeric(value)
+    unless value.is_a?(Integer)
+      raise(Fbe::Error, "A pull request number must be an Integer, while #{value.class} was given")
+    end
+    value
+  end
+
+  # Reads the rest of the comments of one review thread.
+  #
+  # @param [Hash] thread The thread, with its first page of comments in it
+  # @return [Hash] The same thread, with all its comments in it
+  def with_comments(thread)
+    comments = thread['comments']
+    return thread if comments.nil?
+    cursor = comments.dig('pageInfo', 'endCursor')
+    while comments.dig('pageInfo', 'hasNextPage')
+      page =
+        query(
+          <<~GRAPHQL
+            {
+              node(id: #{literal(thread['id'])}) {
+                ... on PullRequestReviewThread {
+                  comments(after: #{literal(cursor)}, first: 100) {
+                    nodes {
+                      id
+                      body
+                      author {
+                        login
+                      }
+                      createdAt
+                    }
+                    pageInfo {
+                      endCursor
+                      hasNextPage
+                    }
+                  }
+                }
+              }
+            }
+          GRAPHQL
+        )&.to_h&.dig('node', 'comments')
+      break if page.nil?
+      comments['nodes'].concat(page['nodes'] || [])
+      comments['pageInfo'] = page['pageInfo'] || {}
+      cursor = comments.dig('pageInfo', 'endCursor')
+    end
+    thread
+  end
 
   # Creates or returns a cached GraphQL client instance.
   #
@@ -576,12 +709,13 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #   result = fake.total_commits('owner', 'repo', 'main')
   #   # => 1484 (always returns the same value)
   class Fake
-    # Executes a GraphQL query (mock implementation).
+    # Ad hoc GraphQL queries have no fixed shape, so this fake cannot fabricate
+    # a response that matches what a real {Fbe::Graph#query} would return.
     #
     # @param [String] _query The GraphQL query (ignored)
-    # @return [Hash] Empty hash
+    # @raise [Fbe::Error] Always, ad hoc queries are not supported in testing mode
     def query(_query)
-      {}
+      raise(Fbe::Error, 'Fbe::Graph::Fake does not support ad hoc GraphQL queries, use one of its dedicated methods')
     end
 
     # Returns mock resolved conversation threads.
@@ -752,22 +886,22 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       ]
     end
 
-    def total_commits_pushed(_owner, _name, _since)
+    def total_commits_pushed(_owner, _name, _since, _till = Time.now)
       {
         'commits' => 29,
         'hoc' => 1857
       }
     end
 
-    def total_issues_created(_owner, _name, _since)
+    def total_issues_created(_owner, _name, _since, _till = Time.now)
       {
         'issues' => 17,
         'pulls' => 8
       }
     end
 
-    def total_releases_published(_owner, _name, _since)
-      { 'releases' => 7 }
+    def total_releases_published(_owner, _name, since, till: Time.now)
+      { 'releases' => (1..7).count { since + (_1 * 60) <= till } }
     end
 
     private

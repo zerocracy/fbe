@@ -2,6 +2,7 @@
   (explain "When someone pushes directly to the default branch, they get a penalty")
   (aka
     (let fee {{ -8 | times: anger }})
+    (let penalty {{ 8 | times: anger }})
     (give fee "as a basis")
-    "${fee} points")
+    "deduct ${penalty} points")
   )

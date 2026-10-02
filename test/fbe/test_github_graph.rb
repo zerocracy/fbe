@@ -20,6 +20,21 @@ class TestGitHubGraph < Fbe::Test
     Fbe.github_graph(options:, loog: Loog::NULL, global:)
   end
 
+  def test_selects_fake_only_for_truthy_testing
+    fake = Fbe::Graph::Fake
+    graph = ->(value) { Fbe.github_graph(options: Judges::Options.new({ 'testing' => value }), loog: Loog::NULL, global: {}) }
+    assert_kind_of(fake, graph.call(true))
+    assert_kind_of(fake, graph.call('true'))
+    refute_kind_of(fake, graph.call(false))
+    refute_kind_of(fake, graph.call('false'))
+  end
+
+  def test_raises_on_unrecognized_testing_value
+    assert_raises(Fbe::Error) do
+      Fbe.github_graph(options: Judges::Options.new({ 'testing' => 42 }), loog: Loog::NULL, global: {})
+    end
+  end
+
   def test_raises_when_graphql_response_carries_errors
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'x')
@@ -86,6 +101,11 @@ class TestGitHubGraph < Fbe::Test
     refute_empty(result.viewer.login)
   end
 
+  def test_fake_query_raises_instead_of_returning_wrong_shape
+    fake = Fbe::Graph::Fake.new
+    assert_raises(Fbe::Error) { fake.query('{ viewer { login } }') }
+  end
+
   def test_use_with_global_variables
     WebMock.disable_net_connect!
     $global = {}
@@ -142,6 +162,74 @@ class TestGitHubGraph < Fbe::Test
     )
     result = g.resolved_conversations('foo', 'bar', 42)
     assert_equal(1, result.count)
+  end
+
+  def test_paginates_review_threads_and_comments
+    pages = [
+      {
+        'repository' => {
+          'pullRequest' => {
+            'reviewThreads' => {
+              'nodes' => [
+                {
+                  'id' => 'T1', 'isResolved' => true,
+                  'comments' => {
+                    'nodes' => [{ 'id' => 'C1' }],
+                    'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }
+                  }
+                }
+              ],
+              'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 't1' }
+            }
+          }
+        }
+      },
+      {
+        'repository' => {
+          'pullRequest' => {
+            'reviewThreads' => {
+              'nodes' => [
+                {
+                  'id' => 'T2', 'isResolved' => false,
+                  'comments' => { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false } }
+                }
+              ],
+              'pageInfo' => { 'hasNextPage' => false }
+            }
+          }
+        }
+      },
+      {
+        'node' => {
+          'comments' => {
+            'nodes' => [{ 'id' => 'C2' }],
+            'pageInfo' => { 'hasNextPage' => false, 'endCursor' => 'c2' }
+          }
+        }
+      }
+    ]
+    g = Fbe::Graph.new(token: 'fake')
+    threads =
+      g.stub(:query, ->(_q) { pages.shift }) do
+        g.resolved_conversations('foo', 'bar', 42)
+      end
+    assert_equal(1, threads.count)
+    assert_equal(%w[C1 C2], threads.first['comments']['nodes'].map { |c| c['id'] })
+  end
+
+  def test_quotes_a_branch_name_that_carries_a_quote
+    g = Fbe::Graph.new(token: 'fake')
+    history = Struct.new(:history).new(Struct.new(:total_count).new(7))
+    answer = Object.new
+    answer.define_singleton_method(:repo_0) { Struct.new(:ref).new(Struct.new(:target).new(history)) } # rubocop:disable Naming/VariableNumber
+    seen = nil
+    catcher =
+      lambda do |q|
+        seen = q
+        answer
+      end
+    g.stub(:query, catcher) { g.total_commits('foo', 'bar', 'feature/"quoted"') }
+    assert_includes(seen, 'qualifiedName: "feature/\"quoted\""')
   end
 
   def test_does_not_count_unresolved_conversations
@@ -311,7 +399,9 @@ class TestGitHubGraph < Fbe::Test
   def test_fake_total_issues_created
     WebMock.disable_net_connect!
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
-    h = graph.total_issues_created('foo', 'foo', Time.parse('2025-12-12T15:00:00Z'))
+    h = graph.total_issues_created(
+      'foo', 'foo', Time.parse('2025-12-12T15:00:00Z'), Time.parse('2025-12-13T15:00:00Z')
+    )
     h = h.transform_keys(&:to_sym)
     assert_pattern do
       h => {
@@ -366,39 +456,50 @@ class TestGitHubGraph < Fbe::Test
     assert_raises(Fbe::Error) { graph.total_commits('foo', 'bar', 'main') }
   end
 
+  def stub_repo_entry(count)
+    history = Object.new
+    history.define_singleton_method(:total_count) { count }
+    target = Object.new
+    target.define_singleton_method(:history) { history }
+    ref = Object.new
+    ref.define_singleton_method(:target) { target }
+    repo = Object.new
+    repo.define_singleton_method(:ref) { ref }
+    repo
+  end
+
+  def stub_batch_data(entries, failed: {})
+    obj = Object.new
+    entries.each { |alias_name, repo| obj.define_singleton_method(alias_name) { repo } }
+    errors = Object.new
+    errors.define_singleton_method(:messages) { failed }
+    obj.define_singleton_method(:errors) { errors }
+    obj
+  end
+
   def test_real_total_commits_with_repos_array
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
-    graph.define_singleton_method(:query) do |_qry|
-      obj = Object.new
-      target_zero = Object.new
-      target_zero.define_singleton_method(:history) do
-        h = Object.new
-        h.define_singleton_method(:total_count) { 10 }
-        h
-      end
-      ref_zero = Object.new
-      ref_zero.define_singleton_method(:target) { target_zero }
-      repo_zero = Object.new
-      repo_zero.define_singleton_method(:ref) { ref_zero }
-      obj.define_singleton_method(:repo_0) { repo_zero }
-      target_one = Object.new
-      target_one.define_singleton_method(:history) do
-        h = Object.new
-        h.define_singleton_method(:total_count) { 20 }
-        h
-      end
-      ref_one = Object.new
-      ref_one.define_singleton_method(:target) { target_one }
-      repo_one = Object.new
-      repo_one.define_singleton_method(:ref) { ref_one }
-      obj.define_singleton_method(:repo_1) { repo_one }
-      obj
-    end
+    data = stub_batch_data({ repo_0: stub_repo_entry(10), repo_1: stub_repo_entry(20) }) # rubocop:disable Naming/VariableNumber
+    graph.define_singleton_method(:query_with_partial_data) { |_qry| data }
     result = graph.total_commits(repos: [%w[foo bar main], %w[baz qux master]])
     assert_equal(2, result.size)
     assert_equal(10, result[0]['total_commits'])
     assert_equal(20, result[1]['total_commits'])
+  end
+
+  def test_total_commits_with_repos_array_skips_a_repo_with_a_batch_error
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    data = stub_batch_data(
+      { repo_0: stub_repo_entry(10) }, # rubocop:disable Naming/VariableNumber
+      failed: { 'repo_1' => ["Could not resolve to a Repository with the name 'zerocracy/gone'"] }
+    )
+    graph.define_singleton_method(:query_with_partial_data) { |_qry| data }
+    result = graph.total_commits(repos: [%w[foo bar main], %w[zerocracy gone master]])
+    assert_equal(1, result.size)
+    assert_equal('foo', result[0]['owner'])
+    assert_equal(10, result[0]['total_commits'])
   end
   # rubocop:enable Naming/VariableNumber, Elegant/GoodVariableName
 
@@ -561,13 +662,61 @@ class TestGitHubGraph < Fbe::Test
     assert_raises(Fbe::Error) { graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01')) }
   end
 
+  def test_real_total_commits_pushed_bounds_history_by_till
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    qry = ''
+    graph.define_singleton_method(:query) do |q|
+      qry = q
+      { 'repository' => { 'defaultBranchRef' => nil } }
+    end
+    graph.total_commits_pushed('foo', 'bar', Time.parse('2024-01-05T07:00:00Z'), Time.parse('2024-02-09T21:13:44Z'))
+    assert_includes(qry, 'until: "2024-02-09T21:13:44Z"', 'the history has no upper bound on the commit date')
+  end
+
+  def test_real_total_commits_pushed_keeps_till_on_every_page
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    pages = []
+    graph.define_singleton_method(:query) do |q|
+      pages << q
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 2,
+                'nodes' => [{ 'oid' => 'a1', 'parents' => { 'totalCount' => 1 }, 'additions' => 7, 'deletions' => 3 }],
+                'pageInfo' => { 'endCursor' => 'Y3Vyc29y', 'hasNextPage' => pages.size < 2 }
+              }
+            }
+          }
+        }
+      }
+    end
+    graph.total_commits_pushed('foo', 'bar', Time.parse('2024-01-05T07:00:00Z'), Time.parse('2024-02-09T21:13:44Z'))
+    assert_equal(
+      2, pages.count { _1.include?('until: "2024-02-09T21:13:44Z"') },
+      'a page of the history goes out without the upper bound on the commit date'
+    )
+  end
+
+  def test_fake_total_commits_pushed_takes_till
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.total_commits_pushed(
+      'foo', 'foo', Time.parse('2025-12-11T15:00:00Z'), Time.parse('2025-12-25T15:00:00Z')
+    )
+    assert_equal(29, h['commits'], 'the fake does not take the upper bound on the commit date')
+  end
+
   def test_real_total_issues_created
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
     graph.define_singleton_method(:query) do |_qry|
       { 'issues' => { 'issueCount' => 10 }, 'pulls' => { 'issueCount' => 3 } }
     end
-    result = graph.total_issues_created('foo', 'bar', Time.parse('2025-01-01'))
+    result = graph.total_issues_created('foo', 'bar', Time.parse('2025-01-01'), Time.parse('2025-02-01'))
     assert_equal(10, result['issues'])
     assert_equal(3, result['pulls'])
   end
@@ -578,9 +727,47 @@ class TestGitHubGraph < Fbe::Test
     graph.define_singleton_method(:query) do |_qry|
       {}
     end
-    result = graph.total_issues_created('foo', 'bar', Time.parse('2025-01-01'))
+    result = graph.total_issues_created('foo', 'bar', Time.parse('2025-01-01'), Time.parse('2025-02-01'))
     assert_equal(0, result['issues'])
     assert_equal(0, result['pulls'])
+  end
+
+  def test_real_total_issues_created_bounds_the_issue_search
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    since = Time.parse('2020-01-01T00:00:00Z') + random.rand(1..100_000_000)
+    till = since + random.rand(1..1_000_000)
+    graph = Fbe::Graph.new(token: 'test')
+    asked = ''
+    graph.define_singleton_method(:query) do |qry|
+      asked = qry
+      { 'issues' => { 'issueCount' => 1 }, 'pulls' => { 'issueCount' => 1 } }
+    end
+    graph.total_issues_created('foo', 'bar', since, till)
+    assert_includes(
+      asked, "type:issue created:#{since.utc.iso8601}..#{till.utc.iso8601}",
+      "the issue search is not bounded by the window given, seed #{seed}"
+    )
+  end
+
+  def test_real_total_issues_created_bounds_the_pull_search
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    since = Time.parse('2020-01-01T00:00:00Z') + random.rand(1..100_000_000)
+    till = since + random.rand(1..1_000_000)
+    graph = Fbe::Graph.new(token: 'test')
+    asked = ''
+    graph.define_singleton_method(:query) do |qry|
+      asked = qry
+      { 'issues' => { 'issueCount' => 1 }, 'pulls' => { 'issueCount' => 1 } }
+    end
+    graph.total_issues_created('foo', 'bar', since, till)
+    assert_includes(
+      asked, "type:pr created:#{since.utc.iso8601}..#{till.utc.iso8601}",
+      "the pull search is not bounded by the window given, seed #{seed}"
+    )
   end
 
   def test_real_total_releases_published
@@ -618,11 +805,13 @@ class TestGitHubGraph < Fbe::Test
               {
                 'id' => 'PR_1',
                 'number' => 1,
+                'updatedAt' => '2025-08-02T12:00:00Z',
                 'timelineItems' => { 'nodes' => [{ 'id' => 'rev_1' }] }
               },
               {
                 'id' => 'PR_2',
                 'number' => 2,
+                'updatedAt' => '2025-08-02T13:00:00Z',
                 'timelineItems' => { 'nodes' => [] }
               }
             ],
@@ -636,6 +825,30 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(1, result['pulls_with_reviews'][0]['number'])
     refute(result['has_next_page'])
     assert_nil(result['next_cursor'])
+  end
+
+  def test_pull_requests_with_reviews_stops_once_page_is_older_than_since
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pullRequests' => {
+            'nodes' => [
+              {
+                'id' => 'PR_1',
+                'number' => 1,
+                'updatedAt' => '2025-01-01T00:00:00Z',
+                'timelineItems' => { 'nodes' => [] }
+              }
+            ],
+            'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }
+          }
+        }
+      }
+    end
+    result = graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
+    refute(result['has_next_page'])
   end
 
   def test_real_pull_request_reviews
@@ -693,6 +906,30 @@ class TestGitHubGraph < Fbe::Test
     end
     pulls = graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil], [5, nil]])
     assert_equal(1, pulls.size)
+  end
+
+  def test_pull_request_reviews_skips_pending_review
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pr_2' => {
+            'id' => 'PR_2',
+            'number' => 2,
+            'reviews' => {
+              'nodes' => [
+                { 'id' => 'rev_1', 'submittedAt' => '2025-10-02T12:58:42Z' },
+                { 'id' => 'rev_2', 'submittedAt' => nil }
+              ],
+              'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil }
+            }
+          }
+        }
+      }
+    end
+    pulls = graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil]])
+    assert_equal(['rev_1'], pulls[0]['reviews'].map { _1['id'] })
   end
 
   def test_pull_request_reviews_returns_empty_when_all_pulls_no_longer_exist
@@ -795,6 +1032,32 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(2, calls)
   end
 
+  def test_pull_request_reviews_returns_empty_when_no_pulls_given
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |qry|
+      raise(Fbe::Error, "GitHub GraphQL query failed: empty selection in #{qry}")
+    end
+    pulls = graph.pull_request_reviews("владелец-#{random.rand(1000)}", "リポ-#{random.rand(1000)}", pulls: [])
+    assert_empty(pulls, "reviews are not empty for no pulls with seed #{seed}")
+  end
+
+  def test_pull_request_reviews_dont_query_github_when_no_pulls_given
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    graph = Fbe::Graph.new(token: 'fake')
+    sent = false
+    graph.define_singleton_method(:query) do |_qry|
+      sent = true
+      { 'repository' => {} }
+    end
+    graph.pull_request_reviews("ü-#{random.rand(1000)}", "ñ-#{random.rand(1000)}", pulls: [])
+    refute(sent, "query is sent to GitHub for no pulls with seed #{seed}")
+  end
+
   def test_total_releases_published_omits_after_when_cursor_is_nil
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
@@ -806,5 +1069,72 @@ class TestGitHubGraph < Fbe::Test
     end
     graph.total_releases_published('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
     refute_includes(captured, 'after: ""')
+  end
+
+  def test_total_releases_published_dont_count_after_till
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    owner = "Ω#{random.rand(1_000_000)}"
+    name = "λ#{random.rand(1_000_000)}"
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [
+              { 'isDraft' => false, 'publishedAt' => '2025-07-01T00:00:00Z' },
+              { 'isDraft' => false, 'publishedAt' => '2025-03-01T00:00:00Z' },
+              { 'isDraft' => false, 'publishedAt' => '2024-11-01T00:00:00Z' }
+            ],
+            'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+          }
+        }
+      }
+    end
+    result = graph.total_releases_published(
+      owner, name, Time.parse('2025-01-01T00:00:00Z'), till: Time.parse('2025-05-01T00:00:00Z')
+    )
+    assert_equal(1, result['releases'], "a release published after the till moment is counted, seed: #{seed}")
+  end
+
+  def test_total_releases_published_stops_paging_at_since_when_till_is_later
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    owner = "Ω#{random.rand(1_000_000)}"
+    name = "λ#{random.rand(1_000_000)}"
+    graph = Fbe::Graph.new(token: 'fake')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      raise(Fbe::Error, "too many pages of releases requested: #{calls}") if calls > 4
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [
+              { 'isDraft' => false, 'publishedAt' => '2023-02-01T00:00:00Z', 'createdAt' => '2023-02-01T00:00:00Z' }
+            ],
+            'pageInfo' => { 'endCursor' => 'MjU', 'hasNextPage' => true }
+          }
+        }
+      }
+    end
+    graph.total_releases_published(
+      owner, name, Time.parse('2024-01-01T00:00:00Z'), till: Time.parse('2030-01-01T00:00:00Z')
+    )
+    assert_equal(1, calls, "paging does not stop on a page older than since, seed: #{seed}")
+  end
+
+  def test_fake_total_releases_published_dont_count_after_till
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    owner = "Ω#{random.rand(1_000_000)}"
+    name = "λ#{random.rand(1_000_000)}"
+    since = Time.parse('2025-12-16T15:00:00Z') + random.rand(1..1_000)
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    h = graph.total_releases_published(owner, name, since, till: since + 60)
+    assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
 end
