@@ -309,6 +309,26 @@ class TestOverwrite < Fbe::Test
     assert_equal(55, result['foo'].first)
   end
 
+  def test_overwrite_with_hash_string_custom_fid
+    fb = Factbase.new
+    f = fb.insert
+    f.custom_id = 'customid'
+    f.foo = 42
+    Fbe.overwrite(f, { foo: 55 }, fb:, fid: 'custom_id')
+    result = fb.query('(eq custom_id "customid")').each.first
+    assert_equal([55], result['foo'])
+  end
+
+  def test_overwrite_with_string_custom_fid
+    fb = Factbase.new
+    f = fb.insert
+    f.custom_id = 'customid'
+    f.foo = 42
+    Fbe.overwrite(f, 'foo', 55, fb:, fid: 'custom_id')
+    result = fb.query('(eq custom_id "customid")').each.first
+    assert_equal([55], result['foo'])
+  end
+
   def test_overwrite_with_hash_missing_custom_fid
     fb = Factbase.new
     f = fb.insert
