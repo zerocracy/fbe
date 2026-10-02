@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase/flatten'
 require 'joined'
 require 'securerandom'
 require 'tago'
@@ -190,8 +191,9 @@ class Fbe::Iterate
   # Sets the field to sort results by in ascending order.
   #
   # When set, all matching results will be fetched, and distinct values of the
-  # specified field will be iterated in ascending order. This executes the query once per repository
-  # instead of calling one() repeatedly.
+  # specified field will be iterated in ascending order. Mixed types use the
+  # factbase serialization order: numbers, times, then other values by text.
+  # This executes the query once per repository instead of calling one() repeatedly.
   #
   # @param [String] prop The fact attribute to sort by
   # @return [nil] Nothing is returned
@@ -318,7 +320,7 @@ class Fbe::Iterate
           if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.uniq.sort!.each
+            ).filter_map { _1[@sorting]&.first }.uniq.sort_by { |value| Factbase::Flatten.key(value) }.each
             begin
               values[repo].next
             rescue StopIteration
