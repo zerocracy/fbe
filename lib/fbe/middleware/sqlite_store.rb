@@ -157,6 +157,7 @@ class Fbe::Middleware::SqliteStore
         ON CONFLICT(key) DO UPDATE SET value = ?2, touched_at = ?3, created_at = ?3
       SQL
     end
+    trim_if_oversized(@db)
     nil
   end
 
@@ -275,38 +276,41 @@ class Fbe::Middleware::SqliteStore
         end
         d.execute('VACUUM;')
       end
-      if File.size(@path) > @maxsize
-        @loog.info(
-          "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
-          "#{Filesize.from(@maxsize.to_s).pretty}, cleaning up old entries"
-        )
-        deleted = 0
-        while d.execute(<<~SQL).dig(0, 0) > @maxsize
-          SELECT (page_count - freelist_count) * page_size AS size
-          FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
-        SQL
-          gone = 0
-          d.transaction do |t|
-            t.execute(<<~SQL)
-              DELETE FROM cache
-              WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
-            SQL
-            gone = t.changes
-            deleted += gone
-          end
-          next unless gone.zero?
-          @loog.warn(
-            'The cache is empty and its own pages still take more than ' \
-            "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
-          )
-          break
-        end
-        d.execute('VACUUM;')
-        @loog.info(
-          "Deleted #{deleted} old cache entries, " \
-          "new file size: #{Filesize.from(File.size(@path).to_s).pretty} bytes"
-        )
-      end
+      trim_if_oversized(d)
     end
+  end
+
+  def trim_if_oversized(d) # rubocop:disable Metrics/AbcSize, Metrics/BlockLength
+    return unless File.size(@path) > @maxsize
+    @loog.info(
+      "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
+      "#{Filesize.from(@maxsize.to_s).pretty}, cleaning up old entries"
+    )
+    deleted = 0
+    while d.execute(<<~SQL).dig(0, 0) > @maxsize
+      SELECT (page_count - freelist_count) * page_size AS size
+      FROM pragma_page_count(), pragma_freelist_count(), pragma_page_size();
+    SQL
+      gone = 0
+      d.transaction do |t|
+        t.execute(<<~SQL)
+          DELETE FROM cache
+          WHERE key IN (SELECT key FROM cache ORDER BY touched_at LIMIT 50)
+        SQL
+        gone = t.changes
+        deleted += gone
+      end
+      next unless gone.zero?
+      @loog.warn(
+        'The cache is empty and its own pages still take more than ' \
+        "#{Filesize.from(@maxsize.to_s).pretty}, nothing left to delete"
+      )
+      break
+    end
+    d.execute('VACUUM;')
+    @loog.info(
+      "Deleted #{deleted} old cache entries, " \
+      "new file size: #{Filesize.from(File.size(@path).to_s).pretty} bytes"
+    )
   end
 end
