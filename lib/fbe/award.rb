@@ -57,6 +57,7 @@ class Fbe::Award
   # @return [Fbe::Award::Bylaw] The bylaw
   def bylaw
     term = Factbase::Syntax.new(@query).to_term
+    term.redress!(Fbe::Award::BTerm)
     term.redress!(Fbe::Award::PTerm)
     bylaw = Bylaw.new
     term.publish_to(bylaw)
@@ -96,7 +97,7 @@ class Fbe::Award
     #
     # @param [Fbe::Award::Bill] bill The bill to update
     # @return [nil]
-    # @raise [RuntimeError] If there's a failure processing any term
+    # @raise [Fbe::Error] If there's a failure processing any term
     # @example
     #   term = Factbase::Syntax.new('(award (give 100 "for effort"))').to_term
     #   term.redress!(Fbe::Award::BTerm)
@@ -137,7 +138,7 @@ class Fbe::Award
     # @param [Object] any The value to evaluate (symbol, term, or literal)
     # @param [Fbe::Award::Bill] bill The bill providing context for evaluation
     # @return [Object] The evaluated value
-    # @raise [RuntimeError] If a symbol isn't found in the bill
+    # @raise [Fbe::Error] If a symbol isn't found in the bill
     # @example
     #   bill = Fbe::Award::Bill.new
     #   bill.set(:loc, 100)
@@ -146,8 +147,11 @@ class Fbe::Award
       if any.is_a?(BTerm)
         any.calc(bill)
       elsif any.is_a?(Symbol)
+        unless bill.vars.key?(any)
+          raise(Fbe::Error, "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}")
+        end
         v = bill.vars[any]
-        raise(Fbe::Error, "Unknown name #{any.inspect} among: #{bill.vars.keys.map(&:inspect).joined}") if v.nil?
+        raise(Fbe::Error, "The value of #{any.inspect} is nil") if v.nil?
         v
       else
         any
@@ -161,7 +165,7 @@ class Fbe::Award
     #
     # @param [Fbe::Award::Bill] bill The bill providing context for calculation
     # @return [Object] The calculated value (number, boolean, etc.)
-    # @raise [RuntimeError] If the term operation is unknown
+    # @raise [Fbe::Error] If the term operation is unknown
     # @example
     #   bill = Fbe::Award::Bill.new
     #   bill.set(:x, 10)
@@ -174,6 +178,7 @@ class Fbe::Award
       when :total
         bill.points
       when :if
+        raise(Fbe::Error, "The term 'if' needs three operands, #{@operands.size} given") if @operands.size < 3
         to_val(@operands[0], bill) ? to_val(@operands[1], bill) : to_val(@operands[2], bill)
       when :and
         @operands.all? { |o| to_val(o, bill) }
@@ -194,7 +199,7 @@ class Fbe::Award
       when :div
         divisor = to_val(@operands[1], bill)
         raise(Fbe::Error, 'Division by zero in award calculation') if divisor.zero?
-        to_val(@operands[0], bill) / divisor
+        to_val(@operands[0], bill).fdiv(divisor)
       when :times
         to_val(@operands[0], bill) * to_val(@operands[1], bill)
       when :plus
@@ -209,9 +214,9 @@ class Fbe::Award
         v = to_val(@operands[0], bill)
         a = to_val(@operands[1], bill)
         b = to_val(@operands[2], bill)
-        min, max = [a, b].minmax
-        return 0 if (!v.negative? && v < min) || (!v.positive? && v > max)
-        v.clamp(min, max)
+        min, max = [a.abs, b.abs].minmax
+        return 0 if v.abs < min
+        (v.negative? ? -1 : 1) * v.abs.clamp(min, max)
       else
         raise(Fbe::Error, "Unknown term '#{@op}'")
       end
@@ -227,11 +232,11 @@ class Fbe::Award
       when :if
         "if #{to_p(@operands[0])} then #{to_p(@operands[1])} else #{to_p(@operands[2])}"
       when :and
-        @operands.join(' and ')
+        @operands.map { |o| to_p(o) }.join(' and ')
       when :or
-        @operands.join(' or ')
+        @operands.map { |o| to_p(o) }.join(' or ')
       when :not
-        "not #{@operands[0]}"
+        "not #{to_p(@operands[0])}"
       when :eq
         "#{to_p(@operands[0])} = #{to_p(@operands[1])}"
       when :lt
@@ -255,9 +260,10 @@ class Fbe::Award
       when :min
         "minimum of #{to_p(@operands[0])} and #{to_p(@operands[1])}"
       when :between
-        "#{to_p(@operands[0])} clamped between #{to_p(@operands[1])} and #{to_p(@operands[2])}"
+        "#{to_p(@operands[0])} clamped by absolute value between #{to_p(@operands[1])} and " \
+        "#{to_p(@operands[2])}, or 0 if its absolute value is smaller than both"
       else
-        raise(Fbe::Error, "Unknown term '#{@op}'")
+        "(#{@op} #{@operands.join(' ')})"
       end
     end
 
@@ -278,12 +284,15 @@ class Fbe::Award
           raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
       when :aka
+        before = bylaw.size
+        saved = bylaw.intro_text
         @operands[0..-2].each do |o|
           o.publish_to(bylaw)
         rescue StandardError => e
           raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
-        bylaw.revert(@operands.size - 1)
+        bylaw.revert(bylaw.size - before)
+        bylaw.intro(saved)
         bylaw.line(to_p(@operands[-1]))
       when :explain
         bylaw.intro(to_p(@operands[0]))
@@ -291,7 +300,7 @@ class Fbe::Award
         bylaw.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
       when :let
         bylaw.line("let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}")
-        bylaw.let(@operands[0], @operands[1])
+        bylaw.let(@operands[0], to_val(@operands[1], bylaw))
       when :set
         bylaw.line("set #{to_p(@operands[0])} to #{to_p(@operands[1])}")
       when :give
@@ -357,13 +366,13 @@ class Fbe::Award
     #   bill = Fbe::Award::Bill.new
     #   bill.line(50, "for code review")
     def line(value, text)
-      return if value.zero?
       text =
-        text.gsub(/\$\{([a-z_0-9]+)\}/) do |_x|
+        text.gsub(/\$\{([^}]*)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in award text: #{text}") unless @vars.key?(k)
-          @vars[k]
+          @vars[k].is_a?(Float) ? whole(@vars[k]) : @vars[k]
         end
+      return if value.zero?
       @lines << { v: value, t: text }
     end
 
@@ -375,7 +384,7 @@ class Fbe::Award
     #   bill.line(42.5, "for answer")
     #   bill.points #=> 43
     def points
-      Integer(Float(@lines.sum { |l| l[:v] }).round.to_s, 10)
+      whole(@lines.sum { |l| l[:v] })
     end
 
     # Generates a human-readable summary of the bill.
@@ -387,7 +396,7 @@ class Fbe::Award
     #   bill.line(25, "for documentation")
     #   bill.greeting #=> "You've earned +75 points for this: +50 for code review; +25 for documentation. "
     def greeting
-      items = @lines.map { |l| "#{format('%+d', l[:v])} #{l[:t]}" }
+      items = @lines.map { |l| "#{format('%+d', whole(l[:v]))} #{l[:t]}" }
       case items.size
       when 0
         "You've earned nothing. "
@@ -396,6 +405,16 @@ class Fbe::Award
       else
         "You've earned #{format('%+d', points)} points for this: #{items.join('; ')}. "
       end
+    end
+
+    private
+
+    # Rounds one line value the way the total is rounded.
+    #
+    # @param [Float, Integer] value The value of one line
+    # @return [Integer] The value as a whole number
+    def whole(value)
+      Integer(Float(value).round)
     end
   end
 
@@ -414,7 +433,18 @@ class Fbe::Award
     def initialize
       @lines = []
       @intro = ''
-      @lets = {}
+      @vars = {}
+    end
+
+    # How many lines are in the bylaw already.
+    #
+    # @return [Integer] The number of lines
+    # @example
+    #   bylaw = Fbe::Award::Bylaw.new
+    #   bylaw.line("award 50 points")
+    #   bylaw.size # => 1
+    def size
+      @lines.size
     end
 
     # Removes the specified number of most recently added lines.
@@ -427,6 +457,9 @@ class Fbe::Award
     #   bylaw.line("award 30 points")
     #   bylaw.revert(1) # Removes "award 30 points"
     def revert(num)
+      unless num.is_a?(Integer) && num >= 0
+        raise(Fbe::Error, "The number of lines to revert must be a non-negative integer: #{num.inspect}")
+      end
       @lines.slice!(-num, num)
     end
 
@@ -441,6 +474,13 @@ class Fbe::Award
       @intro = text
     end
 
+    # The introductory text set so far.
+    #
+    # @return [String] The introductory text
+    def intro_text
+      @intro
+    end
+
     # Adds a line of text to the bylaw, replacing variable references.
     #
     # @param [String] line The line of text to add
@@ -451,10 +491,10 @@ class Fbe::Award
     #   bylaw.line("award ${points} points")
     def line(line)
       line =
-        line.gsub(/\$\{([a-z_0-9]+)\}/) do |_x|
+        line.gsub(/\$\{([^}]*)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
-          raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @lets.key?(k)
-          "**#{@lets[k]}**"
+          raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @vars.key?(k)
+          "**#{@vars[k]}**"
         end
       @lines << line
     end
@@ -468,7 +508,7 @@ class Fbe::Award
     #   bylaw = Fbe::Award::Bylaw.new
     #   bylaw.let(:points, 50)
     def let(key, value)
-      @lets[key] = value
+      @vars[key] = value
     end
 
     # Generates a Markdown-formatted representation of the bylaw.
@@ -489,7 +529,9 @@ class Fbe::Award
       else
         pars += @lines.each_with_index.map { |t, i| "#{i.zero? ? 'First' : 'Then'}, #{t}." }
       end
-      pars.join(' ').gsub('. Then, award ', ', and award ').gsub(/\s{2,}/, ' ')
+      pars.join(' ')
+        .gsub(/(\bset (_[^_\s]+_) to (?:(?!\. ).)*)\. Then, award \2\./, '\1, and award \2.')
+        .gsub(/\s{2,}/, ' ')
     end
   end
 end

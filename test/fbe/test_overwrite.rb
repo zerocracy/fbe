@@ -101,6 +101,19 @@ class TestOverwrite < Fbe::Test
     assert_equal(3, fb.size)
   end
 
+  def test_rejects_duplicate_fact_ids
+    fb = Factbase.new
+    first = fb.insert
+    first._id = 1
+    first.foo = 'first'
+    second = fb.insert
+    second._id = 1
+    second.foo = 'second'
+    error = assert_raises(Fbe::Error) { Fbe.overwrite(first, 'foo', 'updated', fb:) }
+    assert_equal('2 facts share _id = 1, cannot overwrite one of them', error.message)
+    assert_equal(2, fb.size)
+  end
+
   def test_overwrites_in_transaction
     $fb = Factbase.new
     $global = {}
@@ -432,5 +445,26 @@ class TestOverwrite < Fbe::Test
     assert_equal(snapshot[:job], after._job)
     assert_equal(['new'], after['bar'])
     assert_equal(['added'], after['baz'])
+  end
+
+  def test_returns_nil_when_nothing_changes
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 'x'
+    assert_nil(Fbe.overwrite(f, 'foo', 'x', fb:))
+    assert_nil(Fbe.overwrite(f, { 'foo' => 'x' }, fb:))
+  end
+
+  def test_returns_nil_when_something_changes
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 'x'
+    assert_nil(Fbe.overwrite(f, 'bar', 'y', fb:))
+    f = fb.query('(always)').each.first
+    assert_nil(Fbe.overwrite(f, 'foo', 'z', fb:))
+    f = fb.query('(always)').each.first
+    assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
 end

@@ -70,11 +70,42 @@ class SqliteStoreTest < Fbe::Test
   def test_not_db_file
     with_tmpfile do |f|
       File.binwrite(f, Array.new(20) { rand(0..255) }.pack('C*'))
-      ex =
-        assert_raises(SQLite3::NotADatabaseException) do
-          Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog).read('my_key')
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      assert_nil(store.read('my_key'))
+    end
+  end
+
+  def test_recovers_from_a_corrupt_cache_file
+    with_tmpfile do |f|
+      File.binwrite(f, Array.new(20) { rand(0..255) }.pack('C*'))
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      store.write('my_key', 'my_value')
+      assert_equal('my_value', store.read('my_key'))
+    end
+  end
+
+  def test_disables_itself_when_the_file_stays_unusable
+    with_tmpfile do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      SQLite3::Database.stub(:new, ->(*_args) { raise(SQLite3::CantOpenException, 'always broken') }) do
+        assert_nil(store.read('my_key'))
+        store.write('my_key', 'my_value')
+        assert_nil(store.read('my_key'))
+      end
+    end
+  end
+
+  def test_rejects_an_unwritable_directory
+    with_tmpfile do |f|
+      dir = File.dirname(f)
+      File.chmod(0o500, dir)
+      begin
+        assert_raises(ArgumentError) do
+          Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
         end
-      assert_match('file is not a database', ex.message)
+      ensure
+        File.chmod(0o700, dir)
+      end
     end
   end
 
@@ -183,7 +214,7 @@ class SqliteStoreTest < Fbe::Test
 
   def test_use_compress_for_stored_data
     with_tmpfile('c.db') do |f|
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, maxvsize: '1Mb').then do |store|
         a = SecureRandom.alphanumeric(200)
         store.write('a', a)
         store.write('b', 'b' * 100_000)
@@ -378,7 +409,7 @@ class SqliteStoreTest < Fbe::Test
           'public, max-age=30, s-maxage=30',
           JSON.parse(store.read('test2')[0][1]).dig('response_headers', 'cache-control')
         )
-        assert_nil(JSON.parse(store.read('test3')[0][1]).dig('response_headers', 'cache-control'))
+        assert_equal('max-age=30', JSON.parse(store.read('test3')[0][1]).dig('response_headers', 'cache-control'))
         assert_nil(JSON.parse(store.read('test4')[0][1]).dig('response_headers', 'cache-control'))
         assert_nil(JSON.parse(store.read('test5')[0][1]).dig('response_headers', 'cache-control'))
         assert_equal(1, store.read('test6')[0][1])
@@ -421,6 +452,73 @@ class SqliteStoreTest < Fbe::Test
         'public, max-age=1555, s-maxage=1555',
         JSON.parse(store.read('test2')[0][1]).dig('response_headers', 'cache-control')
       )
+    end
+  end
+
+  def test_sets_cache_min_age_when_response_names_none
+    with_tmpfile('none.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)
+      store.write('absent', faraday_value(resp: { 'response_headers' => {} }))
+      store.write('nocache', faraday_value(resp: { 'response_headers' => { 'cache-control' => 'private, no-cache' } }))
+      assert_equal('max-age=300', JSON.parse(store.read('absent')[0][1]).dig('response_headers', 'cache-control'))
+      assert_equal(
+        'private, max-age=300',
+        JSON.parse(store.read('nocache')[0][1]).dig('response_headers', 'cache-control')
+      )
+      store.close
+    end
+  end
+
+  def test_overwrite_cache_control_ignoring_directive_case
+    %w[max-age Max-Age MAX-AGE s-maxage S-MAXAGE].each do |directive|
+      with_tmpfile('case.db') do |f|
+        store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)
+        store.write(
+          'test',
+          faraday_value(resp: { 'response_headers' => { 'cache-control' => "public, #{directive}=0" } })
+        )
+        assert_equal(
+          "public, #{directive}=300",
+          JSON.parse(store.read('test')[0][1]).dig('response_headers', 'cache-control')
+        )
+        store.close
+      end
+    end
+  end
+
+  def test_skip_write_of_a_broken_request
+    with_tmpfile('broken.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        store.write('a', [['this is not json', '{}']])
+        assert_nil(store.read('a'))
+      end
+    end
+  end
+
+  def test_overwrite_cache_control_ignoring_header_case
+    %w[cache-control Cache-Control CACHE-CONTROL].each do |header|
+      with_tmpfile('header.db') do |f|
+        store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)
+        store.write('test', faraday_value(resp: { 'response_headers' => { header => 'private, max-age=60' } }))
+        assert_equal({ header => 'private, max-age=300' }, JSON.parse(store.read('test')[0][1])['response_headers'])
+        store.close
+      end
+    end
+  end
+
+  def test_drops_previous_value_when_refusing_to_write
+    with_tmpfile('refuse.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, maxvsize: '1Kb').then do |store|
+        [
+          'b' * 5000,
+          [['this is not json', '{}']],
+          faraday_value(req: { 'method' => 'post', 'url' => 'https://example.com/test' })
+        ].each do |refused|
+          store.write('k', 'a' * 100)
+          store.write('k', refused)
+          assert_nil(store.read('k'))
+        end
+      end
     end
   end
 

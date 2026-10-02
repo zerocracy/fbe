@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'joined'
+require 'securerandom'
 require 'tago'
 require 'time'
 require_relative '../fbe'
@@ -26,7 +27,7 @@ require_relative 'unmask_repos'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @yield Block containing DSL methods (as, by, over, etc.) to configure iteration
 # @return [Object] Result of the block evaluation
-# @raise [RuntimeError] If required globals are not set
+# @raise [Fbe::Error] If required globals are not set
 # @example Iterate through repositories processing issues
 #   Fbe.iterate do
 #     as 'issues_iterator'
@@ -137,11 +138,14 @@ class Fbe::Iterate
   #
   # @param [Integer] repeats The maximum iterations per repository
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If repeats is nil or not positive
+  # @raise [Fbe::Error] If repeats is nil or not positive
   # @example Process up to 100 items per repository
   #   iterator.repeats(100)
   def repeats(repeats)
     raise(Fbe::Error, 'Cannot set "repeats" to nil') if repeats.nil?
+    unless repeats.is_a?(Integer)
+      raise(Fbe::Error, "The \"repeats\" must be an Integer, while #{repeats.class} provided")
+    end
     raise(Fbe::Error, 'The "repeats" must be a positive integer') unless repeats.positive?
     @repeats = repeats
   end
@@ -155,7 +159,7 @@ class Fbe::Iterate
   #
   # @param [Integer] value The initial value for iteration tracking
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If value is nil or not an Integer
+  # @raise [Fbe::Error] If value is nil or not an Integer
   # @example Start iteration from issue number 100
   #   iterator.since!(100)
   def since!(value)
@@ -172,30 +176,33 @@ class Fbe::Iterate
   #
   # @param [String] query The Factbase query to execute
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If query is already set or nil
+  # @raise [Fbe::Error] If query is already set or nil
   # @example Query for issues after a certain ID
   #   iterator.by('(and (eq what "issue") (gt id $before) (eq repo $repository))')
   def by(query)
     raise(Fbe::Error, 'Query is already set') unless @query.nil?
     raise(Fbe::Error, 'Cannot set query to nil') if query.nil?
+    raise(Fbe::Error, "Query must be a String, while #{query.class} provided") unless query.is_a?(String)
+    raise(Fbe::Error, 'Query cannot be empty') if query.empty?
     @query = query
   end
 
   # Sets the field to sort results by in ascending order.
   #
-  # When set, all matching results will be fetched, sorted by the specified
-  # field, and iterated in order. This executes the query once per repository
+  # When set, all matching results will be fetched, and distinct values of the
+  # specified field will be iterated in ascending order. This executes the query once per repository
   # instead of calling one() repeatedly.
   #
   # @param [String] prop The fact attribute to sort by
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If prop is nil, already set, or not a valid field name
+  # @raise [Fbe::Error] If prop is nil, already set, or not a valid field name
   # @example Sort issues by number
   #   iterator.sort_by('issue')
   def sort_by(prop)
     raise(Fbe::Error, 'Sort field is already set') unless @sorting.nil?
     raise(Fbe::Error, 'Cannot set sort field to nil') if prop.nil?
     raise(Fbe::Error, 'Sort field must be a String') unless prop.is_a?(String)
+    raise(Fbe::Error, 'Sort field cannot be empty') if prop.empty?
     @sorting = prop
   end
 
@@ -207,15 +214,18 @@ class Fbe::Iterate
   #
   # @param [String] label Unique identifier for this iteration type
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If label is already set or nil
+  # @raise [Fbe::Error] If label is already set, nil, or a property of the marker fact
   # @example Set label for issue processing
   #   iterator.as('issue_processor')
   def as(label)
     raise(Fbe::Error, 'Label is already set') unless @label.nil?
     raise(Fbe::Error, 'Cannot set "label" to nil') if label.nil?
+    raise(Fbe::Error, "Label must be a String, while #{label.class} provided") unless label.is_a?(String)
     unless label.match?(/\A[_a-z][a-zA-Z0-9_]*\z/)
       raise(Fbe::Error, "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*")
     end
+    raise(Fbe::Error, "The label '#{label}' clashes with a property of the marker fact") if
+      %w[what where repository].include?(label)
     @label = label
   end
 
@@ -249,7 +259,7 @@ class Fbe::Iterate
   # @yield [Integer, Object] Repository ID and the result from query execution
   # @yieldreturn [Integer] The value to store as "latest" for next iteration
   # @return [nil] Nothing is returned
-  # @raise [RuntimeError] If block doesn't return an Integer
+  # @raise [Fbe::Error] If block doesn't return an Integer
   # @example Process issues incrementally
   #   iterator.over do |repo_id, issue_number|
   #     fetch_and_process_issue(repo_id, issue_number)
@@ -280,6 +290,7 @@ class Fbe::Iterate
     before = repos.to_h { |repo| [repo, markers[repo] || @since] }
     repos.sort_by! { |repo| before[repo] }
     starts = before.dup
+    latest = before.dup
     values = {}
     loop do # rubocop:disable Metrics/BlockLength
       if Fbe.over?(
@@ -307,7 +318,7 @@ class Fbe::Iterate
           if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.sort.each
+            ).filter_map { _1[@sorting]&.first }.uniq.sort!.each
             begin
               values[repo].next
             rescue StopIteration
@@ -324,13 +335,14 @@ class Fbe::Iterate
             @since
           else
             @loog.debug("Next is ##{nxt}, starting from it")
-            begin
-              yield(repo, nxt)
-            rescue Fbe::OffQuota
-              raise
-            rescue StandardError => e
-              raise(Fbe::Error, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
-            end
+            latest[repo] =
+              begin
+                yield(repo, nxt)
+              rescue Fbe::OffQuota
+                raise
+              rescue StandardError => e
+                raise(Fbe::Error, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
+              end
           end
         unless before[repo].is_a?(Integer)
           raise(Fbe::Error, "Iterator must return an Integer, but #{before[repo].class} was returned")
@@ -351,17 +363,19 @@ class Fbe::Iterate
     @loog.info(e.message)
   ensure
     if defined?(repos) && !repos.nil? &&
-       defined?(before) && !before.nil? &&
-       defined?(starts) && !starts.nil?
+       defined?(starts) && !starts.nil? &&
+       defined?(latest) && !latest.nil?
       repos.each do |repo|
-        next if before[repo] == starts[repo]
+        next unless latest[repo].is_a?(Integer)
+        next if latest[repo] == starts[repo]
         f =
           Fbe.if_absent(fb: @fb, always: true) do |n|
             n.what = 'iterate'
             n.where = 'github'
             n.repository = repo
           end
-        Fbe.overwrite(f, @label, before[repo], fb: @fb)
+        f._id = SecureRandom.random_number(9_999_999_999_999) if f['_id'].nil?
+        Fbe.overwrite(f, @label, latest[repo], fb: @fb)
       end
     end
   end

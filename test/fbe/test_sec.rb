@@ -33,6 +33,20 @@ class TestSec < Fbe::Test
     assert_equal('1mo', Fbe.sec(f, :duration))
   end
 
+  def test_zero_seconds
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 0
+    assert_equal('0s', Fbe.sec(f))
+  end
+
+  def test_negative_seconds
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = -86_400
+    assert_equal('-1d', Fbe.sec(f))
+  end
+
   def test_elapsed_past
     fb = Factbase.new
     f = fb.insert
@@ -41,5 +55,10 @@ class TestSec < Fbe::Test
     Time.stub(:now, now) do
       assert_equal('2h', Fbe.sec(f))
     end
+  end
+
+  def test_refuses_a_nil_fact
+    error = assert_raises(Fbe::Error) { Fbe.sec(nil) }
+    assert_equal('The fact is nil', error.message)
   end
 end

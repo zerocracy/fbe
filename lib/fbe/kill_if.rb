@@ -10,7 +10,9 @@ require_relative 'fb'
 #
 # @param [Array] facts List of facts to kill
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
+# @raise [Fbe::Error] If facts is nil
 def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
+  raise(Fbe::Error, 'The facts are nil') if facts.nil?
   ids = []
   facts.each do |f|
     if block_given?
