@@ -33,6 +33,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @remaining = nil
     @searchleft = nil
     @counter = 0
+    @generation = 0
     @lock = Mutex.new
     @refresh = Mutex.new
     tracker[:rate_limit] = self unless tracker.nil?
@@ -49,7 +50,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     else
       @lock.synchronize { took = track_request(env.url.path) }
       @app.call(env).on_complete do |response_env|
-        @lock.synchronize { sync(response_env, env.url.path) }
+        @lock.synchronize { sync(response_env, env.url.path, took) }
       end
     end
   rescue StandardError
@@ -82,33 +83,42 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @remaining = extract_remaining_count(response)
       @searchleft = extract_search_remaining_count(response)
       @counter = 0
+      @generation += 1
     end
     response
   end
 
   # Tracks non-rate_limit requests and decrements counter.
   #
-  # @return [Symbol, nil] The counter the request was taken off, or NIL if none was
+  # @return [Array<Symbol, Integer>] The resource and counter generation
   def track_request(path = nil)
     @counter += 1
     if path&.start_with?('/search/')
-      return nil unless @searchleft&.positive?
-      @searchleft -= 1
-      :search
+      if @searchleft&.positive?
+        @searchleft -= 1
+        [:search, @generation]
+      else
+        [nil, @generation]
+      end
     else
-      return nil unless @remaining&.positive?
-      @remaining -= 1
-      :core
+      if @remaining&.positive?
+        @remaining -= 1
+        [:core, @generation]
+      else
+        [nil, @generation]
+      end
     end
   end
 
-  # Reverts the counter decrement when the request fails.
+  # Reverts a request reservation when it fails or is served from cache.
   #
-  # @param [Symbol, nil] took What +track_request+ answered for this request
+  # @param [Array<Symbol, Integer>, nil] took What +track_request+ answered for this request
   def untrack_request(took = nil)
-    return unless @counter&.positive?
-    @counter -= 1
-    case took
+    return if took.nil?
+    resource, generation = took
+    return unless generation == @generation
+    @counter -= 1 if @counter&.positive?
+    case resource
     when :search
       @searchleft += 1
     when :core
@@ -119,15 +129,17 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # Syncs the internal remaining count from a real API response header.
   #
   # When the response was served by Faraday::HttpCache from cache
-  # (indicated by +http_cache_trace+ containing +:fresh+), the
-  # +x-ratelimit-remaining+ header is stale, so we keep our
-  # decremented count. When the API was actually contacted,
-  # the header is the truth, so we take it as is, even when it
-  # raises the counter after GitHub has reset the quota.
+  # (indicated by +http_cache_trace+ containing +:fresh+), it did not
+  # consume GitHub quota, so its reservation is restored. When the API
+  # was actually contacted, its rate-limit header is authoritative, even
+  # when it raises the count after GitHub has reset the quota.
   #
   # @param [Faraday::Env] response_env The response environment
-  def sync(response_env, path = nil)
-    return if response_env[:http_cache_trace]&.include?(:fresh)
+  def sync(response_env, path = nil, took = nil)
+    if response_env[:http_cache_trace]&.include?(:fresh)
+      untrack_request(took)
+      return
+    end
     headers = response_env.response_headers
     return unless headers
     remaining = headers['x-ratelimit-remaining']
