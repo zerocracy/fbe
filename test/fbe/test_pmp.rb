@@ -233,6 +233,20 @@ class TestPmp < Fbe::Test
     assert_includes(props, 'prop_b')
   end
 
+  def test_reads_custom_area_with_apostrophe
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    $fb = Factbase.new
+    f = $fb.insert
+    f.what = 'pmp'
+    f.area = "foo'bar"
+    f.my_prop = 42
+    area = Fbe.pmp(loog: Loog::NULL).public_send(:"foo'bar")
+    assert_equal(42, area.my_prop)
+    assert_includes(area.properties, 'my_prop')
+  end
+
   def test_cannot_read_property_with_apostrophe
     $fb = Factbase.new
     $global = {}
