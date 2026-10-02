@@ -4,10 +4,14 @@
 # SPDX-License-Identifier: MIT
 
 require 'faraday'
+require 'faraday/http_cache'
+require 'tmpdir'
+require 'time'
 require 'webmock'
 require_relative '../../../lib/fbe'
 require_relative '../../../lib/fbe/middleware'
 require_relative '../../../lib/fbe/middleware/rate_limit'
+require_relative '../../../lib/fbe/middleware/sqlite_store'
 require_relative '../../test__helper'
 
 # Test.
@@ -55,6 +59,39 @@ class RateLimitTest < Fbe::Test
     response = conn.get('/rate_limit')
     assert_equal(4998, response.body['rate']['remaining'])
     assert_equal('4998', response.headers['x-ratelimit-remaining'])
+  end
+
+  def test_fresh_http_cache_hits_do_not_consume_github_quota
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+      .times(1)
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(
+        status: 200, body: '{"login":"test"}', headers: {
+          'Content-Type' => 'application/json', 'Cache-Control' => 'public, max-age=600',
+          'Date' => Time.now.httpdate
+        }
+      )
+      .times(1)
+    tracker = {}
+    Dir.mktmpdir do |dir|
+      store = Fbe::Middleware::SqliteStore.new(File.join(dir, 'cache.db'), '0.0.0')
+      conn =
+        Faraday.new(url: 'https://api.github.com') do |f|
+          f.use(Fbe::Middleware::RateLimit, tracker)
+          f.use(Faraday::HttpCache, store:, serializer: JSON, shared_cache: false, logger: Loog::NULL)
+          f.response(:json)
+          f.adapter(:net_http)
+        end
+      conn.get('/rate_limit')
+      conn.get('/user')
+      99.times { conn.get('/user') }
+      assert_equal(4998, tracker[:rate_limit].remaining)
+      conn.get('/rate_limit')
+    end
+    assert_requested(:get, 'https://api.github.com/user', times: 1)
+    assert_requested(:get, 'https://api.github.com/rate_limit', times: 1)
   end
 
   def test_updates_remaining_count_from_non_rate_limit_response_header
