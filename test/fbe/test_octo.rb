@@ -198,11 +198,19 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       {
         body: { rate: { remaining: 7, reset: now.to_i + 60 } }.to_json,
-        headers: { 'Content-Type' => 'application/json' }
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-RateLimit-Remaining' => '7',
+          'X-RateLimit-Reset' => (now.to_i + 60).to_s
+        }
       },
       {
         body: { rate: { remaining: 5000, reset: now.to_i + 3600 } }.to_json,
-        headers: { 'Content-Type' => 'application/json' }
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-RateLimit-Remaining' => '5000',
+          'X-RateLimit-Reset' => (now.to_i + 3600).to_s
+        }
       }
     )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
@@ -1063,12 +1071,20 @@ class TestOcto < Fbe::Test
     now = Time.utc(2026, 9, 8)
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       {
-        body: { rate: { remaining: 7, reset: now.to_i + 60 } }.to_json,
-        headers: { 'Content-Type' => 'application/json' }
+        body: { rate: { remaining: 5000, reset: now.to_i + 60 } }.to_json,
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-RateLimit-Remaining' => '5000',
+          'X-RateLimit-Reset' => (now.to_i + 60).to_s
+        }
       },
       {
         body: { rate: { remaining: 5000, reset: now.to_i + 3600 } }.to_json,
-        headers: { 'Content-Type' => 'application/json' }
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-RateLimit-Remaining' => '5000',
+          'X-RateLimit-Reset' => (now.to_i + 3600).to_s
+        }
       }
     )
     stub_request(:get, 'https://api.github.com/user/42').to_return(
