@@ -7,6 +7,7 @@ require 'octokit'
 require 'time'
 require 'veil'
 require 'zlib'
+require_relative '../fbe'
 
 # Fake GitHub client for testing purposes.
 #
