@@ -3,8 +3,11 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'octokit'
 require 'time'
+require 'veil'
 require 'zlib'
+require_relative '../fbe'
 
 # Fake GitHub client for testing purposes.
 #
