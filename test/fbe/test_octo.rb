@@ -5,6 +5,8 @@
 
 require 'judges/options'
 require 'loog'
+require 'open3'
+require 'rbconfig'
 require 'webmock/minitest'
 require_relative '../../lib/fbe/octo'
 require_relative '../test__helper'
@@ -14,6 +16,27 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  def test_fake_octokit_can_be_required_on_its_own
+    script = <<~'RUBY'
+      require 'fbe/fake_octokit'
+      fake = Fbe::FakeOctokit.new
+      abort unless fake.rate_limit.remaining == 100
+      begin
+        fake.user(404_001)
+      rescue Octokit::NotFound
+        exit
+      end
+      abort 'expected a not-found response'
+    RUBY
+    _, stderr, status = Open3.capture3(
+      RbConfig.ruby,
+      "-I#{File.expand_path('../../lib', __dir__)}",
+      '-e',
+      script
+    )
+    assert(status.success?, stderr)
+  end
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
