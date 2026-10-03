@@ -227,4 +227,32 @@ class TestRepeatedly < Fbe::Test
     end
     assert(ran, "the judge stayed idle #{hours + 1} hours later, while the interval is #{hours}, seed is #{seed}")
   end
+
+  def test_uses_today_for_the_marker
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = 'custom'
+      f.every_x_hours = 24
+    end
+    today = Time.utc(2024, 9, 15)
+    with_today(today) do
+      Fbe.repeatedly('custom', 'every_x_hours', fb:, loog: Loog::NULL, judge: 'test') { |_f| }
+      marker = fb.query("(and (eq what 'repeatedly') (eq judge 'test'))").each.first
+      assert_equal(today, marker.when)
+      Fbe.repeatedly('custom', 'every_x_hours', fb:, loog: Loog::NULL, judge: 'test') { |_f| }
+      assert_equal(2, fb.size)
+    end
+  end
+
+  private
+
+  def with_today(today)
+    previous = ENV['TODAY']
+    ENV['TODAY'] = today.iso8601
+    yield
+  ensure
+    previous.nil? ? ENV.delete('TODAY') : ENV['TODAY'] = previous
+  end
 end
