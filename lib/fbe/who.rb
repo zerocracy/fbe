@@ -29,6 +29,7 @@ require_relative 'octo'
 def Fbe.who(fact, prop = :who, options: $options, global: $global, loog: $loog)
   id = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if id.nil?
+  raise(Fbe::Error, "The #{prop.inspect} property has multiple values") if id.is_a?(Array) && id.size > 1
   begin
     id = Integer(Float(id.first).round)
   rescue ArgumentError, TypeError
