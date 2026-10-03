@@ -5,6 +5,7 @@
 
 require 'others'
 require 'tago'
+require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 require_relative 'overwrite'
@@ -40,13 +41,14 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   raise(Fbe::Error, 'A block is required by repeatedly') unless block_given?
+  today = Time.iso8601(ENV['TODAY'] || Time.now.utc.iso8601).utc
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}') (exists #{p_every_hours}))").each.first
   hours = pmp.nil? ? 24 : pmp[p_every_hours].first
   marker = "(and (eq what 'repeatedly') (eq judge '#{judge.gsub("'", "\\\\'")}'))"
   recent = fb.query(
     "(and
       #{marker}
-      (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{hours} hours')))"
+      (gt when (minus (to_time '#{today.iso8601}') '#{hours} hours')))"
   ).each.first
   if recent
     loog.info("#{judge} was executed #{recent.when.ago} ago, skipping now (we run it every #{hours} hours)")
@@ -65,6 +67,6 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
       (@map[k[0..-2]] ||= []) << rest.first
     end
   )
-  Fbe.overwrite(f, attrs.merge('when' => Time.now), fb:)
+  Fbe.overwrite(f, attrs.merge('when' => today), fb:)
   nil
 end
