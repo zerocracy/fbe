@@ -131,7 +131,18 @@ class Fbe::Conclude
   # @raise [Fbe::Error] If +what+ or +details+ is in the list, since +draw+ sets them
   def follow(props)
     raise(Fbe::Error, 'Follow is already set') unless @follows.nil?
-    list = props.strip.split.compact
+    list =
+      case props
+      when String
+        props.strip.split
+      when Array
+        unless props.all? { |prop| prop.is_a?(String) }
+          raise(Fbe::Error, 'Follow expects an Array of Strings')
+        end
+        props.map(&:strip).reject(&:empty?)
+      else
+        raise(Fbe::Error, 'Follow expects a String or an Array of Strings')
+      end
     bad = list & %w[what details]
     raise(Fbe::Error, "Can't follow #{bad.join(' and ')}, the judge sets it in the new fact") unless bad.empty?
     @follows = list
