@@ -5,6 +5,7 @@
 
 require 'judges/options'
 require 'loog'
+require 'timeout'
 require 'webmock/minitest'
 require_relative '../../lib/fbe/octo'
 require_relative '../test__helper'
@@ -14,6 +15,8 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  FUTURE_RESET = 4_102_444_800 # 2100-01-01 UTC
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
@@ -187,6 +190,25 @@ class TestOcto < Fbe::Test
     )
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
     assert_raises(StandardError) { o.user(42) }
+  end
+
+  def test_off_quota_recovers_after_reported_reset_without_ordinary_requests
+    WebMock.disable_net_connect!
+    now = Time.utc(2026, 9, 8)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      {
+        body: { rate: { remaining: 7, reset: now.to_i + 60 } }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      },
+      {
+        body: { rate: { remaining: 5000, reset: now.to_i + 3600 } }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    Time.stub(:now, now) { assert_predicate(o, :off_quota?) }
+    Time.stub(:now, now + 60) { refute_predicate(o, :off_quota?) }
+    assert_requested(:get, 'https://api.github.com/rate_limit', times: 2)
   end
 
   def test_rate_limit_bang_works_when_off_quota
@@ -945,7 +967,7 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => FUTURE_RESET } }.to_json
       )
     stub_request(:get, 'https://api.github.com/repos/foo/bar/issues?per_page=100')
       .to_return(
@@ -969,7 +991,7 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => FUTURE_RESET } }.to_json
       )
     o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
     assert(o.auto_paginate)
@@ -1036,6 +1058,29 @@ class TestOcto < Fbe::Test
     assert_operator(repos, :<, users, 'URLs should be sorted by request count (highest first)')
   end
 
+  def test_print_trace_refreshes_an_expired_quota_without_holding_its_mutex
+    WebMock.disable_net_connect!
+    now = Time.utc(2026, 9, 8)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      {
+        body: { rate: { remaining: 7, reset: now.to_i + 60 } }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      },
+      {
+        body: { rate: { remaining: 5000, reset: now.to_i + 3600 } }.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      }
+    )
+    stub_request(:get, 'https://api.github.com/user/42').to_return(
+      status: 200, body: '{"id":42,"login":"test"}',
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '6' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    Time.stub(:now, now) { o.user(42) }
+    Time.stub(:now, now + 60) { Timeout.timeout(5) { o.print_trace!(all: true) } }
+    assert_requested(:get, 'https://api.github.com/rate_limit', times: 2)
+  end
+
   def test_prints_only_real_requests
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
@@ -1071,7 +1116,7 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => FUTURE_RESET } }.to_json
       )
     stub_request(:get, 'https://api.github.com/repos/zerocracy/baza.rb')
       .to_return(
@@ -1239,15 +1284,15 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => FUTURE_RESET } }.to_json
       )
       .then.to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4900' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 4900, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 4900, 'reset' => FUTURE_RESET } }.to_json
       )
       .then.to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4800' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 4800, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 4800, 'reset' => FUTURE_RESET } }.to_json
       )
       .then.to_raise(Fbe::Error, 'no more request to /rate_limit')
     stub_request(:get, 'https://api.github.com/user/1')
@@ -1288,7 +1333,7 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => FUTURE_RESET } }.to_json
       )
     o = Fbe.octo(loog: fake_loog, global: {}, options: Judges::Options.new({}))
     assert_equal('Faraday::HttpCache', o.middleware.handlers.last.name, <<~MSG.strip.gsub!(/\s+/, ' '))
@@ -1306,7 +1351,7 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => FUTURE_RESET } }.to_json
       )
     Dir.mktmpdir do |dir|
       cache = File.expand_path('t.db', dir)
@@ -1352,7 +1397,7 @@ class TestOcto < Fbe::Test
     stub_request(:get, 'https://api.github.com/rate_limit')
       .to_return(
         status: 200, headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' },
-        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => 1_672_531_200 } }.to_json
+        body: { 'rate' => { 'limit' => 5000, 'remaining' => 5000, 'reset' => FUTURE_RESET } }.to_json
       )
     Dir.mktmpdir do |dir|
       cache = File.expand_path('t.db', dir)

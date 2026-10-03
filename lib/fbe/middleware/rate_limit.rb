@@ -12,8 +12,8 @@ require_relative '../../fbe/middleware'
 #
 # This middleware intercepts calls to the /rate_limit endpoint and caches
 # the results locally. It tracks the remaining requests count and decrements
-# it for each API call. Every 100 requests, it refreshes the cached data
-# by allowing the request to pass through to the GitHub API.
+# it for each API call. It refreshes after 100 requests or when a reported
+# quota reset passes.
 #
 # @example Usage in Faraday middleware stack
 #   connection = Faraday.new do |f|
@@ -32,6 +32,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @cached = nil
     @remaining = nil
     @searchleft = nil
+    @core_reset = nil
+    @search_reset = nil
     @counter = 0
     @lock = Mutex.new
     @refresh = Mutex.new
@@ -63,6 +65,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @return [Integer, nil] The remaining count, or nil when the resource is absent
   def remaining(resource = :core)
     @lock.synchronize do
+      return nil if expired?(resource)
       resource == :search ? @searchleft : @remaining
     end
   end
@@ -74,16 +77,50 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Env] env The request environment
   # @return [Faraday::Response] Cached or fresh response
   def handle_rate_limit_request(env)
-    stale = @lock.synchronize { @cached.nil? || @counter >= 100 }
+    stale = @lock.synchronize { @cached.nil? || expired? || @counter >= 100 }
     return @lock.synchronize { Faraday::Response.new(response_env(env, @cached)) } unless stale
     response = @app.call(env)
     @lock.synchronize do
       @cached = response
       @remaining = extract_remaining_count(response)
       @searchleft = extract_search_remaining_count(response)
+      @core_reset = extract_reset_time(response, :core)
+      @search_reset = extract_reset_time(response, :search)
       @counter = 0
     end
     response
+  end
+
+  # Whether a quota reset has invalidated the tracked count.
+  #
+  # @param [Symbol, nil] resource The quota resource, or nil to check all resources
+  # @return [Boolean] True when a known reset time has passed
+  def expired?(resource = nil)
+    resets =
+      if resource.nil?
+        [@core_reset, @search_reset]
+      else
+        [resource == :search ? @search_reset : @core_reset]
+      end
+    now = Time.now.to_i
+    resets.any? { |reset| !reset.nil? && now >= reset }
+  end
+
+  # Reads a resource reset time from a quota response.
+  #
+  # @param [Faraday::Response] response The quota response
+  # @param [Symbol] resource The quota resource
+  # @return [Integer, nil] Unix reset time, or nil when it is absent
+  def extract_reset_time(response, resource)
+    body = response.body
+    body = JSON.parse(body) if body.is_a?(String)
+    resets = []
+    if resource == :core
+      resets << response.headers['x-ratelimit-reset']
+      resets << body.dig('rate', 'reset') if body.is_a?(Hash)
+    end
+    resets << body.dig('resources', resource.to_s, 'reset') if body.is_a?(Hash)
+    resets.filter_map { |value| Integer(value, exception: false) }.min
   end
 
   # Tracks non-rate_limit requests and decrements counter.
@@ -137,6 +174,14 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @searchleft = count
     else
       @remaining = count
+    end
+    reset = Integer(headers['x-ratelimit-reset'], exception: false)
+    unless reset.nil?
+      if path&.start_with?('/search/')
+        @search_reset = reset
+      else
+        @core_reset = reset
+      end
     end
   end
 
