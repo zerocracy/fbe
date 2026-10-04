@@ -32,7 +32,7 @@ require_relative 'pmp'
 #     f.total_cleaned = cleanup_old_records
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
-def Fbe.regularly(
+def Fbe.regularly( # rubocop:disable Metrics/AbcSize
   area, p_every_days, p_since_days = nil,
   fb: Fbe.fb, judge: $judge, loog: $loog, global: $global, options: $options, &
 )
