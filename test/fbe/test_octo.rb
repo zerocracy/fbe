@@ -1672,4 +1672,14 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_workflow_runs
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    result =
+      o.with_disable_auto_paginate do |ob|
+        ob.workflow_runs('yegor256/test', 42, status: 'success', per_page: 1)
+      end
+    assert_equal(2, result[:total_count])
+    refute_empty(result[:workflow_runs], 'The fake must return some workflow runs')
+  end
 end
