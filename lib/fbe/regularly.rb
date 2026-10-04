@@ -6,6 +6,7 @@
 require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'pmp'
 
 # Run the block provided every X days based on PMP configuration.
 #
@@ -14,11 +15,13 @@ require_relative 'fb'
 # Creates a fact recording when the judge was last run.
 #
 # @param [String] area The name of the PMP area
-# @param [String] p_every_days PMP property name for interval (defaults to 7 days if not in PMP)
-# @param [String] p_since_days PMP property name for since period (defaults to 28 days if not in PMP)
+# @param [String] p_every_days PMP property name for interval (defaults to the pmp.xml value, or 7 days)
+# @param [String] p_since_days PMP property name for since period (defaults to the pmp.xml value, or 28 days)
 # @param [Factbase] fb The factbase (defaults to Fbe.fb)
 # @param [String] judge The name of the judge (uses $judge global)
 # @param [Loog] loog The logging facility (uses $loog global)
+# @param [Hash] global Hash of global options (uses $global), needed to read pmp.xml defaults
+# @param [Judges::Options] options The options (uses $options), needed to read pmp.xml defaults
 # @yield [Factbase::Fact] Fact to populate with judge execution details
 # @return [nil] Nothing
 # @raise [Fbe::Error] If required parameters or globals are nil
@@ -29,14 +32,23 @@ require_relative 'fb'
 #     f.total_cleaned = cleanup_old_records
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
-def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.regularly(
+  area, p_every_days, p_since_days = nil,
+  fb: Fbe.fb, judge: $judge, loog: $loog, global: $global, options: $options, &
+)
   { 'area' => area, 'p_every_days' => p_every_days, 'fb' => fb }.each do |name, value|
     raise(Fbe::Error, "The #{name} is nil") if value.nil?
   end
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
-  interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
+  default =
+    lambda do |prop, value|
+      Fbe.pmp(fb:, global:, options:, loog:).public_send(area).public_send(prop)
+    rescue Fbe::Error
+      value
+    end
+  interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || default.call(p_every_days, 7)
   recent = fb.query(
     "(and
       (eq what 'regularly')
@@ -57,7 +69,7 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     f.judge = judge
     f.when = Time.now
     unless p_since_days.nil?
-      days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28
+      days = pmp.filter_map { |f| f[p_since_days]&.first }.first || default.call(p_since_days, 28)
       since = Time.now - (days * 24 * 60 * 60)
       f.since = since
     end
