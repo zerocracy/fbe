@@ -329,6 +329,20 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     }
   end
 
+  # Lists runs of one workflow in a repository.
+  #
+  # @param [String] repo The repository name
+  # @param [Integer, String] _workflow The workflow ID or file name
+  # @param [Hash] _opts Options hash (ignored in mock)
+  # @return [Hash] Hash with total_count and workflow_runs array
+  # @example
+  #   fake_client = Fbe::FakeOctokit.new
+  #   result = fake_client.workflow_runs('octocat/Hello-World', 42, status: 'success')
+  #   result[:total_count] #=> 2
+  def workflow_runs(repo, _workflow, _opts = {})
+    repository_workflow_runs(repo)
+  end
+
   # Gets usage information for a specific workflow run.
   #
   # @param [String] _repo The repository name
