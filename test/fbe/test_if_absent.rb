@@ -147,4 +147,19 @@ class TestIfAbsent < Fbe::Test
     assert_equal('A block is required by if_absent', error.message)
     assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
   end
+
+  def test_dont_duplicate_fact_whose_time_is_not_the_first_value
+    seed = Random.new_seed
+    hour = Random.new(seed).rand(0..20)
+    fb = Factbase.new
+    g = fb.insert
+    g.what = 'ëvent'
+    g.when = Time.utc(2025, 1, 1, hour)
+    g.when = Time.utc(2025, 1, 1, hour + 1)
+    Fbe.if_absent(fb:) do |f|
+      f.what = 'ëvent'
+      f.when = Time.utc(2025, 1, 1, hour + 1)
+    end
+    assert_equal(1, fb.size, "if_absent created a duplicate, seed #{seed}")
+  end
 end
