@@ -30,11 +30,10 @@ class TestJustOne < Fbe::Test
   def test_ignores
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
-    n =
-      Fbe.just_one(fb:) do |f|
-        f.foo = 'hello dude'
-      end
-    refute_nil(n)
+    Fbe.just_one(fb:) do |f|
+      f.foo = 'hello dude'
+    end
+    assert_equal(1, fb.size, 'a fact equal to an existing one was inserted')
   end
 
   def test_injects
@@ -47,14 +46,25 @@ class TestJustOne < Fbe::Test
   end
 
   def test_ignores_system_attributes_when_matching
+    seed = Random.new_seed
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
-    n =
-      Fbe.just_one(fb:) do |f|
-        f._id = 42
-        f.foo = 'hello dude'
-      end
-    refute_nil(n)
+    Fbe.just_one(fb:) do |f|
+      f._id = Random.new(seed).rand(1..999_999)
+      f.foo = 'hello dude'
+    end
+    assert_equal(1, fb.size, "a fact differing only in _id was inserted, seed #{seed}")
+  end
+
+  def test_ignores_version_when_matching
+    seed = Random.new_seed
+    fb = Factbase.new
+    fb.insert.foo = 'ünï'
+    Fbe.just_one(fb:) do |f|
+      f._version = "#{Random.new(seed).rand(99)}.0/λ"
+      f.foo = 'ünï'
+    end
+    assert_equal(1, fb.size, "a fact differing only in _version was inserted, seed #{seed}")
   end
 
   def test_raises_on_empty_value
