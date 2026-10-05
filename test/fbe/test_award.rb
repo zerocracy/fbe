@@ -240,4 +240,15 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_markdown_of_a_bylaw_with_one_line
+    bylaw = Fbe::Award::Bylaw.new
+    bylaw.intro('This bylaw determines rewards for code contributions')
+    bylaw.line('award **50** points')
+    assert_equal(
+      "This bylaw determines rewards for code contributions. Here is how it's calculated: " \
+      'Just award **50** points.',
+      bylaw.markdown
+    )
+  end
 end
