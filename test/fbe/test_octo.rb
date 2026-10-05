@@ -1672,4 +1672,27 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_talks_to_github_when_testing_is_false
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..1_000_000)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 222 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '222' }
+    )
+    stub_request(:get, "https://api.github.com/user/#{id}").to_return(
+      body: { id:, login: 'Жора' }.to_json, headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new(['testing=false', 'github_token=fake-token'])
+    Fbe.octo(loog: Loog::NULL, global: {}, options:).user(id)
+    assert_requested(:get, "https://api.github.com/user/#{id}", times: 1)
+  end
+
+  def test_stays_off_github_when_testing_is_true_string
+    WebMock.disable_net_connect!
+    options = Judges::Options.new(['testing=TRUE'])
+    Fbe.octo(loog: Loog::NULL, global: {}, options:).user(526_301)
+    assert_not_requested(:any, /github\.com/)
+  end
 end
