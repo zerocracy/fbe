@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: MIT
 
 require 'others'
-require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 require_relative 'same'
@@ -35,8 +34,7 @@ require_relative 'same'
 # @yield [Factbase::Fact] A proxy fact object to set properties on
 # @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
 # @raise [Fbe::Error] When no block is given
-# @note String values are properly escaped in queries
-# @note Time values are converted to UTC ISO8601 format for comparison
+# @note Values are bound to the query as parameters, so any string can be matched
 # @example Ensure unique user registration
 #   user = Fbe.if_absent do |f|
 #     f.type = 'user'
@@ -65,18 +63,10 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
-    raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
-    "(eq #{k} #{vv})"
-  end.join(' ')
-  q = "(and #{q})"
-  before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }
+  criteria = attrs.except(:_id, :_time, :_version)
+  criteria.each { |k, v| raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array) }
+  term = criteria.keys.map { |k| "(eq #{k} $#{k})" }.join(' ')
+  before = fb.query("(and #{term})").each(fb, criteria).find { |f| Fbe.same?(f, attrs) }
   return before if before && always
   return nil if before
   n = fb.insert
