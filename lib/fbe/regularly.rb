@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'tago'
+require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 
@@ -35,13 +36,14 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   end
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
+  today = Time.iso8601(ENV['TODAY'] || Time.now.utc.iso8601).utc
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
   interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
   recent = fb.query(
     "(and
       (eq what 'regularly')
       (eq judge '#{judge.gsub("'", "\\\\'")}')
-      (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
+      (gt when (minus (to_time '#{today.iso8601}') '#{interval} days')))"
   ).each.first
   if recent
     loog.info(
@@ -55,10 +57,10 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     f = fbt.insert
     f.what = 'regularly'
     f.judge = judge
-    f.when = Time.now
+    f.when = today
     unless p_since_days.nil?
       days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28
-      since = Time.now - (days * 24 * 60 * 60)
+      since = today - (days * 24 * 60 * 60)
       f.since = since
     end
     yield(f)
