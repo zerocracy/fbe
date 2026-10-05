@@ -606,13 +606,13 @@ class TestIterate < Fbe::Test
       assert_raises(Fbe::Error) do
         Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global:, epoch: Time.now, kickoff: Time.now) do
           as('marker')
-          sort_by('nubmer')
+          sort_by('numero')
           by("(and (eq repository $repository) (eq where 'github') (eq what 'judge'))")
           repeats(1)
           over { |_repository, n| n }
         end
       end
-    assert_match(/carry the 'nubmer' property/, ex.message)
+    assert_match(/carry the 'numero' property/, ex.message)
   end
 
   def test_custom_since
