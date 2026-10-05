@@ -667,7 +667,12 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     @client ||=
       begin
         http = HTTP.new(@token, @host)
-        schema = GraphQL::Client.load_schema(http)
+        dump = GraphQL::Client.dump_schema(http)
+        if dump['data'].nil?
+          errors = (dump['errors'] || []).map { |e| e['message'] }
+          raise(Fbe::Error, "Can't load the GraphQL schema from #{@host}: #{errors.empty? ? dump : errors.join('; ')}")
+        end
+        schema = GraphQL::Client.load_schema(dump)
         c = GraphQL::Client.new(schema:, execute: http)
         c.allow_dynamic_queries = true
         c
