@@ -897,6 +897,12 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_pull_request_keeps_base_sha_of_fixture
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    sha = o.pull_request('zerocracy/baza', 95).dig(:base, :sha)
+    assert_equal('5643eb3c7a0ccb3b', sha, 'base sha of pull request 95 is not the one in the fixture')
+  end
+
   def test_fetch_fake_pull_request_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_request_review_comments('yegor256/test', 100, 100_001).then do |comments|

@@ -174,6 +174,32 @@ class TestAward < Fbe::Test
     assert_equal(1, bill.points)
   end
 
+  def test_reads_total_before_rounding
+    b = Fbe::Award.new('(award (give 0.4 "as a basis") (set t (total)) (give t "for the same again"))').bill
+    assert_equal(1, b.points, "total was rounded before the second line read it: #{b.greeting}")
+  end
+
+  def test_tops_up_to_the_minimum_exactly
+    b =
+      Fbe::Award.new(
+        '(award (give 8 "as a basis") (give -12.5 "for delay") ' \
+        '(set least (if (lt (total) 4) (minus 4 (total)) 0)) (give least "at least"))'
+      ).bill
+    assert_equal(4, b.points, "floor did not land on the minimum: #{b.greeting}")
+  end
+
+  def test_prints_floor_lines_that_add_up_to_the_total
+    g =
+      Fbe::Award.new(
+        '(award (give 8 "as a basis") (give -12.5 "for delay") ' \
+        '(set least (if (lt (total) 4) (minus 4 (total)) 0)) (give least "at least"))'
+      ).bill.greeting
+    assert_equal(
+      "You've earned +4 points for this: +8 as a basis; -13 for delay; +9 at least. ", g,
+      'printed lines do not add up'
+    )
+  end
+
   def test_shorten_when_one_number
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
     assert_equal('You\'ve earned +23 points. ', g, g)
