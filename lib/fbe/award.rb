@@ -523,7 +523,7 @@ class Fbe::Award
     def markdown
       pars = []
       pars << "#{@intro}." unless @intro.empty?
-      pars << 'Here is how it\'s calculated:'
+      pars << 'Here is how it\'s calculated:' unless @lines.empty?
       if @lines.size == 1
         pars << "Just #{@lines.first}."
       else
