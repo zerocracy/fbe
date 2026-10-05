@@ -442,6 +442,44 @@ class TestConclude < Fbe::Test
     end
   end
 
+  def test_follow_refuses_system_properties
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    fb.insert.foo = rnd.rand(1000)
+    prop = %w[_id _time _version _job].sample(random: rnd)
+    assert_raises(Fbe::Error, "follow accepted #{prop}, seed #{seed}") do
+      Fbe.conclude(fb:, judge: 'judge-follow', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+        quota_unaware
+        on('(exists foo)')
+        follow(['foo', prop].shuffle(random: rnd).join(' '))
+        draw do |n, _prev|
+          n.processed = 'yes'
+          'Some long description that satisfies the twenty five chars minimum.'
+        end
+      end
+    end
+  end
+
+  def test_follow_refuses_id_of_factbase_with_rules
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    opts = Judges::Options.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.foo = rnd.rand(1000)
+    assert_raises(Fbe::Error, "follow accepted _id of a factbase with rules, seed #{seed}") do
+      Fbe.conclude(fb:, judge: "j\u00fcdge-#{rnd.rand(1000)}", options: opts, global: {}, loog: Loog::NULL) do
+        quota_unaware
+        on('(exists foo)')
+        follow('_id foo')
+        draw do |n, _prev|
+          n.processed = 'yes'
+          'Some long description that satisfies the twenty five chars minimum.'
+        end
+      end
+    end
+  end
+
   def test_follow_raises_on_second_call_after_empty_one
     $fb = Factbase.new
     $global = {}
