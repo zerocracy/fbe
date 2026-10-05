@@ -57,6 +57,34 @@ class TestJustOne < Fbe::Test
     refute_nil(n)
   end
 
+  def test_reuses_fact_of_another_time
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    name = "ёжик #{rnd.rand(1000)}"
+    old = fb.insert
+    old.foo = name
+    old._time = Time.utc(2025, 1, 1) + rnd.rand(86_400)
+    Fbe.just_one(fb:) do |f|
+      f.foo = name
+      f._time = Time.utc(2026, 1, 1) + rnd.rand(86_400)
+    end
+    assert_equal(1, fb.size, "just_one matched on _time and inserted a duplicate, seed #{seed}")
+  end
+
+  def test_reuses_fact_without_time
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    name = "ürün #{rnd.rand(1000)}"
+    fb.insert.foo = name
+    Fbe.just_one(fb:) do |f|
+      f.foo = name
+      f._time = Time.utc(2026, 1, 1) + rnd.rand(86_400)
+    end
+    assert_equal(1, fb.size, "just_one did not reuse the fact that has no _time, seed #{seed}")
+  end
+
   def test_raises_on_empty_value
     assert_raises(StandardError) do
       Fbe.just_one(fb: Factbase.new) do |f|
