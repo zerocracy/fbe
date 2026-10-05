@@ -78,9 +78,15 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
     end
   whole =
     lambda do |value|
-      f = Float(value)
-      raise(ArgumentError, "#{value} is not a whole number") unless (f % 1).zero?
-      Integer(f)
+      if value.is_a?(Integer)
+        value
+      elsif value.is_a?(String) && /\A[+-]?\d+\z/.match?(value)
+        Integer(value, 10)
+      else
+        f = Float(value)
+        raise(ArgumentError, "#{value} is not a whole number") unless f.finite? && (f % 1).zero?
+        Integer(f)
+      end
     end
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
   owner = ->(area, param) { query.call(area).each.find { |f| !f[param].nil? } }
