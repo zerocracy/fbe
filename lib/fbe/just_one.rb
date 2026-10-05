@@ -33,7 +33,7 @@ require_relative 'same'
 # @yield [Factbase::Fact] Block to set attributes on the fact
 # @return [Factbase::Fact] The existing or newly created fact
 # @raise [Fbe::Error] When no block is given
-# @note System attributes (_id, _time, _version) are ignored when matching
+# @note System attributes (_id, _time, _version, _job) are ignored when matching
 def Fbe.just_one(fb: Fbe.fb)
   raise(Fbe::Error, 'A block is required by just_one') unless block_given?
   attrs = {}
@@ -50,7 +50,7 @@ def Fbe.just_one(fb: Fbe.fb)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
+  q = attrs.except(:_id, :_time, :_version, :_job).map do |k, v|
     raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
     vv = v.to_s
     if v.is_a?(String)
