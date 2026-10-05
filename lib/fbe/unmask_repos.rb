@@ -81,13 +81,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   masks.reject { |m| m.start_with?('-') }.each do |mask|
     re = Fbe.mask_to_regex(mask)
     unless mask.include?('*')
-      repos <<
-        begin
-          octo.repository(mask)[:full_name] || mask
-        rescue Octokit::NotFound, Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError,
-               Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota
-          mask
-        end
+      repos << mask
       next
     end
     org = mask.split('/')[0]
