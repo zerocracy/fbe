@@ -1058,4 +1058,30 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_takes_environment_token_when_option_is_empty
+    seed = Random.new_seed
+    token = "ghp_#{Random.new(seed).hex(16)}"
+    env = ->(key, *default, &block) { key == 'GITHUB_TOKEN' ? token : ENV.to_h.fetch(key, *default, &block) }
+    graph =
+      ENV.stub(:fetch, env) do
+        Fbe::Graph.stub(:new, ->(token:) { token }) do
+          Fbe.github_graph(options: Judges::Options.new(['github_token=']), loog: Loog::NULL, global: {})
+        end
+      end
+    assert_equal(token, graph, "the empty option hides the environment token, seed: #{seed}")
+  end
+
+  def test_prefers_option_token_over_environment
+    seed = Random.new_seed
+    token = "ghp_#{Random.new(seed).hex(16)}"
+    env = ->(key, *default, &block) { key == 'GITHUB_TOKEN' ? 'ghp_env' : ENV.to_h.fetch(key, *default, &block) }
+    graph =
+      ENV.stub(:fetch, env) do
+        Fbe::Graph.stub(:new, ->(token:) { token }) do
+          Fbe.github_graph(options: Judges::Options.new(["github_token=#{token}"]), loog: Loog::NULL, global: {})
+        end
+      end
+    assert_equal(token, graph, "the option token is not the one used, seed: #{seed}")
+  end
 end
