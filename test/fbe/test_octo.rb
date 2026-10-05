@@ -1672,4 +1672,48 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_repo_id_by_name_raises_on_name_without_slash
+    seed = Random.new_seed
+    name = "Ωrepo#{Random.new(seed).rand(1_000_000)}"
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_raises(Fbe::Error, "name #{name.inspect} is accepted, seed #{seed}") { o.repo_id_by_name(name) }
+  end
+
+  def test_repo_id_by_name_raises_on_empty_name
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_raises(Fbe::Error, 'empty name is accepted') { o.repo_id_by_name('') }
+  end
+
+  def test_repo_id_by_name_raises_on_integer
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..1_000_000)
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_raises(Fbe::Error, "integer #{id} is accepted as a name, seed #{seed}") { o.repo_id_by_name(id) }
+  end
+
+  def test_repo_id_by_name_raises_on_name_with_two_slashes
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_raises(Fbe::Error, 'name with two slashes is accepted') { o.repo_id_by_name('foo/bar/baz') }
+  end
+
+  def test_repo_id_by_name_raises_on_name_without_owner
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_raises(Fbe::Error, 'name without owner is accepted') { o.repo_id_by_name('/bar') }
+  end
+
+  def test_repo_id_by_name_raises_on_name_without_repo
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_raises(Fbe::Error, 'name without repo is accepted') { o.repo_id_by_name('foo/') }
+  end
+
+  def test_repo_id_by_name_raises_on_name_without_slash_in_real_client
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":4000}}',
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4000' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    assert_raises(Fbe::Error, 'raw octokit error escapes for a name without slash') { o.repo_id_by_name('nosl') }
+  end
 end
