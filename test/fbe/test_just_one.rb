@@ -27,6 +27,15 @@ class TestJustOne < Fbe::Test
     assert_equal(2, fb.size)
   end
 
+  def test_does_not_change_time_utc_offset
+    at = Time.new(2026, 10, 4, 12, 0, 0, '+03:00')
+    Fbe.just_one(fb: Factbase.new) do |fact|
+      fact.what = 'meeting'
+      fact.when = at
+    end
+    assert_equal(10_800, at.utc_offset)
+  end
+
   def test_ignores
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
