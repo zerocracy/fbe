@@ -94,4 +94,23 @@ class TestKillIf < Fbe::Test
     end
     refute(called, 'block is called for nil facts')
   end
+
+  def test_deletes_by_a_string_id
+    fb = Factbase.new
+    %w[alpha beta].each do |k|
+      f = fb.insert
+      f.name = k
+    end
+    assert_equal(1, Fbe.kill_if(fb.query("(eq name 'alpha')").each.to_a, fb:, fid: 'name'))
+    assert_equal(1, fb.size)
+    assert_equal('beta', fb.query('(always)').each.to_a.first.name)
+  end
+
+  def test_deletes_by_an_id_with_a_quote_inside
+    fb = Factbase.new
+    f = fb.insert
+    f.name = "d'artagnan"
+    assert_equal(1, Fbe.kill_if([f], fb:, fid: 'name'))
+    assert_equal(0, fb.size)
+  end
 end
