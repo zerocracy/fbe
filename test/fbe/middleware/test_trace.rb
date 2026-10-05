@@ -169,4 +169,44 @@ class TraceTest < Fbe::Test
     assert_equal(1, actual.size)
     assert_equal(10, total.size)
   end
+
+  def test_skips_response_marked_with_ignored_status
+    trace = []
+    stub_request(:get, 'https://api.example.com/%C3%BCn%C3%AFcode')
+      .to_return(status: 200, headers: { 'cache-control' => 'public, max-age=60', 'date' => Time.now.httpdate })
+    conn =
+      Faraday.new do |f|
+        f.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
+        f.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
+        f.adapter(:net_http)
+      end
+    3.times { conn.get('https://api.example.com/%C3%BCn%C3%AFcode') }
+    assert_equal(1, trace.size, 'fresh responses from the cache were traced')
+  end
+
+  def test_traces_response_whose_status_is_not_ignored
+    trace = []
+    stub_request(:get, 'https://api.example.com/%E6%97%A5')
+      .to_return(status: 200, headers: { 'cache-control' => 'public, max-age=60', 'date' => Time.now.httpdate })
+    conn =
+      Faraday.new do |f|
+        f.use(Fbe::Middleware::Trace, trace, ignores: [:invalid])
+        f.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
+        f.adapter(:net_http)
+      end
+    3.times { conn.get('https://api.example.com/%E6%97%A5') }
+    assert_equal(3, trace.size, 'responses with a status that is not ignored were skipped')
+  end
+
+  def test_traces_response_without_cache_status
+    trace = []
+    stub_request(:get, 'https://api.example.com/%D0%B6').to_return(status: 204)
+    conn =
+      Faraday.new do |f|
+        f.use(Fbe::Middleware::Trace, trace, ignores: [:fresh])
+        f.adapter(:net_http)
+      end
+    conn.get('https://api.example.com/%D0%B6')
+    assert_equal(1, trace.size, 'response that passed no cache was skipped')
+  end
 end
