@@ -23,7 +23,7 @@ class TestConclude < Fbe::Test
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
-    $judge = ''
+    $judge = 'judge-defaults'
     Fbe.conclude do
       quota_unaware
     end
@@ -197,11 +197,12 @@ class TestConclude < Fbe::Test
   end
 
   def test_ignores_globals
-    $fb = nil
+    $fb = Factbase.new
+    $fb.insert.foo = 1
     $epoch = Time.now
-    $loog = nil
-    $options = nil
-    $global = nil
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
     fb = Factbase.new
     fb.insert.foo = 1
     Fbe.conclude(fb:, judge: 'judge-xxx', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
@@ -212,7 +213,71 @@ class TestConclude < Fbe::Test
         'something funny'
       end
     end
-    assert_equal(2, fb.size)
+    assert_equal(1, $fb.size, 'global factbase grew although another one was given')
+  end
+
+  def test_draws_into_given_factbase_despite_global_one
+    $fb = Factbase.new
+    $fb.insert.foo = 1
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
+    fb = Factbase.new
+    fb.insert.foo = 1
+    Fbe.conclude(fb:, judge: 'judge-given', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
+      quota_unaware
+      on('(exists foo)')
+      draw do |n, prev|
+        n.sum = prev.foo + 1
+        'A fact was drawn into the factbase that was given as an argument.'
+      end
+    end
+    assert_equal(2, fb.size, 'given factbase did not grow although a global one was set')
+  end
+
+  def test_considers_only_given_factbase_despite_global_one
+    seed = Random.new_seed
+    $fb = Factbase.new
+    Random.new(seed).rand(2..9).times { $fb.insert.foo = 1 }
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
+    fb = Factbase.new
+    fb.insert.foo = 1
+    count = 0
+    Fbe.conclude(fb:, judge: 'judge-given', loog: Loog::NULL, global: {}, options: Judges::Options.new) do
+      quota_unaware
+      on('(exists foo)')
+      consider { |_f| count += 1 }
+    end
+    assert_equal(1, count, "facts of the global factbase were considered too, seed #{seed}")
+  end
+
+  def test_names_drawn_fact_after_given_judge_despite_global_one
+    seed = Random.new_seed
+    judge = "судья-#{Random.new(seed).rand(1_000_000)}"
+    $judge = 'глобальный-судья'
+    $fb = Factbase.new
+    $epoch = Time.now
+    $loog = Loog::NULL
+    $options = Judges::Options.new
+    $global = {}
+    fb = Factbase.new
+    fb.insert.foo = 1
+    Fbe.conclude(fb:, judge:, loog: Loog::NULL, global: {}, options: Judges::Options.new) do
+      quota_unaware
+      on('(exists foo)')
+      draw do |n, _prev|
+        n.bar = 1
+        'A fact was drawn under the judge that was given as an argument.'
+      end
+    end
+    assert_equal(
+      judge, fb.query('(exists bar)').each.to_a[0].what,
+      "drawn fact is not named after the given judge, seed #{seed}"
+    )
   end
 
   def test_respects_lifetime
