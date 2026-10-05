@@ -53,7 +53,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       end
     end
   rescue StandardError
-    @lock.synchronize { untrack_request(took) } unless env.url.path == '/rate_limit'
+    @lock.synchronize { invalidate_request(took) } unless env.url.path == '/rate_limit'
     raise
   end
 
@@ -114,6 +114,20 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     when :core
       @remaining += 1
     end
+  end
+
+  # Invalidates a quota estimate after a request fails with ambiguous delivery.
+  #
+  # @param [Symbol, nil] took The resource whose count was decremented
+  def invalidate_request(took = nil)
+    return if took.nil?
+    case took
+    when :search
+      @searchleft = nil
+    when :core
+      @remaining = nil
+    end
+    @cached = nil
   end
 
   # Syncs the internal remaining count from a real API response header.
