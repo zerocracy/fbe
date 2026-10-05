@@ -77,6 +77,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     stale = @lock.synchronize { @cached.nil? || @counter >= 100 }
     return @lock.synchronize { Faraday::Response.new(response_env(env, @cached)) } unless stale
     response = @app.call(env)
+    return response unless response.success?
     @lock.synchronize do
       @cached = response
       @remaining = extract_remaining_count(response)
