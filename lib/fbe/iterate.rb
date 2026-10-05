@@ -31,7 +31,7 @@ require_relative 'unmask_repos'
 # @example Iterate through repositories processing issues
 #   Fbe.iterate do
 #     as 'issues_iterator'
-#     by '(and (eq what "issue") (gt created_at $before))'
+#     by '(agg (and (eq what "issue") (gt created_at $before)) (min created_at))'
 #     repeats 5
 #     over do |repository_id, issue_id|
 #       process_issue(repository_id, issue_id)
@@ -67,9 +67,12 @@ end
 # resuming after interruptions.
 #
 # @example Processing pull requests with state management
-#   iterator = Fbe::Iterate.new(fb: fb, loog: loog, options: options, global: global)
+#   iterator = Fbe::Iterate.new(
+#     fb: fb, loog: loog, options: options, global: global,
+#     epoch: Time.now, kickoff: Time.now
+#   )
 #   iterator.as('pull_requests')
-#   iterator.by('(and (eq what "pull_request") (gt number $before))')
+#   iterator.by('(agg (and (eq what "pull_request") (gt number $before)) (min number))')
 #   iterator.repeats(10)
 #   iterator.over(timeout: 600) do |repo_id, pr_number|
 #     # Process pull request
