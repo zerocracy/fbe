@@ -749,6 +749,36 @@ class TestIterate < Fbe::Test
     assert_equal([[1, 2], [3], []], runs)
   end
 
+  def test_skips_repository_that_answers_forbidden
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{"rate":{"remaining":1000}}', headers: { 'X-RateLimit-Remaining' => '1000' } }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/foo').to_return(
+      body: { id: 42, full_name: 'foo/foo', archived: false }.to_json,
+      headers: { 'Content-Type': 'application/json' }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/gone').to_return(
+      status: 403, body: { message: 'Forbidden' }.to_json, headers: { 'Content-Type': 'application/json' }
+    )
+    global = {}
+    loog = Loog::NULL
+    options = Judges::Options.new(['repositories=foo/foo,foo/gone'])
+    fb = Factbase.new
+    fb.insert.foo = 42
+    seen = []
+    Fbe.iterate(fb:, loog:, global:, options:, epoch: Time.now, kickoff: Time.now) do
+      as('marker')
+      by('(agg (always) (max foo))')
+      repeats(1)
+      over do |repository, foo|
+        seen << repository
+        foo
+      end
+    end
+    assert_equal([42], seen, 'The accessible repository must still be scanned')
+  end
+
   private
 
   def fresh_iterator
