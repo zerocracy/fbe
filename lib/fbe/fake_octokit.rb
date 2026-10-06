@@ -57,12 +57,14 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
 
   # Returns a mock rate limit object.
   #
-  # @return [Object] An object with a remaining method that returns 100
+  # @return [Object] An object with +limit+, +remaining+, +resets_at+ and +resets_in+,
+  #   the same four that +Octokit::RateLimit+ has
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.rate_limit.remaining #=> 100
+  #   fake_client.rate_limit.limit #=> 5000
   def rate_limit
-    Veil.new(nil, remaining: 100)
+    Veil.new(nil, limit: 5000, remaining: 100, resets_at: Time.now + 3600, resets_in: 3600)
   end
 
   alias rate_limit! rate_limit
