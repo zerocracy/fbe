@@ -218,4 +218,9 @@ class TestUnmaskRepos < Fbe::Test
     refute_includes(list, 'zerocracy/judges-action')
     refute_includes(list, 'zerocracy/datum')
   end
+
+  def test_unmasks_every_repository_of_a_fake_organization
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'zerocracy/*' })
+    assert_equal(%w[zerocracy/factbase zerocracy/judges], Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL).sort)
+  end
 end
