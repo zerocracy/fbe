@@ -768,70 +768,95 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     }
   end
 
+  # Searches issues and pull requests.
+  #
+  # Every item carries +state+, +closed_at+ and +user+, the way GitHub answers:
+  # +closed_at+ is set only when the query asks for +closed:+ or +is:closed+,
+  # and every item of a +type:pr+ query has a +pull_request+ object.
+  #
+  # @param [String] query The search query
+  # @param [Hash] _options Additional options (not used in mock)
+  # @return [Hash] The total count and the items found
+  # @example
+  #   client.search_issues('repo:foo/bar type:issue closed:>2024-08-01')[:items].first[:closed_at]
+  #   # => 2024-08-21 19:00:00 UTC
   def search_issues(query, _options = {})
-    if query.include?('type:pr') && query.include?('is:unmerged')
-      {
-        total_count: 1,
-        incomplete_results: false,
-        items: [
-          {
-            id: 42,
-            number: 10,
-            title: 'Awesome PR 10'
-          }
-        ]
-      }
-    elsif query.include?('type:pr') && query.include?('is:merged')
-      {
-        total_count: 1,
-        incomplete_results: false,
-        items: [
-          {
-            id: 42,
-            number: 10,
-            title: 'Awesome PR 10',
-            created_at: Time.parse('2024-08-21 19:00:00 UTC'),
-            pull_request: { merged_at: Time.parse('2024-08-23 19:00:00 UTC') }
-          }
-        ]
-      }
-    elsif query.include?('type:pr')
-      {
-        total_count: 2,
-        incomplete_results: false,
-        items: [
-          {
-            id: 42,
-            number: 10,
-            title: 'Awesome PR 10',
-            created_at: Time.parse('2024-08-21 19:00:00 UTC')
-          },
-          {
-            id: 43,
-            number: 11,
-            title: 'Awesome PR 11',
-            created_at: Time.parse('2024-08-21 20:00:00 UTC')
-          }
-        ]
-      }
-    else
-      {
-        total_count: 1,
-        incomplete_results: false,
-        items: [
-          {
-            number: 42,
-            labels: [
-              {
-                name: 'bug'
-              }
-            ],
-            user: { login: 'yegor256', id: 526_301, type: 'User' },
-            created_at: Time.parse('2024-08-20 19:00:00 UTC')
-          }
-        ]
-      }
-    end
+    found =
+      if query.include?('type:pr') && query.include?('is:unmerged')
+        {
+          total_count: 1,
+          incomplete_results: false,
+          items: [
+            {
+              id: 42,
+              number: 10,
+              title: 'Awesome PR 10'
+            }
+          ]
+        }
+      elsif query.include?('type:pr') && query.include?('is:merged')
+        {
+          total_count: 1,
+          incomplete_results: false,
+          items: [
+            {
+              id: 42,
+              number: 10,
+              title: 'Awesome PR 10',
+              created_at: Time.parse('2024-08-21 19:00:00 UTC'),
+              pull_request: { merged_at: Time.parse('2024-08-23 19:00:00 UTC') }
+            }
+          ]
+        }
+      elsif query.include?('type:pr')
+        {
+          total_count: 2,
+          incomplete_results: false,
+          items: [
+            {
+              id: 42,
+              number: 10,
+              title: 'Awesome PR 10',
+              created_at: Time.parse('2024-08-21 19:00:00 UTC')
+            },
+            {
+              id: 43,
+              number: 11,
+              title: 'Awesome PR 11',
+              created_at: Time.parse('2024-08-21 20:00:00 UTC')
+            }
+          ]
+        }
+      else
+        {
+          total_count: 1,
+          incomplete_results: false,
+          items: [
+            {
+              number: 42,
+              labels: [
+                {
+                  name: 'bug'
+                }
+              ],
+              user: { login: 'yegor256', id: 526_301, type: 'User' },
+              created_at: Time.parse('2024-08-20 19:00:00 UTC')
+            }
+          ]
+        }
+      end
+    closed = query.include?('closed:') || query.include?('is:closed')
+    found.merge(
+      items: found[:items].map do |i|
+        item = {
+          state: closed ? 'closed' : 'open',
+          closed_at: (i.dig(:pull_request, :merged_at) || Time.parse('2024-08-24 19:00:00 UTC') if closed),
+          user: { login: 'yegor256', id: 526_301, type: 'User' }
+        }.merge(i)
+        item[:pull_request] ||= { merged_at: nil } if query.include?('type:pr')
+        item
+      end
+    )
   end
 
   def commits_since(repo, _since)
