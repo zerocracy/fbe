@@ -3,10 +3,13 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase'
+require 'judges/options'
 require 'loog'
 require 'tmpdir'
 require_relative '../../lib/fbe/award'
 require_relative '../../lib/fbe/bylaws'
+require_relative '../../lib/fbe/pmp'
 require_relative '../test__helper'
 
 # Test.
@@ -235,5 +238,21 @@ class TestBylaws < Fbe::Test
         assert_includes(error.message, 'must be an Integer')
       end
     end
+  end
+
+  def test_accepts_levels_from_pmp
+    fb = Factbase.new
+    { 'hr' => ['anger', 4], 'cost' => ['love', 1], 'quality' => ['paranoia', 3] }.each do |area, (name, value)|
+      f = fb.insert
+      f.what = 'pmp'
+      f.area = area
+      f.public_send(:"#{name}=", value)
+    end
+    pmp = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_equal(
+      Fbe.bylaws(anger: 4, love: 1, paranoia: 3),
+      Fbe.bylaws(anger: pmp.hr.anger, love: pmp.cost.love, paranoia: pmp.quality.paranoia),
+      'the levels from the PMP were not taken as Integers'
+    )
   end
 end
