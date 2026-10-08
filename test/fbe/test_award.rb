@@ -60,6 +60,16 @@ class TestAward < Fbe::Test
     ].each { |t| assert_includes(md, t, md) }
   end
 
+  def test_renders_names_without_chilled_string_warnings
+    before = Warning[:deprecated]
+    Warning[:deprecated] = true
+    assert_output(nil, '') do
+      Fbe::Award.new('(award (let b1 5) (give b1 "for x"))').bylaw.markdown
+    end
+  ensure
+    Warning[:deprecated] = before
+  end
+
   def test_let_publishes_the_value_of_an_expression
     md = Fbe::Award.new(
       '(award (explain "t") (let x (plus 2 3)) (aka (give 1 "for x=${x}") "award ${x} points"))'
