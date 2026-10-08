@@ -202,6 +202,22 @@ class TestOcto < Fbe::Test
     assert_not_requested(:get, 'https://api.github.com/user/42')
   end
 
+  def test_rate_limit_aliases_work_when_off_quota
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { limit: 5000, remaining: 7, reset: 1 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '7' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'fake-token' }))
+    assert_predicate(o, :off_quota?)
+    %i[ratelimit ratelimit!].each do |m|
+      assert_equal(7, o.public_send(m).remaining, "#{m} was refused off-quota")
+    end
+    %i[rate_limit_remaining rate_limit_remaining! ratelimit_remaining ratelimit_remaining!].each do |m|
+      assert_equal(7, o.public_send(m), "#{m} was refused off-quota")
+    end
+  end
+
   def test_raw_rate_limit_works_when_off_quota
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
