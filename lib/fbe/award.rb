@@ -6,6 +6,7 @@
 require 'factbase/syntax'
 require 'joined'
 require_relative 'fb'
+require_relative 'pmp'
 
 # A generator of awards.
 #
