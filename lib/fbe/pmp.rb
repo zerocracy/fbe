@@ -137,7 +137,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                   )
                 end
             end
-            result ||= default
+            result = default if result.nil?
             raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
             result =
               begin
