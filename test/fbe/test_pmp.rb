@@ -75,6 +75,7 @@ class TestPmp < Fbe::Test
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
+    assert_equal(2, Fbe.pmp(loog: Loog::NULL).hr.anger.value)
     assert_equal(14, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
     assert_equal(56, Fbe.pmp(loog: Loog::NULL).hr.days_of_running_score)
     assert_equal(10, Fbe.pmp(loog: Loog::NULL).integration.eva_interval)
@@ -152,6 +153,25 @@ class TestPmp < Fbe::Test
     f.stealth = 'false'
     $loog = Loog::NULL
     refute(Fbe.pmp(loog: Loog::NULL).communications.stealth)
+  end
+
+  def test_reads_false_undeclared_property_in_declared_area
+    fb = Factbase.new([{ 'what' => ['pmp'], 'area' => ['hr'], 'custom_enabled' => [false] }])
+    value = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).hr.custom_enabled
+    assert_instance_of(FalseClass, value.value)
+    assert_nil(value.default)
+    assert_nil(value.type)
+    assert_nil(value.memo)
+  end
+
+  def test_rejects_false_for_integer_property
+    fb = Factbase.new([{ 'what' => ['pmp'], 'area' => ['hr'], 'anger' => [false] }])
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).hr.anger
+      end
+    assert_includes(error.message, "Invalid value 'false'")
+    assert_includes(error.message, "'anger'")
   end
 
   def test_reads_true_boolean
