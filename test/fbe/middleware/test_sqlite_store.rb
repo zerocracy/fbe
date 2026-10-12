@@ -357,6 +357,24 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_keeps_a_key_written_again_before_its_ttl_expired
+    with_tmpfile('c.db') do |f|
+      now = Time.now
+      Time.stub(:now, now) do
+        Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24).write('test1', 'value1')
+      end
+      Time.stub(:now, now + (20 * 60 * 60)) do
+        Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24).write('test1', 'value2')
+      end
+      Time.stub(:now, now + (30 * 60 * 60)) do
+        assert_equal(
+          'value2', Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, ttl: 24).read('test1'),
+          'a key written again is dropped by the age of its first write'
+        )
+      end
+    end
+  end
+
   def test_set_correct_cache_min_age
     with_tmpfile('c.db') do |f|
       s = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: nil)
