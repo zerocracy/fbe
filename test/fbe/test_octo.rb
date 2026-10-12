@@ -752,6 +752,37 @@ class TestOcto < Fbe::Test
     assert_equal('foo/bazz', o.repository(810)[:full_name])
   end
 
+  def test_fake_repository_by_id_has_owner_of_its_full_name
+    r = Fbe::FakeOctokit.new.repository(1439)
+    assert_equal(r[:full_name].split('/')[0], r[:owner][:login], 'the owner is not the one of the full name')
+  end
+
+  def test_fake_repository_by_random_id_has_html_url_of_its_full_name
+    seed = Random.new_seed
+    r = Fbe::FakeOctokit.new.repository(Random.new(seed).rand(1..999_999))
+    assert_equal("https://github.com/#{r[:full_name]}", r[:html_url], "the html_url is off, seed #{seed}")
+  end
+
+  def test_fake_repository_by_id_has_api_url_of_its_full_name
+    seed = Random.new_seed
+    r = Fbe::FakeOctokit.new.repository(Random.new(seed).rand(1..999_999))
+    assert_equal("https://api.github.com/repos/#{r[:full_name]}", r[:url], "the url is not of the API, seed #{seed}")
+  end
+
+  def test_fake_repository_by_name_has_api_url
+    seed = Random.new_seed
+    name = "владелец-#{Random.new(seed).rand(1_000)}/проект"
+    r = Fbe::FakeOctokit.new.repository(name)
+    assert_equal("https://api.github.com/repos/#{name}", r[:url], "the url of #{name} is off, seed #{seed}")
+  end
+
+  def test_fake_repository_by_name_keeps_its_owner
+    seed = Random.new_seed
+    owner = "владелец-#{Random.new(seed).rand(1_000)}"
+    r = Fbe::FakeOctokit.new.repository("#{owner}/проект")
+    assert_equal(owner, r[:owner][:login], "the owner '#{owner}' is lost, seed #{seed}")
+  end
+
   def test_fetches_fake_issue_events_has_assigned_event
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.issue_events('foo/foo', 123)
