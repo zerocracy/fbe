@@ -360,6 +360,30 @@ class TestIterate < Fbe::Test
     assert_equal(4, results.size)
   end
 
+  def test_goes_on_when_unaware_of_an_exhausted_budget
+    base = ['repositories=foo/bar', 'testing=true']
+    {
+      'lifetime_unaware' => [['lifetime=1'], Time.now - 3600, Time.now],
+      'timeout_unaware' => [['timeout=1'], Time.now, Time.now - 3600]
+    }.each do |setter, (extra, epoch, kickoff)|
+      opts = Judges::Options.new(base + extra)
+      global = {}
+      fb = Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL)
+      seen = []
+      Fbe.iterate(fb:, loog: Loog::NULL, global:, options: opts, epoch:, kickoff:) do
+        as('unaware')
+        by('(plus $before 1)')
+        repeats(1)
+        public_send(setter)
+        over do |_, nxt|
+          seen << nxt
+          nxt
+        end
+      end
+      assert_equal(1, seen.size, "nothing was processed with #{setter}")
+    end
+  end
+
   def test_all_repos_restart_causes_exit
     opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)

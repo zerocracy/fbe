@@ -229,6 +229,22 @@ class TestConclude < Fbe::Test
     assert_equal(1, fb.size)
   end
 
+  def test_draws_when_unaware_of_an_expired_lifetime
+    fb = Factbase.new
+    fb.insert.foo = 42
+    options = Judges::Options.new('lifetime=1')
+    Fbe.conclude(fb:, judge: 'x', options:, global: {}, loog: Loog::NULL, epoch: Time.now - 60) do
+      quota_unaware
+      lifetime_unaware
+      on('(exists foo)')
+      draw do |n, prev|
+        n.sum = prev.foo
+        'A long enough description to satisfy the requirements of the draw.'
+      end
+    end
+    assert_equal(1, fb.query('(exists sum)').each.to_a.size)
+  end
+
   def test_respects_timeout
     fb = Factbase.new
     fb.insert.foo = 42
