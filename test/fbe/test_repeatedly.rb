@@ -67,6 +67,39 @@ class TestRepeatedly < Fbe::Test
     assert(ran)
   end
 
+  def test_refuses_block_that_sets_what
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_raises(Fbe::Error, 'the block replaces what of the marker') do
+      Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'judge-one', loog: Loog::NULL) { |f| f.what = 'stats' }
+    end
+  end
+
+  def test_refuses_block_that_sets_judge
+    seed = Random.new_seed
+    judge = "судья-#{Random.new(seed).rand(1_000)}"
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_raises(Fbe::Error, "the block replaces judge '#{judge}' of the marker, seed #{seed}") do
+      Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'judge-one', loog: Loog::NULL) { |f| f.judge = judge }
+    end
+  end
+
+  def test_leaves_one_marker_when_block_tries_to_set_what
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    2.times do
+      Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'judge-one', loog: Loog::NULL) { |f| f.what = 'stats' }
+    rescue Fbe::Error
+      nil
+    end
+    assert_equal(1, fb.size, 'every run leaves one more orphan marker')
+  end
+
+  def test_lets_block_read_what_of_marker
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    seen = nil
+    Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'judge-one', loog: Loog::NULL) { |f| seen = f.what }
+    assert_equal('repeatedly', seen, 'the block cannot read what of the marker')
+  end
+
   def test_requires_block_before_creating_a_fact
     fb = Factbase.new
     assert_raises(Fbe::Error) do
