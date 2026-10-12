@@ -67,6 +67,15 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_opens_a_cache_smaller_than_an_empty_database
+    with_tmpfile('tiny.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, maxsize: 1).write('k', 'v')
+      loog = Loog::Buffer.new
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog:, maxsize: 1).read('k')
+      assert_includes(loog.to_s, 'nothing left to delete', loog.to_s)
+    end
+  end
+
   def test_not_db_file
     with_tmpfile do |f|
       File.binwrite(f, Array.new(20) { rand(0..255) }.pack('C*'))
