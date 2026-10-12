@@ -67,6 +67,16 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_names_the_directory_that_does_not_exist
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'absent', 'test.db')
+      assert_includes(
+        assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new(path, '0.0.0', loog: fake_loog) }.message,
+        'does not exist'
+      )
+    end
+  end
+
   def test_not_db_file
     with_tmpfile do |f|
       File.binwrite(f, Array.new(20) { rand(0..255) }.pack('C*'))
