@@ -190,6 +190,16 @@ class TestTombstone < Fbe::Test
     end
   end
 
+  def test_cannot_bury_negative_member
+    seed = Random.new_seed
+    member = -Random.new(seed).rand(1..10_000)
+    tombstone = Fbe::Tombstone.new(fb: Factbase.new)
+    assert_raises(Fbe::Error, "negative member #{member} is buried, seed is #{seed}") do
+      tombstone.bury!('github', 42, member)
+    end
+    refute(tombstone.has?('github', 42, 7), "the tombstone is unreadable after #{member}, seed is #{seed}")
+  end
+
   def test_dont_touch_factbase_when_member_is_invalid
     seed = Random.new_seed
     member = "ж#{Random.new(seed).rand(1..10_000)}"
