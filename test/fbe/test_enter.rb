@@ -57,4 +57,48 @@ class TestEnter < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_equal('hi', Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { 'hi' })
   end
+
+  def test_returns_string_of_integer_in_testing_mode
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    number = Random.new(seed).rand(-1_000_000..1_000_000)
+    options = Judges::Options.new({ 'testing' => true })
+    assert_equal(
+      number.to_s, Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { number },
+      "integer result is not turned into a string in testing mode, seed #{seed}"
+    )
+  end
+
+  def test_returns_empty_string_for_nil_in_testing_mode
+    WebMock.disable_net_connect!
+    options = Judges::Options.new({ 'testing' => true })
+    assert_equal(
+      '', Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { nil },
+      'nil result is not turned into an empty string in testing mode'
+    )
+  end
+
+  def test_returns_string_of_symbol_in_testing_mode
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    symbol = :"значение-#{Random.new(seed).rand(1_000)}"
+    options = Judges::Options.new({ 'testing' => true })
+    assert_equal(
+      symbol.to_s, Fbe.enter('bär', 'причина', options:, loog: Loog::NULL) { symbol },
+      "symbol result is not turned into a string in testing mode, seed #{seed}"
+    )
+  end
+
+  def test_returns_same_type_in_testing_and_live_mode
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.zerocracy.com/csrf').to_return(body: 'token')
+    stub_request(:get, 'https://api.zerocracy.com/result?badge=foo').to_return(status: 200, body: '7')
+    live = Judges::Options.new({ 'zerocracy_token' => '00000-0000-0000-00000' })
+    testing = Judges::Options.new({ 'testing' => true })
+    assert_equal(
+      Fbe.enter('foo', 'no reason', options: live, loog: Loog::NULL) { 7 }.class,
+      Fbe.enter('foo', 'no reason', options: testing, loog: Loog::NULL) { 7 }.class,
+      'testing mode returns a type that live mode never returns'
+    )
+  end
 end
