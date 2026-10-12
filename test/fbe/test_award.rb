@@ -218,6 +218,21 @@ class TestAward < Fbe::Test
     assert_includes(assert_raises(Fbe::Error) { a.bill }.message, 'Unknown name :x')
   end
 
+  def test_keeps_the_grouping_of_nested_arithmetic_in_the_bylaw
+    {
+      '(times (plus 2 3) 4)' => '(**2** + **3**) × **4**',
+      '(div 10 (times 2 5))' => '**10** ÷ (**2** × **5**)',
+      '(minus 10 (minus 4 3))' => '**10** - (**4** - **3**)',
+      '(div 12 (div 6 2))' => '**12** ÷ (**6** ÷ **2**)',
+      '(plus 1 (times 2 3))' => '**1** + **2** × **3**',
+      '(minus (minus 10 4) 3)' => '**10** - **4** - **3**',
+      '(plus 1 (plus 2 3))' => '**1** + **2** + **3**'
+    }.each do |formula, text|
+      md = Fbe::Award.new("(award (give #{formula} \"formula\"))").bylaw.markdown
+      assert_includes(md, text, md)
+    end
+  end
+
   def test_division_by_zero_raises_error
     a = Fbe::Award.new('(award (set x (div 10 0)) (give x "test"))')
     assert_raises(Fbe::Error) { a.bill }
