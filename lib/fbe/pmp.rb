@@ -82,6 +82,12 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       raise(ArgumentError, "#{value} is not a whole number") unless (f % 1).zero?
       Integer(f)
     end
+  finite =
+    lambda do |value|
+      f = Float(value)
+      raise(ArgumentError, "#{value} is not a finite number") unless f.finite?
+      f
+    end
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
   owner = ->(area, param) { query.call(area).each.find { |f| !f[param].nil? } }
   Class.new do
@@ -143,7 +149,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
               begin
                 case type
                 when 'int' then whole.call(result)
-                when 'float' then Float(result)
+                when 'float' then finite.call(result)
                 when 'bool' then result.to_s == 'true'
                 when 'string' then result.to_s
                 else result
