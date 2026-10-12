@@ -27,6 +27,12 @@ class TestFb < Fbe::Test
     assert_includes(stdout, 'Inserted new fact #1', stdout)
   end
 
+  def test_takes_the_timeout_of_the_judge
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new({ 'timeout' => 7 }), loog: Loog::NULL)
+    assert_kind_of(Factbase::Impatient, fb)
+    assert_in_delta(7.0, fb.instance_variable_get(:@timeout))
+  end
+
   def test_refuses_another_fb_for_the_same_global
     opts = Judges::Options.new
     global = {}
