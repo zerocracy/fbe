@@ -14,19 +14,21 @@ require_relative 'fb'
 # The factbase may have a few facts with the +what+ set to +pmp+ (stands for the
 # "project management plan"). These facts contain information that configures
 # the project. It is expected that every fact with the +what+ set to +pmp+ also
-# contains the +area+ property, which is set to one of nine values: +scope+,
-# +time+, +cost+, etc. (the nine process areas in the PMBOK).
+# contains the +area+ property, which is set to one of the areas declared in
+# +assets/pmp.xml+: +hr+, +integration+, +quality+, +scope+, +cost+, and
+# +communications+.
 #
-# If a proper pmp fact is not found or the property is absent in the fact,
-# this method throws an exception. The factbase must contain PMP-related facts.
-# Most probably, a special judge must fill it up with such a fact.
+# A property declared in +assets/pmp.xml+ is read from the pmp fact of its
+# area, and falls back to its default from the XML when there is no such
+# fact or the fact doesn't have the property. Only a property that is not
+# declared in the XML and is absent in the factbase makes this method raise.
 #
 # The method uses a double nested `others` block to create a chainable interface
 # that allows accessing configuration like:
 #
-#   Fbe.pmp.hr.reward_points
-#   Fbe.pmp.cost.hourly_rate
-#   Fbe.pmp.time.deadline
+#   Fbe.pmp.hr.days_to_reward
+#   Fbe.pmp.cost.award_price
+#   Fbe.pmp.quality.qos_days
 #
 # Custom areas (not defined in +assets/pmp.xml+) are also supported. When
 # accessing a property through a custom area, the returned value is read
@@ -44,14 +46,14 @@ require_relative 'fb'
 # @return [Object] A proxy object that allows method chaining to access PMP properties
 # @raise [Fbe::Error] If the factbase or any of the required globals is not set
 # @example
-#   # Get HR reward points from PMP configuration
-#   points = Fbe.pmp.hr.reward_points
+#   # Get the minimum age of an event to reward, from the HR area
+#   days = Fbe.pmp.hr.days_to_reward
 #
-#   # Get hourly rate from cost area
-#   rate = Fbe.pmp.cost.hourly_rate
+#   # Get the price of one award point, from the cost area
+#   price = Fbe.pmp.cost.award_price
 #
-#   # Get deadline from time area
-#   deadline = Fbe.pmp.time.deadline
+#   # Get the window of quality-of-service metrics, from the quality area
+#   window = Fbe.pmp.quality.qos_days
 #
 #   # Read custom property (nil default/type/memo)
 #   val = Fbe.pmp.my_custom.my_prop
