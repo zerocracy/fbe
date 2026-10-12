@@ -27,14 +27,54 @@ class TestJustOne < Fbe::Test
     assert_equal(2, fb.size)
   end
 
-  def test_ignores
+  def test_dont_insert_fact_when_same_one_exists
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
+    Fbe.just_one(fb:) do |f|
+      f.foo = 'hello dude'
+    end
+    assert_equal(1, fb.size, 'a duplicate fact is inserted next to the existing one')
+  end
+
+  def test_returns_existing_fact_when_same_one_exists
+    seed = Random.new_seed
+    mark = Random.new(seed).rand(1..1_000_000)
+    fb = Factbase.new
+    existing = fb.insert
+    existing.foo = 'hello dude'
+    existing.mark = mark
     n =
       Fbe.just_one(fb:) do |f|
         f.foo = 'hello dude'
       end
-    refute_nil(n)
+    assert_equal(mark, n['mark']&.first, "the fact returned is not the existing one, seed #{seed}")
+  end
+
+  def test_dont_insert_fact_for_repeated_non_ascii_value
+    seed = Random.new_seed
+    text = "привет, 世界 #{Random.new(seed).rand(1_000)} '\""
+    fb = Factbase.new
+    3.times do
+      Fbe.just_one(fb:) do |f|
+        f.foo = text
+      end
+    end
+    assert_equal(1, fb.size, "a duplicate fact is inserted for '#{text}', seed #{seed}")
+  end
+
+  def test_dont_insert_fact_for_repeated_integer_and_time
+    seed = Random.new_seed
+    random = Random.new(seed)
+    number = random.rand(-1_000_000..1_000_000)
+    time = Time.at(random.rand(1_000_000_000..2_000_000_000)).utc
+    fb = Factbase.new
+    2.times do
+      Fbe.just_one(fb:) do |f|
+        f.num = number
+        f.when = time
+      end
+    end
+    assert_equal(1, fb.size, "a duplicate fact is inserted for #{number} at #{time}, seed #{seed}")
   end
 
   def test_injects
