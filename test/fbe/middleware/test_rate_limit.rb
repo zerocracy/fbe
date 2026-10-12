@@ -250,6 +250,21 @@ class RateLimitTest < Fbe::Test
     assert_equal(1, conn.get('/rate_limit').body['resources']['core']['remaining'])
   end
 
+  def test_does_not_count_a_failed_request_towards_the_refresh
+    payload = { 'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(status: 200, body: '{"login": "test"}', headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://api.github.com/broken').to_raise(Faraday::ConnectionFailed.new('no network'))
+    conn = create_connection
+    conn.get('/rate_limit')
+    99.times { conn.get('/user') }
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/broken') }
+    conn.get('/rate_limit')
+    assert_requested(:get, 'https://api.github.com/rate_limit', times: 1)
+  end
+
   def test_gives_nothing_back_when_the_quota_is_out
     payload = {
       'rate' => { 'limit' => 5000, 'remaining' => 0, 'reset' => 1_672_531_200 },
