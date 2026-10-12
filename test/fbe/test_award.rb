@@ -124,6 +124,23 @@ class TestAward < Fbe::Test
     end
   end
 
+  def test_renders_each_operator_in_the_bylaw
+    {
+      '(lt a 5)' => '_a_ < **5**',
+      '(gt a 5)' => '_a_ > **5**',
+      '(eq a 5)' => '_a_ = **5**',
+      '(times a 2)' => '_a_ × **2**',
+      '(minus a 3)' => '_a_ - **3**',
+      '(max a 3)' => 'maximum of _a_ and **3**',
+      '(or (eq a 1) (eq a 2))' => '_a_ = **1** or _a_ = **2**',
+      '(if (lt a 5) 1 2)' => 'if _a_ < **5** then **1** else **2**',
+      '(total)' => 'set _z_ to total,'
+    }.each do |e, t|
+      md = Fbe::Award.new("(award (set z #{e}) (give z \"x\"))").bylaw.markdown
+      assert_includes(md, t, e)
+    end
+  end
+
   def test_aka_with_explain_keeps_earlier_lines
     a = Fbe::Award.new(
       '(award (give 1 "for the first thing") ' \
