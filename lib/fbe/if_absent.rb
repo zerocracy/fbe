@@ -65,7 +65,9 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
+  matching = attrs.except(:_id, :_time, :_version)
+  raise(Fbe::Error, 'At least one non-system attribute is required by if_absent') if matching.empty?
+  q = matching.map do |k, v|
     raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
     vv = v.to_s
     if v.is_a?(String)
