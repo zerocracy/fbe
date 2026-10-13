@@ -18,6 +18,7 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] id The property name used as unique identifier (defaults to '_id')
 # @return [nil] Nothing
+# @raise [Fbe::Error] If fact is nil, has no ID, or shares its ID with another fact
 def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
   prop = prop.to_s
@@ -28,15 +29,15 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   fact.all_properties.each do |k|
     before[k] = fact[k]
   end
-  return unless before[prop]
-  nv = before[prop].dup
-  at = nv.index(value)
+  at = before.fetch(prop, []).index(value)
   return if at.nil?
+  nv = before[prop].dup
   nv.delete_at(at)
   before[prop] = nv
   before.delete(prop) if nv.empty?
   fb.txn do |fbt|
-    fbt.query("(eq #{id} #{i})").delete!
+    deleted = fbt.query("(eq #{id} #{i})").delete!
+    raise(Fbe::Error, "#{deleted} facts share #{id} = #{i}, cannot delete one of them") if deleted > 1
     c = fbt.insert
     f = c
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)

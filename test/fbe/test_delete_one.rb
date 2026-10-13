@@ -105,4 +105,39 @@ class TestDeleteOne < Fbe::Test
     assert_equal(snapshot[:job], after._job)
     assert_equal([22], after['bar'])
   end
+
+  def test_rejects_facts_sharing_the_id
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    id = rnd.rand(1..1000)
+    tags = Array.new(2) { |i| "t\u00e4g-#{i}-#{rnd.rand(1000)}" }
+    facts =
+      tags.map do |t|
+        f = fb.insert
+        f._id = id
+        f.tag = t
+        f
+      end
+    assert_raises(Fbe::Error, "delete_one destroyed every fact with _id #{id}, seed #{seed}") do
+      Fbe.delete_one(facts.first, 'tag', tags.first, fb:)
+    end
+  end
+
+  def test_rejects_facts_sharing_a_custom_id
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    key = rnd.rand(1..1000)
+    facts =
+      Array.new(rnd.rand(2..5)) do |i|
+        f = fb.insert
+        f.key = key
+        f.k = i
+        f
+      end
+    assert_raises(Fbe::Error, "delete_one destroyed #{facts.size} facts with key #{key}, seed #{seed}") do
+      Fbe.delete_one(facts.last, 'k', facts.size - 1, fb:, id: 'key')
+    end
+  end
 end
