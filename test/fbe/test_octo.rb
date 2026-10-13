@@ -1672,4 +1672,13 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_comment_timestamps_are_times
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [o.pull_request_comments('foo/foo', 42).first, o.issue_comments('foo/foo', 42).first].each do |c|
+      assert_kind_of(Time, c[:created_at])
+      assert_kind_of(Time, c[:updated_at])
+    end
+    assert_operator(o.issue('foo/foo', 42)[:created_at], :<=, Time.now)
+  end
 end

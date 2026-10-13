@@ -1210,8 +1210,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           id: 2_566_462
         },
         body: 'Most likely, parentheses were missed here.',
-        created_at: '2024-08-08T09:41:46Z',
-        updated_at: '2024-08-08T09:42:46Z',
+        created_at: Time.parse('2024-08-08T09:41:46Z'),
+        updated_at: Time.parse('2024-08-08T09:42:46Z'),
         reactions: {
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082318/reactions',
           total_count: 0
@@ -1237,8 +1237,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           id: 88_084_038
         },
         body: 'definitely a typo',
-        created_at: '2024-08-08T09:42:46Z',
-        updated_at: '2024-08-08T09:42:46Z',
+        created_at: Time.parse('2024-08-08T09:42:46Z'),
+        updated_at: Time.parse('2024-08-08T09:42:46Z'),
         reactions: {
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082319/reactions',
           total_count: 0
@@ -1272,8 +1272,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           id: 2_566_462
         },
         body: 'reviewer comment',
-        created_at: '2024-08-08T09:41:46Z',
-        updated_at: '2024-08-08T09:42:46Z',
+        created_at: Time.parse('2024-08-08T09:41:46Z'),
+        updated_at: Time.parse('2024-08-08T09:42:46Z'),
         reactions: {
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082320/reactions',
           total_count: 1
@@ -1299,8 +1299,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           id: 88_084_038
         },
         body: 'author comment',
-        created_at: '2024-08-08T09:42:46Z',
-        updated_at: '2024-08-08T09:42:46Z',
+        created_at: Time.parse('2024-08-08T09:42:46Z'),
+        updated_at: Time.parse('2024-08-08T09:42:46Z'),
         reactions: {
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082321/reactions',
           total_count: 1
