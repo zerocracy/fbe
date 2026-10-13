@@ -240,4 +240,39 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_prints_float_rate_in_award_text
+    seed = Random.new_seed
+    k = Random.new(seed).rand(1..99) / 100.0
+    g = Fbe::Award.new(
+      "(award (give 1 \"base\") (in hoc \"hits\") (let k #{k}) (set b (times hoc k)) (give b \"at ${k} each\"))"
+    ).bill(hoc: 1000).greeting
+    assert_includes(g, "at #{k} each", "rate is not printed as is, seed #{seed}")
+  end
+
+  def test_rounds_float_in_award_text_to_two_decimals
+    g = Fbe::Award.new('(award (give 1 "base") (set r (div 1 3)) (give 5 "at ${r} each"))').bill.greeting
+    assert_includes(g, 'at 0.33 each', 'float is not rounded to two decimals')
+  end
+
+  def test_prints_whole_float_in_award_text_without_fraction
+    seed = Random.new_seed
+    n = Random.new(seed).rand(1..1000)
+    g = Fbe::Award.new(
+      "(award (give 1 \"base\") (set d (times 0.5 #{n * 2})) (give 5 \"for ${d} days\"))"
+    ).bill.greeting
+    assert_includes(g, "for #{n} days", "whole float is printed with a fraction, seed #{seed}")
+  end
+
+  def test_prints_tiny_negative_float_in_award_text_as_zero
+    g = Fbe::Award.new('(award (give 1 "base") (set d (times -0.001 1)) (give 5 "for ${d} days"))').bill.greeting
+    assert_includes(g, 'for 0 days', 'tiny negative float is not printed as zero')
+  end
+
+  def test_prints_negative_float_rate_in_award_text
+    seed = Random.new_seed
+    k = -Random.new(seed).rand(1..99) / 100.0
+    g = Fbe::Award.new("(award (give 1 \"base\") (let k #{k}) (give 5 \"at ${k} each\"))").bill.greeting
+    assert_includes(g, "at #{k} each", "negative rate is not printed as is, seed #{seed}")
+  end
 end

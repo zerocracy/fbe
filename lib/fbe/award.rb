@@ -370,7 +370,7 @@ class Fbe::Award
         text.gsub(/\$\{([^}]*)\}/) do |_x|
           k = Regexp.last_match[1].to_sym
           raise(Fbe::Error, "Undefined variable '#{k}' used in award text: #{text}") unless @vars.key?(k)
-          @vars[k].is_a?(Float) ? whole(@vars[k]) : @vars[k]
+          @vars[k].is_a?(Float) ? short(@vars[k]) : @vars[k]
         end
       return if value.zero?
       @lines << { v: value, t: text }
@@ -415,6 +415,15 @@ class Fbe::Award
     # @return [Integer] The value as a whole number
     def whole(value)
       Integer(Float(value).round)
+    end
+
+    # Rounds a Float to two decimals, dropping the fraction when it is zero.
+    #
+    # @param [Float] value The value to print in the text of a line
+    # @return [Float, Integer] The value as short as it can be printed
+    def short(value)
+      r = value.round(2)
+      r == r.round ? r.round : r
     end
   end
 
