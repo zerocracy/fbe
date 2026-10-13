@@ -522,6 +522,39 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_open_closes_the_store_afterwards
+    Dir.mktmpdir do |dir|
+      f = File.expand_path('open.db', dir)
+      Fbe::Middleware::SqliteStore.open(f, '0.0.0', loog: fake_loog) do |store|
+        store.write('k', 'some value')
+        assert_equal('some value', store.read('k'))
+      end
+      assert_path_exists(f)
+      FileUtils.rm(f)
+    end
+  end
+
+  def test_open_closes_the_store_when_the_block_raises
+    Dir.mktmpdir do |dir|
+      f = File.expand_path('boom.db', dir)
+      assert_raises(Fbe::Error) do
+        Fbe::Middleware::SqliteStore.open(f, '0.0.0', loog: fake_loog) do |store|
+          store.write('k', 'some value')
+          raise(Fbe::Error, 'boom')
+        end
+      end
+      FileUtils.rm(f)
+    end
+  end
+
+  def test_close_is_safe_on_a_store_that_was_never_used
+    with_tmpfile do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      assert_nil(store.close)
+      assert_nil(store.close)
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
