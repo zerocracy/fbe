@@ -490,13 +490,7 @@ class Fbe::Award
     #   bylaw.let(:points, 50)
     #   bylaw.line("award ${points} points")
     def line(line)
-      line =
-        line.gsub(/\$\{([^}]*)\}/) do |_x|
-          k = Regexp.last_match[1].to_sym
-          raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @vars.key?(k)
-          "**#{@vars[k]}**"
-        end
-      @lines << line
+      @lines << substitute(line)
     end
 
     # Registers a variable with its value for substitution in lines.
@@ -522,7 +516,7 @@ class Fbe::Award
     #   #=> "This bylaw determines rewards for code contributions. Just award **50** points."
     def markdown
       pars = []
-      pars << "#{@intro}." unless @intro.empty?
+      pars << "#{substitute(@intro)}." unless @intro.empty?
       pars << 'Here is how it\'s calculated:'
       if @lines.size == 1
         pars << "Just #{@lines.first}."
@@ -532,6 +526,20 @@ class Fbe::Award
       pars.join(' ')
         .gsub(/(\bset (_[^_\s]+_) to (?:(?!\. ).)*)\. Then, award \2\./, '\1, and award \2.')
         .gsub(/\s{2,}/, ' ')
+    end
+
+    private
+
+    # Replaces ${var} references with their bolded, registered values.
+    #
+    # @param [String] text The text to substitute variables into
+    # @return [String] The text with all ${var} references replaced
+    def substitute(text)
+      text.gsub(/\$\{([^}]*)\}/) do
+        k = Regexp.last_match[1].to_sym
+        raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{text}") unless @vars.key?(k)
+        "**#{@vars[k]}**"
+      end
     end
   end
 end

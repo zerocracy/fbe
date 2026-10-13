@@ -141,6 +141,17 @@ class TestAward < Fbe::Test
     refute_includes(md, 'INNER', md)
   end
 
+  def test_explain_substitutes_variables
+    a = Fbe::Award.new('(award (explain "you get ${bonus} points") (let bonus 7) (give bonus "x"))')
+    md = a.bylaw.markdown
+    assert_includes(md, 'you get **7** points', md)
+  end
+
+  def test_explain_raises_on_undefined_variable
+    a = Fbe::Award.new('(award (explain "you get ${nosuchvar} points") (give 7 "x"))')
+    assert_raises(Fbe::Error) { a.bylaw.markdown }
+  end
+
   def test_between_in_bylaw_markdown
     a = Fbe::Award.new('(award (set b (between x 3 120)) (give b "test"))')
     md = a.bylaw.markdown
