@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase/syntax'
 require 'loog'
 require_relative '../../lib/fbe/award'
 require_relative '../test__helper'
@@ -239,5 +240,11 @@ class TestAward < Fbe::Test
 
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
+  end
+
+  def test_prints_a_string_operand_in_quotes
+    term = Factbase::Syntax.new('(give (times loc 5) "for LoC")').to_term
+    term.redress!(Fbe::Award::BTerm)
+    assert_equal("(give (times loc 5) 'for LoC')", term.to_s)
   end
 end
