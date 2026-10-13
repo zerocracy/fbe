@@ -167,7 +167,7 @@ class Fbe::Middleware::SqliteStore
       t.execute('DELETE FROM cache;')
       t.execute("UPDATE meta SET value = ? WHERE key = 'version';", [@version])
     end
-    @db.execute('VACUUM;')
+    @db&.execute('VACUUM;')
   end
 
   # Get all entries from the cache, in the form they are stored in, which
