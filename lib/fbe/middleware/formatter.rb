@@ -6,6 +6,7 @@
 require 'ellipsized'
 require 'faraday'
 require 'faraday/logging/formatter'
+require 'json'
 require_relative '../../fbe'
 require_relative '../../fbe/middleware'
 
