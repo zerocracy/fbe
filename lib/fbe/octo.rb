@@ -145,6 +145,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         o =
           decoor(o, loog:, trace:, limits:, mutex:) do # rubocop:disable Metrics/BlockLength
             def print_trace!(all: false, max: 5)
+              left = @origin.rate_limit!.remaining unless @mutex.synchronize { @trace.empty? }
               @mutex.synchronize do
                 if @trace.empty?
                   @loog.debug('GitHub API trace is empty')
@@ -173,7 +174,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                   @loog.info(
                     "GitHub API trace (#{grouped.count} URLs vs #{shown.count} requests, " \
                     "#{@trace.count - shown.count} fast ones skipped, " \
-                    "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
+                    "#{left || 'unknown'} quota left):\n#{message}"
                   )
                   @trace.clear
                 end
