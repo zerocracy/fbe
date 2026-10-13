@@ -31,6 +31,33 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_serializes_transactions_from_concurrent_threads
+    with_tmpfile do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      state = { active: 0, overlap: false }
+      guard = Mutex.new
+      database = Object.new
+      database.define_singleton_method(:transaction) do |&block|
+        guard.synchronize do
+          state[:overlap] = true if state[:active].positive?
+          state[:active] += 1
+        end
+        sleep(0.02)
+        block.call
+      ensure
+        guard.synchronize { state[:active] -= 1 }
+      end
+      store.instance_variable_set(:@db, database)
+      threads = 2.times.map do
+        Thread.new do
+          store.__send__(:perform) { sleep(0.02) }
+        end
+      end
+      threads.each(&:value)
+      refute(state[:overlap])
+    end
+  end
+
   def test_returns_empty_list
     with_tmpfile('b.db') do |f|
       store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)

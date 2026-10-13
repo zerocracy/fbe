@@ -167,7 +167,7 @@ class Fbe::Middleware::SqliteStore
       t.execute('DELETE FROM cache;')
       t.execute("UPDATE meta SET value = ? WHERE key = 'version';", [@version])
     end
-    @db.execute('VACUUM;')
+    @mutex.synchronize { @db&.execute('VACUUM;') }
   end
 
   # Get all entries from the cache, in the form they are stored in, which
@@ -180,8 +180,10 @@ class Fbe::Middleware::SqliteStore
   # Close the database connection explicitly.
   # @return [nil]
   def close
-    @db&.close
-    @db = nil
+    @mutex.synchronize do
+      @db&.close
+      @db = nil
+    end
   end
 
   private
@@ -190,9 +192,9 @@ class Fbe::Middleware::SqliteStore
     return [] if @disabled
     @mutex.synchronize do
       @db ||= open!
+      return [] if @disabled
+      @db.transaction(&)
     end
-    return [] if @disabled
-    @db.transaction(&)
   end
 
   # Opens the database, discarding and recreating an unusable cache file once.
