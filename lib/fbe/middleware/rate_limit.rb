@@ -91,11 +91,12 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @return [Symbol, nil] The counter the request was taken off, or NIL if none was
   def track_request(path = nil)
     @counter += 1
-    if path&.start_with?('/search/')
+    case resource(path)
+    when 'search'
       return nil unless @searchleft&.positive?
       @searchleft -= 1
       :search
-    else
+    when 'core'
       return nil unless @remaining&.positive?
       @remaining -= 1
       :core
@@ -123,7 +124,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # +x-ratelimit-remaining+ header is stale, so we keep our
   # decremented count. When the API was actually contacted,
   # the header is the truth, so we take it as is, even when it
-  # raises the counter after GitHub has reset the quota.
+  # raises the counter after GitHub has reset the quota. The counter is
+  # the one of the resource GitHub names in +x-ratelimit-resource+, or
+  # of the resource of the path when the header is absent.
   #
   # @param [Faraday::Env] response_env The response environment
   def sync(response_env, path = nil)
@@ -133,11 +136,19 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     remaining = headers['x-ratelimit-remaining']
     return unless remaining
     count = Integer(remaining)
-    if path&.start_with?('/search/')
-      @searchleft = count
-    else
-      @remaining = count
+    case headers['x-ratelimit-resource'] || resource(path)
+    when 'search' then @searchleft = count
+    when 'core' then @remaining = count
     end
+  end
+
+  # Names the resource of the GitHub quota that a request to the path is billed to.
+  #
+  # @param [String, nil] path The path of the request
+  # @return [String] The resource, the way GitHub names it in +x-ratelimit-resource+
+  def resource(path)
+    return 'code_search' if path&.start_with?('/search/code')
+    path&.start_with?('/search/') ? 'search' : 'core'
   end
 
   # Extracts the remaining count from the response body.

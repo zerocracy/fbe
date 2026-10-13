@@ -465,6 +465,73 @@ class RateLimitTest < Fbe::Test
     assert_equal(25, response.body['resources']['search']['remaining'])
   end
 
+  def test_keeps_search_remaining_after_code_search_header
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    left = rnd.rand(10..30)
+    payload = { 'rate' => { 'remaining' => 4999 }, 'resources' => { 'search' => { 'remaining' => left } } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, %r{\Ahttps://api\.github\.com/search/code})
+      .to_return(
+        status: 200, body: '{}', headers: {
+          'Content-Type' => 'application/json', 'X-RateLimit-Resource' => 'code_search',
+          'X-RateLimit-Remaining' => rnd.rand(0..9).to_s
+        }
+      )
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    conn.get("/search/code?q=#{rnd.rand(1000)}")
+    assert_equal(
+      left, tracker[:rate_limit].remaining(:search),
+      "code search quota was written into the search counter, seed #{seed}"
+    )
+  end
+
+  def test_keeps_search_remaining_after_code_search
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    left = rnd.rand(10..30)
+    payload = { 'rate' => { 'remaining' => 4999 }, 'resources' => { 'search' => { 'remaining' => left } } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, %r{\Ahttps://api\.github\.com/search/code})
+      .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    conn.get("/search/code?q=#{rnd.rand(1000)}")
+    assert_equal(
+      left, tracker[:rate_limit].remaining(:search),
+      "code search was taken off the search counter, seed #{seed}"
+    )
+  end
+
+  def test_keeps_core_remaining_after_another_resource
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    left = rnd.rand(10..30)
+    payload = { 'rate' => { 'remaining' => 4999 }, 'resources' => { 'search' => { 'remaining' => left } } }
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 200, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, %r{\Ahttps://api\.github\.com/graphql})
+      .to_return(
+        status: 200, body: '{}', headers: {
+          'Content-Type' => 'application/json', 'X-RateLimit-Resource' => 'graphql',
+          'X-RateLimit-Remaining' => rnd.rand(0..9).to_s
+        }
+      )
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/rate_limit')
+    conn.get("/graphql?q=#{rnd.rand(1000)}")
+    assert_equal(
+      4998, tracker[:rate_limit].remaining(:core),
+      "graphql quota was written into the core counter, seed #{seed}"
+    )
+  end
+
   def test_cached_body_is_not_leaked_to_callers
     payload = {
       'rate' => { 'limit' => 5000, 'remaining' => 4999, 'reset' => 1_672_531_200 },
