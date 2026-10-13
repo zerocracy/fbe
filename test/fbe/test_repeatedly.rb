@@ -227,4 +227,51 @@ class TestRepeatedly < Fbe::Test
     end
     assert(ran, "the judge stayed idle #{hours + 1} hours later, while the interval is #{hours}, seed is #{seed}")
   end
+
+  def test_replaces_property_on_the_second_run_on_a_plain_factbase
+    seed = Random.new_seed
+    count = Random.new(seed).rand(1..1_000_000)
+    fb = Factbase.new
+    2.times do |i|
+      Time.stub(:now, Time.now + (i * 25 * 60 * 60)) do
+        Fbe.repeatedly('качество', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+          f.servers_checked = count + i
+        end
+      end
+    end
+    assert_equal([count + 1], fb.query('(always)').each.first['servers_checked'], "second run is lost, seed #{seed}")
+  end
+
+  def test_runs_again_on_an_old_marker_without_id
+    seed = Random.new_seed
+    count = Random.new(seed).rand(1..1_000_000)
+    fb = Factbase.new
+    m = fb.insert
+    m.what = 'repeatedly'
+    m.judge = 'test'
+    m.when = Time.now - (25 * 60 * 60)
+    m.servers_checked = count
+    Fbe.repeatedly('качество', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+      f.servers_checked = count + 1
+    end
+    assert_equal(
+      [count + 1], fb.query('(always)').each.first['servers_checked'],
+      "old marker is not updated, seed #{seed}"
+    )
+  end
+
+  def test_keeps_the_id_of_a_marker_that_has_one
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..1_000_000)
+    fb = Factbase.new
+    m = fb.insert
+    m._id = id
+    m.what = 'repeatedly'
+    m.judge = 'test'
+    m.when = Time.now - (25 * 60 * 60)
+    Fbe.repeatedly('качество', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+      f.servers_checked = id
+    end
+    assert_equal([id], fb.query('(always)').each.first['_id'], "marker got another id, seed #{seed}")
+  end
 end

@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'others'
+require 'securerandom'
 require 'tago'
 require_relative '../fbe'
 require_relative 'fb'
@@ -33,7 +34,7 @@ require_relative 'overwrite'
 #     f.issues_found = count_issues
 #     # PMP might have: hours_between_checks=6
 #   end
-def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &) # rubocop:disable Metrics/AbcSize
   raise(Fbe::Error, 'The area is nil') if area.nil?
   raise(Fbe::Error, 'The p_every_hours is nil') if p_every_hours.nil?
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
@@ -58,6 +59,7 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
     f.what = 'repeatedly'
     f.judge = judge
   end
+  f._id = SecureRandom.random_number(9_999_999_999_999) if f['_id'].nil?
   attrs = {}
   yield(
     others(fact: f, map: attrs) do |k, *rest|
