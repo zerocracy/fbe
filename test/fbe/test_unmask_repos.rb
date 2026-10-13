@@ -63,6 +63,14 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(1, list.size, "duplicates found in #{list.inspect}")
   end
 
+  def test_excludes_repo_when_dash_is_followed_by_space
+    ['yegor256/*, - yegor256/judges', 'yegor256/*,- yegor256/judges'].each do |m|
+      opts = Judges::Options.new({ 'testing' => true, 'repositories' => m })
+      list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+      assert_equal(['yegor256/factbase'], list, "the exclusion in #{m.inspect} was ignored")
+    end
+  end
+
   def test_mask_to_regex_treats_dot_as_literal
     re = Fbe.mask_to_regex('zold-io/blog.zold.io')
     assert_match(re, 'zold-io/blog.zold.io')

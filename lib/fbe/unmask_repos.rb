@@ -99,7 +99,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     loog.warn("Cannot expand the mask #{mask.inspect}, skipping it: #{e.message}")
   end
   masks.select { |m| m.start_with?('-') }.each do |mask|
-    re = Fbe.mask_to_regex(mask[1..])
+    re = Fbe.mask_to_regex(mask[1..].strip)
     repos.reject! { |r| re.match?(r) }
   end
   repos.uniq!(&:downcase)
