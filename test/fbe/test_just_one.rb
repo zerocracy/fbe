@@ -88,4 +88,19 @@ class TestJustOne < Fbe::Test
     end
     assert_equal(0, fb.size, 'just_one inserted a fact without a block')
   end
+
+  def test_dont_duplicate_fact_whose_time_is_not_the_first_value
+    seed = Random.new_seed
+    hour = Random.new(seed).rand(0..20)
+    fb = Factbase.new
+    g = fb.insert
+    g.what = 'ëvent'
+    g.when = Time.utc(2025, 1, 1, hour)
+    g.when = Time.utc(2025, 1, 1, hour + 1)
+    Fbe.just_one(fb:) do |f|
+      f.what = 'ëvent'
+      f.when = Time.utc(2025, 1, 1, hour + 1)
+    end
+    assert_equal(1, fb.size, "just_one created a duplicate, seed #{seed}")
+  end
 end
