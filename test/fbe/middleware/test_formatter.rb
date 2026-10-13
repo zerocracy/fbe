@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'faraday'
+require 'json'
 require 'loog'
 require 'securerandom'
 require_relative '../../../lib/fbe'
@@ -44,10 +45,51 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
-  def test_limit_response
+  def test_prints_forbidden_json_as_one_short_line
+    seed = Random.new_seed
+    msg = "квота Ω #{Random.new(seed).rand(1_000_000)}"
+    log_it(status: 403, response_body: JSON.generate(message: msg)) do |loog|
+      assert_equal("GET http://example.com -> 403 / #{msg}\n", loog.to_s, "short line is not printed, seed #{seed}")
+    end
+  end
+
+  def test_prints_verb_of_forbidden_json_in_upper_case
+    seed = Random.new_seed
+    verb = %i[post put patch delete].sample(random: Random.new(seed))
+    log_it(status: 403, method: verb) do |loog|
+      assert_equal("#{verb.upcase} http://example.com -> 403 / hello, world!\n", loog.to_s, "verb lost, seed #{seed}")
+    end
+  end
+
+  def test_prints_forbidden_json_with_charset_as_one_short_line
+    seed = Random.new_seed
+    msg = "λ#{Random.new(seed).rand(1_000_000)}"
+    log_it(
+      status: 403,
+      response_body: JSON.generate(message: msg),
+      response_headers: { 'content-type' => 'application/json; charset=utf-8' }
+    ) do |loog|
+      assert_equal("GET http://example.com -> 403 / #{msg}\n", loog.to_s, "charset breaks short line, seed #{seed}")
+    end
+  end
+
+  def test_dont_dump_headers_of_forbidden_json
     log_it(status: 403) do |loog|
-      str = loog.to_s
-      refute_empty(str)
+      refute_match(/x-github-api-version-selected|Authorization|HTTP/, loog.to_s, 'headers are dumped for 403')
+    end
+  end
+
+  def test_dumps_forbidden_json_array_in_full
+    log_it(status: 403, response_body: '["Ω denied"]') do |loog|
+      assert_match(%r{HTTP/1.1 403}, loog.to_s, 'forbidden JSON array is shortened')
+    end
+  end
+
+  def test_dumps_other_client_error_json_in_full
+    seed = Random.new_seed
+    status = ((400..499).to_a - [403]).sample(random: Random.new(seed))
+    log_it(status:) do |loog|
+      assert_match(%r{HTTP/1.1 #{status}}, loog.to_s, "client error #{status} is shortened, seed #{seed}")
     end
   end
 
