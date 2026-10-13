@@ -113,6 +113,7 @@ Elegant/GoodMethodName:
     - workflow_run
     - workflow_run_job
     - workflow_run_usage
+    - workflow_runs
 Naming/MethodParameterName:
   AllowedNames:
     - as
