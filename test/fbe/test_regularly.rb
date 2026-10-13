@@ -70,6 +70,43 @@ class TestRegularly < Fbe::Test
     refute_nil(fact.since)
   end
 
+  def test_coerces_string_pmp_day_values
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = 'custom'
+      f.interval = '3'
+      f.days = '28'
+    end
+    loog = Loog::NULL
+    judge = 'test'
+    Fbe.regularly('custom', 'interval', 'days', fb:, loog:, judge:) do |f|
+      f.foo = 42
+    end
+    fact = fb.query("(and (eq what '#{judge}'))").each.first
+    assert_in_delta(Time.now - (28 * 24 * 60 * 60), fact.since, 1)
+    Fbe.regularly('custom', 'interval', 'days', fb:, loog:, judge:) do |f|
+      f.foo = 42
+    end
+    assert_equal(2, fb.size)
+  end
+
+  def test_rejects_invalid_string_pmp_day_values
+    fb = Factbase.new
+    fb.txn do |fbt|
+      f = fbt.insert
+      f.what = 'pmp'
+      f.area = 'custom'
+      f.interval = 3
+      f.days = 'invalid'
+    end
+    assert_raises(Fbe::Error) do
+      Fbe.regularly('custom', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') { |_f| }
+    end
+    assert_equal(1, fb.size)
+  end
+
   def test_does_not_mistake_a_conclusion_fact_for_its_own_marker
     fb = Factbase.new
     judge = 'my-judge'
