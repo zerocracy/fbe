@@ -7,6 +7,7 @@ require 'others'
 require 'time'
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'quoted'
 require_relative 'same'
 
 # Injects a fact if it's absent in the factbase, otherwise returns nil.
@@ -67,13 +68,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
   yield(f)
   q = attrs.except(:_id, :_time, :_version).map do |k, v|
     raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
-    "(eq #{k} #{vv})"
+    "(eq #{k} #{Fbe.quoted(v)})"
   end.join(' ')
   q = "(and #{q})"
   before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }

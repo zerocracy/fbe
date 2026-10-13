@@ -5,6 +5,7 @@
 
 require_relative '../fbe'
 require_relative 'fb'
+require_relative 'quoted'
 
 # Overwrites a property in the fact by recreating the entire fact.
 #
@@ -67,7 +68,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     id = fact[fid]&.first
     raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
     fb.txn do |fbt|
-      deleted = fbt.query("(eq #{fid} #{id})").delete!
+      deleted = fbt.query("(eq #{fid} #{Fbe.quoted(id)})").delete!
       raise(Fbe::Error, "No facts by #{fid} = #{id}") if deleted.zero?
       raise(Fbe::Error, "#{deleted} facts share #{fid} = #{id}, cannot overwrite one of them") if deleted > 1
       n = fbt.insert
@@ -105,7 +106,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
   fb.txn do |fbt|
-    deleted = fbt.query("(eq #{fid} #{id})").delete!
+    deleted = fbt.query("(eq #{fid} #{Fbe.quoted(id)})").delete!
     raise(Fbe::Error, "No facts by #{fid} = #{id}") if deleted.zero?
     raise(Fbe::Error, "#{deleted} facts share #{fid} = #{id}, cannot overwrite one of them") if deleted > 1
     n = fbt.insert
