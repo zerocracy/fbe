@@ -1058,4 +1058,16 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_explains_failed_schema_load
+    WebMock.disallow_net_connect!
+    stub_request(:post, 'https://api.github.com/graphql').to_return(
+      { status: 401, body: '{"message":"Bad credentials"}' },
+      { status: 200, body: '{"errors":[{"message":"API rate limit exceeded"}]}' }
+    )
+    e = assert_raises(Fbe::Error) { Fbe::Graph.new(token: 'x').total_issues_and_pulls('a', 'b') }
+    assert_includes(e.message, '401', 'The HTTP status must be reported')
+    e = assert_raises(Fbe::Error) { Fbe::Graph.new(token: 'x').total_issues_and_pulls('a', 'b') }
+    assert_includes(e.message, 'API rate limit exceeded', 'The message from GitHub must be reported')
+  end
 end
