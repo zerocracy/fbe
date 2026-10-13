@@ -114,4 +114,46 @@ class TestFb < Fbe::Test
     refute_nil(f._version)
     refute_nil(f._job)
   end
+
+  def test_rejects_what_with_bad_second_line
+    seed = Random.new_seed
+    junk = "BAD Ω#{Random.new(seed).rand(1_000_000)}"
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_raises(StandardError, "the what with #{junk.inspect} on its second line is accepted, seed #{seed}") do
+      fb.txn { |t| t.insert.what = "good\n#{junk}" }
+    end
+  end
+
+  def test_rejects_what_with_trailing_newline
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_raises(StandardError, 'the what with a trailing newline is accepted') do
+      fb.txn { |t| t.insert.what = "issue-was-opened\n" }
+    end
+  end
+
+  def test_rejects_details_with_last_line_not_ending_with_period
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_raises(StandardError, 'the details without a final period are accepted') do
+      fb.txn { |t| t.insert.details = "The first line is long and ends with a period.\nthe last one does not" }
+    end
+  end
+
+  def test_accepts_details_with_short_last_line
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn { |t| t.insert.details = "Первая строка здесь достаточно длинная.\nОк." }
+    assert_equal(1, fb.query('(exists details)').each.to_a.size, 'the details with a short last line are rejected')
+  end
+
+  def test_accepts_details_with_first_line_not_ending_with_period
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn { |t| t.insert.details = "The first sentence is long enough here\nand it goes on in the second line." }
+    assert_equal(1, fb.query('(exists details)').each.to_a.size, 'the details broken over two lines are rejected')
+  end
+
+  def test_rejects_short_details_broken_over_lines
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_raises(StandardError, 'the short details broken over two lines are accepted') do
+      fb.txn { |t| t.insert.details = "Ok.\nÜbel." }
+    end
+  end
 end
