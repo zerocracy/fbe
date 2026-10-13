@@ -115,7 +115,7 @@ class Fbe::Middleware::SqliteStore
   def write(key, value) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Metrics/AbcSize
     if value.is_a?(Array)
       begin
-        return delete(key) if value.any? { |vv| JSON.parse(vv[0])['method'] != 'get' }
+        return delete(key) if value.any? { |vv| JSON.parse(vv[0]).then { |r| !r.is_a?(Hash) || r['method'] != 'get' } }
       rescue TypeError, JSON::ParserError => e
         @loog.info("Failed to parse request to decide whether to cache it: #{e.message}")
         return delete(key)
