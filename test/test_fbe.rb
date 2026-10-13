@@ -28,4 +28,16 @@ class TestFbe < Fbe::Test
       end
     end
   end
+
+  def test_declares_every_gem_it_requires
+    declared = Gem::Specification.load(File.join(__dir__, '../fbe.gemspec')).runtime_dependencies.map(&:name)
+    undeclared =
+      Dir[File.join(__dir__, '../lib/**/*.rb')].flat_map { |f| File.read(f).scan(/^require '([^']+)'$/).flatten }
+        .filter_map do |r|
+          g = Gem::Specification.find_by_path(r)&.name
+          next if g.nil? || declared.include?(g)
+          g if Dir[File.join(Gem.default_specifications_dir, "#{g}-*.gemspec")].empty?
+        end
+    assert_empty(undeclared.uniq, 'these gems are required under lib, but not declared in the gemspec')
+  end
 end
