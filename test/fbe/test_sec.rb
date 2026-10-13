@@ -61,4 +61,13 @@ class TestSec < Fbe::Test
     error = assert_raises(Fbe::Error) { Fbe.sec(nil) }
     assert_equal('The fact is nil', error.message)
   end
+
+  def test_cannot_format_non_finite_seconds
+    seed = Random.new_seed
+    value = [Float::NAN, Float::INFINITY, -Float::INFINITY].sample(random: Random.new(seed))
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = value
+    assert_raises(Fbe::Error, "#{value} seconds are formatted, seed is #{seed}") { Fbe.sec(f) }
+  end
 end

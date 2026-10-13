@@ -15,7 +15,7 @@ require_relative '../fbe'
 # @param [Factbase::Fact] fact The fact containing the seconds property
 # @param [String, Symbol] prop The property name with seconds (defaults to :seconds)
 # @return [String] Human-readable time interval (e.g., "2w", "3h", "5m33s")
-# @raise [Fbe::Error] If the specified property doesn't exist in the fact
+# @raise [Fbe::Error] If the specified property doesn't exist in the fact or is not finite
 # @note Uses the tago gem for formatting; a negative interval keeps its sign
 # @example Format elapsed time from a fact
 #   build_fact = fb.query('(eq type "build")').first
@@ -25,7 +25,11 @@ def Fbe.sec(fact, prop = :seconds)
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
   s = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if s.nil?
-  s = Integer(Float(s.first).round)
+  begin
+    s = Integer(Float(s.first).round)
+  rescue FloatDomainError
+    raise(Fbe::Error, "The #{prop.inspect} property (#{s.first.inspect}) is not a finite number")
+  end
   return '0s' if s.zero?
   return "-#{Float(s.abs).seconds}" if s.negative?
   Float(s).seconds

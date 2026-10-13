@@ -36,14 +36,14 @@ def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
   raise(Fbe::Error, "There is no 'repository' property") if rid.nil?
   begin
     rid = Integer(Float(rid.first).round)
-  rescue ArgumentError, TypeError
+  rescue ArgumentError, TypeError, FloatDomainError
     raise(Fbe::Error, "The 'repository' property (#{rid.first.inspect}) is not a number")
   end
   issue = fact['issue']
   raise(Fbe::Error, "There is no 'issue' property") if issue.nil?
   begin
     issue = Integer(Float(issue.first).round)
-  rescue ArgumentError, TypeError
+  rescue ArgumentError, TypeError, FloatDomainError
     raise(Fbe::Error, "The 'issue' property (#{issue.first.inspect}) is not a number")
   end
   "#{Fbe.octo(global:, options:, loog:).repo_name_by_id(rid)}##{issue}"
