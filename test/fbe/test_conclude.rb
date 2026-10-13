@@ -164,6 +164,41 @@ class TestConclude < Fbe::Test
     assert_equal([0, 1, 2, 3, 4], visited.sort)
   end
 
+  def test_stops_traversing_matching_facts_when_budget_is_exhausted
+    fb = Factbase.new
+    5.times do |i|
+      fact = fb.insert
+      fact._id = i
+      fact.foo = i
+    end
+    traversed = 0
+    original_query = fb.method(:query)
+    fb.define_singleton_method(:query) do |term, maps = nil|
+      query = original_query.call(term, maps)
+      next query unless query.to_s.include?('exists foo')
+      each = query.method(:each)
+      query.define_singleton_method(:each) do |*args, &block|
+        next enum_for(:each, *args) unless block
+        each.call(*args) do |fact|
+          traversed += 1
+          block.call(fact)
+        end
+      end
+      query
+    end
+    checks = 0
+    visited = []
+    Fbe.stub(:over?, ->(**_kwargs) { checks += 1; checks > 3 }) do
+      Fbe.conclude(fb:, judge: 'budget', loog: Loog::NULL, options: Judges::Options.new, global: {}) do
+        quota_unaware
+        on('(exists foo)')
+        consider { |fact| visited << fact._id }
+      end
+    end
+    assert_equal([0], visited)
+    assert_equal(1, traversed)
+  end
+
   def test_considers_until_quota
     $epoch = Time.now
     WebMock.disable_net_connect!
