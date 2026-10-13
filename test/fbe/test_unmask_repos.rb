@@ -209,6 +209,63 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(['foo/bar'], list, 'the repo is not kept when the quota check itself is off-quota')
   end
 
+  def test_drops_repo_archived_in_organization_listing
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    org = "org#{Random.new(seed).rand(1_000_000)}"
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, "https://api.github.com/orgs/#{org}/repos?per_page=100&type=all").to_return(
+      body: [{ full_name: "#{org}/old", archived: true }, { full_name: "#{org}/new", archived: false }].to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, %r{\Ahttps://api\.github\.com/repos/}).to_return(
+      body: '{"archived":false}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'github_token' => 'fake-token', 'repositories' => "#{org}/*" })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(["#{org}/new"], list, "the archived flag of the listing is ignored, seed is #{seed}")
+  end
+
+  def test_dont_request_repository_that_came_from_listing
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    org = "org#{Random.new(seed).rand(1_000_000)}"
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, "https://api.github.com/orgs/#{org}/repos?per_page=100&type=all").to_return(
+      body: [{ full_name: "#{org}/first", archived: false }].to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, "https://api.github.com/repos/#{org}/first").to_return(
+      body: '{"archived":false}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'github_token' => 'fake-token', 'repositories' => "#{org}/*" })
+    Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_not_requested(:get, "https://api.github.com/repos/#{org}/first")
+  end
+
+  def test_requests_repository_named_by_exact_mask
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    org = "org#{Random.new(seed).rand(1_000_000)}"
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, "https://api.github.com/orgs/#{org}/repos?per_page=100&type=all").to_return(
+      body: [{ full_name: "#{org}/listed", archived: false }].to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, 'https://api.github.com/repos/bar/exact').to_return(
+      body: '{"archived":true}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'github_token' => 'fake-token', 'repositories' => "#{org}/*,bar/exact" })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(["#{org}/listed"], list, "the archived exact mask is kept, seed is #{seed}")
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })

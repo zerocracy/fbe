@@ -74,6 +74,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     global:, options:, loog:, epoch:, kickoff:, quota_aware:, lifetime_aware:, timeout_aware:
   )
   repos = []
+  archived = {}
   octo = Fbe.octo(loog:, global:, options:)
   masks = (options.repositories || '').split(',')
   masks.map!(&:strip)
@@ -92,7 +93,9 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
         octo.repositories(org)
       end
     list.each do |r|
-      repos << r[:full_name] if re.match?(r[:full_name])
+      next unless re.match?(r[:full_name])
+      repos << r[:full_name]
+      archived[r[:full_name].downcase] = r[:archived]
     end
   rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::NotFound, Octokit::ServerError,
          Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
@@ -104,7 +107,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   end
   repos.uniq!(&:downcase)
   repos.reject! do |repo|
-    octo.repository(repo)[:archived]
+    archived.fetch(repo.downcase) { octo.repository(repo)[:archived] }
   rescue Octokit::NotFound => e
     loog.warn("Repository #{repo.inspect} is absent, dropping it: #{e.message}")
     true
