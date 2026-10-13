@@ -82,7 +82,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       raise(ArgumentError, "#{value} is not a whole number") unless (f % 1).zero?
       Integer(f)
     end
-  query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
+  query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))") }
   owner = ->(area, param) { query.call(area).each.find { |f| !f[param].nil? } }
   Class.new do
     define_method(:areas) do
@@ -92,7 +92,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
     end
     others do |*args1| # rubocop:disable Metrics/BlockLength
       area = args1.first.to_s
-      node = xml.at_xpath("/pmp/area[@name='#{area}']")
+      node = xml.at_xpath('/pmp/area[@name=$name]', nil, 'name' => area)
       if node.nil?
         Class.new do
           define_method(:properties) do

@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'judges/options'
 require 'loog'
 require_relative '../../lib/fbe/regularly'
 require_relative '../test__helper'
@@ -115,5 +116,21 @@ class TestRegularly < Fbe::Test
       f.foo = 42
     end
     assert_equal(2, fb.size)
+  end
+
+  def test_uses_the_pmp_xml_default_when_no_area_fact_exists
+    $global = {}
+    $options = Judges::Options.new
+    fb = Factbase.new
+    Fbe.regularly('integration', 'eva_interval', fb:, loog: Loog::NULL, judge: 'test') do |f|
+      f.foo = 42
+    end
+    ran = false
+    Time.stub(:now, Time.now + (8 * 24 * 60 * 60)) do
+      Fbe.regularly('integration', 'eva_interval', fb:, loog: Loog::NULL, judge: 'test') do |_f|
+        ran = true
+      end
+    end
+    refute(ran, 'the judge ran again 8 days later, while pmp.xml says eva_interval is 10')
   end
 end
