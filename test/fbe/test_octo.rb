@@ -1120,6 +1120,25 @@ class TestOcto < Fbe::Test
     refute_match('/repos/zerocracy/baza.rb: 25', output)
   end
 
+  def test_takes_environment_token_when_option_is_empty
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    token = "ghp_#{Random.new(seed).hex(16)}"
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    stub_request(:get, 'https://api.github.com/user/42').to_return(
+      body: '{"id":42,"login":"Ёжик"}', headers: { 'X-RateLimit-Remaining' => '221' }
+    )
+    env = ->(key, *default, &block) { key == 'GITHUB_TOKEN' ? token : ENV.to_h.fetch(key, *default, &block) }
+    ENV.stub(:fetch, env) do
+      Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new(['github_token='])).user(42)
+    end
+    assert_requested(
+      :get, 'https://api.github.com/user/42', headers: { 'Authorization' => "token #{token}" }, times: 1
+    )
+  end
+
   def test_trace_gets_cleared_after_print
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

@@ -40,7 +40,7 @@ Fbe::SEARCH_METHODS = %i[
 # logging, and caching.
 #
 # @param [Judges::Options] options The options available globally
-# @option options [String] :github_token GitHub API token for authentication
+# @option options [String] :github_token GitHub API token, GITHUB_TOKEN is used when it is absent or empty
 # @option options [Boolean] :testing When true, uses FakeOctokit for testing
 # @option options [String] :sqlite_cache Path to SQLite cache file for HTTP responses
 # @option options [Integer] :sqlite_cache_maxsize Maximum size of SQLite cache in bytes (default: 10MB)
@@ -62,7 +62,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         if options.testing.nil?
           o = Octokit::Client.new
           token = options.github_token
-          if token.nil?
+          if token.to_s.empty?
             loog.debug("The 'github_token' option is not provided")
             token = ENV.fetch('GITHUB_TOKEN', nil)
             if token.nil?
