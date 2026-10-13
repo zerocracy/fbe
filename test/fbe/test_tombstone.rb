@@ -201,4 +201,20 @@ class TestTombstone < Fbe::Test
     end
     assert_equal(0, fb.size, "factbase is touched by member #{member.inspect}, seed is #{seed}")
   end
+
+  def test_reads_all_tombstone_facts_of_repository
+    fb = Factbase.new
+    %w[5 9].each do |i|
+      f = fb.insert
+      f.what = 'tombstone'
+      f.where = 'github'
+      f.repository = 7
+      f.issues = i
+    end
+    ts = Fbe::Tombstone.new(fb:)
+    assert(ts.has?('github', 7, 5), 'The first tombstone fact must be read')
+    assert(ts.has?('github', 7, 9), 'The second tombstone fact must be read')
+    assert(ts.has?('github', 7, [5, 9]), 'Both tombstone facts must be read together')
+    assert_equal([5, 9], ts.issues('github', 7).sort)
+  end
 end

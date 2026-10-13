@@ -29,11 +29,7 @@ class Fbe::Tombstone
   def issues(where, repo)
     raise(Fbe::Error, 'The type of "where" is not String') unless where.is_a?(String)
     raise(Fbe::Error, 'The type of "repo" is not Integer') unless repo.is_a?(Integer)
-    f = @fb.query(
-      "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
-    ).each.first
-    return [] if f.nil?
-    f['issues'].flat_map do |ii|
+    buried(where, repo).flat_map do |ii|
       a, b = ii.split('-').map { |i| Integer(i, 10) }
       b = a if b.nil?
       (a..b).to_a
@@ -92,13 +88,11 @@ class Fbe::Tombstone
       raise(Fbe::Error, 'The type of "issue" is neither Integer nor Array')
     end
     issue = numbers(issue)
-    f = @fb.query(
-      "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
-    ).each.first
-    return false if f.nil?
+    ranges = buried(where, repo)
+    return false if ranges.empty?
     return false if issue.empty?
     issue.all? do |i|
-      f['issues'].any? do |ii|
+      ranges.any? do |ii|
         a, b = ii.split('-').map { |i| Integer(i, 10) }
         b.nil? ? a == i : (a..b).cover?(i)
       end
@@ -106,6 +100,12 @@ class Fbe::Tombstone
   end
 
   private
+
+  def buried(where, repo)
+    @fb.query(
+      "(and (eq where '#{where}') (eq what 'tombstone') (eq repository #{repo}) (exists issues))"
+    ).each.flat_map { |f| f['issues'] }
+  end
 
   def numbers(issue)
     list = issue.is_a?(Array) ? issue : [issue]
