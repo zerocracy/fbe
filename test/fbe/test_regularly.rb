@@ -70,6 +70,26 @@ class TestRegularly < Fbe::Test
     refute_nil(fact.since)
   end
 
+  def test_waits_for_the_interval_before_running_again
+    [[3, 2, 4], [nil, 6, 8]].each do |every, early, late|
+      fb = Factbase.new
+      fb.txn do |fbt|
+        f = fbt.insert
+        f.what = 'pmp'
+        f.area = 'quality'
+        f.interval = every unless every.nil?
+      end
+      start = Time.now
+      runs = 0
+      { 0 => 1, early => 1, late => 2 }.each do |days, expected|
+        Time.stub(:now, start + (days * 24 * 60 * 60)) do
+          Fbe.regularly('quality', 'interval', fb:, loog: Loog::NULL, judge: 'test') { |_| runs += 1 }
+        end
+        assert_equal(expected, runs, "after #{days} days with the interval #{every.inspect}")
+      end
+    end
+  end
+
   def test_does_not_mistake_a_conclusion_fact_for_its_own_marker
     fb = Factbase.new
     judge = 'my-judge'
