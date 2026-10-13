@@ -28,6 +28,43 @@ class TestOverwrite < Fbe::Test
     assert_equal(2, fb.query('(always)').each.first['many'].size)
   end
 
+  def test_overwrites_missing_symbol_property
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    Fbe.overwrite(f, :bar, 55, fb:)
+    result = fb.query('(eq _id 1)').each.to_a
+    assert_equal(1, result.size)
+    assert_equal([42], result.first['foo'])
+    assert_equal([55], result.first['bar'])
+  end
+
+  def test_overwrites_existing_symbol_property
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    f.bar = 'keep'
+    Fbe.overwrite(f, :foo, 55, fb:)
+    result = fb.query('(eq _id 1)').each.to_a
+    assert_equal(1, result.size)
+    assert_equal([55], result.first['foo'])
+    assert_equal(['keep'], result.first['bar'])
+  end
+
+  def test_rejects_unsupported_property_name_types
+    fb = Factbase.new
+    f = fb.insert
+    {
+      42 => 'The property is not a String but Integer (42)',
+      nil => 'The property is not a String but NilClass ()'
+    }.each do |property, message|
+      error = assert_raises(Fbe::Error) { Fbe.overwrite(f, property, 55, fb:) }
+      assert_equal(message, error.message)
+    end
+  end
+
   def test_avoids_duplicates
     fb = Factbase.new
     f = fb.insert
