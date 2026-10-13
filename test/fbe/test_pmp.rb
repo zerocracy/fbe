@@ -14,6 +14,20 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestPmp < Fbe::Test
+  def test_reads_custom_areas_with_quotes_and_backslashes
+    ["customer's", 'team"office', 'team\\office'].each do |area|
+      fb = Factbase.new
+      fact = fb.insert
+      fact.what = 'pmp'
+      fact.area = area
+      fact.quota = '42'
+      pmp = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+      assert_includes(pmp.areas, area)
+      assert_equal('42', pmp.public_send(area).quota.value)
+      assert_includes(pmp.public_send(area).properties, 'quota')
+    end
+  end
+
   def test_defaults
     $fb = Factbase.new
     $global = {}
