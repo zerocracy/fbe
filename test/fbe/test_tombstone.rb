@@ -142,6 +142,13 @@ class TestTombstone < Fbe::Test
     refute(ts.has?('github', 43, []))
   end
 
+  def test_empty_bury_does_not_create_a_tombstone
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    ts.bury!('github', 42, [])
+    assert_equal(0, fb.size)
+  end
+
   def test_cannot_bury_string_member
     seed = Random.new_seed
     member = "ж#{Random.new(seed).rand(1..10_000)}"
