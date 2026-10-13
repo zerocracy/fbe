@@ -236,4 +236,16 @@ class TestBylaws < Fbe::Test
       end
     end
   end
+
+  def test_hoc_cap_is_reachable
+    award = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    cap = award.bylaw.markdown[/for each \[hit-of-code\]\([^)]+\), but not more than \*\*([0-9.]+)\*\* points/, 1]
+    refute_nil(cap, award.bylaw.markdown)
+    best =
+      (0..2000).map do |h|
+        line = award.bill(hoc: h, comments: 0, reviews: 1).greeting
+        Integer(line[/([+-][0-9]+) for the #{h} hits-of-code/, 1] || '0', 10)
+      end.max
+    assert_in_delta(Float(cap), best, 1, 'the cap in the text must be reachable')
+  end
 end
