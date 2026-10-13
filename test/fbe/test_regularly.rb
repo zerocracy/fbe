@@ -35,6 +35,14 @@ class TestRegularly < Fbe::Test
     assert_equal(0, fb.size)
   end
 
+  def test_requires_block_before_creating_a_fact
+    fb = Factbase.new
+    assert_raises(Fbe::Error) do
+      Fbe.regularly('pmp', 'interval', fb:, loog: Loog::NULL, judge: 'test')
+    end
+    assert_empty(fb.query('(always)').each.to_a)
+  end
+
   def test_log_uses_judge_parameter_not_global
     $judge = 'global_judge'
     fb = Factbase.new

@@ -29,12 +29,13 @@ require_relative 'fb'
 #     f.total_cleaned = cleanup_old_records
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
-def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &) # rubocop:disable Metrics/AbcSize
   { 'area' => area, 'p_every_days' => p_every_days, 'fb' => fb }.each do |name, value|
     raise(Fbe::Error, "The #{name} is nil") if value.nil?
   end
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
+  raise(Fbe::Error, 'A block is required by regularly') unless block_given?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
   interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
   recent = fb.query(
