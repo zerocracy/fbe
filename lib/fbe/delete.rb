@@ -34,6 +34,7 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id') # rubocop:disable Metrics/Cy
   end
   fb.txn do |fbt|
     deleted = fbt.query("(eq #{id} #{i})").delete!
+    raise(Fbe::Error, "No facts by #{id} = #{i}") if deleted.zero?
     raise(Fbe::Error, "#{deleted} facts share #{id} = #{i}, cannot delete one of them") if deleted > 1
     c = fbt.insert
     f = c

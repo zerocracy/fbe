@@ -18,7 +18,7 @@ require_relative 'fb'
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] id The property name used as unique identifier (defaults to '_id')
 # @return [nil] Nothing
-def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
+def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id') # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
   prop = prop.to_s
   i = fact[id]
@@ -36,7 +36,7 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   before[prop] = nv
   before.delete(prop) if nv.empty?
   fb.txn do |fbt|
-    fbt.query("(eq #{id} #{i})").delete!
+    raise(Fbe::Error, "No facts by #{id} = #{i}") if fbt.query("(eq #{id} #{i})").delete!.zero?
     c = fbt.insert
     f = c
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
