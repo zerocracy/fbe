@@ -57,4 +57,23 @@ class TestEnter < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_equal('hi', Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { 'hi' })
   end
+
+  def test_enters_valve_when_testing_is_false
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    badge = "b#{Random.new(seed).rand(1_000_000)}"
+    options = Judges::Options.new(['testing=false', 'zerocracy_token=00000-0000-0000-00000'])
+    stub_request(:get, 'https://api.zerocracy.com/csrf').to_return(body: 'token')
+    stub_request(:get, "https://api.zerocracy.com/result?badge=#{badge}").to_return(status: 204)
+    stub_request(:post, 'https://api.zerocracy.com/valves').to_return(status: 302)
+    Fbe.enter(badge, 'no reason', options:, loog: Loog::NULL) { 'hi' }
+    assert_requested(:post, 'https://api.zerocracy.com/valves', times: 1)
+  end
+
+  def test_skips_valve_when_testing_is_true_string
+    WebMock.disable_net_connect!
+    options = Judges::Options.new(['testing=True'])
+    Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { 'hi' }
+    assert_not_requested(:any, /zerocracy\.com/)
+  end
 end
