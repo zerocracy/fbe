@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'delegate'
 require 'liquid'
 require_relative '../fbe'
 
@@ -48,6 +49,7 @@ require_relative '../fbe'
 #   #        \"deduct ${fee} points\")
 #   #      )"
 def Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
+  anger, love, paranoia = [anger, love, paranoia].map { |v| v.is_a?(Delegator) ? v.__getobj__ : v }
   raise(Fbe::Error, "The 'anger' must be an Integer: #{anger.inspect}") unless anger.is_a?(Integer)
   raise(Fbe::Error, "The 'anger' must be in the [0..4] interval: #{anger.inspect}") unless !anger.negative? && anger < 5
   raise(Fbe::Error, "The 'love' must be an Integer: #{love.inspect}") unless love.is_a?(Integer)
