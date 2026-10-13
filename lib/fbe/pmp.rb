@@ -84,6 +84,12 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
     end
   query = ->(area) { fb.query("(and (eq what 'pmp') (eq area '#{area}'))") }
   owner = ->(area, param) { query.call(area).each.find { |f| !f[param].nil? } }
+  internal = %w[what area].freeze
+  props =
+    lambda do |area, declared|
+      stored = query.call(area).each.flat_map { |f| f.all_properties.map(&:to_s) }.uniq
+      (declared | stored).reject { |n| n.start_with?('_') || internal.include?(n) }
+    end
   Class.new do
     define_method(:areas) do
       defaults = xml.xpath('/pmp/area/@name').map(&:value)
@@ -96,7 +102,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       if node.nil?
         Class.new do
           define_method(:properties) do
-            query.call(area).each.flat_map { |f| f.all_properties.map(&:to_s) }.uniq
+            props.call(area, [])
           end
           others do |*args2|
             param = args2.first.to_s
@@ -108,7 +114,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       else
         Class.new do
           define_method(:properties) do
-            node.xpath('p/name').map(&:text)
+            props.call(area, node.xpath('p/name').map(&:text))
           end
           others do |*args2|
             param = args2.first.to_s
