@@ -14,11 +14,11 @@ require_relative 'over'
 #
 # @example Basic wildcard matching
 #   Fbe.mask_to_regex('zerocracy/*')
-#   # => /zerocracy\/.*/i
+#   # => /\Azerocracy\/.*\z/i
 #
 # @example Specific repository (no wildcard)
 #   Fbe.mask_to_regex('zerocracy/fbe')
-#   # => /zerocracy\/fbe/i
+#   # => /\Azerocracy\/fbe\z/i
 #
 # @param [String] mask Repository mask in format 'org/repo' where repo can contain '*'
 # @return [Regexp] Case-insensitive regular expression for matching repositories
