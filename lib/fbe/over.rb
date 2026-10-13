@@ -33,13 +33,24 @@ def Fbe.over?(
       return true
     end
   end
-  if lifetime_aware && options.lifetime && Time.now - epoch > options.lifetime * 0.9
-    loog.info("We ran out of lifetime (#{epoch.ago} already), must stop here")
-    return true
-  end
-  if timeout_aware && options.timeout && Time.now - kickoff > options.timeout * 0.9
-    loog.info("We've spent more than #{kickoff.ago}, must stop here")
-    return true
+  if (lifetime_aware && options.lifetime) || (timeout_aware && options.timeout)
+    wall_now = Time.now
+    monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    starts = global[:fbe_monotonic_starts] ||= {}
+    if lifetime_aware && options.lifetime
+      epoch_start = starts[[:epoch, epoch]] ||= monotonic_now - (wall_now - epoch)
+      if monotonic_now - epoch_start > options.lifetime * 0.9
+        loog.info("We ran out of lifetime after #{(monotonic_now - epoch_start).round} seconds, must stop here")
+        return true
+      end
+    end
+    if timeout_aware && options.timeout
+      kickoff_start = starts[[:kickoff, kickoff]] ||= monotonic_now - (wall_now - kickoff)
+      if monotonic_now - kickoff_start > options.timeout * 0.9
+        loog.info("We've spent #{(monotonic_now - kickoff_start).round} seconds, must stop here")
+        return true
+      end
+    end
   end
   false
 end
