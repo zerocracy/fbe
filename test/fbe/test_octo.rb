@@ -1120,6 +1120,22 @@ class TestOcto < Fbe::Test
     refute_match('/repos/zerocracy/baza.rb: 25', output)
   end
 
+  def test_reaches_github_after_one_failed_quota_request
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 502, body: '<html>Bad gateway</html>', headers: { 'Content-Type' => 'text/html' })
+      .then
+      .to_return(
+        status: 200, body: '{"rate":{"remaining":4000}}',
+        headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4000' }
+      )
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(
+      body: '{"id":42}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '3999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'fake-token' }))
+    assert_equal(42, o.repository('foo/bar')[:id], 'one failed quota request blocks the client')
+  end
+
   def test_trace_gets_cleared_after_print
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
