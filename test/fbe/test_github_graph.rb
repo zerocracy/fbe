@@ -69,6 +69,22 @@ class TestGitHubGraph < Fbe::Test
     assert_match(/Syntax Error/, e.message)
   end
 
+  def test_raises_when_a_whole_batch_fails
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    raw = [{ 'message' => 'API rate limit exceeded' }]
+    GraphQL::Client::Errors.normalize_error_paths(nil, raw)
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { nil }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
+    e = assert_raises(Fbe::Error) { graph.total_commits(repos: [%w[foo bar main], %w[baz qux master]]) }
+    assert_match(/rate limit/, e.message)
+  end
+
   def test_returns_data_when_graphql_response_carries_no_errors
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'x')
