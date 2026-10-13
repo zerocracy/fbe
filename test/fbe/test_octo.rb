@@ -451,6 +451,16 @@ class TestOcto < Fbe::Test
     )
   end
 
+  def test_off_quota_when_quota_probe_times_out
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_raise(Faraday::TimeoutError.new('execution expired'))
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    assert(
+      o.off_quota?(threshold: 50, resource: :core),
+      'a timeout of the rate_limit probe is not reported as off-quota'
+    )
+  end
+
   def test_off_quota_search_when_quota_probe_cannot_connect
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_raise(Faraday::ConnectionFailed.new('socket is closed'))
