@@ -30,6 +30,34 @@ require_relative 'fb'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class Fbe::Award
+  FIXED_ARITIES = {
+    total: 0,
+    not: 1,
+    eq: 2,
+    lt: 2,
+    lte: 2,
+    gt: 2,
+    gte: 2,
+    div: 2,
+    times: 2,
+    plus: 2,
+    minus: 2,
+    max: 2,
+    min: 2,
+    if: 3,
+    between: 3
+  }.freeze
+
+  # Reject an unsupported number of operands for a fixed-arity expression.
+  # @param [Symbol] operation The operation to check
+  # @param [Integer] actual The number of operands supplied
+  # @raise [Fbe::Error] If the operation has a different number of operands
+  def self.check_arity!(operation, actual)
+    expected = FIXED_ARITIES[operation]
+    return if expected.nil? || actual == expected
+    raise(Fbe::Error, "The term '#{operation}' needs exactly #{expected} operands, #{actual} given")
+  end
+
   # Ctor.
   # @param [String, nil] query The query with the bylaw
   # @param [String] judge The name of the judge
@@ -174,11 +202,11 @@ class Fbe::Award
     #   term.redress!(Fbe::Award::BTerm)
     #   term.calc(bill) #=> 50
     def calc(bill) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+      Fbe::Award.check_arity!(@op, @operands.size)
       case @op
       when :total
         bill.points
       when :if
-        raise(Fbe::Error, "The term 'if' needs three operands, #{@operands.size} given") if @operands.size < 3
         to_val(@operands[0], bill) ? to_val(@operands[1], bill) : to_val(@operands[2], bill)
       when :and
         @operands.all? { |o| to_val(o, bill) }
@@ -226,6 +254,7 @@ class Fbe::Award
   # A term for bylaw.
   module PTerm
     def to_s # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+      Fbe::Award.check_arity!(@op, @operands.size)
       case @op
       when :total
         'total'
