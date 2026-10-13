@@ -236,4 +236,13 @@ class TestBylaws < Fbe::Test
       end
     end
   end
+
+  def test_rejects_levels_out_of_range
+    { anger: [-1, 5], love: [-1, 5], paranoia: [0, 5] }.each do |name, values|
+      values.each do |value|
+        error = assert_raises(Fbe::Error) { Fbe.bylaws(**{ name => value }) }
+        assert_includes(error.message, "'#{name}' must be in the")
+      end
+    end
+  end
 end
