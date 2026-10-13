@@ -60,6 +60,7 @@ end
 # @param [Boolean] timeout_aware Should we stop if timeout is over?
 # @return [Array<String>] Shuffled list of repository full names (e.g., 'org/repo')
 # @raise [Fbe::Error] If a mask is not in the 'org/repo' format or no repositories match
+# @raise [Fbe::OffQuota] If the quota runs out while a wildcard mask is expanded
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
 # @note A mask whose expansion fails on GitHub is skipped, an absent repository is dropped,
@@ -95,7 +96,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
       repos << r[:full_name] if re.match?(r[:full_name])
     end
   rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::NotFound, Octokit::ServerError,
-         Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
+         Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError => e
     loog.warn("Cannot expand the mask #{mask.inspect}, skipping it: #{e.message}")
   end
   masks.select { |m| m.start_with?('-') }.each do |mask|
