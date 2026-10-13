@@ -47,10 +47,11 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog) # rubocop:d
           "(and \n#{rules.join("\n")}\n)",
           uid: '_id'
         )
+        top = 0
         fbe =
           Factbase::Pre.new(fbe) do |f, fbt|
-            max = fbt.query('(max _id)').one
-            f._id = (max.nil? ? 0 : max) + 1
+            top = [top, fbt.query('(max _id)').one || 0].max + 1
+            f._id = top
             f._time = Time.now
             f._version = [Factbase::VERSION, Judges::VERSION, options.action_version].compact.join('/')
             f._job = Integer(options.job_id.to_s, 10) if options.job_id
