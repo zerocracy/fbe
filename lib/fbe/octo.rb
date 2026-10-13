@@ -220,7 +220,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               name = json[:login].downcase
               @loog.debug("GitHub user ##{id} has a name: @#{name}")
               name
-            rescue Octokit::NotFound, Octokit::Forbidden => e
+            rescue Octokit::NotFound, Octokit::Forbidden, Octokit::UnavailableForLegalReasons, Octokit::Deprecated => e
               raise(Fbe::Error, "GitHub user ##{id} is not accessible: #{e.message}")
             end
             def repo_id_by_name(name) # rubocop:disable Layout/EmptyLineBetweenDefs
@@ -230,7 +230,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               raise(Fbe::Error, "Repository #{name} not found") if id.nil?
               @loog.debug("GitHub repository #{name.inspect} has an ID: ##{id}")
               id
-            rescue Octokit::NotFound, Octokit::Forbidden => e
+            rescue Octokit::NotFound, Octokit::Forbidden, Octokit::UnavailableForLegalReasons, Octokit::Deprecated => e
               raise(Fbe::Error, "GitHub repository #{name.inspect} is not accessible: #{e.message}")
             end
             def repo_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
@@ -240,7 +240,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               name = json[:full_name].downcase
               @loog.debug("GitHub repository ##{id} has a name: #{name}")
               name
-            rescue Octokit::NotFound, Octokit::Forbidden => e
+            rescue Octokit::NotFound, Octokit::Forbidden, Octokit::UnavailableForLegalReasons, Octokit::Deprecated => e
               raise(Fbe::Error, "GitHub repository ##{id} is not accessible: #{e.message}")
             end
             # Disable auto pagination for octokit client called in block
