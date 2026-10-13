@@ -1001,6 +1001,24 @@ class TestOcto < Fbe::Test
     assert_operator(shown + skipped, :>=, total)
   end
 
+  def test_print_trace_when_quota_can_not_be_read
+    loog = Loog::Buffer.new
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(
+      body: '{"id":456,"full_name":"foo/bar"}', headers: { 'X-RateLimit-Remaining' => '220' }
+    )
+    octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
+    octo.repository('foo/bar')
+    octo.instance_variable_get(:@origin).define_singleton_method(:rate_limit!) do
+      raise(Faraday::ConnectionFailed, 'GitHub is down')
+    end
+    octo.print_trace!(all: true)
+    assert_includes(loog.to_s, 'quota unknown')
+  end
+
   def test_print_trace
     loog = Loog::Buffer.new
     WebMock.disable_net_connect!
