@@ -30,7 +30,7 @@ require_relative 'middleware/trace'
 class Fbe::OffQuota < StandardError; end
 
 Fbe::SEARCH_METHODS = %i[
-  search_issues search_commits search_repositories search_users search_code search_topics
+  search_issues search_commits search_repositories search_repos search_users search_code search_topics
 ].freeze
 
 # Makes a call to the GitHub API.

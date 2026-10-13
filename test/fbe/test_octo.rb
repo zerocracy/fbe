@@ -378,6 +378,17 @@ class TestOcto < Fbe::Test
     assert_raises(Fbe::OffQuota) { o.search_issues('repo:foo/bar type:issue') }
   end
 
+  def test_search_repos_blocked_when_search_quota_exhausted
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 0 } } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    e = assert_raises(Fbe::OffQuota) { o.search_repos('fbe') }
+    assert_includes(e.message, 'search resource', 'search_repos was not checked against the search quota')
+  end
+
   def test_search_issues_allowed_when_search_quota_ok_but_core_low
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
