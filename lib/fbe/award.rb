@@ -315,7 +315,7 @@ class Fbe::Award
       when PTerm
         any.to_s
       when Symbol
-        s = any.to_s
+        s = any.to_s.dup
         subs = { 0 => '₀', 1 => '₁', 2 => '₂', 3 => '₃', 4 => '₄', 5 => '₅', 6 => '₆', 7 => '₇', 8 => '₈', 9 => '₉' }
         s.gsub!(/([a-z]+)([0-9])/) { |_| "#{Regexp.last_match[1]}#{subs[Integer(Regexp.last_match[2], 10)]}" }
         "_#{s.tr('_', '-')}_"
