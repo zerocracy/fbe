@@ -26,9 +26,6 @@ require_relative 'middleware/rate_limit'
 require_relative 'middleware/sqlite_store'
 require_relative 'middleware/trace'
 
-# When we are off quota.
-class Fbe::OffQuota < StandardError; end
-
 Fbe::SEARCH_METHODS = %i[
   search_issues search_commits search_repositories search_users search_code search_topics
 ].freeze
