@@ -251,7 +251,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             # @example
             #   issue =
             #      Fbe.octo.with_disable_auto_paginate do |octo|
-            #        octo.list_issue('zerocracy/fbe', per_page: 1).first
+            #        octo.list_issues('zerocracy/fbe', per_page: 1).first
             #      end
             def with_disable_auto_paginate # rubocop:disable Layout/EmptyLineBetweenDefs
               ap = @origin.auto_paginate
