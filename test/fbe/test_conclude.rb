@@ -18,15 +18,76 @@ require_relative '../test__helper'
 # License:: MIT
 class TestConclude < Fbe::Test
   def test_with_defaults
+    seed = Random.new_seed
+    random = Random.new(seed)
     $fb = Factbase.new
     $epoch = Time.now
     $global = {}
     $options = Judges::Options.new
     $loog = Loog::NULL
-    $judge = ''
+    $judge = Array.new(random.rand(1..4)) { Array.new(random.rand(1..12)) { random.rand(97..122).chr }.join }.join('-')
+    $fb.insert.foo = random.rand(1..1000)
     Fbe.conclude do
       quota_unaware
+      on('(exists foo)')
+      draw do |n, prev|
+        n.sum = prev.foo + 1
+        'The foo fact was found and a sum fact was drawn from it by default.'
+      end
     end
+    assert_equal(
+      [$judge], $fb.query('(exists sum)').each.map(&:what),
+      "drawn fact does not carry the judge taken from $judge with seed #{seed}"
+    )
+  end
+
+  def test_with_defaults_stops_on_global_lifetime
+    seed = Random.new_seed
+    random = Random.new(seed)
+    $fb = Factbase.new
+    $epoch = Time.now
+    $global = {}
+    $options = Judges::Options.new('lifetime=0')
+    $loog = Loog::NULL
+    $judge = 'judge-defaults'
+    random.rand(1..16).times { |i| $fb.insert.foo = i }
+    Fbe.conclude do
+      quota_unaware
+      on('(exists foo)')
+      draw do |n, prev|
+        n.sum = prev.foo + 1
+        'The foo fact was found and a sum fact was drawn from it by default.'
+      end
+    end
+    assert_empty(
+      $fb.query('(exists sum)').each.to_a,
+      "facts were drawn past the lifetime taken from $options with seed #{seed}"
+    )
+  end
+
+  def test_with_defaults_draws_when_global_epoch_is_nil
+    seed = Random.new_seed
+    random = Random.new(seed)
+    $fb = Factbase.new
+    $epoch = nil
+    $global = {}
+    $options = Judges::Options.new('lifetime=600')
+    $loog = Loog::NULL
+    $judge = 'judge-defaults'
+    count = random.rand(1..16)
+    count.times { |i| $fb.insert.foo = i }
+    Fbe.conclude do
+      quota_unaware
+      on('(exists foo)')
+      draw do |n, prev|
+        n.sum = prev.foo + 1
+        'The foo fact was found and a sum fact was drawn from it by default.'
+      end
+    end
+    assert_equal(
+      count, $fb.query('(exists sum)').each.to_a.size,
+      "not every fact was drawn while $epoch was nil with seed #{seed}"
+    )
   end
 
   def test_draw
