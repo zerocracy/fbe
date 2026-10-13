@@ -1672,4 +1672,14 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_search_closes_every_item_of_a_closed_query
+    found = Fbe::FakeOctokit.new.search_issues('repo:foo/bar type:issue closed:>2024-08-01')[:items]
+    assert_empty(found.reject { |i| i[:state] == 'closed' && i[:closed_at].is_a?(Time) && i[:user] }, found.inspect)
+  end
+
+  def test_fake_search_marks_every_pull_as_a_pull
+    found = Fbe::FakeOctokit.new.search_issues('repo:foo/bar type:pr is:unmerged')[:items]
+    assert_empty(found.reject { |i| i.key?(:pull_request) && i[:state] == 'open' && i[:closed_at].nil? }, found.inspect)
+  end
 end
