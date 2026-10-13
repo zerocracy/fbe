@@ -856,33 +856,47 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       }
     end
 
-    def pull_request_reviews(_owner, _name, **)
-      [
-        {
+    def pull_request_reviews(_owner, _name, pulls: [])
+      known = {
+        2 => {
           'id' => 'PR_kwDOL6J6Ss6iprCx',
-          'number' => 2,
           'reviews' => [
             { 'id' => 'PRR_kwDOL6J6Ss647NCl', 'submitted_at' => Time.parse('2025-10-02 12:58:42 UTC') },
             { 'id' => 'PRR_kwDOL6J6Ss647NC8', 'submitted_at' => Time.parse('2025-10-02 15:58:42 UTC') }
           ],
-          'reviews_has_next_page' => false,
           'reviews_next_cursor' => 'yc29yOnYyO1'
         },
-        {
+        5 => {
           'id' => 'PR_kwDOL6J6Ss6rhJ7T',
-          'number' => 5,
           'reviews' => [{ 'id' => 'PRR_kwDOL6J6Ss64_mnn', 'submitted_at' => Time.parse('2025-10-03 15:58:42 UTC') }],
-          'reviews_has_next_page' => false,
           'reviews_next_cursor' => 'yc29yOnYyO2'
         },
-        {
+        21 => {
           'id' => 'PR_kwDOL6J6Ss6r13fG',
-          'number' => 21,
           'reviews' => [{ 'id' => 'PRR_kwDOL6J6Ss65AbIA', 'submitted_at' => Time.parse('2025-10-04 15:58:42 UTC') }],
-          'reviews_has_next_page' => false,
           'reviews_next_cursor' => 'yc29yOnYyO3'
         }
-      ]
+      }
+      pulls.map do |number, _cursor|
+        num = number
+        one =
+          known.fetch(num) do
+            {
+              'id' => "PR_kwDOL6J6Ss#{num}",
+              'reviews' => [
+                { 'id' => "PRR_kwDOL6J6Ss#{num}", 'submitted_at' => Time.parse('2025-10-05 15:58:42 UTC') }
+              ],
+              'reviews_next_cursor' => "yc29yOnYyO#{num}"
+            }
+          end
+        {
+          'id' => one['id'],
+          'number' => num,
+          'reviews' => one['reviews'],
+          'reviews_has_next_page' => false,
+          'reviews_next_cursor' => one['reviews_next_cursor']
+        }
+      end
     end
 
     def total_commits_pushed(_owner, _name, _since, _till = Time.now)
