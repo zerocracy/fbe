@@ -119,6 +119,42 @@ class TestPmp < Fbe::Test
     assert_raises(Fbe::Error) { Fbe.pmp(loog: Loog::NULL).hr.days_to_reward }
   end
 
+  def test_rejects_float_that_converts_to_infinity
+    fb = Factbase.new
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'cost'
+    f.award_price = '1e999'
+    assert_raises(Fbe::Error, 'an infinite award price is accepted') do
+      Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).cost.award_price
+    end
+  end
+
+  def test_rejects_float_that_converts_to_negative_infinity
+    seed = Random.new_seed
+    price = "-#{Random.new(seed).rand(1..9)}e#{Random.new(seed).rand(309..99_999)}"
+    fb = Factbase.new
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'cost'
+    f.award_price = price
+    assert_raises(Fbe::Error, "award price '#{price}' is accepted, seed #{seed}") do
+      Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).cost.award_price
+    end
+  end
+
+  def test_reads_large_finite_float
+    fb = Factbase.new
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'cost'
+    f.award_price = '1.5e300'
+    assert_in_delta(
+      1.5e300, Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).cost.award_price.value,
+      1e285, 'a large finite award price is not read back'
+    )
+  end
+
   def test_reads_meta_info
     $fb = Factbase.new
     $global = {}
