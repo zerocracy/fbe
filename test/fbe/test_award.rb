@@ -13,38 +13,8 @@ require_relative '../test__helper'
 # License:: MIT
 class TestAward < Fbe::Test
   def test_simple
-    a = Fbe::Award.new(
-      '
-      (award
-        (explain "When a bug is resolved by the person who was assigned to it, a reward is granted to this person")
-        (in hours "hours passed between bug reported and closed")
-        (let max 36)
-        (let basis 30)
-        (give basis "as a basis")
-        (let fee 10)
-        (aka
-          (set b1
-            (if
-              (and
-                (lt hours max)
-                (not (eq hours 0)))
-              fee 0))
-          (give b1 "for resolving the bug in ${hours} (<${max}) hours")
-          "add +${fee} if it was resolved in less than ${max} hours")
-        (set days (div hours 24))
-        (set b2 (times days -1))
-        (let worst -20)
-        (set b2 (max b2 worst))
-        (let at_least -5)
-        (set b2 (if (lt b2 at_least) b2 0))
-        (set b2 (between b2 3 120))
-        (give b2 "for holding the bug open for too long (${days} days)"))
-      ',
-      judge: '', global: {}, loog: Loog::NULL, options: nil
-    )
+    a = award
     b = a.bill(hours: 10)
-    assert_operator(b.points, :<=, 100)
-    assert_operator(b.points, :>=, 5)
     assert_equal(40, b.points)
     g = b.greeting
     [
@@ -58,6 +28,30 @@ class TestAward < Fbe::Test
       'First, assume that _hours_ is hours',
       ', and award _b₂_'
     ].each { |t| assert_includes(md, t, md) }
+  end
+
+  def test_dont_reward_speed_of_bug_closed_in_zero_hours
+    assert_equal(30, award.bill(hours: 0).points, 'bug closed in zero hours is rewarded for speed')
+  end
+
+  def test_dont_reward_speed_of_bug_closed_at_max_hours
+    assert_equal(30, award.bill(hours: 36).points, 'bug closed in 36 hours is rewarded for speed')
+  end
+
+  def test_dont_penalize_bug_held_open_up_to_five_days
+    seed = Random.new_seed
+    hours = Random.new(seed).rand(37..120)
+    assert_equal(30, award.bill(hours:).points, "bug held open for #{hours} hours is penalized, seed #{seed}")
+  end
+
+  def test_penalizes_bug_held_open_for_six_days
+    assert_equal(24, award.bill(hours: 144).points, 'bug held open for six days is not penalized')
+  end
+
+  def test_caps_penalty_for_bug_held_open_for_weeks
+    seed = Random.new_seed
+    hours = Random.new(seed).rand(480..100_000)
+    assert_equal(10, award.bill(hours:).points, "penalty for #{hours} hours is not capped, seed #{seed}")
   end
 
   def test_let_publishes_the_value_of_an_expression
@@ -239,5 +233,39 @@ class TestAward < Fbe::Test
 
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
+  end
+
+  private
+
+  def award
+    Fbe::Award.new(
+      '
+      (award
+        (explain "When a bug is resolved by the person who was assigned to it, a reward is granted to this person")
+        (in hours "hours passed between bug reported and closed")
+        (let max 36)
+        (let basis 30)
+        (give basis "as a basis")
+        (let fee 10)
+        (aka
+          (set b1
+            (if
+              (and
+                (lt hours max)
+                (not (eq hours 0)))
+              fee 0))
+          (give b1 "for resolving the bug in ${hours} (<${max}) hours")
+          "add +${fee} if it was resolved in less than ${max} hours")
+        (set days (div hours 24))
+        (set b2 (times days -1))
+        (let worst -20)
+        (set b2 (max b2 worst))
+        (let at_least -5)
+        (set b2 (if (lt b2 at_least) b2 0))
+        (set b2 (between b2 3 120))
+        (give b2 "for holding the bug open for too long (${days} days)"))
+      ',
+      judge: '', global: {}, loog: Loog::NULL, options: nil
+    )
   end
 end
