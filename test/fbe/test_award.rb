@@ -240,4 +240,45 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_bill_cannot_take_aka_without_text
+    seed = Random.new_seed
+    q = "(award (give 3 \"base\") (aka (let b #{Random.new(seed).rand(1..1000)}) (give b \"bonus\")))"
+    assert_raises(Fbe::Error, "aka without text is billed, seed #{seed}") { Fbe::Award.new(q).bill }
+  end
+
+  def test_bylaw_cannot_take_aka_without_text
+    seed = Random.new_seed
+    q = "(award (give 3 \"base\") (aka (let b #{Random.new(seed).rand(1..1000)}) (give b \"bonus\")))"
+    assert_raises(Fbe::Error, "aka without text is published, seed #{seed}") { Fbe::Award.new(q).bylaw }
+  end
+
+  def test_bill_cannot_take_aka_with_number_for_text
+    seed = Random.new_seed
+    q = "(award (aka (give 5 \"Ω\") #{Random.new(seed).rand(1..1000)}))"
+    assert_raises(Fbe::Error, "aka with a number for text is billed, seed #{seed}") { Fbe::Award.new(q).bill }
+  end
+
+  def test_bylaw_cannot_take_aka_with_name_for_text
+    q = '(award (aka (let b 7) (give b "x") b))'
+    assert_raises(Fbe::Error, 'aka with a name for text is published') { Fbe::Award.new(q).bylaw }
+  end
+
+  def test_bylaw_cannot_take_aka_with_number_for_text
+    seed = Random.new_seed
+    q = "(award (aka (give 5 \"Ω\") #{Random.new(seed).rand(1..1000)}))"
+    assert_raises(Fbe::Error, "aka with a number for text is published, seed #{seed}") { Fbe::Award.new(q).bylaw }
+  end
+
+  def test_bill_cannot_take_aka_with_name_for_text
+    q = '(award (aka (let b 7) (give b "x") b))'
+    assert_raises(Fbe::Error, 'aka with a name for text is billed') { Fbe::Award.new(q).bill }
+  end
+
+  def test_bill_counts_give_lines_of_aka_with_text
+    seed = Random.new_seed
+    n = Random.new(seed).rand(1..1000)
+    q = "(award (give 3 \"base\") (aka (let b #{n}) (give b \"bonus\") \"add ${b} points\"))"
+    assert_equal(n + 3, Fbe::Award.new(q).bill.points, "give lines of aka are lost, seed #{seed}")
+  end
 end
