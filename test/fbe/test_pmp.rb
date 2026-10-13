@@ -202,7 +202,7 @@ class TestPmp < Fbe::Test
     end
     fb.insert.area = 'unrelated'
     fb.insert.what = 'pmp'
-    areas = Fbe.pmp(fb:, global: {}).areas
+    areas = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).areas
     assert_equal(1, areas.count('custom'))
     assert_equal(1, areas.count('hr'))
     refute_includes(areas, 'unrelated')
