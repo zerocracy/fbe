@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'factbase'
+require 'judges/options'
 require 'loog'
 require_relative '../../lib/fbe/award'
 require_relative '../test__helper'
@@ -58,6 +60,19 @@ class TestAward < Fbe::Test
       'First, assume that _hours_ is hours',
       ', and award _b₂_'
     ].each { |t| assert_includes(md, t, md) }
+  end
+
+  def test_reads_bylaw_from_pmp_when_no_query
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    f = $fb.insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.bug_report_was_rewarded = '(award (give 7 "as a basis"))'
+    a = Fbe::Award.new(judge: 'bug-report-was-rewarded')
+    assert_equal(7, a.bill.points, 'the bylaw was not read from the PMP')
   end
 
   def test_let_publishes_the_value_of_an_expression
