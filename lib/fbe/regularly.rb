@@ -35,14 +35,14 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   end
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
+  pmp = fb.query("(and (eq what 'pmp') (eq area $area))").each(fb, area:).to_a
   interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
   recent = fb.query(
     "(and
       (eq what 'regularly')
-      (eq judge '#{judge.gsub("'", "\\\\'")}')
+      (eq judge $judge)
       (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
-  ).each.first
+  ).each(fb, judge:).first
   if recent
     loog.info(
       "#{judge} statistics were collected #{recent.when.ago} ago, " \
