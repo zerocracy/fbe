@@ -876,6 +876,27 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(1, pulls[0]['reviews'].size)
   end
 
+  def test_real_pull_request_reviews_reports_the_next_page_of_reviews
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pr_2' => {
+            'id' => 'PR_2',
+            'number' => 2,
+            'reviews' => {
+              'nodes' => [{ 'id' => 'rev_1', 'submittedAt' => '2025-10-02T12:58:42Z' }],
+              'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'C' }
+            }
+          }
+        }
+      }
+    end
+    pull = graph.pull_request_reviews('foo', 'bar', pulls: [[2, nil]]).first
+    assert_equal([true, 'C'], [pull['reviews_has_next_page'], pull['reviews_next_cursor']])
+  end
+
   def test_real_pull_request_reviews_omits_after_when_cursor_is_nil
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
