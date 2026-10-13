@@ -265,6 +265,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         o =
           intercepted(o) do |e, m, args, _r|
             next unless e == :before
+            unless client.respond_to?(m)
+              kind = options.testing.nil? ? Octokit::Client : Fbe::FakeOctokit
+              raise(NoMethodError.new("undefined method '#{m}' for an instance of #{kind}", m, args))
+            end
             next if %i[off_quota? print_trace! rate_limit rate_limit!].include?(m)
             next if m == :get && %w[/rate_limit rate_limit].include?(args.first)
             if Fbe::SEARCH_METHODS.include?(m)
