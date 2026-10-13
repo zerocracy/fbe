@@ -1672,4 +1672,11 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_rate_limit_has_the_fields_of_the_real_one
+    r = Fbe::FakeOctokit.new.rate_limit
+    assert_equal([5000, 100], [r.limit, r.remaining])
+    assert_operator(r.resets_at, :>, Time.now)
+    assert_predicate(r.resets_in, :positive?)
+  end
 end
