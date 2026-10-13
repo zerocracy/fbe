@@ -1120,6 +1120,40 @@ class TestOcto < Fbe::Test
     refute_match('/repos/zerocracy/baza.rb: 25', output)
   end
 
+  def test_prints_trace_after_hundred_requests
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    total = Random.new(seed).rand(100..130)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":4000}}', headers: { 'X-RateLimit-Remaining' => '4000' }
+    )
+    stub_request(:get, %r{https://api.github.com/repos/foo/bar/issues/\d+}).to_return(
+      body: '{"number":1}', headers: { 'X-RateLimit-Remaining' => '4000' }
+    )
+    loog = Loog::Buffer.new
+    octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
+    total.times { |i| octo.issue('foo/bar', i + 1) }
+    octo.print_trace!(all: true)
+    assert_includes(loog.to_s, 'GitHub API trace (', "trace is not printed after #{total} requests, seed #{seed}")
+  end
+
+  def test_prints_trace_twice_past_two_quota_refreshes
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":4000}}', headers: { 'X-RateLimit-Remaining' => '4000' }
+    )
+    stub_request(:get, %r{https://api.github.com/repos/foo/bar/issues/\d+}).to_return(
+      body: '{"number":1}', headers: { 'X-RateLimit-Remaining' => '4000' }
+    )
+    loog = Loog::Buffer.new
+    octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
+    2.times do |r|
+      120.times { |i| octo.issue('foo/bar', (r * 1000) + i + 1) }
+      octo.print_trace!(all: true)
+    end
+    assert_equal(2, loog.to_s.scan('GitHub API trace (').size, 'trace is not printed after each of two refreshes')
+  end
+
   def test_trace_gets_cleared_after_print
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

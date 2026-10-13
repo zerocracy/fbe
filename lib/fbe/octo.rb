@@ -145,38 +145,36 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         o =
           decoor(o, loog:, trace:, limits:, mutex:) do # rubocop:disable Metrics/BlockLength
             def print_trace!(all: false, max: 5)
-              @mutex.synchronize do
-                if @trace.empty?
-                  @loog.debug('GitHub API trace is empty')
-                else
-                  shown = @trace.select { |e| e[:duration] > 0.05 || all }
-                  grouped =
-                    shown.group_by do |entry|
-                      uri = URI.parse(entry[:url])
-                      query = uri.query
-                      query = "?#{query.ellipsized(40)}" if query
-                      "#{uri.scheme}://#{uri.host}#{uri.path}#{query}"
-                    end
-                  message = grouped
-                    .sort_by { |_path, entries| -entries.count }
-                    .map do |path, entries|
-                      [
-                        '  ',
-                        path.gsub(%r{^https://api.github.com/}, '/'),
-                        ': ',
-                        entries.count,
-                        " (#{entries.sum { |e| e[:duration] }.seconds})"
-                      ].join
-                    end
-                    .take(max)
-                    .join("\n")
-                  @loog.info(
-                    "GitHub API trace (#{grouped.count} URLs vs #{shown.count} requests, " \
-                    "#{@trace.count - shown.count} fast ones skipped, " \
-                    "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
-                  )
-                  @trace.clear
-                end
+              trace = @mutex.synchronize { @trace.slice!(0..) }
+              if trace.empty?
+                @loog.debug('GitHub API trace is empty')
+              else
+                shown = trace.select { |e| e[:duration] > 0.05 || all }
+                grouped =
+                  shown.group_by do |entry|
+                    uri = URI.parse(entry[:url])
+                    query = uri.query
+                    query = "?#{query.ellipsized(40)}" if query
+                    "#{uri.scheme}://#{uri.host}#{uri.path}#{query}"
+                  end
+                message = grouped
+                  .sort_by { |_path, entries| -entries.count }
+                  .map do |path, entries|
+                    [
+                      '  ',
+                      path.gsub(%r{^https://api.github.com/}, '/'),
+                      ': ',
+                      entries.count,
+                      " (#{entries.sum { |e| e[:duration] }.seconds})"
+                    ].join
+                  end
+                  .take(max)
+                  .join("\n")
+                @loog.info(
+                  "GitHub API trace (#{grouped.count} URLs vs #{shown.count} requests, " \
+                  "#{trace.count - shown.count} fast ones skipped, " \
+                  "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
+                )
               end
             end
             # rubocop:disable Elegant/GoodMethodName, Style/OptionalBooleanParameter
