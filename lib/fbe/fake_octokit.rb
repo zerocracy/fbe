@@ -48,7 +48,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #   fake_client.name_to_number(42) #=> 42
   def name_to_number(name)
     return name unless name.is_a?(String)
-    Zlib.crc32(name)
+    Zlib.crc32(name.downcase)
   end
 
   def auto_paginate=(_); end
