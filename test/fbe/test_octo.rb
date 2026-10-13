@@ -592,6 +592,37 @@ class TestOcto < Fbe::Test
     o.user('yegor256')
   end
 
+  def test_sends_the_token_from_the_option
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub = stub_request(:get, 'https://api.github.com/repositories/42')
+      .with(headers: { 'Authorization' => 'token secret-of-option' })
+      .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'secret-of-option' }))
+    o.repository(42)
+    assert_requested(stub)
+  end
+
+  def test_sends_the_token_from_the_environment
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub = stub_request(:get, 'https://api.github.com/repositories/42')
+      .with(headers: { 'Authorization' => 'token secret-of-env' })
+      .to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+    before = ENV.fetch('GITHUB_TOKEN', nil)
+    ENV['GITHUB_TOKEN'] = 'secret-of-env'
+    begin
+      Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new).repository(42)
+    ensure
+      ENV['GITHUB_TOKEN'] = before
+    end
+    assert_requested(stub)
+  end
+
   def test_retrying_on_server_errors
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
