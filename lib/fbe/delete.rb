@@ -19,9 +19,10 @@ require_relative 'fb'
 # @return [nil] Nothing
 # @raise [Fbe::Error] If fact is nil, has no ID, or ID property doesn't exist
 # @example Delete multiple properties from a fact
-#   fact = fb.query('(eq type "user")').first
-#   new_fact = Fbe.delete(fact, 'age', 'city')
-#   # new_fact will have all properties except 'age' and 'city'
+#   fact = fb.query('(eq type "user")').each.first
+#   Fbe.delete(fact, 'age', 'city')
+#   fact = fb.query("(eq _id #{fact._id})").each.first
+#   # the fact has all properties now, except 'age' and 'city'
 def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id') # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
   i = fact[id]
