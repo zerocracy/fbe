@@ -81,6 +81,12 @@ class TestAward < Fbe::Test
     end
   end
 
+  def test_refuses_unknown_terms
+    ['(award (giv 5 "x"))', '(award (give (tims 2 3) "x"))'].each do |q|
+      assert_includes(assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill }.message, 'Unknown term', q)
+    end
+  end
+
   def test_some_greetings
     {
       '(award (give (times 7 0.25 "fun")))' => 'You\'ve earned +2 points. ',
