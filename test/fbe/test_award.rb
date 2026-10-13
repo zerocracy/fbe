@@ -240,4 +240,35 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_bylaw_prints_float_let_without_noise
+    md = Fbe::Award.new('(award (aka (let k (times 0.1 3)) (give k "x") "award ${k} points"))').bylaw.markdown
+    assert_includes(md, 'award **0.3** points', 'float noise is printed in the bylaw')
+  end
+
+  def test_bylaw_rounds_float_let_to_two_decimals
+    md = Fbe::Award.new('(award (aka (let r (div 1 3)) (give r "x") "award ${r} points"))').bylaw.markdown
+    assert_includes(md, 'award **0.33** points', 'float is not rounded to two decimals in the bylaw')
+  end
+
+  def test_bylaw_prints_float_rate_as_is
+    seed = Random.new_seed
+    k = Random.new(seed).rand(1..99) / -100.0
+    md = Fbe::Award.new("(award (aka (let k (times #{k} 1)) (give k \"x\") \"add ${k} points\"))").bylaw.markdown
+    assert_includes(md, "add **#{k}** points", "rate is not printed as is, seed #{seed}")
+  end
+
+  def test_bylaw_prints_whole_float_let_without_fraction
+    seed = Random.new_seed
+    n = Random.new(seed).rand(1..1000)
+    md = Fbe::Award.new(
+      "(award (aka (let d (times 0.5 #{n * 2})) (give d \"x\") \"award ${d} points\"))"
+    ).bylaw.markdown
+    assert_includes(md, "award **#{n}** points", "whole float is printed with a fraction, seed #{seed}")
+  end
+
+  def test_bylaw_prints_tiny_negative_float_let_as_zero
+    md = Fbe::Award.new('(award (aka (let d (times -0.001 1)) (give 1 "x") "award ${d} points"))').bylaw.markdown
+    assert_includes(md, 'award **0** points', 'tiny negative float is not printed as zero in the bylaw')
+  end
 end
