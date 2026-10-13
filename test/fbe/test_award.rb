@@ -240,4 +240,40 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_bylaw_refuses_unknown_operator_in_give
+    a = Fbe::Award.new('(award (in hoc "hits") (give (timse hoc 2) "for code"))')
+    assert_raises(Fbe::Error, 'a misspelled operator is published as raw text') { a.bylaw }
+  end
+
+  def test_bylaw_refuses_unknown_operator_nested_in_known_one
+    seed = Random.new_seed
+    random = Random.new(seed)
+    op = "q#{Array.new(random.rand(3..20)) { ('a'..'z').to_a.sample(random:) }.join}"
+    a = Fbe::Award.new("(award (in hoc \"hits\") (give (plus 1 (#{op} hoc 2)) \"for code\"))")
+    assert_raises(Fbe::Error, "operator '#{op}' is published as raw text, seed #{seed}") { a.bylaw }
+  end
+
+  def test_bylaw_refuses_unknown_operator_in_set
+    a = Fbe::Award.new('(award (set x (bogus 1 2)) (give x "for nothing"))')
+    assert_raises(Fbe::Error, 'an unknown operator in set is published as raw text') { a.bylaw }
+  end
+
+  def test_bylaw_refuses_unknown_operator_in_condition
+    a = Fbe::Award.new('(award (in hoc "hits") (give (if (grt hoc 2) 5 0) "for code"))')
+    assert_raises(Fbe::Error, 'an unknown operator in a condition is published as raw text') { a.bylaw }
+  end
+
+  def test_bylaw_publishes_formula_with_every_dsl_word
+    a = Fbe::Award.new(
+      '(award (explain "Награда") (in hoc "hits") (let fee 5) (set x (times hoc fee))
+      (aka (give x "for code") "award ${fee} per hit") (give 1 "as a basis"))'
+    )
+    assert_includes(a.bylaw.markdown, 'award **5** per hit', 'a formula built of DSL words only is not published')
+  end
+
+  def test_bylaw_refuses_unknown_operator_that_bill_refuses
+    q = '(award (give (minimum 3 4) "for something"))'
+    assert_raises(Fbe::Error, 'bylaw publishes an operator that bill refuses') { Fbe::Award.new(q).bylaw }
+  end
 end
