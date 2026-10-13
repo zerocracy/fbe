@@ -52,6 +52,40 @@ class TestOcto < Fbe::Test
     assert_equal('User', o.user(42)[:type])
   end
 
+  def test_fake_user_echoes_integer_id
+    seed = Random.new_seed
+    uid = Random.new(seed).rand(1..999_999_999)
+    assert_equal(uid, Fbe::FakeOctokit.new.user(uid)[:id], "the id of user #{uid} is not the one given, seed #{seed}")
+  end
+
+  def test_fake_user_echoes_login
+    seed = Random.new_seed
+    login = "jürgen-#{Random.new(seed).rand(1_000_000)}"
+    assert_equal(login, Fbe::FakeOctokit.new.user(login)[:login], "the login is not '#{login}', seed #{seed}")
+  end
+
+  def test_fake_user_gives_two_logins_two_ids
+    seed = Random.new_seed
+    first = "first-#{Random.new(seed).rand(1_000_000)}"
+    o = Fbe::FakeOctokit.new
+    refute_equal(o.user(first)[:id], o.user("#{first}x")[:id], "two logins share one id, seed #{seed}")
+  end
+
+  def test_fake_user_never_answers_nil_login
+    seed = Random.new_seed
+    random = Random.new(seed)
+    o = Fbe::FakeOctokit.new
+    logins = [random.rand(1..999_999), "日本-#{random.rand(1_000)}", 'x' * random.rand(1..300)].map { o.user(_1)[:login] }
+    refute_includes(logins, nil, "a user is answered with a nil login, seed #{seed}")
+  end
+
+  def test_fake_user_keeps_id_of_login
+    seed = Random.new_seed
+    login = "keeper-#{Random.new(seed).rand(1_000_000)}"
+    o = Fbe::FakeOctokit.new
+    assert_equal(o.user(login)[:id], o.user(login)[:id], "the id of '#{login}' changes between calls, seed #{seed}")
+  end
+
   def test_fake_events_have_one_repo_shape
     events = Fbe::FakeOctokit.new.repository_events('yegor256/judges')
     events.each do |e|
