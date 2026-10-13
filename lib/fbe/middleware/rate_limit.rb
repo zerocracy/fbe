@@ -33,6 +33,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @remaining = nil
     @searchleft = nil
     @counter = 0
+    @seq = 0
+    @seen = {}
     @lock = Mutex.new
     @refresh = Mutex.new
     tracker[:rate_limit] = self unless tracker.nil?
@@ -47,9 +49,13 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     if env.url.path == '/rate_limit'
       @refresh.synchronize { handle_rate_limit_request(env) }
     else
-      @lock.synchronize { took = track_request(env.url.path) }
+      seq = nil
+      @lock.synchronize do
+        took = track_request(env.url.path)
+        seq = (@seq += 1)
+      end
       @app.call(env).on_complete do |response_env|
-        @lock.synchronize { sync(response_env, env.url.path) }
+        @lock.synchronize { sync(response_env, env.url.path, seq) }
       end
     end
   rescue StandardError
@@ -82,6 +88,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @remaining = extract_remaining_count(response)
       @searchleft = extract_search_remaining_count(response)
       @counter = 0
+      @seen = { core: [nil, @seq], search: [nil, @seq] }
     end
     response
   end
@@ -126,24 +133,32 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # raises the counter after GitHub has reset the quota.
   #
   # @param [Faraday::Env] response_env The response environment
-  def sync(response_env, path = nil)
+  def sync(response_env, path = nil, seq = nil)
     return if response_env[:http_cache_trace]&.include?(:fresh)
     headers = response_env.response_headers
     return unless headers
     remaining = headers['x-ratelimit-remaining']
     return unless remaining
     count = Integer(remaining)
-    if path&.start_with?('/search/')
+    resource = path&.start_with?('/search/') ? :search : :core
+    reset = headers['x-ratelimit-reset']&.then { Integer(_1) }
+    return if outdated?(resource, reset, seq)
+    @seen[resource] = [reset, seq] unless seq.nil?
+    if resource == :search
       @searchleft = count
     else
       @remaining = count
     end
   end
 
-  # Extracts the remaining count from the response body.
-  #
-  # @param [Faraday::Response] response The API response
-  # @return [Integer, nil] The remaining requests count, or nil when it is unknown
+  def outdated?(resource, reset, seq)
+    earlier, mark = @seen[resource]
+    return false if mark.nil? || seq.nil?
+    return true if reset && earlier && reset < earlier
+    return false if reset && earlier && reset > earlier
+    seq < mark
+  end
+
   def extract_remaining_count(response)
     body = response.body
     body = JSON.parse(body) if body.is_a?(String)
