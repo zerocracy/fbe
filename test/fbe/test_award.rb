@@ -240,4 +240,40 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_bills_variable_given_by_string_key
+    seed = Random.new_seed
+    loc = Random.new(seed).rand(1..10_000)
+    a = Fbe::Award.new('(award (in loc "lines") (give (times loc 5) "for LoC"))')
+    assert_equal(loc * 5, a.bill('loc' => loc).points, "string key 'loc' is not found by the formula, seed #{seed}")
+  end
+
+  def test_bills_variable_given_by_long_string_key
+    seed = Random.new_seed
+    random = Random.new(seed)
+    name = "v#{Array.new(random.rand(30..60)) { ('a'..'z').to_a.sample(random:) }.join}"
+    value = random.rand(1..1_000)
+    a = Fbe::Award.new("(award (give #{name} \"for nothing\"))")
+    assert_equal(value, a.bill(name => value).points, "string key '#{name}' is not found by the formula, seed #{seed}")
+  end
+
+  def test_bills_variables_given_by_string_and_symbol_keys
+    seed = Random.new_seed
+    random = Random.new(seed)
+    first = random.rand(-1_000..1_000)
+    second = random.rand(-1_000..1_000)
+    a = Fbe::Award.new('(award (give (plus first second) "for both"))')
+    assert_equal(
+      first + second, a.bill('first' => first, second: second).points,
+      "mixed string and symbol keys are not both found, seed #{seed}"
+    )
+  end
+
+  def test_renders_variable_given_by_string_key_in_greeting
+    seed = Random.new_seed
+    loc = Random.new(seed).rand(1..10_000)
+    a = Fbe::Award.new('(award (give 3 "as a basis") (give (times loc 2) "for ${loc} строк"))')
+    g = a.bill('loc' => loc).greeting
+    assert_includes(g, "for #{loc} строк", "string key 'loc' is not rendered in '#{g}', seed #{seed}")
+  end
 end
