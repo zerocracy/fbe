@@ -1672,4 +1672,14 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_check_runs_say_how_they_ended
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    runs = o.check_runs_for_ref('zerocracy/baza', 'abc')[:check_runs]
+    runs.each do |r|
+      assert_equal('completed', r[:status], r[:name])
+      assert_includes(%w[success failure], r[:conclusion], r[:name])
+    end
+    assert_includes(runs.map { |r| r[:conclusion] }, 'failure')
+  end
 end
