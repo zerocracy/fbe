@@ -95,6 +95,42 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_clears_nothing_when_disabled
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    with_tmpfile("c\u00e4che-#{rnd.rand(1000)}.db") do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, "0.0.#{rnd.rand(100)}", loog: fake_loog)
+      SQLite3::Database.stub(:new, ->(*_args) { raise(SQLite3::CantOpenException, 'always broken') }) do
+        assert_nil(store.clear, "clear touched a disabled store, seed #{seed}")
+      end
+    end
+  end
+
+  def test_clears_nothing_when_disabled_after_close
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    with_tmpfile("c\u00e4che-#{rnd.rand(1000)}.db") do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, "0.0.#{rnd.rand(100)}", loog: fake_loog)
+      store.write("k\u00eby-#{rnd.rand(1000)}", 'v' * rnd.rand(1..4096))
+      store.close
+      SQLite3::Database.stub(:new, ->(*_args) { raise(SQLite3::CantOpenException, 'always broken') }) do
+        assert_nil(store.clear, "clear touched a store disabled after close, seed #{seed}")
+      end
+    end
+  end
+
+  def test_clears_nothing_when_read_disabled_the_store
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    with_tmpfile("c\u00e4che-#{rnd.rand(1000)}.db") do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, "0.0.#{rnd.rand(100)}", loog: fake_loog)
+      SQLite3::Database.stub(:new, ->(*_args) { raise(SQLite3::CantOpenException, 'always broken') }) do
+        store.read("k\u00eby-#{rnd.rand(1000)}")
+        assert_nil(store.clear, "clear touched a store that read disabled, seed #{seed}")
+      end
+    end
+  end
+
   def test_rejects_an_unwritable_directory
     with_tmpfile do |f|
       dir = File.dirname(f)
