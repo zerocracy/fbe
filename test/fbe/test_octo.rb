@@ -121,6 +121,18 @@ class TestOcto < Fbe::Test
     assert_raises(Fbe::Error) { o.user_name_by_id(42) }
   end
 
+  def test_repo_id_by_name_raises_on_forbidden
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    stub_request(:get, 'https://api.github.com/repos/foo/bar').to_return(
+      status: 403, body: '{}', headers: { 'Content-Type' => 'application/json' }
+    )
+    assert_raises(Fbe::Error) { o.repo_id_by_name('foo/bar') }
+  end
+
   def test_user_name_by_id_raises_on_not_found
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
