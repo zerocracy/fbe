@@ -300,13 +300,24 @@ class Fbe::Award
         bylaw.line("assume that #{to_p(@operands[0])} is #{to_p(@operands[1])}")
       when :let
         bylaw.line("let #{to_p(@operands[0])} be equal to #{to_p(@operands[1])}")
-        bylaw.let(@operands[0], to_val(@operands[1], bylaw))
+        bylaw.let(@operands[0], to_val(@operands[1], bylaw)) if known?(@operands[1], bylaw)
       when :set
         bylaw.line("set #{to_p(@operands[0])} to #{to_p(@operands[1])}")
       when :give
         bylaw.line("award #{to_p(@operands[0])}")
       else
         raise(Fbe::Error, "Unknown term '#{@op}'")
+      end
+    end
+
+    def known?(any, bylaw)
+      case any
+      when PTerm
+        any.op != :total && any.operands.all? { |o| known?(o, bylaw) }
+      when Symbol
+        bylaw.vars.key?(any)
+      else
+        true
       end
     end
 

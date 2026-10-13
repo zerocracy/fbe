@@ -240,4 +240,39 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_bylaw_prints_let_that_reads_an_input
+    seed = Random.new_seed
+    n = Random.new(seed).rand(2..1000)
+    md = Fbe::Award.new(
+      "(award (in hoc \"hits\") (let bonus (times hoc #{n})) (give bonus \"for hits\"))"
+    ).bylaw.markdown
+    assert_includes(md, "let _bonus_ be equal to _hoc_ × **#{n}**", "let of an input is not printed, seed #{seed}")
+  end
+
+  def test_bylaw_prints_let_that_is_an_input_itself
+    md = Fbe::Award.new('(award (in hoc "hits") (let b hoc) (give b "for hits"))').bylaw.markdown
+    assert_includes(md, 'let _b_ be equal to _hoc_', 'let of a bare input is not printed')
+  end
+
+  def test_bylaw_prints_let_that_reads_the_total
+    md = Fbe::Award.new('(award (give 3 "base") (let t (plus (total) 1)) (give t "double"))').bylaw.markdown
+    assert_includes(md, 'let _t_ be equal to total + **1**', 'let of the total is not printed')
+  end
+
+  def test_bylaw_prints_let_that_reads_an_uncomputed_let
+    md = Fbe::Award.new(
+      '(award (in hoc "hits") (let a (times hoc 2)) (let b (plus a 1)) (give b "for hits"))'
+    ).bylaw.markdown
+    assert_includes(md, 'let _b_ be equal to _a_ + **1**', 'let of an uncomputed let is not printed')
+  end
+
+  def test_bylaw_publishes_let_that_reads_a_computed_let
+    seed = Random.new_seed
+    n = Random.new(seed).rand(1..1000)
+    md = Fbe::Award.new(
+      "(award (let a #{n}) (let b (times a 3)) (aka (give b \"x\") \"award ${b} points\"))"
+    ).bylaw.markdown
+    assert_includes(md, "award **#{n * 3}** points", "value of a computed let is lost, seed #{seed}")
+  end
 end
