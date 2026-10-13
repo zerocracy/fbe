@@ -1672,4 +1672,51 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_reads_last_response_when_off_quota
+    assert_equal(200, drained.last_response.status, 'paid response is not readable off quota')
+  end
+
+  def test_reads_paging_settings_when_off_quota
+    o = drained
+    assert_equal([true, 100], [o.auto_paginate, o.per_page], 'paging settings are not readable off quota')
+  end
+
+  def test_asks_object_methods_when_off_quota
+    seed = Random.new_seed
+    m = %i[nil? inspect class frozen? hash to_s].sample(random: Random.new(seed))
+    refute_nil(drained.__send__(m), "#{m} is refused off quota, seed #{seed}")
+  end
+
+  def test_dont_ask_quota_for_local_call
+    WebMock.disable_net_connect!
+    calls = 0
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return do
+      calls += 1
+      { body: '{"rate":{"remaining":4000}}', headers: { 'Content-Type' => 'application/json' } }
+    end
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    o.per_page
+    assert_equal(0, calls, 'quota is asked for a local call')
+  end
+
+  def test_still_refuses_api_call_when_off_quota
+    assert_raises(Fbe::OffQuota, 'api call is made off quota') { drained.commits('foo/bar') }
+  end
+
+  private
+
+  def drained
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":51}}',
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '51' }
+    )
+    stub_request(:get, %r{https://api.github.com/repos/foo/bar/commits}).to_return(
+      body: '[{"sha":"a1"}]', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '49' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    o.commits('foo/bar', per_page: 1)
+    o
+  end
 end
