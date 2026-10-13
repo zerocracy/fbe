@@ -47,6 +47,16 @@ class TestDelete < Fbe::Test
     assert_equal(1, fb.size)
   end
 
+  def test_leaves_the_fact_in_its_place_when_property_is_absent
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    f._id = 555
+    fb.insert._id = 556
+    Fbe.delete(f, 'bar', fb:)
+    assert_equal([555, 556], fb.query('(always)').each.map(&:_id), 'the fact was deleted and inserted again')
+  end
+
   def test_refuses_idless_fact_when_property_is_absent
     fb = Factbase.new
     f = fb.insert
