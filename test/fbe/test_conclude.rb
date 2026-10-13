@@ -143,6 +143,41 @@ class TestConclude < Fbe::Test
     assert_equal(42, f.bar)
   end
 
+  def test_consider_rolls_back_changes_to_the_fact_without_id
+    fb = Factbase.new
+    fact = fb.insert
+    fact.foo = 1
+    options = Judges::Options.new
+    Fbe.conclude(fb:, judge: 'consider-rollback', loog: Loog::NULL, options:, global: {}) do
+      quota_unaware
+      on('(exists foo)')
+      consider do |current|
+        current.foo = 2
+        throw(:rollback)
+      end
+    end
+    stored = fb.query('(exists foo)').each.first
+    assert_equal(1, stored.foo)
+  end
+
+  def test_consider_rolls_back_changes_to_the_fact_with_id
+    fb = Factbase.new
+    fact = fb.insert
+    fact._id = 1
+    fact.foo = 1
+    options = Judges::Options.new
+    Fbe.conclude(fb:, judge: 'consider-rollback', loog: Loog::NULL, options:, global: {}) do
+      quota_unaware
+      on('(exists foo)')
+      consider do |current|
+        current.foo = 2
+        throw(:rollback)
+      end
+    end
+    stored = fb.query('(exists foo)').each.first
+    assert_equal(1, stored.foo)
+  end
+
   def test_consider_visits_every_fact_once_when_block_recreates_it
     $epoch = Time.now
     fb = Factbase.new
