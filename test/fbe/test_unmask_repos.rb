@@ -34,6 +34,25 @@ class TestUnmaskRepos < Fbe::Test
     assert_predicate(list.size, :positive?)
   end
 
+  def test_stops_yielding_when_time_runs_out
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'foo/a,foo/b,foo/c', 'timeout' => 1 })
+    list = []
+    Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL, kickoff: Time.now) do |n|
+      list << n
+      sleep(1)
+    end
+    assert_equal(1, list.size, "all of #{list} were yielded, while the time was over after the first one")
+  end
+
+  def test_refuses_a_missing_mask
+    assert_equal(
+      'Repositories mask is not specified',
+      assert_raises(Fbe::Error) do
+        Fbe.unmask_repos(options: Judges::Options.new({ 'testing' => true }), global: {}, loog: Loog::NULL)
+      end.message
+    )
+  end
+
   def test_fails_on_broken_names
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
