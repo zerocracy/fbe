@@ -14,7 +14,7 @@
     (let hoc_threshold {{ 400 | divided_by: paranoia }})
     (let hoc_max 16)
     (let hoc_min 5)
-    (set bonus_for_hoc (if (lt hoc hoc_threshold) (times hoc hoc_k) 0))
+    (set bonus_for_hoc (times (min hoc hoc_threshold) hoc_k))
     (set bonus_for_hoc (between bonus_for_hoc hoc_min hoc_max))
     (give bonus_for_hoc "for the ${hoc} hits-of-code that you wrote")
     "add ${hoc_k} points for each [hit-of-code](https://www.yegor256.com/2014/11/14/hits-of-code.html), but not more than ${hoc_max} points")
