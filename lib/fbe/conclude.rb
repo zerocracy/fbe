@@ -128,11 +128,11 @@ class Fbe::Conclude
   #
   # @param [Array<String>] props List of property names
   # @return [nil] Nothing
-  # @raise [Fbe::Error] If +what+ or +details+ is in the list, since +draw+ sets them
+  # @raise [Fbe::Error] If a system-managed property is in the list
   def follow(props)
     raise(Fbe::Error, 'Follow is already set') unless @follows.nil?
     list = props.strip.split.compact
-    bad = list & %w[what details]
+    bad = list & %w[what details _id]
     raise(Fbe::Error, "Can't follow #{bad.join(' and ')}, the judge sets it in the new fact") unless bad.empty?
     @follows = list
   end

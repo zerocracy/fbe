@@ -427,7 +427,7 @@ class TestConclude < Fbe::Test
   end
 
   def test_follow_refuses_properties_set_by_judge
-    %w[what details].each do |prop|
+    %w[what details _id].each do |prop|
       fb = Factbase.new
       fb.insert.foo = 1
       e =
