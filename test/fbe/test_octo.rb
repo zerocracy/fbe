@@ -1417,6 +1417,13 @@ class TestOcto < Fbe::Test
     assert_equal('foo/bar', r['full_name'])
   end
 
+  def test_fake_repo_id_and_name_are_inverses
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    %w[yegor256/judges zerocracy/fbe foo/bar].each do |name|
+      assert_equal(name, o.repo_name_by_id(o.repo_id_by_name(name)))
+    end
+  end
+
   def test_fake_releases
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     list = o.releases('yegor256/test')
