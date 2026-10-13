@@ -907,6 +907,47 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_list_issues_give_unique_ids
+    seed = Random.new_seed
+    repo = "организация-#{Random.new(seed).rand(1_000)}/проект"
+    ids = Fbe::FakeOctokit.new.list_issues(repo).map { _1[:id] }
+    assert_equal(ids.uniq, ids, "issues of #{repo} share an id, seed #{seed}")
+  end
+
+  def test_fake_list_issues_with_special_issue_give_unique_ids
+    ids = Fbe::FakeOctokit.new.list_issues('foo/bazz').map { _1[:id] }
+    assert_equal(ids.uniq, ids, 'issues of foo/bazz share an id')
+  end
+
+  def test_fake_list_issues_of_repo_given_by_id_give_unique_ids
+    seed = Random.new_seed
+    repo = Random.new(seed).rand(1..999_999)
+    ids = Fbe::FakeOctokit.new.list_issues(repo).map { _1[:id] }
+    assert_equal(ids.uniq, ids, "issues of repository #{repo} share an id, seed #{seed}")
+  end
+
+  def test_fake_issues_of_one_repo_give_unique_ids
+    seed = Random.new_seed
+    numbers = Array.new(10) { Random.new(seed + _1).rand(1_000..999_999) }.uniq
+    o = Fbe::FakeOctokit.new
+    ids = numbers.map { o.issue('yegor256/judges', _1)[:id] }
+    assert_equal(ids.uniq, ids, "issues #{numbers} share an id, seed #{seed}")
+  end
+
+  def test_fake_issues_of_two_repos_dont_share_id
+    seed = Random.new_seed
+    number = Random.new(seed).rand(1_000..999_999)
+    o = Fbe::FakeOctokit.new
+    refute_equal(o.issue('yegor256/a', number)[:id], o.issue('yegor256/b', number)[:id], "seed #{seed}")
+  end
+
+  def test_fake_issue_keeps_its_id
+    seed = Random.new_seed
+    number = Random.new(seed).rand(1_000..999_999)
+    o = Fbe::FakeOctokit.new
+    assert_equal(o.issue('foo/foo', number)[:id], o.issue('foo/foo', number)[:id], "id changes, seed #{seed}")
+  end
+
   def test_fake_list_issues
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.list_issues('foo/bazz').first.then do |issue|
