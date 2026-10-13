@@ -37,6 +37,47 @@ class TraceTest < Fbe::Test
     assert_operator(entry[:finished_at], :>=, entry[:started_at])
   end
 
+  def test_uses_monotonic_duration_after_wall_clock_rollback # rubocop:disable Minitest/MultipleAssertions
+    trace = []
+    request = Struct.new(:method, :url).new(:get, URI('http://example.com/test'))
+    response_env = Struct.new(:status) do
+      def [](_key)
+        nil
+      end
+    end.new(200)
+    response = Object.new
+    response.define_singleton_method(:on_complete) { |&block| block.call(response_env) }
+    app = ->(_env) { response }
+    wall_times = [Time.utc(2026, 10, 2, 12, 0, 5), Time.utc(2026, 10, 2, 12, 0, 2)]
+    monotonic_times = [10.0, 11.25]
+
+    Time.stub(:now, -> { wall_times.shift }) do
+      Process.stub(:clock_gettime, ->(_clock) { monotonic_times.shift }) do
+        Fbe::Middleware::Trace.new(app, trace).call(request)
+      end
+    end
+
+    assert_equal(1.25, trace.first[:duration])
+    assert_operator(trace.first[:finished_at], :<, trace.first[:started_at])
+  end
+
+  def test_uses_monotonic_duration_when_request_fails_after_wall_clock_rollback # rubocop:disable Minitest/MultipleAssertions
+    trace = []
+    request = Struct.new(:method, :url).new(:get, URI('http://example.com/test'))
+    app = ->(_env) { raise(Faraday::ConnectionFailed, 'offline') }
+    wall_times = [Time.utc(2026, 10, 2, 12, 0, 5), Time.utc(2026, 10, 2, 12, 0, 2)]
+    monotonic_times = [10.0, 11.25]
+
+    Time.stub(:now, -> { wall_times.shift }) do
+      Process.stub(:clock_gettime, ->(_clock) { monotonic_times.shift }) do
+        assert_raises(Faraday::ConnectionFailed) { Fbe::Middleware::Trace.new(app, trace).call(request) }
+      end
+    end
+
+    assert_equal(1.25, trace.first[:duration])
+    assert_operator(trace.first[:finished_at], :<, trace.first[:started_at])
+  end
+
   def test_traces_multiple_requests # rubocop:disable Minitest/MultipleAssertions
     trace = []
     stub_request(:get, 'http://example.com/endpoint1').to_return(status: 200)
