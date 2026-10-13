@@ -188,16 +188,17 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             end
             # rubocop:enable Elegant/GoodMethodName, Style/OptionalBooleanParameter
             def off_quota?(threshold: nil, resource: :core) # rubocop:disable Layout/EmptyLineBetweenDefs
-              threshold ||= resource == :search ? 5 : 50
-              label = resource == :search ? 'GitHub Search API' : 'GitHub API'
-              @origin.rate_limit! if resource == :search
+              threshold ||= resource == :core ? 50 : 5
+              label = { search: 'GitHub Search API', code_search: 'GitHub Code Search API' }
+                .fetch(resource, 'GitHub API')
+              @origin.rate_limit! unless resource == :core
               left = @limits[:rate_limit]&.remaining(resource)
               got = !left.nil?
               left = @origin.rate_limit!.remaining unless got
-              if resource == :search && !got
+              if resource != :core && !got
                 @loog.warn(
-                  "Search-quota check fell back to core remaining (#{left}); " \
-                  'search count unavailable in rate-limit middleware'
+                  "#{label} quota check fell back to core remaining (#{left}); " \
+                  "#{resource} count unavailable in rate-limit middleware"
                 )
               end
               if left < threshold
@@ -268,8 +269,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             next if %i[off_quota? print_trace! rate_limit rate_limit!].include?(m)
             next if m == :get && %w[/rate_limit rate_limit].include?(args.first)
             if Fbe::SEARCH_METHODS.include?(m)
-              raise(Fbe::OffQuota, "We are off-quota on the search resource, can't do #{m}()") if
-                o.off_quota?(resource: :search)
+              resource = m == :search_code ? :code_search : :search
+              raise(Fbe::OffQuota, "We are off-quota on the #{resource} resource, can't do #{m}()") if
+                o.off_quota?(resource:)
             elsif o.off_quota?
               left = limits[:rate_limit]&.remaining || 'unknown'
               raise(Fbe::OffQuota, "We are off-quota (remaining: #{left}), can't do #{m}()")
