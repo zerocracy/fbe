@@ -40,4 +40,22 @@ class TestWho < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
   end
+
+  def test_rejects_multiple_user_ids
+    fb = Factbase.new
+    f = fb.insert
+    f.who = [444, 445]
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
+  end
+
+  def test_rejects_multiple_values_in_a_custom_property
+    fb = Factbase.new
+    f = fb.insert
+    f.owner = [444, 445]
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error) { Fbe.who(f, :owner, global:, options:, loog: Loog::NULL) }
+  end
 end
