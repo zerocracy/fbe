@@ -1021,6 +1021,26 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(1, result['releases'], "a release published after the till moment is counted, seed: #{seed}")
   end
 
+  def test_total_releases_published_reads_past_the_first_page
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    pages = [
+      [{ 'isDraft' => false, 'publishedAt' => '2025-04-01T00:00:00Z' }, { 'hasNextPage' => true, 'endCursor' => 'C1' }],
+      [{ 'isDraft' => false, 'publishedAt' => '2025-03-01T00:00:00Z' }, { 'hasNextPage' => false, 'endCursor' => nil }]
+    ]
+    queries = []
+    graph.define_singleton_method(:query) do |qry|
+      queries << qry
+      node, info = pages.shift
+      { 'repository' => { 'releases' => { 'nodes' => [node], 'pageInfo' => info } } }
+    end
+    result = graph.total_releases_published(
+      'foo', 'bar', Time.parse('2025-01-01T00:00:00Z'), till: Time.parse('2025-05-01T00:00:00Z')
+    )
+    assert_equal(2, result['releases'], 'the releases of the second page are not counted')
+    assert_includes(queries.last, 'after: "C1"')
+  end
+
   def test_total_releases_published_stops_paging_at_since_when_till_is_later
     WebMock.disable_net_connect!
     seed = Random.new_seed
