@@ -240,4 +240,55 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+
+  def test_or_holds_when_only_one_operand_holds
+    seed = Random.new_seed
+    n = Random.new(seed).rand(1..10_000)
+    a = Fbe::Award.new('(award (in n "any") (give (if (or (lt n 0) (gt n 0)) 7 0) "x"))')
+    assert_equal(7, a.bill(n:).points, "or with one true operand is not true, seed #{seed}")
+  end
+
+  def test_or_fails_when_no_operand_holds
+    seed = Random.new_seed
+    n = Random.new(seed).rand(1..10_000)
+    a = Fbe::Award.new('(award (in n "any") (give (if (or (lt n 0) (eq n 0)) 7 3) "x"))')
+    assert_equal(3, a.bill(n:).points, "or with no true operand is not false, seed #{seed}")
+  end
+
+  def test_lte_holds_at_the_boundary
+    seed = Random.new_seed
+    n = Random.new(seed).rand(-10_000..10_000)
+    a = Fbe::Award.new('(award (in n "any") (in m "same") (give (if (lte n m) 7 3) "x"))')
+    assert_equal(7, a.bill(n:, m: n).points, "lte of equal numbers is not true, seed #{seed}")
+  end
+
+  def test_lte_fails_above_the_boundary
+    seed = Random.new_seed
+    n = Random.new(seed).rand(-10_000..10_000)
+    a = Fbe::Award.new('(award (in n "any") (in m "less") (give (if (lte n m) 7 3) "x"))')
+    assert_equal(3, a.bill(n:, m: n - 1).points, "lte of a bigger number is not false, seed #{seed}")
+  end
+
+  def test_gte_holds_at_the_boundary
+    seed = Random.new_seed
+    n = Random.new(seed).rand(-10_000..10_000)
+    a = Fbe::Award.new('(award (in n "any") (in m "same") (give (if (gte n m) 7 3) "x"))')
+    assert_equal(7, a.bill(n:, m: n).points, "gte of equal numbers is not true, seed #{seed}")
+  end
+
+  def test_gte_fails_below_the_boundary
+    seed = Random.new_seed
+    n = Random.new(seed).rand(-10_000..10_000)
+    a = Fbe::Award.new('(award (in n "any") (in m "more") (give (if (gte n m) 7 3) "x"))')
+    assert_equal(3, a.bill(n:, m: n + 1).points, "gte of a smaller number is not false, seed #{seed}")
+  end
+
+  def test_min_picks_the_smaller_operand
+    seed = Random.new_seed
+    random = Random.new(seed)
+    n = random.rand(1..10_000)
+    m = n + random.rand(1..10_000)
+    a = Fbe::Award.new('(award (in n "less") (in m "more") (give (min m n) "x"))')
+    assert_equal(n, a.bill(n:, m:).points, "min does not pick the smaller operand, seed #{seed}")
+  end
 end
