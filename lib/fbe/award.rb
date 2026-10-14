@@ -414,6 +414,7 @@ class Fbe::Award
     # @param [Float, Integer] value The value of one line
     # @return [Integer] The value as a whole number
     def whole(value)
+      return value if value.is_a?(Integer)
       Integer(Float(value).round)
     end
   end
