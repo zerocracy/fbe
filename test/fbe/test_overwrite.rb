@@ -14,6 +14,26 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOverwrite < Fbe::Test
+  def test_overwrites_equal_numbers_with_the_requested_type
+    cases = [[1.0, 1], [1, 1.0]]
+    [false, true].each do |hash|
+      cases.each do |original, replacement|
+        fb = Factbase.new
+        fact = fb.insert
+        fact._id = 1
+        fact.value = original
+        if hash
+          Fbe.overwrite(fact, { 'value' => replacement }, fb:)
+        else
+          Fbe.overwrite(fact, 'value', replacement, fb:)
+        end
+        result = fb.query('(always)').each.first.value
+        assert_instance_of(replacement.class, result)
+        assert_equal(replacement, result)
+      end
+    end
+  end
+
   def test_simple_overwrite
     fb = Factbase.new
     f = fb.insert
