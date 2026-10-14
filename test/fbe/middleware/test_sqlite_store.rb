@@ -429,6 +429,24 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_rewrites_age_directives_without_changing_extensions
+    %w[max-age s-maxage Max-Age S-MAXAGE].each do |directive|
+      with_tmpfile('extension.db') do |file|
+        store = Fbe::Middleware::SqliteStore.new(file, '0.0.1', loog: fake_loog, cache_min_age: 300)
+        begin
+          control = "x-#{directive}=1, #{directive}=60"
+          store.write('age', faraday_value(resp: { 'response_headers' => { 'cache-control' => control } }))
+          assert_equal(
+            "x-#{directive}=1, #{directive}=300",
+            JSON.parse(store.read('age')[0][1]).dig('response_headers', 'cache-control')
+          )
+        ensure
+          store.close
+        end
+      end
+    end
+  end
+
   def test_overwrite_cache_control
     with_tmpfile('t.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300).then do |store|
