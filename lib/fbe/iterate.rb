@@ -318,7 +318,7 @@ class Fbe::Iterate
           if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.uniq.sort!.each
+            ).flat_map { _1[@sorting].to_a }.uniq.sort!.each
             begin
               values[repo].next
             rescue StopIteration
