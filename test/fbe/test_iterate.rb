@@ -14,6 +14,33 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestIterate < Fbe::Test
+  def test_visits_all_distinct_values_of_a_multivalued_sort_property
+    [[10, 20], [20, 10]].each do |values|
+      fb = Factbase.new
+      fact = fb.insert
+      values.each { |value| fact.cursor = value }
+      fb.insert.cursor = 20
+      fb.insert.cursor = 30
+      fb.insert.other = 40
+      opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+      seen = []
+      Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+        as('cursor_progress')
+        by('(always)')
+        sort_by('cursor')
+        quota_unaware
+        lifetime_unaware
+        timeout_unaware
+        repeats(10)
+        over do |_repo, value|
+          seen << value
+          value
+        end
+      end
+      assert_equal([10, 20, 30], seen)
+    end
+  end
+
   def test_simple
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
