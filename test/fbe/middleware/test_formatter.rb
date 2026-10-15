@@ -51,6 +51,15 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_not_found_response_is_one_line
+    log_it(status: 404, response_body: '{"message": "Not Found"}') do |loog|
+      str = loog.to_s
+      assert_match(%r{GET http://example.com -> 404 / Not Found}, str)
+      assert_equal(1, str.lines.size, "a handled 404 must not be dumped: #{str}")
+      refute_match(/x-github-api-version-selected/, str)
+    end
+  end
+
   def test_limit_response_without_content_type_header
     log_it(status: 403, response_body: '', response_headers: {}) do |loog|
       str = loog.to_s
