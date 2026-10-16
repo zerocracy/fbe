@@ -147,4 +147,84 @@ class TestIfAbsent < Fbe::Test
     assert_equal('A block is required by if_absent', error.message)
     assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
   end
+
+  def test_ignores_time_when_existing_fact_has_different_time
+    fb = Factbase.new
+    fact = fb.insert
+    fact.foo = 'bar'
+    fact._time = Time.utc(2024, 1, 1, 10, 0, 0)
+    n =
+      Fbe.if_absent(fb:) do |f|
+        f.foo = 'bar'
+        f._time = Time.utc(2026, 5, 20, 15, 30, 0)
+      end
+    assert_nil(n)
+    assert_equal(1, fb.size)
+  end
+
+  def test_ignores_time_when_existing_fact_lacks_time
+    fb = Factbase.new
+    fact = fb.insert
+    fact.foo = 'bar'
+    n =
+      Fbe.if_absent(fb:) do |f|
+        f.foo = 'bar'
+        f._time = Time.now
+      end
+    assert_nil(n)
+    assert_equal(1, fb.size)
+  end
+
+  def test_reuses_existing_fact_with_always_when_time_differs
+    fb = Factbase.new
+    fact = fb.insert
+    fact.foo = 'bar'
+    fact._time = Time.utc(2024, 1, 1)
+    n =
+      Fbe.if_absent(fb:, always: true) do |f|
+        f.foo = 'bar'
+        f._time = Time.utc(2026, 12, 31)
+      end
+    assert_equal(1, fb.size)
+    refute_nil(n)
+    assert_equal('bar', n.foo)
+    assert_equal(Time.utc(2024, 1, 1), n._time)
+  end
+
+  def test_reuses_existing_fact_when_system_attributes_differ
+    fb = Factbase.new
+    fact = fb.insert
+    fact.what = 'issue'
+    fact.number = 42
+    fact._id = 100
+    fact._time = Time.utc(2025, 1, 1)
+    fact._version = '0.1.0'
+    n =
+      Fbe.if_absent(fb:) do |f|
+        f.what = 'issue'
+        f.number = 42
+        f._id = 999
+        f._time = Time.utc(2026, 2, 2)
+        f._version = '1.0.0'
+      end
+    assert_nil(n)
+    assert_equal(1, fb.size)
+  end
+
+  def test_matches_regular_time_attribute_while_ignoring_system_time
+    fb = Factbase.new
+    moment = Time.utc(2026, 3, 15, 12, 0, 0)
+    fact = fb.insert
+    fact.what = 'event'
+    fact.when = moment
+    fact._time = Time.utc(2025, 1, 1)
+    n =
+      Fbe.if_absent(fb:) do |f|
+        f.what = 'event'
+        f.when = moment
+        f._time = Time.utc(2026, 9, 9)
+      end
+    assert_nil(n)
+    assert_equal(1, fb.size)
+  end
 end
