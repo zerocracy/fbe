@@ -32,7 +32,9 @@ def Fbe.copy(source, target, except: [])
   source.all_properties.each do |k|
     next unless target[k].nil?
     next if except.include?(k)
-    source[k].each do |v|
+    values = source[k]
+    next if values.nil?
+    values.each do |v|
       target.public_send(:"#{k}=", v)
       copied += 1
     end
