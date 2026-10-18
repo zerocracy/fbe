@@ -121,13 +121,17 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # When the response was served by Faraday::HttpCache from cache
   # (indicated by +http_cache_trace+ containing +:fresh+), the
   # +x-ratelimit-remaining+ header is stale, so we keep our
-  # decremented count. When the API was actually contacted,
+  # decremented count and expose it in a copy of the response headers.
+  # When the API was actually contacted,
   # the header is the truth, so we take it as is, even when it
   # raises the counter after GitHub has reset the quota.
   #
   # @param [Faraday::Env] response_env The response environment
   def sync(response_env, path = nil)
-    return if response_env[:http_cache_trace]&.include?(:fresh)
+    if response_env[:http_cache_trace]&.include?(:fresh)
+      patch(response_env, path)
+      return
+    end
     headers = response_env.response_headers
     return unless headers
     remaining = headers['x-ratelimit-remaining']
@@ -138,6 +142,17 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     else
       @remaining = count
     end
+  end
+
+  # Replaces a cached quota header with the tracked resource's count.
+  #
+  # @param [Faraday::Env] env The response environment
+  # @param [String, nil] path The request path
+  def patch(env, path)
+    count = path&.start_with?('/search/') ? @searchleft : @remaining
+    return if count.nil? || env.response_headers.nil?
+    env.response_headers = env.response_headers.dup
+    env.response_headers['x-ratelimit-remaining'] = count.to_s
   end
 
   # Extracts the remaining count from the response body.
