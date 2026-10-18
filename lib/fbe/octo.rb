@@ -88,7 +88,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.use(
                 Faraday::Retry::Middleware,
                 exceptions: Faraday::Retry::Middleware::DEFAULT_EXCEPTIONS + [
-                  Octokit::ServerError, Octokit::ClientError
+                  Octokit::ServerError, Octokit::ClientError,
+                  Faraday::ConnectionFailed, Faraday::SSLError
                 ],
                 max: 4,
                 interval: ENV['RACK_ENV'] == 'test' ? 0.01 : 4,
