@@ -12,6 +12,29 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestCopy < Fbe::Test
+  def test_copies_a_fact_from_a_parameterized_query
+    fb = Factbase.new
+    fb.insert.x = 1
+    target = Factbase.new.insert
+    fb.query('(eq x $wanted)').each(fb, wanted: 1) do |source|
+      assert_equal(1, Fbe.copy(source, target))
+    end
+    assert_equal([1], target['x'])
+    assert_nil(target['wanted'])
+  end
+
+  def test_keeps_existing_properties_with_query_parameters
+    fb = Factbase.new
+    fb.insert.x = 1
+    target = Factbase.new.insert
+    target.x = 99
+    fb.query('(always)').each(fb, wanted: 1) do |source|
+      assert_equal(0, Fbe.copy(source, target))
+    end
+    assert_equal([99], target['x'])
+    assert_nil(target['wanted'])
+  end
+
   def test_simple_copy
     fb = Factbase.new
     source = fb.insert
