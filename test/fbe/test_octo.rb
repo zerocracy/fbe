@@ -1465,6 +1465,49 @@ class TestOcto < Fbe::Test
     assert_equal('CHANGES_REQUESTED', reviews[0][:state])
   end
 
+  def test_fake_pull_request_reviews_dont_come_from_author
+    seed = Random.new_seed
+    number = Random.new(seed).rand(200..10_000)
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    author = o.pull_request('foo/бар', number).dig(:user, :id)
+    refute_includes(
+      o.pull_request_reviews('foo/бар', number).map { |r| r.dig(:user, :id) }, author,
+      "pull request #{number} is reviewed by its own author #{author} (seed: #{seed})"
+    )
+  end
+
+  def test_fake_pull_request_reviews_include_approval
+    seed = Random.new_seed
+    number = Random.new(seed).rand(1..10_000)
+    assert_includes(
+      Fbe::FakeOctokit.new.pull_request_reviews('foo/bar', number).map { |r| r[:state] }, 'APPROVED',
+      "pull request #{number} has no approving review (seed: #{seed})"
+    )
+  end
+
+  def test_fake_listed_pull_requests_are_reviewed_by_others
+    o = Fbe::FakeOctokit.new
+    assert_empty(
+      o.pull_requests('yegor256/ёлка').select do |p|
+        o.pull_request_reviews('yegor256/ёлка', p[:number]).any? { |r| r.dig(:user, :id) == p.dig(:user, :id) }
+      end,
+      'a listed pull request is reviewed by its own author'
+    )
+  end
+
+  def test_fake_special_pull_requests_are_approved_by_others
+    o = Fbe::FakeOctokit.new
+    assert_equal(
+      [true, true],
+      [29, 172].map do |n|
+        o.pull_request_reviews('foo/bar', n).any? do |r|
+          r[:state] == 'APPROVED' && r.dig(:user, :id) != o.pull_request('foo/bar', n).dig(:user, :id)
+        end
+      end,
+      'pull request 29 or 172 is not approved by anybody but its author'
+    )
+  end
+
   def test_fake_pull_request_matches_the_list
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_requests('yegor256/test').each do |listed|
