@@ -194,6 +194,16 @@ class TestBylaws < Fbe::Test
     assert_equal(23, a.bill({ hoc: 600, comments: 20, self: 0 }).points, 'normal review is not paid 23 points')
   end
 
+  def test_code_review_pays_nothing_for_comments_under_bonus_floor
+    seed = Random.new_seed
+    comments = Random.new(seed).rand(6..19)
+    a = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded'])
+    assert_equal(
+      17, a.bill({ hoc: 500, comments:, self: 0 }).points,
+      "#{comments} comments are paid under the bonus floor of 5 points (seed: #{seed})"
+    )
+  end
+
   def test_code_review_pays_quarter_point_per_comment
     a = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded'])
     assert_equal(
