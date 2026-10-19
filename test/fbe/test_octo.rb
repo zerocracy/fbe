@@ -715,6 +715,51 @@ class TestOcto < Fbe::Test
     assert_equal(0, result[:id])
   end
 
+  def test_fake_runs_of_one_workflow_share_workflow_id
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..10_000_000)
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(
+      o.workflow_run('zerocracy/ёжик', 10_438_531_073)[:workflow_id],
+      o.workflow_run('zerocracy/ёжик', id)[:workflow_id],
+      "runs 10438531073 and #{id} of one workflow have different workflow ids (seed: #{seed})"
+    )
+  end
+
+  def test_fake_run_id_differs_from_its_workflow_id
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..10_000_000)
+    run = Fbe::FakeOctokit.new.workflow_run('foo/bar', id)
+    refute_equal(run[:id], run[:workflow_id], "run #{id} is its own workflow (seed: #{seed})")
+  end
+
+  def test_fake_runs_of_different_workflows_dont_share_workflow_id
+    o = Fbe::FakeOctokit.new
+    refute_equal(
+      o.workflow_run('foo/bar', 10_438_531_072)[:workflow_id],
+      o.workflow_run('foo/bar', 10_438_531_076)[:workflow_id],
+      'runs of make and rake share one workflow id'
+    )
+  end
+
+  def test_fake_listed_run_keeps_workflow_id_of_single_run
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(
+      o.repository_workflow_runs('foo/ünïcødé')[:workflow_runs].map { |r| r[:workflow_id] },
+      [10_438_531_072, 10_438_531_073].map { |i| o.workflow_run('foo/ünïcødé', i)[:workflow_id] },
+      'listed runs carry other workflow ids than the same runs fetched one by one'
+    )
+  end
+
+  def test_fake_workflow_id_is_integer
+    seed = Random.new_seed
+    id = Random.new(seed).rand(10_438_531_072..10_438_531_078)
+    assert_kind_of(
+      Integer, Fbe::FakeOctokit.new.workflow_run('foo/bar', id)[:workflow_id],
+      "workflow id of run #{id} is not an integer (seed: #{seed})"
+    )
+  end
+
   def test_fetches_fake_workflow_run_job
     WebMock.disable_net_connect!
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
