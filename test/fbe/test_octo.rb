@@ -877,7 +877,7 @@ class TestOcto < Fbe::Test
           number: 172,
           user: { login: 'test', id: 88_084_038 },
           merged_at: Time,
-          comments: 2,
+          comments: 3,
           review_comments: 2,
           commits: 1,
           additions: 3,
@@ -1597,7 +1597,43 @@ class TestOcto < Fbe::Test
   def test_fake_issue_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     comments = o.issue_comments('yegor256/test', 42)
-    assert_equal(2, comments.size)
+    assert_equal(3, comments.size)
+  end
+
+  def test_fake_issue_comments_carry_user_type
+    seed = Random.new_seed
+    number = Random.new(seed).rand(1..10_000)
+    assert_empty(
+      Fbe::FakeOctokit.new.issue_comments('foo/ёж', number).map { |c| c.dig(:user, :type) } - %w[User Bot],
+      "a comment of issue #{number} has a user without type (seed: #{seed})"
+    )
+  end
+
+  def test_fake_pull_request_comments_carry_user_type
+    seed = Random.new_seed
+    number = Random.new(seed).rand(1..10_000)
+    assert_empty(
+      Fbe::FakeOctokit.new.review_comments('foo/ёж', number).map { |c| c.dig(:user, :type) } - %w[User Bot],
+      "a review comment of pull request #{number} has a user without type (seed: #{seed})"
+    )
+  end
+
+  def test_fake_issue_comments_include_bot
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_includes(
+      o.issue_comments('foo/bar', 42).map { |c| c.dig(:user, :type) }, 'Bot',
+      'no comment of issue 42 comes from a bot'
+    )
+  end
+
+  def test_fake_pull_request_counts_its_comments
+    seed = Random.new_seed
+    number = [172, Random.new(seed).rand(200..10_000)].sample(random: Random.new(seed))
+    o = Fbe::FakeOctokit.new
+    assert_equal(
+      o.issue_comments('foo/bar', number).size, o.pull_request('foo/bar', number)[:comments],
+      "pull request #{number} counts other comments than it has (seed: #{seed})"
+    )
   end
 
   def test_fake_issue_comment_reactions
