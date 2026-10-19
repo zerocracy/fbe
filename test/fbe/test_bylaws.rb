@@ -169,6 +169,51 @@ class TestBylaws < Fbe::Test
     assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
   end
 
+  def test_code_contribution_charges_missing_review_above_floor
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(8, a.bill({ hoc: 150, comments: 0, reviews: 0 }).points, 'missing review is not charged 16 points')
+  end
+
+  def test_code_contribution_charges_missing_review_at_any_hits_of_code
+    seed = Random.new_seed
+    hoc = Random.new(seed).rand(100..159)
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(
+      16, a.bill({ hoc:, comments: 0, reviews: 1 }).points - a.bill({ hoc:, comments: 0, reviews: 0 }).points,
+      "missing review of #{hoc} hits-of-code is not charged 16 points (seed: #{seed})"
+    )
+  end
+
+  def test_code_contribution_charges_few_hits_of_code_above_floor
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(8, a.bill({ hoc: 15, comments: 0, reviews: 1 }).points, 'few hits-of-code are not charged 8 points')
+  end
+
+  def test_code_contribution_caps_comment_penalty
+    seed = Random.new_seed
+    comments = Random.new(seed).rand(88..1_000)
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(
+      8, a.bill({ hoc: 150, comments:, reviews: 1 }).points,
+      "penalty for #{comments} comments is not capped at 16 points (seed: #{seed})"
+    )
+  end
+
+  def test_code_contribution_charges_comments_at_their_floor
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(20, a.bill({ hoc: 150, comments: 28, reviews: 1 }).points, 'penalty for 28 comments is not 4 points')
+  end
+
+  def test_code_contribution_skips_comment_penalty_under_its_floor
+    seed = Random.new_seed
+    comments = Random.new(seed).rand(9..27)
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(
+      24, a.bill({ hoc: 150, comments:, reviews: 1 }).points,
+      "#{comments} comments are charged under the floor of 4 points (seed: #{seed})"
+    )
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
