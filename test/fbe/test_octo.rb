@@ -622,6 +622,28 @@ class TestOcto < Fbe::Test
     o.repository(429)
   end
 
+  def test_raises_off_quota_between_pages_of_one_call
+    WebMock.disable_net_connect!
+    stub_pages(left: 60, last: 100)
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    assert_raises(Fbe::OffQuota, 'auto-paginated call spends the quota reserve and returns a cut list') do
+      o.list_issues('foo/bar')
+    end
+  end
+
+  def test_keeps_quota_reserve_while_paginating
+    WebMock.disable_net_connect!
+    calls = stub_pages(left: 60, last: 100)
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    seen =
+      begin
+        o.list_issues('foo/bar')
+      rescue Fbe::OffQuota
+        calls.size
+      end
+    assert_equal(11, seen, 'pages are fetched after the remaining quota drops below 50')
+  end
+
   def test_not_retrying_on_not_found
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
@@ -1671,5 +1693,28 @@ class TestOcto < Fbe::Test
       refute_nil(result[:head_sha], "for workflow run #{id}")
       refute_nil(result[:repository], "for workflow run #{id}")
     end
+  end
+
+  private
+
+  def stub_pages(left:, last:)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: left } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => left.to_s }
+    )
+    calls = []
+    stub_request(:get, %r{\Ahttps://api\.github\.com/repos/foo/bar/issues}).to_return do |req|
+      page = Integer(req.uri.query_values.fetch('page', '1'), 10)
+      calls << page
+      link = "<https://api.github.com/repos/foo/bar/issues?page=#{page + 1}&per_page=100>; rel=\"next\""
+      {
+        status: 200, body: [{ number: page }].to_json,
+        headers: {
+          'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => (left - page).to_s,
+          'Link' => page < last ? link : ''
+        }
+      }
+    end
+    calls
   end
 end
