@@ -19,7 +19,7 @@
       but not more than ${hoc_max} points")
 
   (aka
-    (let max 32)
+    (let max {{ 16 | times: love | at_least: 32 }})
     (set over (if (gt (total) max) (minus max (total)) 0))
     (give over "to not go over the cap")
     (let min 4)
