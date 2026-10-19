@@ -174,6 +174,16 @@ class TestBylaws < Fbe::Test
     assert_equal(8, a.bill({ hoc: 150, comments: 0, reviews: 0 }).points, 'missing review is not charged 16 points')
   end
 
+  def test_code_contribution_charges_missing_review_at_any_hits_of_code
+    seed = Random.new_seed
+    hoc = Random.new(seed).rand(100..159)
+    a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
+    assert_equal(
+      16, a.bill({ hoc:, comments: 0, reviews: 1 }).points - a.bill({ hoc:, comments: 0, reviews: 0 }).points,
+      "missing review of #{hoc} hits-of-code is not charged 16 points (seed: #{seed})"
+    )
+  end
+
   def test_code_contribution_charges_few_hits_of_code_above_floor
     a = Fbe::Award.new(Fbe.bylaws['code-contribution-was-rewarded'])
     assert_equal(8, a.bill({ hoc: 15, comments: 0, reviews: 1 }).points, 'few hits-of-code are not charged 8 points')
