@@ -1581,7 +1581,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       completed_at: '2024-08-18T08:20:17Z',
       created_at: random_time,
       run_started_at: random_time,
-      workflow_id: known[:id],
+      workflow_id: name_to_number(known[:name]),
       repository: repository(repo)
     }.merge(known)
   end
