@@ -876,6 +876,98 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(1, pulls[0]['reviews'].size)
   end
 
+  def test_real_pull_request_reviews_gives_submitted_at_as_time
+    seed = Random.new_seed
+    time = Time.at(Random.new(seed).rand(1_500_000_000..1_800_000_000)).utc
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pr_7' => {
+            'id' => 'PR_7', 'number' => 7,
+            'reviews' => {
+              'nodes' => [{ 'id' => 'rev_ж', 'submittedAt' => time.iso8601 }],
+              'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil }
+            }
+          }
+        }
+      }
+    end
+    assert_equal(
+      time, graph.pull_request_reviews('ёж', 'ü', pulls: [[7, nil]]).first['reviews'].first['submitted_at'],
+      "review submitted at #{time.iso8601} is not given as that Time (seed: #{seed})"
+    )
+  end
+
+  def test_real_pull_request_reviews_gives_every_submitted_at_as_time
+    seed = Random.new_seed
+    random = Random.new(seed)
+    times = Array.new(4) { Time.at(random.rand(1_500_000_000..1_800_000_000)).utc }
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => times.each_slice(2).with_index.to_h do |pair, i|
+          [
+            "pr_#{i}",
+            {
+              'id' => "PR_#{i}", 'number' => i,
+              'reviews' => {
+                'nodes' => pair.map { |t| { 'id' => "rev_#{t.iso8601}", 'submittedAt' => t.iso8601 } },
+                'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil }
+              }
+            }
+          ]
+        end
+      }
+    end
+    assert_equal(
+      times,
+      graph.pull_request_reviews('a', 'b', pulls: [[0, nil], [1, nil]]).flat_map do |p|
+        p['reviews'].map { |r| r['submitted_at'] }
+      end,
+      "reviews of two pulls are not given with their submission Times (seed: #{seed})"
+    )
+  end
+
+  def test_real_issue_type_event_gives_created_at_as_time
+    seed = Random.new_seed
+    time = Time.at(Random.new(seed).rand(1_500_000_000..1_800_000_000)).utc
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'node' => {
+          '__typename' => 'IssueTypeAddedEvent', 'createdAt' => time.iso8601,
+          'issueType' => { 'id' => 'it1', 'name' => 'Ошибка', 'description' => '' },
+          'actor' => { '__typename' => 'User', 'login' => 'ж', 'databaseId' => 1, 'name' => 'Ж' }
+        }
+      }
+    end
+    assert_equal(
+      time, graph.issue_type_event('ITAE_x')['created_at'],
+      "issue type event created at #{time.iso8601} is not given as that Time (seed: #{seed})"
+    )
+  end
+
+  def test_real_changed_issue_type_event_gives_created_at_as_time
+    seed = Random.new_seed
+    time = Time.at(Random.new(seed).rand(1_500_000_000..1_800_000_000)).utc
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'node' => {
+          '__typename' => 'IssueTypeChangedEvent', 'createdAt' => time.iso8601,
+          'issueType' => { 'id' => 'it2', 'name' => 'Задача', 'description' => '' },
+          'prevIssueType' => { 'id' => 'it1', 'name' => 'Ошибка', 'description' => '' },
+          'actor' => { '__typename' => 'Bot', 'login' => 'бот', 'databaseId' => 2 }
+        }
+      }
+    end
+    assert_equal(
+      time, graph.issue_type_event('ITCE_x')['created_at'],
+      "changed issue type event created at #{time.iso8601} is not given as that Time (seed: #{seed})"
+    )
+  end
+
   def test_real_pull_request_reviews_omits_after_when_cursor_is_nil
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
