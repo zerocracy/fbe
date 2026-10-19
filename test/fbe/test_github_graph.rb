@@ -352,6 +352,50 @@ class TestGitHubGraph < Fbe::Test
     end
   end
 
+  def test_fake_pull_requests_with_reviews_rejects_misspelled_cursor
+    seed = Random.new_seed
+    cursor = "Y3Vyc29y#{Random.new(seed).rand(1_000_000)}"
+    assert_raises(ArgumentError, "fake takes cursr: #{cursor} the real method rejects (seed: #{seed})") do
+      Fbe::Graph::Fake.new.pull_requests_with_reviews('ёж', 'ü', Time.parse('2025-08-01T18:00:00Z'), cursr: cursor)
+    end
+  end
+
+  def test_fake_pull_requests_with_reviews_rejects_any_unknown_keyword
+    assert_raises(ArgumentError, 'fake takes the since: keyword the real method has no use for') do
+      Fbe::Graph::Fake.new.pull_requests_with_reviews('a', 'b', Time.now, since: Time.now)
+    end
+  end
+
+  def test_fake_pull_requests_with_reviews_gives_nothing_after_its_only_page
+    seed = Random.new_seed
+    cursor = "Y3Vyc29y#{Random.new(seed).rand(1_000_000)}"
+    assert_equal(
+      { 'pulls_with_reviews' => [], 'has_next_page' => false, 'next_cursor' => nil },
+      Fbe::Graph::Fake.new.pull_requests_with_reviews('a', 'b', Time.parse('2025-08-01T18:00:00Z'), cursor:),
+      "fake gives a page after cursor #{cursor} past its only page (seed: #{seed})"
+    )
+  end
+
+  def test_fake_pull_requests_with_reviews_gives_pulls_without_cursor
+    refute_empty(
+      Fbe::Graph::Fake.new.pull_requests_with_reviews('ёж', 'ü', Time.now)['pulls_with_reviews'],
+      'fake gives no pulls on its first page'
+    )
+  end
+
+  def test_fake_pull_requests_with_reviews_ends_paging_loop_with_every_pull_once
+    graph = Fbe::Graph::Fake.new
+    cursor = nil
+    numbers = []
+    5.times do
+      json = graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'), cursor:)
+      numbers.concat(json['pulls_with_reviews'].map { |p| p['number'] })
+      break unless json['has_next_page']
+      cursor = json['next_cursor']
+    end
+    assert_equal([2, 5, 21], numbers, 'paging over the fake does not give every pull exactly once')
+  end
+
   def test_pull_requests_with_reviews_when_repository_is_missing
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
