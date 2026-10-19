@@ -674,6 +674,60 @@ class TestGitHubGraph < Fbe::Test
     assert_includes(qry, 'until: "2024-02-09T21:13:44Z"', 'the history has no upper bound on the commit date')
   end
 
+  def test_real_total_commits_pushed_bounds_history_by_since
+    seed = Random.new_seed
+    since = Time.at(Random.new(seed).rand(1_500_000_000..1_700_000_000)).localtime('-07:00')
+    stamp = since.dup.utc.iso8601
+    graph = Fbe::Graph.new(token: 'test')
+    qry = ''
+    graph.define_singleton_method(:query) do |q|
+      qry = q
+      { 'repository' => { 'defaultBranchRef' => nil } }
+    end
+    graph.total_commits_pushed('ёж', 'ü', since, Time.parse('2024-02-09T21:13:44Z'))
+    assert_includes(qry, "since: \"#{stamp}\"", "the history has no lower bound at #{stamp} (seed: #{seed})")
+  end
+
+  def test_real_total_commits_pushed_bounds_history_by_since_without_till
+    seed = Random.new_seed
+    since = Time.now - Random.new(seed).rand(1..10_000_000)
+    stamp = since.dup.utc.iso8601
+    graph = Fbe::Graph.new(token: 'test')
+    qry = ''
+    graph.define_singleton_method(:query) do |q|
+      qry = q
+      { 'repository' => { 'defaultBranchRef' => nil } }
+    end
+    graph.total_commits_pushed('foo', 'bar', since)
+    assert_includes(qry, "since: \"#{stamp}\"", "history with no till lacks lower bound #{stamp} (seed: #{seed})")
+  end
+
+  def test_real_total_commits_pushed_keeps_since_on_every_page
+    graph = Fbe::Graph.new(token: 'test')
+    pages = []
+    graph.define_singleton_method(:query) do |q|
+      pages << q
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 3,
+                'nodes' => [{ 'oid' => 'b2', 'parents' => { 'totalCount' => 1 }, 'additions' => 1, 'deletions' => 0 }],
+                'pageInfo' => { 'endCursor' => "Y3Vyc29y#{pages.size}", 'hasNextPage' => pages.size < 3 }
+              }
+            }
+          }
+        }
+      }
+    end
+    graph.total_commits_pushed('foo', 'bar', Time.parse('2024-01-05T07:00:00Z'), Time.parse('2024-02-09T21:13:44Z'))
+    assert_equal(
+      3, pages.count { _1.include?('since: "2024-01-05T07:00:00Z"') },
+      'a page of the history goes out without the lower bound on the commit date'
+    )
+  end
+
   def test_real_total_commits_pushed_keeps_till_on_every_page
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
