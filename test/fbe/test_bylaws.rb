@@ -169,6 +169,34 @@ class TestBylaws < Fbe::Test
     assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
   end
 
+  def test_resolved_bug_pays_fast_fix_under_cap
+    seed = Random.new_seed
+    hours = Random.new(seed).rand(13..23)
+    a = Fbe::Award.new(Fbe.bylaws['resolved-bug-was-rewarded'])
+    assert_equal(
+      15, a.bill({ hours:, self: 0 }).points,
+      "bug resolved in #{hours} hours is not paid the 8 point bonus under the cap (seed: #{seed})"
+    )
+  end
+
+  def test_resolved_bug_pays_no_fast_fix_bonus_at_threshold
+    a = Fbe::Award.new(Fbe.bylaws['resolved-bug-was-rewarded'])
+    assert_equal(7, a.bill({ hours: 24, self: 0 }).points, 'bug fixed in exactly 24 hours is paid the fast-fix bonus')
+  end
+
+  def test_resolved_bug_states_fast_fix_bonus_it_pays
+    md = Fbe::Award.new(Fbe.bylaws['resolved-bug-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'add **8** points if it was resolved in less than **24** hours', md)
+  end
+
+  def test_resolved_bug_fast_fix_bonus_is_eight_points
+    a = Fbe::Award.new(Fbe.bylaws['resolved-bug-was-rewarded'])
+    assert_equal(
+      8, a.bill({ hours: 20, self: 0 }).points - a.bill({ hours: 24, self: 0 }).points,
+      'fast-fix bonus between 20 and 24 hours with the same day of delay is not 8 points'
+    )
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
