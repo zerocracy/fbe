@@ -1138,6 +1138,27 @@ class TestOcto < Fbe::Test
     assert_includes(output, 'GitHub API trace')
   end
 
+  def test_reads_non_utf8_body_through_sqlite_store
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    png = "\x89PNG\r\n\x1A\n".b + Random.new(seed).bytes(8) + "\xFF\xD8".b
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/repos/foo/bar/contents/logo.png').to_return(
+      status: 200, body: png,
+      headers: { 'Content-Type' => 'application/vnd.github.raw', 'Cache-Control' => 'private, max-age=60' }
+    )
+    Dir.mktmpdir do |dir|
+      options = Judges::Options.new({ 'github_token' => 'x' * 40, 'sqlite_cache' => File.expand_path('c.db', dir) })
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options:)
+      assert_equal(
+        png, o.contents('foo/bar', path: 'logo.png', accept: 'application/vnd.github.raw').b,
+        "non-UTF-8 body is not handed over through the cache (seed: #{seed})"
+      )
+    end
+  end
+
   def test_works_via_sqlite_store
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

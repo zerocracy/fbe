@@ -24,6 +24,7 @@ require_relative 'middleware'
 require_relative 'middleware/formatter'
 require_relative 'middleware/rate_limit'
 require_relative 'middleware/sqlite_store'
+require_relative 'middleware/storage'
 require_relative 'middleware/trace'
 
 # When we are off quota.
@@ -117,7 +118,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                   "#{File.exist?(store.path) ? Filesize.from(File.size(store.path).to_s).pretty : 'file is absent'}, " \
                   "max size: #{Filesize.from(maxsize.to_s).pretty}, max vsize: #{Filesize.from(maxvsize.to_s).pretty})"
                 )
-                builder.use(Faraday::HttpCache, store:, serializer: JSON, shared_cache: false, logger: Loog::NULL)
+                builder.use(
+                  Faraday::HttpCache,
+                  store:, serializer: JSON, strategy: Fbe::Middleware::Storage, shared_cache: false, logger: Loog::NULL
+                )
               else
                 loog.info("No HTTP cache in SQLite file, because 'sqlite_cache' option is not provided")
                 builder.use(Faraday::HttpCache, serializer: Marshal, shared_cache: false, logger: Loog::NULL)
