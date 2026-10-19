@@ -934,6 +934,51 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_list_issues_puts_earliest_first_in_ascending_order
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(
+      o.list_issues('foo/bazz').map { |i| i[:created_at] }.min,
+      o.list_issues('foo/bazz', state: :all, sort: :created, direction: :asc).first[:created_at],
+      'ascending list of foo/bazz does not start with the earliest issue'
+    )
+  end
+
+  def test_fake_list_issues_puts_latest_first_in_descending_order
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(
+      o.list_issues('foo/bazz').map { |i| i[:created_at] }.max,
+      o.list_issues('foo/bazz', state: :all, sort: :created, direction: 'desc').first[:created_at],
+      'descending list of foo/bazz does not start with the latest issue'
+    )
+  end
+
+  def test_fake_list_issues_gives_different_earliest_and_latest
+    o = Fbe::FakeOctokit.new
+    refute_equal(
+      o.list_issues('foo/bazz', sort: :created, direction: :asc, per_page: 1),
+      o.list_issues('foo/bazz', sort: :created, direction: :desc, per_page: 1),
+      'earliest and latest issue of foo/bazz are the same one'
+    )
+  end
+
+  def test_fake_list_issues_returns_no_more_than_per_page
+    seed = Random.new_seed
+    size = Random.new(seed).rand(1..2)
+    assert_equal(
+      size, Fbe::FakeOctokit.new.list_issues('foo/bazz', per_page: size).size,
+      "list of foo/bazz is not cut to #{size} issues (seed: #{seed})"
+    )
+  end
+
+  def test_fake_list_issues_returns_all_when_per_page_is_larger
+    seed = Random.new_seed
+    size = Random.new(seed).rand(3..100)
+    assert_equal(
+      3, Fbe::FakeOctokit.new.list_issues('foo/bazz', per_page: size).size,
+      "list of foo/bazz with per_page #{size} lost issues (seed: #{seed})"
+    )
+  end
+
   def test_fake_respond_to_auto_paginate
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_respond_to(o, :auto_paginate)
