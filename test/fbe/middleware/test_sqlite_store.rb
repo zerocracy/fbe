@@ -522,6 +522,43 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_dont_save_authorization_token
+    seed = Random.new_seed
+    token = "ghp_#{Random.new(seed).bytes(18).unpack1('H*')}"
+    req = { 'method' => 'get', 'url' => 'https://api.github.com/user', 'headers' => { 'Authorization' => "token #{token}" } }
+    with_tmpfile('token.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog)
+      store.write('k', faraday_value(req:))
+      refute_includes(Zlib::Inflate.inflate(store.all.first[1]), token, "token is saved in clear form (seed: #{seed})")
+    end
+  end
+
+  def test_dont_save_authorization_token_in_any_header_case
+    seed = Random.new_seed
+    token = "ghp_#{Random.new(seed).bytes(18).unpack1('H*')}"
+    with_tmpfile('lower.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog)
+      %w[authorization AUTHORIZATION].each_with_index do |header, i|
+        req = { 'method' => 'get', 'url' => 'https://ж.com', 'headers' => { header => "Bearer #{token}" } }
+        store.write("k#{i}", faraday_value(req:))
+      end
+      saved = store.all.map { |r| Zlib::Inflate.inflate(r[1]) }.join
+      refute_includes(saved, token, "token is saved under some header case (seed: #{seed})")
+    end
+  end
+
+  def test_drops_authorization_from_saved_vary
+    resp = { 'response_headers' => { 'vary' => 'Accept, Authorization, Cookie, X-GitHub-OTP' } }
+    with_tmpfile('vary.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog)
+      store.write('v', faraday_value(resp:))
+      assert_equal(
+        'Accept, Cookie, X-GitHub-OTP', JSON.parse(store.read('v')[0][1]).dig('response_headers', 'vary'),
+        'saved response still varies on the token that is no longer saved'
+      )
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
