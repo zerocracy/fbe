@@ -592,7 +592,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         user: { id: 421, login: 'user' },
         created_at: Time.parse('2024-08-20 15:35:30 UTC'),
         additions: 12,
-        deletions: 5
+        deletions: 5,
+        commits: 1
       }
     elsif number == 172
       {
@@ -641,13 +642,14 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         additions: 12,
         deletions: 5,
         changed_files: 3,
+        commits: 2,
         comments: 2,
         review_comments: 2,
         closed_at: Time.parse('2024-12-20'),
         merged_at: Time.parse('2024-12-20'),
         created_at: Time.parse('2024-09-20')
       }.merge(fixture).merge(base: (fixture[:base] || {}).merge(repo: repository(repo)))
-    end
+    end.then { |pr| pr.merge(merged: !pr[:merged_at].nil?) }
   end
 
   # Lists pull requests for a repository.
