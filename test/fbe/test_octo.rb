@@ -1163,6 +1163,31 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_serves_from_sqlite_store_with_same_token_though_token_is_not_saved
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    token = "ghp_#{Random.new(seed).bytes(18).unpack1('H*')}"
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    calls = 0
+    stub_request(:get, 'https://api.github.com/user/42').to_return do
+      calls += 1
+      {
+        status: 200, body: { login: 'ёж' }.to_json,
+        headers: {
+          'Content-Type' => 'application/json', 'Cache-Control' => 'private, max-age=60',
+          'Vary' => 'Accept, Authorization, Cookie, X-GitHub-OTP'
+        }
+      }
+    end
+    Dir.mktmpdir do |dir|
+      options = Judges::Options.new({ 'sqlite_cache' => File.expand_path('test.db', dir), 'github_token' => token })
+      2.times { Fbe.octo(loog: Loog::NULL, global: {}, options:).user_name_by_id(42) }
+    end
+    assert_equal(1, calls, "second client with the same token is not served from the cache (seed: #{seed})")
+  end
+
   def test_through_sqlite_store_when_broken_token
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

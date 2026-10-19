@@ -121,6 +121,7 @@ class Fbe::Middleware::SqliteStore
         return delete(key)
       end
     end
+    value = anonymous(value)
     if @minage && value.is_a?(Array) && value[0].is_a?(Array) && value[0].size > 1
       begin
         resp = JSON.parse(value[0][1])
@@ -185,6 +186,22 @@ class Fbe::Middleware::SqliteStore
   end
 
   private
+
+  def anonymous(value)
+    return value unless value.is_a?(Array)
+    value.map do |entry|
+      next entry unless entry.is_a?(Array) && entry.size > 1
+      req = JSON.parse(entry[0])
+      resp = JSON.parse(entry[1])
+      req['headers'].reject! { |h, _| h.casecmp?('authorization') } if req['headers'].is_a?(Hash)
+      headers = resp['response_headers']
+      vary = headers.keys.find { |h| h.casecmp?('vary') } if headers.is_a?(Hash)
+      headers[vary] = headers[vary].to_s.split(/\s*,\s*/).reject { |h| h.casecmp?('authorization') }.join(', ') if vary
+      [JSON.dump(req), JSON.dump(resp), *entry.drop(2)]
+    rescue JSON::ParserError, TypeError
+      entry
+    end
+  end
 
   def perform(&)
     return [] if @disabled
