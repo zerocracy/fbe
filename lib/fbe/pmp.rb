@@ -37,6 +37,13 @@ require_relative 'fb'
 #
 #   Fbe.pmp.my_custom.my_prop  # reads from factbase, no XML defaults
 #
+# A +bool+ property reads as a bare +true+ or +false+, so that it works
+# inside +if+. Every area also answers +property+ with the full object
+# for any property, a +bool+ one included:
+#
+#   Fbe.pmp.communications.stealth                  # false
+#   Fbe.pmp.communications.property(:stealth).memo  # "Suppress all ..."
+#
 # @param [Factbase] fb The factbase
 # @param [Hash] global The hash for global caching
 # @param [Judges::Options] options Retained for compatibility with existing callers
@@ -98,6 +105,9 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
           define_method(:properties) do
             query.call(area).each.flat_map { |f| f.all_properties.map(&:to_s) }.uniq
           end
+          define_method(:property) do |name|
+            public_send(name)
+          end
           others do |*args2|
             param = args2.first.to_s
             result = owner.call(area, param)&.[](param)&.first
@@ -111,7 +121,11 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
             node.xpath('p/name').map(&:text)
           end
           others do |*args2|
-            param = args2.first.to_s
+            v = property(args2.first)
+            v.type == 'bool' ? v.value : v
+          end
+          define_method(:property) do |name|
+            param = name.to_s
             result = owner.call(area, param)&.[](param)&.first
             prop = node.at_xpath('p[name=$name]', nil, 'name' => param)
             default = nil
@@ -155,7 +169,6 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
                   "'#{param}' in area '#{area}': #{e.message}"
                 )
               end
-            next result if type == 'bool'
             pmpv.new(result, default, type, memo)
           end
         end.new
