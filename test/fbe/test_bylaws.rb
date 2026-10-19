@@ -169,6 +169,49 @@ class TestBylaws < Fbe::Test
     assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
   end
 
+  def test_code_review_charges_silence_on_big_pull
+    seed = Random.new_seed
+    hoc = Random.new(seed).rand(1_600..10_000)
+    a = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded'])
+    assert_equal(
+      12, a.bill({ hoc:, comments: 0, self: 0 }).points,
+      "silent review of #{hoc} hits-of-code is not charged 16 points (seed: #{seed})"
+    )
+  end
+
+  def test_code_review_charges_few_hits_of_code_of_busy_review
+    seed = Random.new_seed
+    hoc = Random.new(seed).rand(1..15)
+    a = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded'])
+    assert_equal(
+      10, a.bill({ hoc:, comments: 25, self: 0 }).points,
+      "busy review of #{hoc} hits-of-code is not charged 8 points (seed: #{seed})"
+    )
+  end
+
+  def test_code_review_pays_normal_review_under_cap
+    a = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded'])
+    assert_equal(23, a.bill({ hoc: 600, comments: 20, self: 0 }).points, 'normal review is not paid 23 points')
+  end
+
+  def test_code_review_pays_nothing_for_comments_under_bonus_floor
+    seed = Random.new_seed
+    comments = Random.new(seed).rand(6..19)
+    a = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded'])
+    assert_equal(
+      17, a.bill({ hoc: 500, comments:, self: 0 }).points,
+      "#{comments} comments are paid under the bonus floor of 5 points (seed: #{seed})"
+    )
+  end
+
+  def test_code_review_pays_quarter_point_per_comment
+    a = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded'])
+    assert_equal(
+      1, a.bill({ hoc: 500, comments: 24, self: 0 }).points - a.bill({ hoc: 500, comments: 20, self: 0 }).points,
+      'four more comments are not paid one more point'
+    )
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
