@@ -1465,6 +1465,41 @@ class TestOcto < Fbe::Test
     assert_equal('CHANGES_REQUESTED', reviews[0][:state])
   end
 
+  def test_fake_pull_request_counts_commits
+    seed = Random.new_seed
+    number = [29, 100, 95, Random.new(seed).rand(200..10_000)].sample(random: Random.new(seed))
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_kind_of(
+      Integer, o.pull_request('foo/ёж', number)[:commits],
+      "pull request #{number} has no count of commits (seed: #{seed})"
+    )
+  end
+
+  def test_fake_pull_request_is_merged_exactly_when_merged_at_is_set
+    o = Fbe::FakeOctokit.new
+    seed = Random.new_seed
+    numbers = [29, 172, 100, 95, Random.new(seed).rand(200..10_000)]
+    assert_equal(
+      numbers.map { |n| !o.pull_request('foo/bar', n)[:merged_at].nil? },
+      numbers.map { |n| o.pull_request('foo/bar', n)[:merged] },
+      "merged of pull requests #{numbers} does not follow their merged_at (seed: #{seed})"
+    )
+  end
+
+  def test_fake_pull_request_without_merged_at_is_not_merged
+    assert_same(
+      false, Fbe::FakeOctokit.new.pull_request('yegor256/ünï', 95)[:merged],
+      'pull request 95 with no merged_at is merged'
+    )
+  end
+
+  def test_fake_pull_request_with_merged_at_is_merged
+    assert_same(
+      true, Fbe::FakeOctokit.new.pull_request('yegor256/ünï', 100)[:merged],
+      'pull request 100 with a merged_at is not merged'
+    )
+  end
+
   def test_fake_pull_request_matches_the_list
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_requests('yegor256/test').each do |listed|
