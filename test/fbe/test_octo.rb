@@ -622,6 +622,26 @@ class TestOcto < Fbe::Test
     o.repository(429)
   end
 
+  def test_guards_quota_after_workflow_run_logs
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 5000 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' }
+    )
+    stub_request(:head, 'https://api.github.com/repos/foo/bar/actions/runs/1/logs').to_return(
+      status: 302, headers: { 'Location' => 'https://example.com/logs.zip', 'X-RateLimit-Remaining' => '4999' }
+    )
+    left = 31
+    stub_request(:get, %r{\Ahttps://api\.github\.com/users/}).to_return do
+      left -= 1
+      { status: 200, body: '{}', headers: { 'X-RateLimit-Remaining' => left.to_s } }
+    end
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    o.workflow_run_logs('foo/bar', 1)
+    o.user('a')
+    assert_raises(Fbe::OffQuota, 'one call for logs blinds the quota guard to every later call') { o.user('b') }
+  end
+
   def test_not_retrying_on_not_found
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
