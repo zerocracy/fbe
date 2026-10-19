@@ -885,14 +885,16 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       ]
     end
 
-    def total_commits_pushed(_owner, _name, _since, _till = Time.now)
+    def total_commits_pushed(_owner, _name, since, till = Time.now)
+      return { 'commits' => 0, 'hoc' => 0 } unless since < till
       {
         'commits' => 29,
         'hoc' => 1857
       }
     end
 
-    def total_issues_created(_owner, _name, _since, _till = Time.now)
+    def total_issues_created(_owner, _name, since, till = Time.now)
+      return { 'issues' => 0, 'pulls' => 0 } unless since < till
       {
         'issues' => 17,
         'pulls' => 8
