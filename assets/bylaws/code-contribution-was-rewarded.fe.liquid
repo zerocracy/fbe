@@ -64,7 +64,7 @@
     "deduct ${few_hoc_fee} points if you contribute less than ${hoc_needed} hits-of-code")
 
   (aka
-    (let max 24)
+    (let max {{ 12 | times: love | at_least: 24 }})
     (set over (if (gt (total) max) (minus max (total)) 0))
     (give over "to not go over the cap")
     (let min 4)
