@@ -51,33 +51,33 @@ class Fbe::Tombstone
       raise(Fbe::Error, 'The type of "issue" is neither Integer nor Array')
     end
     issue = numbers(issue)
-    f =
-      Fbe.if_absent(fb: @fb, always: true) do |n|
-        n.what = 'tombstone'
-        n.where = where
-        n.repository = repo
-      end
-    f.public_send(:"#{@fid}=", SecureRandom.random_number(9_999_999_999_999)) if f[@fid].nil?
-    nn = f['issues']&.map do |ii|
-      ii.split('-').map do |i|
-        Integer(i, 10)
-      end.then { |ii| ii.size == 1 ? ii << ii[0] : ii }
-    end || []
-    issue.each do |i|
-      nn << [i, i]
-    end
-    merged =
-      nn.sort.each_with_object([]) do |(a, b), merged|
-        if !merged.empty? && merged[-1][0] <= a && a <= merged[-1][1] + 1
-          merged[-1][1] = b if b > merged[-1][1]
-        else
-          merged << [a, b]
+    @fb.txn do |fb|
+      f =
+        Fbe.if_absent(fb: fb, always: true) do |n|
+          n.what = 'tombstone'
+          n.where = where
+          n.repository = repo
         end
+      f.public_send(:"#{@fid}=", SecureRandom.random_number(9_999_999_999_999)) if f[@fid].nil?
+      nn = f['issues']&.map do |ii|
+        ii.split('-').map do |i|
+          Integer(i, 10)
+        end.then { |ii| ii.size == 1 ? ii << ii[0] : ii }
+      end || []
+      issue.each do |i|
+        nn << [i, i]
       end
-    Fbe.overwrite(
-      f, 'issues', merged.map { |ii| ii[0] == ii[1] ? ii[0].to_s : "#{ii[0]}-#{ii[1]}" },
-      fb: @fb, fid: @fid
-    )
+      merged =
+        nn.sort.each_with_object([]) do |(a, b), merged|
+          if !merged.empty? && merged[-1][0] <= a && a <= merged[-1][1] + 1
+            merged[-1][1] = b if b > merged[-1][1]
+          else
+            merged << [a, b]
+          end
+        end
+      write(f, merged.map { |ii| ii[0] == ii[1] ? ii[0].to_s : "#{ii[0]}-#{ii[1]}" })
+    end
+    nil
   end
 
   # Is it there?
@@ -106,6 +106,20 @@ class Fbe::Tombstone
   end
 
   private
+
+  # Replace ranges inside the transaction while retaining all other properties.
+  # @param [Factbase::Fact] fact The transaction's tombstone
+  # @param [Array<String>] ranges The merged issue ranges
+  def write(fact, ranges)
+    return if ranges.empty?
+    origin = fact
+    while origin.instance_variable_defined?(:@fact) || origin.instance_variable_defined?(:@origin)
+      iv = origin.instance_variable_defined?(:@fact) ? :@fact : :@origin
+      origin = origin.instance_variable_get(iv)
+    end
+    origin.instance_variable_get(:@map)['issues'] = []
+    ranges.each { |range| fact.issues = range }
+  end
 
   def numbers(issue)
     list = issue.is_a?(Array) ? issue : [issue]
