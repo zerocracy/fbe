@@ -32,6 +32,7 @@ def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id') # rubocop:disable Metrics/Cy
   (fact.all_properties - props.map(&:to_s)).each do |k|
     before[k] = fact[k]
   end
+  before.compact!
   fb.txn do |fbt|
     deleted = fbt.query("(eq #{id} #{i})").delete!
     raise(Fbe::Error, "#{deleted} facts share #{id} = #{i}, cannot delete one of them") if deleted > 1
