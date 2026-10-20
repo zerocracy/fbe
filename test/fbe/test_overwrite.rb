@@ -14,6 +14,40 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOverwrite < Fbe::Test
+  def test_skips_query_parameters_when_recreating_the_fact
+    ['(eq _id $wanted)', '(eq _id 1)'].each do |query|
+      fb = Factbase.new
+      original = fb.insert
+      original._id = 1
+      original.x = 1
+      original.x = 2
+      original.keep = 'unchanged'
+      fb.query(query).each(fb, wanted: 1) do |fact|
+        Fbe.overwrite(fact, 'x', 9, fb: fb)
+      end
+      result = fb.query('(always)').each.first
+      assert_equal([1], result['_id'])
+      assert_equal(['unchanged'], result['keep'])
+      assert_equal([9], result['x'])
+      refute_includes(result.all_properties, 'wanted')
+      assert_equal(1, fb.size)
+    end
+  end
+
+  def test_skips_query_parameters_in_hash_replacement
+    fb = Factbase.new
+    original = fb.insert
+    original._id = 1
+    original.x = 1
+    fb.query('(eq _id $wanted)').each(fb, wanted: 1) do |fact|
+      Fbe.overwrite(fact, { 'x' => 9 }, fb: fb)
+    end
+    result = fb.query('(always)').each.first
+    assert_equal([9], result['x'])
+    assert_equal([1], result['_id'])
+    refute_includes(result.all_properties, 'wanted')
+  end
+
   def test_simple_overwrite
     fb = Factbase.new
     f = fb.insert
