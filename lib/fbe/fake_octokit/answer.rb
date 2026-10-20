@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: MIT
 
 require 'sawyer'
-require_relative '../fake_octokit'
 
 # An answer of the fake.
 #
