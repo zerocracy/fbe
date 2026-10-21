@@ -260,6 +260,11 @@ class TestIterate < Fbe::Test
     assert_equal('Query cannot be empty', error.message)
   end
 
+  def test_rejects_whitespace_only_query
+    error = assert_raises(Fbe::Error) { fresh_iterator.by('   ') }
+    assert_equal('Query cannot be empty', error.message)
+  end
+
   def test_rejects_empty_sort_field
     error = assert_raises(Fbe::Error) { fresh_iterator.sort_by('') }
     assert_equal('Sort field cannot be empty', error.message)
