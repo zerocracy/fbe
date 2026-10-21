@@ -160,6 +160,21 @@ class TestAward < Fbe::Test
     )
   end
 
+  def test_bylaw_markdown_does_not_repeat_an_existing_period
+    a = Fbe::Award.new(
+      '(award (explain "Every review is rewarded.") ' \
+      '(aka (let x 5) (give x "for review") "award ${x} points."))'
+    )
+    assert_equal("Every review is rewarded. Here is how it's calculated: Just award **5** points.", a.bylaw.markdown)
+  end
+
+  def test_bylaw_markdown_does_not_repeat_a_period_on_later_lines
+    a = Fbe::Award.new(
+      '(award (explain "Reviews pay.") (aka (give 1 "a") "award one.") (aka (give 2 "b") "award two."))'
+    )
+    assert_equal("Reviews pay. Here is how it's calculated: First, award one. Then, award two.", a.bylaw.markdown)
+  end
+
   def test_lines_add_up_to_the_total
     b = Fbe::Award.new('(award (give 12 "as a basis") (give 7.6 "for comments"))').bill
     g = b.greeting

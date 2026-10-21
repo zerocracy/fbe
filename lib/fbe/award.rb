@@ -522,16 +522,27 @@ class Fbe::Award
     #   #=> "This bylaw determines rewards for code contributions. Just award **50** points."
     def markdown
       pars = []
-      pars << "#{@intro}." unless @intro.empty?
+      pars << punctuate(@intro) unless @intro.empty?
       pars << 'Here is how it\'s calculated:'
       if @lines.size == 1
-        pars << "Just #{@lines.first}."
+        pars << punctuate("Just #{@lines.first}")
       else
-        pars += @lines.each_with_index.map { |t, i| "#{i.zero? ? 'First' : 'Then'}, #{t}." }
+        pars += @lines.each_with_index.map { |t, i| punctuate("#{i.zero? ? 'First' : 'Then'}, #{t}") }
       end
       pars.join(' ')
         .gsub(/(\bset (_[^_\s]+_) to (?:(?!\. ).)*)\. Then, award \2\./, '\1, and award \2.')
         .gsub(/\s{2,}/, ' ')
+    end
+
+    private
+
+    # Adds a period when the text does not already end with one.
+    #
+    # @param [String] text The fragment to finish
+    # @return [String] The fragment with a single trailing period
+    def punctuate(text)
+      return text if text.end_with?('.')
+      "#{text}."
     end
   end
 end
