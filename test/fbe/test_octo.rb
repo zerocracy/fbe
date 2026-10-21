@@ -1453,9 +1453,17 @@ class TestOcto < Fbe::Test
   def test_fake_pull_requests
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     prs = o.pull_requests('yegor256/test')
-    assert_equal(2, prs.size)
-    assert_equal(100, prs[0][:number])
-    assert_equal(95, prs[1][:number])
+    assert_equal([95], prs.map { |p| p[:number] })
+    assert_equal(['open'], prs.map { |p| p[:state] })
+  end
+
+  def test_fake_pull_requests_honor_state
+    o = Fbe::FakeOctokit.new
+    assert_equal([95], o.pull_requests('foo/bar').map { |p| p[:number] })
+    assert_equal([95], o.pull_requests('foo/bar', state: 'open').map { |p| p[:number] })
+    assert_equal([100], o.pull_requests('foo/bar', state: 'closed').map { |p| p[:number] })
+    assert_equal([100, 95], o.pull_requests('foo/bar', state: 'all').map { |p| p[:number] })
+    assert_equal([100, 95], o.pull_requests('foo/bar', { state: 'all' }).map { |p| p[:number] })
   end
 
   def test_fake_pull_request_reviews
@@ -1467,7 +1475,7 @@ class TestOcto < Fbe::Test
 
   def test_fake_pull_request_matches_the_list
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    o.pull_requests('yegor256/test').each do |listed|
+    o.pull_requests('yegor256/test', state: 'all').each do |listed|
       fetched = o.pull_request('yegor256/test', listed[:number])
       assert_equal(listed[:id], fetched[:id])
       assert_equal(listed[:state], fetched[:state])

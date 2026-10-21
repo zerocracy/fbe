@@ -628,7 +628,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         changed_files: 2
       }
     else
-      fixture = pull_requests(repo).find { |p| p[:number] == number } || {}
+      fixture = pull_requests(repo, state: 'all').find { |p| p[:number] == number } || {}
       {
         id: 42,
         number:,
@@ -652,13 +652,18 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
 
   # Lists pull requests for a repository.
   #
+  # GitHub's list defaults to open pull requests. +state+ may be +open+,
+  # +closed+, or +all+.
+  #
   # @param [String] _repo Repository name (ignored in mock)
-  # @param [Hash] _options Query options (ignored in mock)
+  # @param [Hash] options Query options
+  # @option options [String] :state +open+ (the default), +closed+, or +all+
   # @return [Array<Hash>] Array of pull request hashes
   # @example
   #   client.pull_requests('octocat/Hello-World', state: 'open')
-  #   # => [{:number=>100, :state=>"closed", :title=>"#90: some title", ...}]
-  def pull_requests(_repo, _options = {})
+  #   # => [{:number=>95, :state=>"open", :title=>"#80: some title", ...}]
+  def pull_requests(_repo, options = {})
+    state = options[:state] || 'open'
     [
       {
         id: 2_072_543_250,
@@ -718,7 +723,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           repo: repository('zerocracy/repo')
         }
       }
-    ]
+    ].select { |p| state == 'all' || p[:state] == state }
   end
 
   def pull_request_reviews(_repo, _number)
