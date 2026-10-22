@@ -522,7 +522,7 @@ class Fbe::Award
     #   #=> "This bylaw determines rewards for code contributions. Just award **50** points."
     def markdown
       pars = []
-      pars << "#{@intro}." unless @intro.empty?
+      pars << "#{@intro}." unless @intro.strip.empty?
       pars << 'Here is how it\'s calculated:'
       if @lines.size == 1
         pars << "Just #{@lines.first}."
