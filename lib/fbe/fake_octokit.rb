@@ -302,11 +302,14 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #   fake_client.user('octocat') #=> {:id=>444, :login=>nil, :type=>"User"}
   def user(uid)
     raise(Octokit::NotFound) if [404_001, 404_002].include?(uid)
+    if uid == 29_139_614
+      return { id: uid, login: 'renovate[bot]', type: 'Bot' }
+    end
     login = (uid == 526_301 ? 'yegor256' : 'torvalds') if uid.is_a?(Integer)
     {
       id: 444,
       login:,
-      type: uid == 29_139_614 ? 'Bot' : 'User'
+      type: 'User'
     }
   end
 
