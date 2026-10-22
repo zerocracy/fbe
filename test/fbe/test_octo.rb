@@ -1672,4 +1672,14 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_repository_by_id_uses_resolved_name_for_urls
+    o = Fbe::FakeOctokit.new
+    r = o.repository(1439)
+    assert_equal('zerocracy/baza', r[:full_name])
+    assert_equal('zerocracy', r[:owner][:login])
+    assert_equal('https://github.com/zerocracy/baza', r[:html_url])
+    assert_equal('https://github.com/zerocracy/baza', r[:url])
+  end
+
 end
