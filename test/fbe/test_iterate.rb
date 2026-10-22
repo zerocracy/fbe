@@ -265,6 +265,11 @@ class TestIterate < Fbe::Test
     assert_equal('Sort field cannot be empty', error.message)
   end
 
+  def test_rejects_whitespace_only_sort_field
+    error = assert_raises(Fbe::Error) { fresh_iterator.sort_by('   ') }
+    assert_equal('Sort field cannot be empty', error.message)
+  end
+
   def test_raises_when_label_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
