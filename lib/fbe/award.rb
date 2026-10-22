@@ -496,6 +496,7 @@ class Fbe::Award
           raise(Fbe::Error, "Undefined variable '#{k}' used in bylaw text: #{line}") unless @vars.key?(k)
           "**#{@vars[k]}**"
         end
+      raise(Fbe::Error, 'The bylaw line cannot be empty') if line.strip.empty?
       @lines << line
     end
 

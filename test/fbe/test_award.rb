@@ -240,4 +240,10 @@ class TestAward < Fbe::Test
   def test_div_does_not_truncate_integers
     assert_equal(3, Fbe::Award.new('(award (give (times (div 3 2) 2) "x"))').bill.points)
   end
+  def test_bylaw_line_rejects_whitespace_only
+    bylaw = Fbe::Award::Bylaw.new
+    assert_raises(Fbe::Error) { bylaw.line('   ') }
+    assert_raises(Fbe::Error) { bylaw.line('') }
+  end
+
 end
