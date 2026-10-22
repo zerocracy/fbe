@@ -116,4 +116,21 @@ class TestRegularly < Fbe::Test
     end
     assert_equal(2, fb.size)
   end
+
+  def test_rejects_whitespace_only_area
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.regularly('   ', 'days', fb: Factbase.new, judge: 'j', loog: Loog::NULL) { |f| }
+      end
+    assert_equal('The area cannot be empty', error.message)
+  end
+
+  def test_rejects_empty_area
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.regularly('', 'days', fb: Factbase.new, judge: 'j', loog: Loog::NULL) { |f| }
+      end
+    assert_equal('The area cannot be empty', error.message)
+  end
+
 end
