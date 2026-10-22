@@ -804,9 +804,22 @@ class TestOcto < Fbe::Test
 
   def test_fetch_fake_issue_always_has_state
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    [42, 94, 144].each do |number|
+    [94, 144].each do |number|
       result = o.issue('yegor256/test', number)
       assert_equal('open', result[:state], "issue #{number} should have an open state")
+    end
+  end
+
+  def test_fake_issue_matches_its_pull
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [100, 42].each do |number|
+      issue = o.issue('foo/bar', number)
+      pull = o.pull_request('foo/bar', number)
+      assert_equal(
+        [pull[:state], pull[:closed_at], pull[:merged_at]],
+        [issue[:state], issue[:closed_at], issue.dig(:pull_request, :merged_at)],
+        "issue #{number}"
+      )
     end
   end
 
