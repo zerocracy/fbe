@@ -33,6 +33,7 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   { 'area' => area, 'p_every_days' => p_every_days, 'fb' => fb }.each do |name, value|
     raise(Fbe::Error, "The #{name} is nil") if value.nil?
   end
+  raise(Fbe::Error, 'The area cannot be empty') if area.is_a?(String) && area.strip.empty?
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
