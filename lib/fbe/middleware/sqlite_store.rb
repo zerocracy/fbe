@@ -59,11 +59,11 @@ class Fbe::Middleware::SqliteStore
   # @raise [ArgumentError] If path is nil/empty, directory doesn't exist, version is nil/empty,
   # or ttl is not nil or not Integer or not positive
   def initialize(path, version, loog: Loog::NULL, maxsize: '10Mb', maxvsize: '10Kb', ttl: nil, cache_min_age: nil)
-    raise(ArgumentError, 'Database path cannot be nil or empty') if path.nil? || path.empty?
+    raise(ArgumentError, 'Database path cannot be nil or empty') if path.nil? || path.strip.empty?
     dir = File.dirname(path)
     raise(ArgumentError, "Directory #{dir} does not exist") unless File.directory?(dir)
     raise(ArgumentError, "Directory #{dir} is not writable") unless File.writable?(dir)
-    raise(ArgumentError, 'Version cannot be nil or empty') if version.nil? || version.empty?
+    raise(ArgumentError, 'Version cannot be nil or empty') if version.nil? || version.strip.empty?
     @path = File.absolute_path(path)
     @version = version
     @loog = loog
