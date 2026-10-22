@@ -1672,4 +1672,14 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_rejects_non_positive_ids
+    WebMock.disable_net_connect!
+    o = Fbe.octo(loog: Loog::NULL, options: Judges::Options.new({ 'testing' => true }), global: {})
+    [0, -1].each do |id|
+      assert_raises(Fbe::Error) { o.user_name_by_id(id) }
+      assert_raises(Fbe::Error) { o.repo_name_by_id(id) }
+    end
+  end
+
 end
