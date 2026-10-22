@@ -201,4 +201,11 @@ class TestTombstone < Fbe::Test
     end
     assert_equal(0, fb.size, "factbase is touched by member #{member.inspect}, seed is #{seed}")
   end
+  def test_rejects_whitespace_only_where
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    assert_raises(Fbe::Error) { ts.bury!('   ', 42, 1) }
+    assert_raises(Fbe::Error) { ts.has?('   ', 42, 1) }
+    assert_raises(Fbe::Error) { ts.issues('   ', 42) }
+  end
+
 end
