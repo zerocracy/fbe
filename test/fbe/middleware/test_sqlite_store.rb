@@ -146,6 +146,16 @@ class SqliteStoreTest < Fbe::Test
       assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new(f, '', loog: fake_loog) }.then do |ex|
         assert_match(msg, ex.message)
       end
+      assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new(f, '   ', loog: fake_loog) }.then do |ex|
+        assert_match(msg, ex.message)
+      end
+    end
+  end
+
+  def test_initialize_whitespace_path
+    msg = 'Database path cannot be nil or empty'
+    assert_raises(ArgumentError) { Fbe::Middleware::SqliteStore.new('   ', '0.0.1', loog: fake_loog) }.then do |ex|
+      assert_match(msg, ex.message)
     end
   end
 
