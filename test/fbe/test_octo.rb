@@ -1672,4 +1672,18 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_user_bot_id_matches_contributors_login
+    o = Fbe::FakeOctokit.new
+    uid = 29_139_614
+    u = o.user(uid)
+    assert_equal('Bot', u[:type])
+    assert_equal('renovate[bot]', u[:login])
+    assert_equal(uid, u[:id])
+    c = o.contributors('x/y').find { _1[:id] == uid }
+    refute_nil(c)
+    assert_equal(c[:login], u[:login])
+    assert_equal(c[:id], u[:id])
+  end
+
 end
