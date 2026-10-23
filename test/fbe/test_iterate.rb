@@ -102,12 +102,14 @@ class TestIterate < Fbe::Test
   def test_raises_when_label_not_set
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
-    assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        by('(plus 1 1)')
-        over { |_, nxt| nxt }
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          by('(plus 1 1)')
+          over { |_, nxt| nxt }
+        end
       end
-    end
+    assert_equal('Use "as" first', error.message)
   end
 
   def test_raises_when_label_not_in_snake_case
@@ -141,12 +143,14 @@ class TestIterate < Fbe::Test
   def test_raises_when_query_not_set
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
-    assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as('no_query_test')
-        over { |_, nxt| nxt }
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as('no_query_test')
+          over { |_, nxt| nxt }
+        end
       end
-    end
+    assert_equal('Use "by" first', error.message)
   end
 
   def test_raises_when_block_returns_non_integer
