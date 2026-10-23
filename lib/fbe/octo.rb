@@ -46,7 +46,7 @@ Fbe::SEARCH_METHODS = %i[
 # @option options [Integer] :sqlite_cache_maxsize Maximum size of SQLite cache in bytes (default: 10MB)
 # @param [Hash] global Hash of global options
 # @param [Loog] loog Logging facility
-# @return [Hash] Usually returns a JSON, as it comes from the GitHub API
+# @return [Octokit::Client, Fbe::FakeOctokit] The decorated GitHub client, or a fake one when +testing+ is set
 def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The $global is not set') if global.nil?
   raise(Fbe::Error, 'The $options is not set') if options.nil?
