@@ -76,6 +76,8 @@ class Fbe::Middleware::SqliteStore
     end
     @minage = cache_min_age
     @mutex = Mutex.new
+    @db = nil
+    @disabled = false
   end
 
   # Read a value from the cache.
@@ -167,21 +169,36 @@ class Fbe::Middleware::SqliteStore
       t.execute('DELETE FROM cache;')
       t.execute("UPDATE meta SET value = ? WHERE key = 'version';", [@version])
     end
-    @db.execute('VACUUM;')
+    @mutex.synchronize do
+      db = @db
+      db&.execute('VACUUM;')
+      db&.close
+      @db = nil
+    end
   end
 
   # Get all entries from the cache, in the form they are stored in, which
   # means every value is still compressed and has to be inflated by the caller.
   # @return [Array<Array>] Array of [key, compressed value] pairs
   def all
-    perform { _1.execute('SELECT key, value FROM cache') }
+    @mutex.synchronize do
+      db = @db || open!
+      begin
+        db.execute('SELECT key, value FROM cache')
+      ensure
+        db.close
+        @db = nil
+      end
+    end
   end
 
   # Close the database connection explicitly.
   # @return [nil]
   def close
-    @db&.close
-    @db = nil
+    @mutex.synchronize do
+      @db&.close
+      @db = nil
+    end
   end
 
   private
@@ -189,10 +206,14 @@ class Fbe::Middleware::SqliteStore
   def perform(&)
     return [] if @disabled
     @mutex.synchronize do
-      @db ||= open!
+      db = @db || open!
+      begin
+        db.transaction(&)
+      ensure
+        db.close
+        @db = nil
+      end
     end
-    return [] if @disabled
-    @db.transaction(&)
   end
 
   # Opens the database, discarding and recreating an unusable cache file once.
