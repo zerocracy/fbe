@@ -460,6 +460,7 @@ class Fbe::Award
       unless num.is_a?(Integer) && num >= 0
         raise(Fbe::Error, "The number of lines to revert must be a non-negative integer: #{num.inspect}")
       end
+      raise(Fbe::Error, "Can't revert #{num} lines, the bylaw has only #{@lines.size}") if num > @lines.size
       @lines.slice!(-num, num)
     end
 
