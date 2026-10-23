@@ -396,7 +396,7 @@ class Fbe::Award
     #   bill.line(25, "for documentation")
     #   bill.greeting #=> "You've earned +75 points for this: +50 for code review; +25 for documentation. "
     def greeting
-      items = @lines.map { |l| "#{format('%+d', whole(l[:v]))} #{l[:t]}" }
+      items = @lines.map { |l| "#{format('%+d', whole(l[:v]))} #{l[:t]}".rstrip }
       case items.size
       when 0
         "You've earned nothing. "
