@@ -629,6 +629,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       }
     else
       fixture = pull_requests(repo).find { |p| p[:number] == number } || {}
+      base = (fixture[:base] || {}).to_h.dup
+      base[:repo] = repository(repo)
       {
         id: 42,
         number:,
@@ -646,7 +648,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         closed_at: Time.parse('2024-12-20'),
         merged_at: Time.parse('2024-12-20'),
         created_at: Time.parse('2024-09-20')
-      }.merge(fixture).merge(base: (fixture[:base] || {}).merge(repo: repository(repo)))
+      }.merge(fixture).merge(base: base)
     end
   end
 
