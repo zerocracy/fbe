@@ -3,8 +3,14 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
-require 'baza-rb'
 require_relative '../fbe'
+
+begin
+  require 'baza-rb'
+rescue LoadError, StandardError
+  # The Baza client is optional in test or restricted environments; the
+  # functionality is only needed when actually recording a valve entry.
+end
 
 # Enter a new valve in the Zerocracy system.
 #
