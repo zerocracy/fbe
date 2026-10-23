@@ -560,6 +560,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         created_at: Time.parse('2025-05-29 17:00:55 UTC')
       }
     else
+      pull = pull_request(repo, number)
       {
         id: 42,
         number:,
@@ -568,9 +569,10 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         },
         user: { login: 'yegor256', id: 526_301, type: 'User' },
         pull_request: {
-          merged_at: nil
+          merged_at: pull[:merged_at]
         },
-        state: 'open',
+        state: pull[:state],
+        closed_at: pull[:closed_at],
         created_at: Time.parse('2024-09-20 19:00:00 UTC')
       }
     end.merge(comments: issue_comments(repo, number).size)
@@ -629,6 +631,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       }
     else
       fixture = pull_requests(repo).find { |p| p[:number] == number } || {}
+      base = fixture[:base]
+      base = base.to_h if base.respond_to?(:to_h)
       {
         id: 42,
         number:,
@@ -646,7 +650,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         closed_at: Time.parse('2024-12-20'),
         merged_at: Time.parse('2024-12-20'),
         created_at: Time.parse('2024-09-20')
-      }.merge(fixture).merge(base: (fixture[:base] || {}).merge(repo: repository(repo)))
+      }.merge(fixture).merge(base: (base || {}).merge(repo: repository(repo)))
     end
   end
 

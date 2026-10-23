@@ -194,6 +194,8 @@ class TestPmp < Fbe::Test
   end
 
   def test_areas_merges_defaults_and_pmp_facts_without_duplicates
+    $options = Judges::Options.new
+    $loog = Loog::NULL
     fb = Factbase.new
     %w[custom custom hr].each do |area|
       f = fb.insert
