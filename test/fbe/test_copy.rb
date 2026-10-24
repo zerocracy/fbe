@@ -47,4 +47,27 @@ class TestCopy < Fbe::Test
     Fbe.copy(source, target, except: [:foo])
     assert_nil(target['foo'])
   end
+
+  def test_with_except_strips_whitespace
+    fb = Factbase.new
+    source = fb.insert
+    source._id = 1
+    source.foo = 42
+    source.bar = 7
+    target = fb.insert
+    target._id = 2
+    Fbe.copy(source, target, except: ['  foo  '])
+    assert_nil(target['foo'])
+    assert_equal(7, target.bar)
+  end
+
+  def test_with_blank_except_name_raises
+    fb = Factbase.new
+    source = fb.insert
+    source.foo = 42
+    target = fb.insert
+    assert_raises(Fbe::Error) do
+      Fbe.copy(source, target, except: ['   '])
+    end
+  end
 end

@@ -27,7 +27,8 @@ def Fbe.copy(source, target, except: [])
   raise(Fbe::Error, 'The source is nil') if source.nil?
   raise(Fbe::Error, 'The target is nil') if target.nil?
   raise(Fbe::Error, 'The except is nil') if except.nil?
-  except = except.map(&:to_s)
+  except = except.map { |e| e.to_s.strip }
+  raise(Fbe::Error, 'An except name cannot be empty') if except.any?(&:empty?)
   copied = 0
   source.all_properties.each do |k|
     next unless target[k].nil?
