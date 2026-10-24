@@ -1671,8 +1671,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     }
   end
 
-  def tree(_repo, _tree_sha, _options = {})
-    {
+  def tree(_repo, _tree_sha, options = {})
+    all = {
       sha: '492072971ad3c8644a191f62426bd3',
       tree: [
         {
@@ -1739,6 +1739,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       ],
       truncated: false
     }
+    all[:tree] = all[:tree].reject { |e| e[:path].include?('/') } unless options[:recursive]
+    all
   end
 
   def contributors(_repo, _anon = nil, _options = {})
