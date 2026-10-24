@@ -1498,6 +1498,13 @@ class TestOcto < Fbe::Test
     assert_equal(10, result[:items][0][:number])
   end
 
+  def test_fake_search_issues_never_finds_a_pull_both_merged_and_unmerged
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    merged = o.search_issues('repo:foo/bar type:pr is:merged')[:items].map { |i| i[:number] }
+    unmerged = o.search_issues('repo:foo/bar type:pr is:unmerged')[:items].map { |i| i[:number] }
+    assert_empty(merged & unmerged, "merged #{merged}, unmerged #{unmerged}")
+  end
+
   def test_fake_commits_since
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     commits = o.commits_since('yegor256/test', Time.now - 86_400)
