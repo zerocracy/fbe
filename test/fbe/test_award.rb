@@ -174,6 +174,14 @@ class TestAward < Fbe::Test
     assert_equal(1, bill.points)
   end
 
+  def test_adding_lines_returns_nil
+    assert_nil(Fbe::Award::Bill.new.line(50, 'for code review'))
+    assert_nil(Fbe::Award::Bylaw.new.line('award 50 points'))
+    term = Factbase::Syntax.new('(award (give 100 "for effort"))').to_term
+    term.redress!(Fbe::Award::BTerm)
+    assert_nil(term.bill_to(Fbe::Award::Bill.new))
+  end
+
   def test_shorten_when_one_number
     g = Fbe::Award.new('(award (give 23 "for love"))').bill.greeting
     assert_equal('You\'ve earned +23 points. ', g, g)
