@@ -178,4 +178,23 @@ class TestDelete < Fbe::Test
     assert_equal(snapshot[:version], after._version)
     assert_equal(snapshot[:job], after._job)
   end
+
+  def test_deletes_property_padded_with_whitespace
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    f.hey = 4
+    f._id = 555
+    Fbe.delete(f, '  foo  ', fb:)
+    assert_equal(0, fb.query('(exists foo)').each.to_a.size)
+    assert_equal(1, fb.query('(exists hey)').each.to_a.size)
+  end
+
+  def test_blank_property_name_raises
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    f._id = 555
+    assert_raises(Fbe::Error) { Fbe.delete(f, '   ', fb:) }
+  end
 end
