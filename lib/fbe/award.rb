@@ -131,6 +131,7 @@ class Fbe::Award
       else
         raise(Fbe::Error, "Unknown term '#{@op}'")
       end
+      nil
     end
 
     # Evaluates a value in the context of a bill.
@@ -374,6 +375,7 @@ class Fbe::Award
         end
       return if value.zero?
       @lines << { v: value, t: text }
+      nil
     end
 
     # Calculates the total points in this bill.
@@ -497,6 +499,7 @@ class Fbe::Award
           "**#{@vars[k]}**"
         end
       @lines << line
+      nil
     end
 
     # Registers a variable with its value for substitution in lines.
