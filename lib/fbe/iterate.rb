@@ -115,6 +115,7 @@ class Fbe::Iterate
   #   iterator.over { |repo, item| ... }  # Will not stop on quota exhaustion
   def quota_unaware
     @quota = false
+    nil
   end
 
   # Makes the iterator unaware of lifetime limits.
@@ -122,6 +123,7 @@ class Fbe::Iterate
   # @return [nil] Nothing is returned
   def lifetime_unaware
     @lifetime = false
+    nil
   end
 
   # Makes the iterator unaware of timeout limits.
@@ -129,6 +131,7 @@ class Fbe::Iterate
   # @return [nil] Nothing is returned
   def timeout_unaware
     @timeout = false
+    nil
   end
 
   # Sets the maximum number of iterations per repository.
@@ -148,6 +151,7 @@ class Fbe::Iterate
     end
     raise(Fbe::Error, 'The "repeats" must be a positive integer') unless repeats.positive?
     @repeats = repeats
+    nil
   end
 
   # Sets the initial value for iteration tracking.
@@ -166,6 +170,7 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Cannot set "since" to nil') if value.nil?
     raise(Fbe::Error, 'The "since" must be an Integer') unless value.is_a?(Integer)
     @since = value
+    nil
   end
 
   # Sets the query to execute for each iteration.
@@ -185,6 +190,7 @@ class Fbe::Iterate
     raise(Fbe::Error, "Query must be a String, while #{query.class} provided") unless query.is_a?(String)
     raise(Fbe::Error, 'Query cannot be empty') if query.empty?
     @query = query
+    nil
   end
 
   # Sets the field to sort results by in ascending order.
@@ -204,6 +210,7 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Sort field must be a String') unless prop.is_a?(String)
     raise(Fbe::Error, 'Sort field cannot be empty') if prop.empty?
     @sorting = prop
+    nil
   end
 
   # Sets the label for tracking iteration state.
@@ -227,6 +234,7 @@ class Fbe::Iterate
     raise(Fbe::Error, "The label '#{label}' clashes with a property of the marker fact") if
       %w[what where repository].include?(label)
     @label = label
+    nil
   end
 
   # Executes the iteration over all configured repositories.

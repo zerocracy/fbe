@@ -749,6 +749,18 @@ class TestIterate < Fbe::Test
     assert_equal([[1, 2], [3], []], runs)
   end
 
+  def test_dsl_methods_return_nil
+    iter = fresh_iterator
+    assert_nil(iter.quota_unaware)
+    assert_nil(iter.lifetime_unaware)
+    assert_nil(iter.timeout_unaware)
+    assert_nil(iter.repeats(5))
+    assert_nil(iter.since!(100))
+    assert_nil(iter.by('(eq foo $before)'))
+    assert_nil(iter.sort_by('issue'))
+    assert_nil(iter.as('lbl'))
+  end
+
   private
 
   def fresh_iterator
