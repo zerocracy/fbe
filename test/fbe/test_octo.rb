@@ -1627,6 +1627,18 @@ class TestOcto < Fbe::Test
     refute(result[:truncated])
   end
 
+  def test_fake_tree_lists_nested_entries_only_when_recursive
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal(
+      ['.github', '.gitignore', '.rubocop.yml', 'README.md', 'Rakefile'],
+      o.tree('yegor256/test', 'abc')[:tree].map { |e| e[:path] }
+    )
+    assert_includes(
+      o.tree('yegor256/test', 'abc', recursive: true)[:tree].map { |e| e[:path] },
+      '.github/workflows/actionlint.yml'
+    )
+  end
+
   def test_fake_contributors
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     contribs = o.contributors('yegor256/test')
