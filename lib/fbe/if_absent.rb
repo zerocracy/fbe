@@ -21,14 +21,14 @@ require_relative 'same'
 #  require 'fbe/if_absent'
 #  n = Fbe.if_absent do |f|
 #    f.what = 'something'
-#    f.details = 'important'
+#    f.details = 'This fact is important enough to keep.'
 #  end
 #  return if n.nil?  # Fact already existed
 #  n.when = Time.now # Add additional properties to the new fact
 #
 # This code will definitely create one fact with +what+ equals to +something+
-# and +details+ equals to +important+, while the +when+ will be equal to the
-# time of its first creation.
+# and +details+ equals to the sentence above, while the +when+ will be equal
+# to the time of its first creation.
 #
 # @param [Factbase] fb The factbase to check and insert into (defaults to Fbe.fb)
 # @param [Boolean] always If true, return the object in any case
