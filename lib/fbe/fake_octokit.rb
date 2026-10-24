@@ -598,7 +598,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       {
         id: 1_990_323_142,
         number: 172,
-        url: 'https://api.github.com/repos/yegor256/judges/pulls/93',
+        url: "https://api.github.com/repos/#{repo}/pulls/172",
         node_id: 'PR_kwDOL6GCO852oevG',
         state: 'closed',
         locked: false,
@@ -1086,7 +1086,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           action: 'closed',
           number: 172,
           pull_request: {
-            url: 'https://api.github.com/repos/yegor256/judges/pulls/93',
+            url: "https://api.github.com/repos/#{repo}/pulls/172",
             id: 1_990_323_142,
             number: 172,
             base: {
@@ -1119,7 +1119,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           action: 'closed',
           number: 172,
           pull_request: {
-            url: 'https://api.github.com/repos/yegor256/judges/pulls/93',
+            url: "https://api.github.com/repos/#{repo}/pulls/172",
             id: 1_990_323_142,
             number: 172,
             base: {

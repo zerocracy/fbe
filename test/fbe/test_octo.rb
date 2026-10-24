@@ -897,6 +897,15 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_fake_pull_request_url_points_to_requested_repo_and_number
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    url = 'https://api.github.com/repos/zerocracy/baza/pulls/172'
+    assert_equal(url, o.pull_request('zerocracy/baza', 172)[:url])
+    events = o.repository_events('zerocracy/baza').select { |e| e[:type] == 'PullRequestEvent' }
+    refute_empty(events)
+    events.each { |e| assert_equal(url, e.dig(:payload, :pull_request, :url)) }
+  end
+
   def test_fetch_fake_pull_request_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_request_review_comments('yegor256/test', 100, 100_001).then do |comments|
