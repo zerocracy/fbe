@@ -489,4 +489,16 @@ class TestConclude < Fbe::Test
     end
     assert_equal(51, count)
   end
+
+  def test_dsl_methods_return_nil
+    c = Fbe::Conclude.new(
+      fb: Factbase.new, judge: 'judge-one', global: {}, options: Judges::Options.new, loog: Loog::NULL,
+      epoch: Time.now, kickoff: Time.now
+    )
+    assert_nil(c.quota_unaware)
+    assert_nil(c.lifetime_unaware)
+    assert_nil(c.timeout_unaware)
+    assert_nil(c.on('(exists foo)'))
+    assert_nil(c.follow('foo bar'))
+  end
 end
