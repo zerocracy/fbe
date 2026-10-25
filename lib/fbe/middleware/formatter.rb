@@ -99,7 +99,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
           "HTTP/1.1 #{http.status}",
           shifted(apply_filters(dump_headers(http.response_headers))),
           '',
-          shifted(apply_filters(http.response_body&.ellipsized(100, :right)))
+          shifted(apply_filters(http.response_body&.scrub&.ellipsized(100, :right)))
         ].join("\n")
       )
       return
@@ -113,7 +113,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
         "HTTP/1.1 #{http.status}",
         shifted(apply_filters(dump_headers(http.response_headers))),
         '',
-        shifted(apply_filters(http.response_body))
+        shifted(apply_filters(http.response_body&.scrub))
       ].join("\n")
     )
   end
