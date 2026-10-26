@@ -74,7 +74,7 @@ GEM
       loog (~> 0.6)
       tago (~> 0.1)
     ellipsized (0.3.0)
-    erb (6.0.4)
+    erb (6.0.7)
     ethon (0.18.0)
       ffi (>= 1.15.0)
       logger
@@ -194,11 +194,11 @@ GEM
     racc (1.8.1)
     rainbow (3.1.1)
     rake (13.4.2)
-    rbs (4.0.3)
+    rbs (4.2.0)
       logger
       prism (>= 1.6.0)
       tsort
-    rdoc (8.0.0)
+    rdoc (8.1.0)
       erb
       prism (>= 1.6.0)
       rbs (>= 4.0.0)
