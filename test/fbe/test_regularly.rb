@@ -84,7 +84,7 @@ class TestRegularly < Fbe::Test
     Fbe.regularly('custom', 'interval', 'days', fb:, loog:, judge:) do |f|
       f.foo = 42
     end
-    fact = fb.query("(and (eq what '#{judge}'))").each.first
+    fact = fb.query("(and (eq what 'regularly') (eq judge '#{judge}'))").each.first
     assert_in_delta(Time.now - (28 * 24 * 60 * 60), fact.since, 1)
     Fbe.regularly('custom', 'interval', 'days', fb:, loog:, judge:) do |f|
       f.foo = 42
