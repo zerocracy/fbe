@@ -173,16 +173,20 @@ class SqliteStoreTest < Fbe::Test
           store.write('c', 'cc')
         end
         assert_equal('cc', store.read('c'))
-        Time.stub(:now, rand((Time.now - (5 * 60 * 60))..Time.now).round) do
+        Time.stub(:now, (Time.now - 60).round) do
           key = 'a' * 65_536
           value = SecureRandom.alphanumeric(8_192)
+          last_key = nil
           52.times do
             store.write(key, value)
+            last_key = key
             key = key.next
           end
+          assert_equal(value, store.read(last_key))
         end
+        assert_operator(File.size(f), :<=, 10 * 1024 * 1024)
       end
-      assert_operator(File.size(f), :>, 10 * 1024 * 1024)
+      assert_operator(File.size(f), :<=, 10 * 1024 * 1024)
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
         assert_equal('aa', store.read('a'))
         assert_nil(store.read('b'))
