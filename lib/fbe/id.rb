@@ -16,7 +16,7 @@ def Fbe.whole_id(value, property)
   when Integer
     value
   when Float
-    unless value.finite? && value.frac.zero? && value.abs <= ((2**53) - 1)
+    unless value.finite? && (value % 1).zero? && value.abs <= ((2**53) - 1)
       raise(ArgumentError)
     end
     value.to_i
@@ -25,7 +25,7 @@ def Fbe.whole_id(value, property)
       Integer(value, 10)
     rescue ArgumentError
       number = Float(value)
-      unless number.finite? && number.frac.zero? && number.abs <= ((2**53) - 1)
+      unless number.finite? && (number % 1).zero? && number.abs <= ((2**53) - 1)
         raise(ArgumentError)
       end
       number.to_i
