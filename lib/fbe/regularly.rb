@@ -35,8 +35,23 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
   end
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
+  to_days = lambda do |value, property|
+    number = Float(value)
+    unless number.finite? && number % 1 == 0
+      raise(Fbe::Error, "The PMP property '#{property}' must be a whole number of days")
+    end
+    number.to_i
+  rescue ArgumentError, TypeError, RangeError
+    raise(Fbe::Error, "The PMP property '#{property}' must be a whole number of days")
+  end
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
-  interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
+  interval = to_days.call(pmp.filter_map { |f| f[p_every_days]&.first }.first || 7, p_every_days)
+  since_days =
+    if p_since_days.nil?
+      nil
+    else
+      to_days.call(pmp.filter_map { |f| f[p_since_days]&.first }.first || 28, p_since_days)
+    end
   recent = fb.query(
     "(and
       (eq what 'regularly')
@@ -56,9 +71,8 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     f.what = 'regularly'
     f.judge = judge
     f.when = Time.now
-    unless p_since_days.nil?
-      days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28
-      since = Time.now - (days * 24 * 60 * 60)
+    unless since_days.nil?
+      since = Time.now - (since_days * 24 * 60 * 60)
       f.since = since
     end
     yield(f)
