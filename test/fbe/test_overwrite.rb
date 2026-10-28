@@ -14,6 +14,38 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOverwrite < Fbe::Test
+  def test_adds_aliased_keys_without_recreating_the_fact
+    fb = Factbase.new
+    fact = fb.insert
+    fact.bar = 'kept'
+    Fbe.overwrite(fact, { foo: 1, 'foo' => 2 }, fb:)
+    assert_equal([2], fact['foo'])
+    assert_equal(['kept'], fact['bar'])
+    assert_equal(1, fb.size)
+  end
+
+  def test_skips_aliased_keys_when_the_last_value_is_unchanged
+    fb = Factbase.new
+    fact = fb.insert
+    fact.foo = 2
+    Fbe.overwrite(fact, { foo: 1, 'foo' => 2 }, fb:)
+    assert_equal([2], fact['foo'])
+    assert_equal(1, fb.size)
+  end
+
+  def test_overwrites_existing_aliased_keys_with_the_last_value
+    fb = Factbase.new
+    fact = fb.insert
+    fact._id = 1
+    fact.foo = 0
+    fact.bar = 'kept'
+    Fbe.overwrite(fact, { 'foo' => 1, foo: [2, 3] }, fb:)
+    result = fb.query('(eq _id 1)').each.first
+    assert_equal([2, 3], result['foo'])
+    assert_equal(['kept'], result['bar'])
+    assert_equal(1, fb.size)
+  end
+
   def test_simple_overwrite
     fb = Factbase.new
     f = fb.insert
