@@ -47,7 +47,8 @@ class TestIssue < Fbe::Test
   def test_rejects_multiple_repository_ids
     fb = Factbase.new
     f = fb.insert
-    f.repository = [323, 324]
+    f.repository = 323
+    f.repository = 324
     f.issue = 333
     global = {}
     options = Judges::Options.new({ 'testing' => true })
@@ -58,7 +59,8 @@ class TestIssue < Fbe::Test
     fb = Factbase.new
     f = fb.insert
     f.repository = 323
-    f.issue = [333, 334]
+    f.issue = 333
+    f.issue = 334
     global = {}
     options = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
