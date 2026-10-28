@@ -24,6 +24,7 @@ require_relative 'fb'
 # @raise [Fbe::Error] If fact is nil, has no identifier, or property is neither a String nor a Hash
 # @note This operation preserves all other properties during recreation
 # @note If property already has the same single value, no changes are made
+# @note Hash keys are normalized to strings; the last alias supplies the value
 # @example Update a user's status
 #   user = fb.query('(eq login "john")').first
 #   Fbe.overwrite(user, 'status', 'active')
@@ -36,13 +37,14 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
   if property_or_hash.is_a?(Hash)
+    changes = property_or_hash.transform_keys(&:to_s)
     before = {}
     fact.all_properties.each do |k|
       before[k.to_s] = fact[k]
     end
     modified = false
     overwrites = false
-    property_or_hash.each do |k, vv|
+    changes.each do |k, vv|
       sk = k.to_s
       raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
       vv = [vv] unless vv.is_a?(Array)
@@ -54,7 +56,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     end
     return unless modified
     unless overwrites
-      property_or_hash.each do |k, vv|
+      changes.each do |k, vv|
         sk = k.to_s
         next unless fact[sk].nil?
         vv = [vv] unless vv.is_a?(Array)
