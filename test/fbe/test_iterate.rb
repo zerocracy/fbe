@@ -488,6 +488,7 @@ class TestIterate < Fbe::Test
 
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
       as('mixed_values')
+      repeats(2)
       by('(eq what "issue")')
       sort_by('rank')
       over do |_repository, rank|
