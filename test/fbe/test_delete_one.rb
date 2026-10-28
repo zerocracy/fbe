@@ -110,7 +110,8 @@ class TestDeleteOne < Fbe::Test
     fb = Factbase.new
     f = fb.insert
     f.key = 'customid'
-    f.tags = %w[keep remove]
+    f.tags = 'keep'
+    f.tags = 'remove'
     Fbe.delete_one(f, 'tags', 'remove', fb:, id: 'key')
     assert_equal(1, fb.size)
     assert_equal('customid', fb.query('(eq key "customid")').each.first['key'].first)
