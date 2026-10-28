@@ -80,6 +80,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
           nil
         end
       unless msg.nil?
+        msg = apply_filters(msg.to_s)
         warn(["#{http.method.upcase} #{apply_filters(http.url.to_s)}", '->', http.status, '/', msg].join(' '))
         return
       end
