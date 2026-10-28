@@ -281,6 +281,7 @@ class Fbe::Middleware::SqliteStore
   end
 
   def trim_if_oversized(d) # rubocop:disable Metrics/AbcSize, Metrics/BlockLength
+    return if d.nil?
     return unless File.size(@path) > @maxsize
     @loog.info(
       "SQLite cache file size (#{Filesize.from(File.size(@path).to_s).pretty} bytes) exceeds " \
