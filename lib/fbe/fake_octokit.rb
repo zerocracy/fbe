@@ -1498,69 +1498,60 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         ]
       }
     }
-    data.fetch(repo) do
-      { total_count: 0, check_runs: [] }
+    res =
+      data.fetch(repo) do
+        { total_count: 0, check_runs: [] }
+      end
+    res[:check_runs]&.each do |cr|
+      cr[:started_at] = Time.parse(cr[:started_at]) if cr[:started_at].is_a?(String)
+      cr[:completed_at] = Time.parse(cr[:completed_at]) if cr[:completed_at].is_a?(String)
     end
+    res
   end
 
   def workflow_run_job(_repo, job)
-    [
+    item = [
       {
         id: 28_907_016_501,
         run_id: 10_438_531_072,
-        name: 'make',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
+        name: 'make'
       },
       {
         id: 28_906_596_603,
         run_id: 10_438_531_073,
-        name: 'copyrights',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
+        name: 'copyrights'
       },
       {
         id: 28_906_596_550,
         run_id: 10_438_531_074,
-        name: 'markdown-lint',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
+        name: 'markdown-lint'
       },
       {
         id: 28_906_596_483,
         run_id: 10_438_531_075,
-        name: 'pdd',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
+        name: 'pdd'
       },
       {
         id: 28_906_596_433,
         run_id: 10_438_531_076,
-        name: 'rake',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
+        name: 'rake'
       },
       {
         id: 28_906_596_405,
         run_id: 10_438_531_077,
-        name: 'shellcheck',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
+        name: 'shellcheck'
       },
       {
         id: 28_906_596_379,
         run_id: 10_438_531_078,
-        name: 'yamllint',
-        started_at: '2024-08-18T08:04:44Z',
-        completed_at: '2024-08-18T08:20:17Z'
+        name: 'yamllint'
       }
     ].find { |json| json[:id] == job } || {
       id: job,
       run_id: 1234,
-      name: 'run job',
-      started_at: '2024-08-18T08:04:44Z',
-      completed_at: '2024-08-18T08:20:17Z'
+      name: 'run job'
     }
+    item.merge(started_at: Time.parse('2024-08-18T08:04:44Z'), completed_at: Time.parse('2024-08-18T08:20:17Z'))
   end
 
   def workflow_run(repo, id)
@@ -1577,8 +1568,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       head_branch: 'master',
       head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
       status: 'completed',
-      started_at: '2024-08-18T08:04:44Z',
-      completed_at: '2024-08-18T08:20:17Z',
+      started_at: Time.parse('2024-08-18T08:04:44Z'),
+      completed_at: Time.parse('2024-08-18T08:20:17Z'),
       created_at: random_time,
       run_started_at: random_time,
       workflow_id: known[:id],

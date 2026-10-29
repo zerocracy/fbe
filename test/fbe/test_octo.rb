@@ -63,7 +63,7 @@ class TestOcto < Fbe::Test
 
   def test_fake_events_grow_older_as_ids_shrink
     seed = Random.new_seed
-    repo = "яндекс/тест-#{Random.new(seed).rand(1_000_000)}"
+    repo = "ÑÐ½Ð´ÐµÐºÑ/Ñ‚ÐµÑÑ‚-#{Random.new(seed).rand(1_000_000)}"
     events = Fbe::FakeOctokit.new.repository_events(repo, {}).sort_by { Integer(_1[:id], 10) }
     times = events.map { _1[:created_at] }
     assert_equal(times.sort, times, "timestamps of #{repo} do not follow the ids (seed: #{seed})")
@@ -71,21 +71,21 @@ class TestOcto < Fbe::Test
 
   def test_fake_events_dont_share_timestamps
     seed = Random.new_seed
-    repo = "zerocracy/#{'ж' * Random.new(seed).rand(1..100)}"
+    repo = "zerocracy/#{'Ð¶' * Random.new(seed).rand(1..100)}"
     times = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:created_at] }
     assert_equal(times.uniq, times, "two events of #{repo} share a timestamp (seed: #{seed})")
   end
 
   def test_fake_events_dont_happen_in_future
     seed = Random.new_seed
-    repo = "#{Random.new(seed).rand(1_000_000)}/ünïcødé"
+    repo = "#{Random.new(seed).rand(1_000_000)}/Ã¼nÃ¯cÃ¸dÃ©"
     times = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:created_at] }
     assert_operator(Time.now, :>=, times.max, "an event of #{repo} is dated in the future (seed: #{seed})")
   end
 
   def test_fake_events_grow_older_as_ids_shrink_through_octo
     seed = Random.new_seed
-    repo = "yegor256/#{'щ' * Random.new(seed).rand(1..80)}"
+    repo = "yegor256/#{'Ñ‰' * Random.new(seed).rand(1..80)}"
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     times = o.repository_events(repo, {}).sort_by { Integer(_1[:id], 10) }.map { _1[:created_at] }
     assert_equal(times.sort, times, "timestamps of #{repo} from octo do not follow the ids (seed: #{seed})")
@@ -433,7 +433,7 @@ class TestOcto < Fbe::Test
 
   def test_off_quota_when_quota_probe_fails_with_server_error
     WebMock.disable_net_connect!
-    stub_request(:get, 'https://api.github.com/rate_limit').to_return(status: 500, body: '{"message":"boom ü"}')
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(status: 500, body: '{"message":"boom Ã¼"}')
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
     assert(
       o.off_quota?(threshold: 50, resource: :core),
@@ -1544,21 +1544,21 @@ class TestOcto < Fbe::Test
 
   def test_fake_repository_events_come_newest_first
     seed = Random.new_seed
-    repo = "яндекс/тест-#{Random.new(seed).rand(1_000_000)}"
+    repo = "ÑÐ½Ð´ÐµÐºÑ/Ñ‚ÐµÑÑ‚-#{Random.new(seed).rand(1_000_000)}"
     ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { Integer(_1[:id], 10) }
     assert_equal(ids.sort.reverse!, ids, "events of #{repo} are not newest first (seed: #{seed})")
   end
 
   def test_fake_repository_events_start_with_the_newest
     seed = Random.new_seed
-    repo = "zerocracy/#{'ж' * Random.new(seed).rand(1..100)}"
+    repo = "zerocracy/#{'Ð¶' * Random.new(seed).rand(1..100)}"
     ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { Integer(_1[:id], 10) }
     assert_equal(ids.max, ids.first, "the first event of #{repo} is not the newest one (seed: #{seed})")
   end
 
   def test_fake_repository_events_dont_repeat_ids
     seed = Random.new_seed
-    repo = "#{Random.new(seed).rand(1_000_000)}/ünïcødé"
+    repo = "#{Random.new(seed).rand(1_000_000)}/Ã¼nÃ¯cÃ¸dÃ©"
     ids = Fbe::FakeOctokit.new.repository_events(repo, {}).map { _1[:id] }
     assert_equal(ids.uniq, ids, "events of #{repo} carry repeating ids (seed: #{seed})")
   end
@@ -1567,13 +1567,13 @@ class TestOcto < Fbe::Test
     seed = Random.new_seed
     rand = Random.new(seed)
     one = Fbe::FakeOctokit.new.repository_events("a/#{rand.rand(1_000_000)}", {}).map { _1[:id] }
-    two = Fbe::FakeOctokit.new.repository_events("ы/#{'д' * rand.rand(1..50)}", {}).map { _1[:id] }
+    two = Fbe::FakeOctokit.new.repository_events("Ñ‹/#{'Ð´' * rand.rand(1..50)}", {}).map { _1[:id] }
     assert_equal(one, two, "events of two repos come in different order (seed: #{seed})")
   end
 
   def test_fake_repository_events_keep_order_between_calls
     seed = Random.new_seed
-    repo = "#{'щ' * Random.new(seed).rand(1..80)}/тест"
+    repo = "#{'Ñ‰' * Random.new(seed).rand(1..80)}/Ñ‚ÐµÑÑ‚"
     o = Fbe::FakeOctokit.new
     one = o.repository_events(repo, {}).map { _1[:id] }
     two = o.repository_events(repo, {}).map { _1[:id] }
@@ -1671,5 +1671,51 @@ class TestOcto < Fbe::Test
       refute_nil(result[:head_sha], "for workflow run #{id}")
       refute_nil(result[:repository], "for workflow run #{id}")
     end
+  end
+
+  def test_fake_workflow_run_timestamps_are_time_instances
+    client = Fbe::FakeOctokit.new
+    [10_438_531_072, 10_438_531_073, 999].each do |id|
+      run = client.workflow_run('zerocracy/baza', id)
+      assert_instance_of(Time, run[:started_at], "started_at must be Time for workflow run #{id}")
+      assert_instance_of(Time, run[:completed_at], "completed_at must be Time for workflow run #{id}")
+      assert_instance_of(Time, run[:created_at], "created_at must be Time for workflow run #{id}")
+      assert_instance_of(Time, run[:run_started_at], "run_started_at must be Time for workflow run #{id}")
+      diff = run[:completed_at] - run[:started_at]
+      assert_operator(diff, :>=, 0, "completed_at must not precede started_at for #{id}")
+      assert_in_delta(933.0, diff, 0.001, "expected 933 seconds duration for #{id}")
+    end
+  end
+
+  def test_fake_workflow_run_job_timestamps_are_time_instances
+    client = Fbe::FakeOctokit.new
+    [28_907_016_501, 28_906_596_433, 1234].each do |id|
+      job = client.workflow_run_job('zerocracy/baza', id)
+      assert_instance_of(Time, job[:started_at], "started_at must be Time for job #{id}")
+      assert_instance_of(Time, job[:completed_at], "completed_at must be Time for job #{id}")
+      duration = job[:completed_at] - job[:started_at]
+      assert_operator(duration, :>=, 0, "completed_at must be after started_at for job #{id}")
+      assert_in_delta(933.0, duration, 0.001, "expected exact elapsed duration for job #{id}")
+    end
+  end
+
+  def test_fake_check_runs_timestamps_are_time_instances
+    client = Fbe::FakeOctokit.new
+    res = client.check_runs_for_ref('zerocracy/baza', 'c0ffee')
+    refute_empty(res[:check_runs], 'check_runs should not be empty for zerocracy/baza')
+    res[:check_runs].each do |cr|
+      assert_instance_of(Time, cr[:started_at], "check_run #{cr[:id]} started_at must be Time")
+      assert_instance_of(Time, cr[:completed_at], "check_run #{cr[:id]} completed_at must be Time")
+      elapsed = cr[:completed_at] - cr[:started_at]
+      assert_operator(elapsed, :>=, 0, "elapsed time must be positive for #{cr[:id]}")
+      assert_in_delta(933.0, elapsed, 0.001, "expected 933s for check run #{cr[:id]}")
+    end
+  end
+
+  def test_fake_check_runs_empty_for_unknown_repo
+    client = Fbe::FakeOctokit.new
+    res = client.check_runs_for_ref('unknown/repo', 'deadbeef')
+    assert_equal(0, res[:total_count])
+    assert_empty(res[:check_runs])
   end
 end
