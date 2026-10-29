@@ -442,7 +442,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       html_url: "https://github.com/#{name}",
       description: 'something',
       fork: false,
-      url: "https://github.com/#{name}",
+      url: "https://api.github.com/repos/#{repo}",
       created_at: random_time,
       updated_at: random_time,
       pushed_at: random_time,
