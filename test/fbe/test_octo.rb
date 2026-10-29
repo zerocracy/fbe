@@ -752,6 +752,49 @@ class TestOcto < Fbe::Test
     assert_equal('foo/bazz', o.repository(810)[:full_name])
   end
 
+  def test_fake_repository_returns_api_url_by_string_name
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    repo = o.repository('zerocracy/fbe')
+    assert_equal('https://api.github.com/repos/zerocracy/fbe', repo[:url])
+    assert_equal('https://api.github.com/repos/zerocracy/fbe', repo['url'])
+  end
+
+  def test_fake_repository_returns_api_url_by_integer_id
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    repo = o.repository(42)
+    assert_equal('https://api.github.com/repos/yegor256/test', repo[:url])
+  end
+
+  def test_fake_repository_returns_api_url_for_mapped_id
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    baza = o.repository(1439)
+    assert_equal('https://api.github.com/repos/zerocracy/baza', baza[:url])
+    bazz = o.repository(810)
+    assert_equal('https://api.github.com/repos/foo/bazz', bazz[:url])
+  end
+
+  def test_fake_octokit_direct_repository_url
+    fake = Fbe::FakeOctokit.new
+    repo = fake.repository('octocat/Hello-World')
+    assert_equal('https://api.github.com/repos/octocat/Hello-World', repo[:url])
+  end
+
+  def test_fake_repository_url_and_html_url_are_distinct
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    repo = o.repository('foo/bar')
+    refute_equal(repo[:url], repo[:html_url])
+    assert_equal('https://api.github.com/repos/foo/bar', repo[:url])
+    assert_equal('https://github.com/foo/bar', repo[:html_url])
+  end
+
+  def test_fake_repository_url_format_matches_github_api
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    name = 'owner-org/repo-project'
+    repo = o.repository(name)
+    assert_match(%r{\Ahttps://api\.github\.com/repos/}, repo[:url])
+    assert_includes(repo[:url], name)
+  end
+
   def test_fetches_fake_issue_events_has_assigned_event
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.issue_events('foo/foo', 123)
