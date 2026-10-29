@@ -467,4 +467,59 @@ class TestOverwrite < Fbe::Test
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
+
+  def test_single_property_overwrite_with_identical_multivalue_does_not_recreate_fact
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 42
+    f.labels = 'bug'
+    f.labels = 'help'
+    assert_nil(Fbe.overwrite(f, 'labels', %w[bug help], fb:))
+    f.seen = 1
+    found = fb.query('(and (eq _id 42) (exists seen))').each.to_a
+    assert_equal(1, found.size, 'fact must not be recreated when multi-value is unchanged')
+    assert_equal(%w[bug help], f['labels'])
+    assert_equal(1, fb.size)
+  end
+
+  def test_single_property_overwrite_with_different_multivalue_updates_values
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 43
+    f.labels = 'bug'
+    f.labels = 'help'
+    assert_nil(Fbe.overwrite(f, 'labels', %w[bug enhancement], fb:))
+    updated = fb.query('(eq _id 43)').each.first
+    assert_equal(%w[bug enhancement], updated['labels'])
+    assert_equal(1, fb.size)
+  end
+
+  def test_single_property_overwrite_with_same_single_value_in_array_does_not_recreate
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 44
+    f.role = 'developer'
+    assert_nil(Fbe.overwrite(f, 'role', ['developer'], fb:))
+    f.marker = 'kept'
+    assert_equal(1, fb.query('(and (eq _id 44) (eq marker "kept"))').each.to_a.size)
+    assert_equal(['developer'], f['role'])
+  end
+
+  def test_single_property_overwrite_multivalue_matches_hash_form_behavior
+    fb = Factbase.new
+    first = fb.insert
+    first._id = 50
+    first.tags = 'ruby'
+    first.tags = 'gem'
+    second = fb.insert
+    second._id = 51
+    second.tags = 'ruby'
+    second.tags = 'gem'
+    Fbe.overwrite(first, 'tags', %w[ruby gem], fb:)
+    Fbe.overwrite(second, { 'tags' => %w[ruby gem] }, fb:)
+    first.flag = 1
+    second.flag = 1
+    assert_equal(1, fb.query('(and (eq _id 50) (eq flag 1))').each.to_a.size)
+    assert_equal(1, fb.query('(and (eq _id 51) (eq flag 1))').each.to_a.size)
+  end
 end
