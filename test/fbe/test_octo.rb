@@ -1737,4 +1737,50 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_workflow_run_timestamps_are_time_instances
+    client = Fbe::FakeOctokit.new
+    [10_438_531_072, 10_438_531_073, 999].each do |id|
+      run = client.workflow_run('zerocracy/baza', id)
+      assert_instance_of(Time, run[:started_at], "started_at must be Time for workflow run #{id}")
+      assert_instance_of(Time, run[:completed_at], "completed_at must be Time for workflow run #{id}")
+      assert_instance_of(Time, run[:created_at], "created_at must be Time for workflow run #{id}")
+      assert_instance_of(Time, run[:run_started_at], "run_started_at must be Time for workflow run #{id}")
+      diff = run[:completed_at] - run[:started_at]
+      assert_operator(diff, :>=, 0, "completed_at must not precede started_at for #{id}")
+      assert_in_delta(933.0, diff, 0.001, "expected 933 seconds duration for #{id}")
+    end
+  end
+
+  def test_fake_workflow_run_job_timestamps_are_time_instances
+    client = Fbe::FakeOctokit.new
+    [28_907_016_501, 28_906_596_433, 1234].each do |id|
+      job = client.workflow_run_job('zerocracy/baza', id)
+      assert_instance_of(Time, job[:started_at], "started_at must be Time for job #{id}")
+      assert_instance_of(Time, job[:completed_at], "completed_at must be Time for job #{id}")
+      duration = job[:completed_at] - job[:started_at]
+      assert_operator(duration, :>=, 0, "completed_at must not precede started_at for job #{id}")
+      assert_in_delta(933.0, duration, 0.001, "expected exact elapsed duration for job #{id}")
+    end
+  end
+
+  def test_fake_check_runs_timestamps_are_time_instances
+    client = Fbe::FakeOctokit.new
+    res = client.check_runs_for_ref('zerocracy/baza', 'c0ffee')
+    refute_empty(res[:check_runs], 'check_runs should not be empty for zerocracy/baza')
+    res[:check_runs].each do |cr|
+      assert_instance_of(Time, cr[:started_at], "check_run #{cr[:id]} started_at must be Time")
+      assert_instance_of(Time, cr[:completed_at], "check_run #{cr[:id]} completed_at must be Time")
+      elapsed = cr[:completed_at] - cr[:started_at]
+      assert_operator(elapsed, :>=, 0, "elapsed time must be positive for #{cr[:id]}")
+      assert_in_delta(933.0, elapsed, 0.001, "expected 933s for check run #{cr[:id]}")
+    end
+  end
+
+  def test_fake_check_runs_empty_for_unknown_repo
+    client = Fbe::FakeOctokit.new
+    res = client.check_runs_for_ref('unknown/repo', 'deadbeef')
+    assert_equal(0, res[:total_count])
+    assert_empty(res[:check_runs])
+  end
 end
