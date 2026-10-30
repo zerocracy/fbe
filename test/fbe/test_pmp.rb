@@ -289,4 +289,42 @@ class TestPmp < Fbe::Test
     assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: nil, loog: Loog::NULL) }
     assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: opts, loog: nil) }
   end
+
+  def test_converts_default_of_int_property
+    v = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL).hr.days_to_reward
+    assert_kind_of(Integer, v.default, 'the default of an int property is not an Integer')
+    assert_equal(14, v.default, 'the default of days_to_reward is wrong')
+  end
+
+  def test_converts_default_of_float_property
+    v = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL).cost.award_price
+    assert_kind_of(Float, v.default, 'the default of a float property is not a Float')
+    assert_in_delta(0.0, v.default, 0.0001, 'the default of award_price is wrong')
+  end
+
+  def test_keeps_int_default_when_a_fact_overrides_the_value
+    fb = Factbase.new
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.days_to_reward = 30
+    v = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).hr.days_to_reward
+    assert_equal(30, v, 'the value of the fact was not used')
+    assert_equal(14, v.default, 'the default changed after the fact overrode the value')
+  end
+
+  def test_keeps_default_of_string_property
+    v = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL).cost.slaves
+    assert_equal('torvalds', v.default, 'the default of a string property is wrong')
+  end
+
+  def test_has_no_default_for_property_of_custom_area
+    fb = Factbase.new
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'custom'
+    f.days = 5
+    v = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).custom.days
+    assert_nil(v.default, 'a custom property got a default')
+  end
 end
