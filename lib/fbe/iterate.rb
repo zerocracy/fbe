@@ -353,10 +353,6 @@ class Fbe::Iterate
         @loog.debug("No more repos to scan (out of #{repos.size}), quitting after #{@kickoff.ago}")
         break
       end
-      if restarted.size == repos.size
-        @loog.debug("All #{repos.size} repos restarted, quitting after #{@kickoff.ago}")
-        break
-      end
     end
     @loog.debug("Finished scanning #{repos.size} repos in #{@kickoff.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
   rescue Fbe::OffQuota => e
