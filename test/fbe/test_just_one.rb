@@ -88,4 +88,24 @@ class TestJustOne < Fbe::Test
     end
     assert_equal(0, fb.size, 'just_one inserted a fact without a block')
   end
+
+  def test_finds_a_stored_value_with_apostrophe
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = "it's"
+    f.bar = 1
+    n = Fbe.just_one(fb:) { |g| g.foo = "it's" }
+    assert_equal([1], n['bar'], 'just_one did not return the fact with an apostrophe')
+    assert_equal(1, fb.size, 'just_one inserted a duplicate of the fact with an apostrophe')
+  end
+
+  def test_finds_a_stored_time_by_local_time
+    fb = Factbase.new
+    f = fb.insert
+    f.when = Time.utc(2024, 5, 1, 10)
+    f.bar = 2
+    n = Fbe.just_one(fb:) { |g| g.when = Time.new(2024, 5, 1, 13, 0, 0, '+03:00') }
+    assert_equal([2], n['bar'], 'just_one did not match a non-UTC time')
+    assert_equal(1, fb.size, 'just_one inserted a duplicate for a non-UTC time')
+  end
 end
