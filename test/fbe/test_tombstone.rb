@@ -201,4 +201,35 @@ class TestTombstone < Fbe::Test
     end
     assert_equal(0, fb.size, "factbase is touched by member #{member.inspect}, seed is #{seed}")
   end
+
+  def test_keeps_wider_range_when_burying_a_range_inside_it
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 1, (1..10).to_a)
+    ts.bury!('github', 1, [3, 4, 5])
+    assert_equal((1..10).to_a, ts.issues('github', 1), 'the wider range was cut')
+  end
+
+  def test_keeps_wider_range_when_burying_one_number_inside_it
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 1, (1..10).to_a)
+    ts.bury!('github', 1, 5)
+    assert(ts.has?('github', 1, 10), 'the end of the wider range came back to life')
+  end
+
+  def test_keeps_both_ranges_when_burying_inside_the_second_one
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 1, [1, 2, 3])
+    ts.bury!('github', 1, (20..30).to_a)
+    ts.bury!('github', 1, 25)
+    assert_equal([1, 2, 3, *20..30], ts.issues('github', 1), 'the ranges were not kept as they were')
+    refute(ts.has?('github', 1, 10), 'a number between the ranges was buried')
+  end
+
+  def test_extends_range_when_burying_a_range_that_overlaps_its_end
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 1, (1..10).to_a)
+    ts.bury!('github', 1, (8..15).to_a)
+    assert_equal((1..15).to_a, ts.issues('github', 1), 'the range was not extended')
+    refute(ts.has?('github', 1, 16), 'a number after the range was buried')
+  end
 end
