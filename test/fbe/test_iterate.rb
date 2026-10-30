@@ -749,6 +749,40 @@ class TestIterate < Fbe::Test
     assert_equal([[1, 2], [3], []], runs)
   end
 
+  def test_keeps_other_repositories_going_when_one_item_fails
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    (1..5).each do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    bad = nil
+    done = Hash.new { |h, k| h[k] = [] }
+    2.times do
+      ex =
+        assert_raises(Fbe::Error) do
+          Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+            as('broken_test')
+            by('(agg (and (eq what "issue") (gt n $before)) (min n))')
+            repeats(5)
+            over do |repo, nxt|
+              bad ||= repo
+              raise(StandardError, 'HTTP 404 Not Found') if repo == bad && nxt == 2
+              done[repo] << nxt
+              nxt
+            end
+          end
+        end
+      assert_includes(ex.message, 'HTTP 404 Not Found')
+    end
+    good = done.keys.find { |r| r != bad }
+    assert_equal([1, 2, 3, 4, 5], done[good])
+    assert_equal([1], done[bad])
+    markers = fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_h { |f| [f.repository, f.broken_test] }
+    assert_equal({ bad => 1, good => 5 }, markers)
+  end
+
   private
 
   def fresh_iterator

@@ -280,6 +280,7 @@ class Fbe::Iterate
       ).map { |n| oct.repo_id_by_name(n) }
     started = Time.now
     restarted = []
+    failures = []
     markers = {}
     @fb.query("(and (eq what 'iterate') (eq where 'github'))").each do |f|
       r = f['repository']&.first
@@ -341,7 +342,9 @@ class Fbe::Iterate
               rescue Fbe::OffQuota
                 raise
               rescue StandardError => e
-                raise(Fbe::Error, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
+                failures << "Failure in repository ##{repo} at ##{nxt}: #{e.message}"
+                restarted << repo
+                next
               end
           end
         unless before[repo].is_a?(Integer)
@@ -359,6 +362,7 @@ class Fbe::Iterate
       end
     end
     @loog.debug("Finished scanning #{repos.size} repos in #{@kickoff.ago}: #{seen.map { |k, v| "#{k}:#{v}" }.joined}")
+    raise(Fbe::Error, failures.join('; ')) unless failures.empty?
   rescue Fbe::OffQuota => e
     @loog.info(e.message)
   ensure
