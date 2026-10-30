@@ -6,6 +6,7 @@
 require 'factbase'
 require 'judges/options'
 require 'loog'
+require_relative '../../lib/fbe/fb'
 require_relative '../../lib/fbe/overwrite'
 require_relative '../test__helper'
 
@@ -466,5 +467,35 @@ class TestOverwrite < Fbe::Test
     assert_nil(Fbe.overwrite(f, 'foo', 'z', fb:))
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
+  end
+
+  def test_keeps_the_job_of_the_first_run
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    fb = Factbase.new
+    Fbe.fb(fb:, global: {}, options: Judges::Options.new(job_id: 42), loog: Loog::NULL).insert.then do |f|
+      f.foo = 1
+      f.bar = 2
+    end
+    x = Fbe.fb(fb:, global: {}, options: Judges::Options.new(job_id: 43), loog: Loog::NULL)
+    Fbe.overwrite(x.query('(eq foo 1)').each.first, 'bar', 3, fb: x)
+    assert_equal([42], x.query('(eq foo 1)').each.first['_job'], 'the fact took the _job of the later run')
+  end
+
+  def test_keeps_the_job_of_the_first_run_in_hash_form
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    fb = Factbase.new
+    Fbe.fb(fb:, global: {}, options: Judges::Options.new(job_id: 42), loog: Loog::NULL).insert.then do |f|
+      f.foo = 1
+      f.bar = 2
+    end
+    x = Fbe.fb(fb:, global: {}, options: Judges::Options.new(job_id: 43), loog: Loog::NULL)
+    Fbe.overwrite(x.query('(eq foo 1)').each.first, { foo: 2 }, fb: x)
+    assert_equal([42], x.query('(eq foo 2)').each.first['_job'], 'the fact took the _job of the later run')
   end
 end
