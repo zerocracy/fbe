@@ -88,4 +88,30 @@ class TestJustOne < Fbe::Test
     end
     assert_equal(0, fb.size, 'just_one inserted a fact without a block')
   end
+
+  def test_matches_a_fact_of_another_version
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 1
+    f._version = 'a'
+    Fbe.just_one(fb:) do |g|
+      g.foo = 1
+      g._version = 'b'
+    end
+    assert_equal(1, fb.size, 'just_one inserted a duplicate for another _version')
+  end
+
+  def test_returns_the_stored_id_not_the_given_one
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 1
+    f._id = 7
+    n =
+      Fbe.just_one(fb:) do |g|
+        g.foo = 1
+        g._id = 42
+      end
+    assert_equal([7], n['_id'], 'just_one did not return the stored fact')
+    assert_equal(1, fb.size, 'just_one inserted a duplicate for another _id')
+  end
 end
