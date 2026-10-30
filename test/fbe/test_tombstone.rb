@@ -201,4 +201,37 @@ class TestTombstone < Fbe::Test
     end
     assert_equal(0, fb.size, "factbase is touched by member #{member.inspect}, seed is #{seed}")
   end
+
+  def test_refuses_list_where_only_some_issues_are_buried
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 1, 5)
+    refute(ts.has?('github', 1, [5, 99]), 'a list with an alive issue was reported as buried')
+    refute(ts.has?('github', 1, [99, 5]), 'a list starting with an alive issue was reported as buried')
+  end
+
+  def test_accepts_list_where_all_issues_are_buried
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 1, [5, 7, 8, 9])
+    assert(ts.has?('github', 1, [5]), 'a list of one buried issue was not reported')
+    assert(ts.has?('github', 1, [5, 8, 9]), 'a list of buried issues from two ranges was not reported')
+  end
+
+  def test_refuses_list_when_repository_has_nothing_buried
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 2, [5, 6])
+    refute(ts.has?('github', 1, [5, 6]), 'issues of another repository were reported')
+  end
+
+  def test_refuses_list_where_only_some_issues_fall_in_a_range
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 1, (10..20).to_a)
+    refute(ts.has?('github', 1, [15, 21]), 'an issue after the range was reported as buried')
+    assert(ts.has?('github', 1, [10, 20]), 'both ends of the range were not reported')
+  end
+
+  def test_refuses_empty_list
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', 1, 5)
+    refute(ts.has?('github', 1, []), 'an empty list was reported as buried')
+  end
 end
