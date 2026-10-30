@@ -236,4 +236,33 @@ class TestBylaws < Fbe::Test
       end
     end
   end
+
+  def test_resolved_bug_self_fee_survives_the_cap_at_low_anger
+    a = Fbe::Award.new(Fbe.bylaws(love: 3, anger: 1, paranoia: 3)['resolved-bug-was-rewarded'])
+    assert_equal(16, a.bill(hours: 1, self: 0).points, 'the bug of another reporter lost points')
+    assert_equal(8, a.bill(hours: 1, self: 1).points, 'the self fee was cancelled by the cap')
+  end
+
+  def test_resolved_bug_self_fee_survives_the_cap_at_high_love
+    a = Fbe::Award.new(Fbe.bylaws(love: 4, anger: 2, paranoia: 2)['resolved-bug-was-rewarded'])
+    assert_equal(16, a.bill(hours: 10, self: 0).points, 'the bug of another reporter lost points')
+    assert_equal(4, a.bill(hours: 10, self: 1).points, 'the self fee was cancelled by the cap')
+  end
+
+  def test_resolved_bug_self_fee_stops_at_the_floor
+    a = Fbe::Award.new(Fbe.bylaws(love: 2, anger: 2, paranoia: 2)['resolved-bug-was-rewarded'])
+    assert_equal(4, a.bill(hours: 10, self: 1).points, 'the self fee went below the floor')
+  end
+
+  def test_resolved_bug_self_reporter_never_gets_more_than_others
+    hours = [1, 10, 100]
+    (0..4).to_a.product((1..4).to_a, (1..4).to_a).each do |love, anger, paranoia|
+      a = Fbe::Award.new(Fbe.bylaws(love:, anger:, paranoia:)['resolved-bug-was-rewarded'])
+      hours.each do |h|
+        other = a.bill(hours: h, self: 0).points
+        next if other == 4
+        assert_operator(a.bill(hours: h, self: 1).points, :<, other, "L#{love} A#{anger} P#{paranoia}, #{h} hours")
+      end
+    end
+  end
 end

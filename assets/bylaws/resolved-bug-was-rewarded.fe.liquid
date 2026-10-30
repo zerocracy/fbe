@@ -15,12 +15,6 @@
     "add ${b1} points if it was resolved in less than ${hours_threshold} hours")
 
   (aka
-    (let self_fee {{ 8 | times: anger }})
-    (set penalty_for_self (if (eq self 1) (times -1 self_fee) 0))
-    (give penalty_for_self "for resolving the bug reported by you earlier")
-    "deduct ${self_fee} points if they resolved the bug earlier reported by themselves")
-
-  (aka
     (set days (div hours 24))
     (let day_fee {{ 0.5 | times: anger }})
     (set b2 (times -1 (times days day_fee)))
@@ -34,8 +28,17 @@
     (let max 16)
     (set over (if (gt (total) max) (minus max (total)) 0))
     (give over "to not go over the cap")
+    "make sure the reward is not larger than ${max} points")
+
+  (aka
+    (let self_fee {{ 8 | times: anger }})
+    (set penalty_for_self (if (eq self 1) (times -1 self_fee) 0))
+    (give penalty_for_self "for resolving the bug reported by you earlier")
+    "deduct ${self_fee} points if they resolved the bug earlier reported by themselves")
+
+  (aka
     (let min 4)
     (set least (if (lt (total) min) (minus min (total)) 0))
     (give least "to give you at least something")
-    "make sure the reward is not larger than ${max} points and not smaller than ${min} points")
+    "make sure the reward is not smaller than ${min} points")
   )
