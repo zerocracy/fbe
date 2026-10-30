@@ -178,4 +178,38 @@ class TestDelete < Fbe::Test
     assert_equal(snapshot[:version], after._version)
     assert_equal(snapshot[:job], after._job)
   end
+
+  def test_deletes_present_property_listed_after_absent_one
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    f.bar = 2
+    Fbe.delete(f, 'absent', 'bar', fb:)
+    after = fb.query('(eq _id 1)').each.first
+    assert_nil(after['bar'], 'the present property was not deleted')
+    assert_equal([1], after['foo'], 'the other property was lost')
+  end
+
+  def test_deletes_present_property_listed_before_absent_one
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    f.bar = 2
+    Fbe.delete(f, 'foo', 'absent', fb:)
+    after = fb.query('(eq _id 1)').each.first
+    assert_nil(after['foo'], 'the present property was not deleted')
+    assert_equal([2], after['bar'], 'the other property was lost')
+  end
+
+  def test_keeps_fact_when_all_listed_properties_are_absent
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    Fbe.delete(f, 'absent', 'missing', fb:)
+    assert_equal([1], fb.query('(eq _id 1)').each.first['foo'], 'the fact was changed')
+    assert_equal(1, fb.size, 'the fact count changed')
+  end
 end
