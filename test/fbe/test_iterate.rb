@@ -783,6 +783,60 @@ class TestIterate < Fbe::Test
     assert_equal({ bad => 1, good => 5 }, markers)
   end
 
+  def test_reports_failures_of_every_broken_repository
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    (1..3).each do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    repos = []
+    ex =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as('twice_broken')
+          by('(agg (and (eq what "issue") (gt n $before)) (min n))')
+          repeats(3)
+          over do |repo, nxt|
+            repos << repo
+            raise(StandardError, "broken #{repo}") if nxt == 2
+            nxt
+          end
+        end
+      end
+    repos.uniq.each { |r| assert_includes(ex.message, "Failure in repository ##{r} at #2: broken #{r}") }
+    assert_equal(2, repos.uniq.size)
+  end
+
+  def test_keeps_marker_untouched_when_first_item_fails
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    (1..3).each do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    bad = nil
+    done = []
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('first_broken')
+        by('(agg (and (eq what "issue") (gt n $before)) (min n))')
+        repeats(3)
+        over do |repo, nxt|
+          bad ||= repo
+          raise(StandardError, 'HTTP 403 Forbidden') if repo == bad
+          done << nxt
+          nxt
+        end
+      end
+    end
+    assert_equal([1, 2, 3], done)
+    markers = fb.query("(and (eq what 'iterate') (eq where 'github'))").each.map { |f| f['first_broken']&.first }
+    assert_equal([3], markers.compact)
+  end
+
   private
 
   def fresh_iterator
