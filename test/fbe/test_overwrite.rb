@@ -467,4 +467,38 @@ class TestOverwrite < Fbe::Test
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
+
+  def test_overwrite_with_hash_keeps_a_present_value
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    Fbe.overwrite(f, { foo: 1, bar: 2 }, fb:)
+    result = fb.query('(eq _id 1)').each.first
+    assert_equal([1], result['foo'], 'the present value was added again')
+    assert_equal([2], result['bar'], 'the absent value was not added')
+  end
+
+  def test_overwrite_reduces_many_values_to_the_first_one
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    f.foo = 2
+    Fbe.overwrite(f, 'foo', 1, fb:)
+    assert_equal([1], fb.query('(eq _id 1)').each.first['foo'], 'the overwrite was skipped')
+  end
+
+  def test_overwrite_reduces_many_values_to_the_last_one
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    f.foo = 2
+    f.bar = 'x'
+    Fbe.overwrite(f, 'foo', 2, fb:)
+    result = fb.query('(eq _id 1)').each.first
+    assert_equal([2], result['foo'], 'the overwrite did not keep only the new value')
+    assert_equal(['x'], result['bar'], 'the other property was lost')
+  end
 end
