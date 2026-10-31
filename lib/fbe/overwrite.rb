@@ -6,22 +6,24 @@
 require_relative '../fbe'
 require_relative 'fb'
 
-# Overwrites a property in the fact by recreating the entire fact.
+# Overwrites properties, adding absent ones in place and recreating the fact when needed.
 #
 # If the property doesn't exist in the fact, it will be added. If it does
 # exist, the entire fact will be destroyed, a new fact created with all
 # existing properties, and the specified property set with the new value.
 #
-# It is important that the fact has the +_id+ property. If it doesn't,
-# an exception will be raised.
+# Recreating the fact requires the identifier property selected by +fid+
+# (by default, +_id+). Adding only absent properties happens in place and
+# does not require an identifier.
 #
-# @param [Factbase::Fact] fact The fact to modify (must have _id property)
+# @param [Factbase::Fact] fact The fact to modify; an identifier is required only for recreation
 # @param [String, Hash] property_or_hash The name of the property to set, or a hash of properties
 # @param [Any] values The value to set (can be any type, including array) - ignored if first param is Hash
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] fid The property used as the fact identifier (defaults to '_id')
 # @return [nil] Nothing
-# @raise [Fbe::Error] If fact is nil, has no identifier, or property is neither a String nor a Hash
+# @raise [Fbe::Error] If fact is nil, recreation needs a missing identifier,
+#   or property is neither a String nor a Hash
 # @note This operation preserves all other properties during recreation
 # @note If property already has the same single value, no changes are made
 # @example Update a user's status
