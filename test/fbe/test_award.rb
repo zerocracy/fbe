@@ -81,12 +81,20 @@ class TestAward < Fbe::Test
     end
   end
 
+  def test_uses_singular_point_for_totals_with_magnitude_one
+    [[1], [-1], [2, -1], [2, -3]].each do |values|
+      bill = Fbe::Award::Bill.new
+      values.each { |value| bill.line(value, 'for work') }
+      assert_match(/earned [+-]1 point(?:\.| for this:)/, bill.greeting, values.inspect)
+    end
+  end
+
   def test_some_greetings
     {
       '(award (give (times 7 0.25 "fun")))' => 'You\'ve earned +2 points. ',
-      '(award (give (times 5 0.25 "fun")))' => 'You\'ve earned +1 points. ',
+      '(award (give (times 5 0.25 "fun")))' => 'You\'ve earned +1 point. ',
       '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points. ',
-      '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 points. '
+      '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 point. '
     }.each do |q, v|
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.greeting, q)
