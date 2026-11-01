@@ -34,7 +34,7 @@ require_relative 'overwrite'
 #     f.issues_found = count_issues
 #     # PMP might have: hours_between_checks=6
 #   end
-def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &) # rubocop:disable Metrics/AbcSize
   raise(Fbe::Error, 'The area is nil') if area.nil?
   raise(Fbe::Error, 'The p_every_hours is nil') if p_every_hours.nil?
   raise(Fbe::Error, 'The fb is nil') if fb.nil?

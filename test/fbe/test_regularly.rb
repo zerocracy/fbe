@@ -81,11 +81,11 @@ class TestRegularly < Fbe::Test
     end
     today = Time.utc(2024, 9, 15)
     with_today(today) do
-      Fbe.regularly('custom', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') { |_f| }
+      Fbe.regularly('custom', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') { |_f| nil }
       marker = fb.query("(and (eq what 'regularly') (eq judge 'test'))").each.first
       assert_equal(today, marker.when)
       assert_equal(today - (28 * 24 * 60 * 60), marker.since)
-      Fbe.regularly('custom', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') { |_f| }
+      Fbe.regularly('custom', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') { |_f| nil }
       assert_equal(2, fb.size)
     end
   end
@@ -140,7 +140,7 @@ class TestRegularly < Fbe::Test
   private
 
   def with_today(today)
-    previous = ENV['TODAY']
+    previous = ENV.fetch('TODAY', nil)
     ENV['TODAY'] = today.iso8601
     yield
   ensure

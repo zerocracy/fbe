@@ -238,10 +238,10 @@ class TestRepeatedly < Fbe::Test
     end
     today = Time.utc(2024, 9, 15)
     with_today(today) do
-      Fbe.repeatedly('custom', 'every_x_hours', fb:, loog: Loog::NULL, judge: 'test') { |_f| }
+      Fbe.repeatedly('custom', 'every_x_hours', fb:, loog: Loog::NULL, judge: 'test') { |_f| nil }
       marker = fb.query("(and (eq what 'repeatedly') (eq judge 'test'))").each.first
       assert_equal(today, marker.when)
-      Fbe.repeatedly('custom', 'every_x_hours', fb:, loog: Loog::NULL, judge: 'test') { |_f| }
+      Fbe.repeatedly('custom', 'every_x_hours', fb:, loog: Loog::NULL, judge: 'test') { |_f| nil }
       assert_equal(2, fb.size)
     end
   end
@@ -249,7 +249,7 @@ class TestRepeatedly < Fbe::Test
   private
 
   def with_today(today)
-    previous = ENV['TODAY']
+    previous = ENV.fetch('TODAY', nil)
     ENV['TODAY'] = today.iso8601
     yield
   ensure
