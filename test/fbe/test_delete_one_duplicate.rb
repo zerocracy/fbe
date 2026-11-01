@@ -36,9 +36,7 @@ class TestDeleteOneDuplicate < Fbe::Test
     second.what = 'second'
     second.tags = 'old'
     second.tags = 'keep'
-
     error = assert_raises(Fbe::Error) { Fbe.delete_one(first, 'tags', 'old', fb:) }
-
     assert_match(/2 facts share _id = 1/, error.message)
     assert_equal(%w[old keep], fb.query("(eq what 'first')").each.first['tags'])
     assert_equal(%w[old keep], fb.query("(eq what 'second')").each.first['tags'])
