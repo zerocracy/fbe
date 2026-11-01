@@ -102,7 +102,7 @@ class TestRegularly < Fbe::Test
       f.days = 'invalid'
     end
     assert_raises(Fbe::Error) do
-      Fbe.regularly('custom', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') { |_f| }
+      Fbe.regularly('custom', 'interval', 'days', fb:, loog: Loog::NULL, judge: 'test') { |_f| nil }
     end
     assert_equal(1, fb.size)
   end
