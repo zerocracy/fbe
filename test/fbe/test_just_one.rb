@@ -76,20 +76,22 @@ class TestJustOne < Fbe::Test
   def test_rejects_empty_matching_attributes
     fb = Factbase.new
     fb.insert.foo = 'existing'
-    error = assert_raises(Fbe::Error) do
-      Fbe.just_one(fb:) { |_f| }
-    end
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.just_one(fb:) { |_f| nil }
+      end
     assert_match(/non-system attribute/, error.message)
     assert_equal(1, fb.size)
   end
 
   def test_rejects_only_system_matching_attributes
     fb = Factbase.new
-    error = assert_raises(Fbe::Error) do
-      Fbe.just_one(fb:) do |f|
-        f._id = 42
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.just_one(fb:) do |f|
+          f._id = 42
+        end
       end
-    end
     assert_match(/non-system attribute/, error.message)
     assert_equal(0, fb.size)
   end
