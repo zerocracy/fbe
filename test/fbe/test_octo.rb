@@ -14,6 +14,22 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  def test_assumes_off_quota_on_a_secondary_limit_of_429
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      status: 429, body: '{"message":"secondary rate limit"}', headers: { 'Content-Type' => 'application/json' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_predicate(o, :off_quota?, 'A 429 from the rate limit endpoint must count as off quota')
+  end
+
+  def test_assumes_off_quota_on_an_ssl_failure
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_raise(Faraday::SSLError.new('broken'))
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_predicate(o, :off_quota?, 'An SSL failure on the rate limit endpoint must count as off quota')
+  end
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
