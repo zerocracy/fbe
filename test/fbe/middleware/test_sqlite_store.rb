@@ -48,11 +48,12 @@ class SqliteStoreTest < Fbe::Test
         guard.synchronize { state[:active] -= 1 }
       end
       store.instance_variable_set(:@db, database)
-      threads = 2.times.map do
-        Thread.new do
-          store.__send__(:perform) { sleep(0.02) }
+      threads =
+        Array.new(2) do
+          Thread.new do
+            store.__send__(:perform) { sleep(0.02) }
+          end
         end
-      end
       threads.each(&:value)
       refute(state[:overlap])
     end
