@@ -36,6 +36,7 @@ Elegant/GoodMethodName:
   Exclude:
     - 'test/**/*'
   AllowedNames:
+    - invalidate_request
     - accept_repository_invitation
     - add_comment
     - auto_paginate
