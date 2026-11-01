@@ -52,18 +52,20 @@ class TestIfAbsent < Fbe::Test
   def test_raises_when_block_sets_no_attributes
     fb = Factbase.new
     fb.insert.foo = 'unrelated'
-    error = assert_raises(Fbe::Error) do
-      Fbe.if_absent(fb:) { |_fact| }
-    end
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.if_absent(fb:) { |_fact| nil }
+      end
     assert_equal('At least one non-system attribute is required by if_absent', error.message)
     assert_equal(1, fb.size)
   end
 
   def test_raises_when_only_system_attributes_are_set
     fb = Factbase.new
-    error = assert_raises(Fbe::Error) do
-      Fbe.if_absent(fb:) { |fact| fact._id = 42 }
-    end
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.if_absent(fb:) { |fact| fact._id = 42 }
+      end
     assert_equal('At least one non-system attribute is required by if_absent', error.message)
     assert_equal(0, fb.size)
   end
