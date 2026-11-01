@@ -44,7 +44,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     overwrites = false
     property_or_hash.each do |k, vv|
       sk = k.to_s
-    raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
+      raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
       vv = [vv] unless vv.is_a?(Array)
       existing = before[sk]
       next if existing == vv
