@@ -176,13 +176,13 @@ class SqliteStoreTest < Fbe::Test
         Time.stub(:now, (Time.now - 60).round) do
           key = 'a' * 65_536
           value = SecureRandom.alphanumeric(8_192)
-          last_key = nil
+          lastkey = nil
           52.times do
             store.write(key, value)
-            last_key = key
+            lastkey = key
             key = key.next
           end
-          assert_equal(value, store.read(last_key))
+          assert_equal(value, store.read(lastkey))
         end
         assert_operator(File.size(f), :<=, 10 * 1024 * 1024)
       end
