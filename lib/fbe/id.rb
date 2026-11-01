@@ -19,7 +19,7 @@ def Fbe.whole_id(value, property)
     unless value.finite? && (value % 1).zero? && value.abs <= ((2**53) - 1)
       raise(ArgumentError)
     end
-    value.to_i
+    Integer(value)
   when String
     begin
       Integer(value, 10)
@@ -28,7 +28,7 @@ def Fbe.whole_id(value, property)
       unless number.finite? && (number % 1).zero? && number.abs <= ((2**53) - 1)
         raise(ArgumentError)
       end
-      number.to_i
+      Integer(number)
     end
   else
     number = Integer(value)

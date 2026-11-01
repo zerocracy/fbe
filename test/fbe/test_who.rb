@@ -57,10 +57,11 @@ class TestWho < Fbe::Test
     global = {}
     options = Judges::Options.new({ 'testing' => true })
     api = Object.new
-    api.define_singleton_method(:user_name_by_id) { |id| id.to_s }
-    result = Fbe.stub(:octo, ->(**_kwargs) { api }) do
-      Fbe.who(f, options:, global:, loog: Loog::NULL)
-    end
+    api.define_singleton_method(:user_name_by_id, &:to_s)
+    result =
+      Fbe.stub(:octo, ->(**_kwargs) { api }) do
+        Fbe.who(f, options:, global:, loog: Loog::NULL)
+      end
     assert_equal("@#{(2**53) + 1}", result)
   end
 end

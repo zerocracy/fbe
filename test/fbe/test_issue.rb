@@ -64,10 +64,11 @@ class TestIssue < Fbe::Test
     global = {}
     options = Judges::Options.new({ 'testing' => true })
     api = Object.new
-    api.define_singleton_method(:repo_name_by_id) { |id| id.to_s }
-    result = Fbe.stub(:octo, ->(**_kwargs) { api }) do
-      Fbe.issue(f, global:, options:, loog: Loog::NULL)
-    end
+    api.define_singleton_method(:repo_name_by_id, &:to_s)
+    result =
+      Fbe.stub(:octo, ->(**_kwargs) { api }) do
+        Fbe.issue(f, global:, options:, loog: Loog::NULL)
+      end
     assert_equal("#{(2**53) + 1}##{(2**53) + 3}", result)
   end
 end
