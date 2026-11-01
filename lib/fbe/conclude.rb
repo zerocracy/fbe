@@ -136,10 +136,10 @@ class Fbe::Conclude
       when String
         props.strip.split
       when Array
-        unless props.all? { |prop| prop.is_a?(String) }
+        unless props.all?(String)
           raise(Fbe::Error, 'Follow expects an Array of Strings')
         end
-        props.map(&:strip).reject(&:empty?)
+        props.map(&:strip).reject(&:empty?) # rubocop:disable Performance/ChainArrayAllocation
       else
         raise(Fbe::Error, 'Follow expects a String or an Array of Strings')
       end
