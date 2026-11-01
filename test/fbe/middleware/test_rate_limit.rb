@@ -5,8 +5,8 @@
 
 require 'faraday'
 require 'faraday/http_cache'
-require 'tmpdir'
 require 'time'
+require 'tmpdir'
 require 'webmock'
 require_relative '../../../lib/fbe'
 require_relative '../../../lib/fbe/middleware'

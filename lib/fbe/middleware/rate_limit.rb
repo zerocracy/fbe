@@ -100,13 +100,11 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       else
         [nil, @generation]
       end
+    elsif @remaining&.positive?
+      @remaining -= 1
+      [:core, @generation]
     else
-      if @remaining&.positive?
-        @remaining -= 1
-        [:core, @generation]
-      else
-        [nil, @generation]
-      end
+      [nil, @generation]
     end
   end
 
