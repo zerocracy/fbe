@@ -84,7 +84,7 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
-  def test_closes_database_when_initialization_fails # rubocop:disable Minitest/MultipleAssertions
+  def test_closes_database_when_initialization_fails
     with_tmpfile do |f|
       store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
       database = Object.new
@@ -92,12 +92,13 @@ class SqliteStoreTest < Fbe::Test
       database.define_singleton_method(:execute) { |*| raise(SQLite3::SQLException, 'schema failure') }
       database.define_singleton_method(:close) { @closed = true }
       database.define_singleton_method(:closed?) { @closed == true }
-      real_new = SQLite3::Database.method(:new)
+      realnew = SQLite3::Database.method(:new)
       attempts = 0
-      factory = lambda do |path|
-        attempts += 1
-        attempts == 1 ? database : real_new.call(path)
-      end
+      factory =
+        lambda do |path|
+          attempts += 1
+          attempts == 1 ? database : realnew.call(path)
+        end
       SQLite3::Database.stub(:new, factory) { assert_nil(store.read('my_key')) }
       assert_predicate(database, :closed?)
     end
