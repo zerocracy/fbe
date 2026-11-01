@@ -17,7 +17,7 @@ require_relative 'octo'
 # @param [Boolean] lifetime_aware Enable or disable check of lifetime limitations
 # @param [Boolean] timeout_aware Enable or disable check of timeout limitations
 # @return [Boolean] check result
-def Fbe.over?(
+def Fbe.over?( # rubocop:disable Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
   global: $global, options: $options, loog: $loog,
   epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
@@ -34,20 +34,20 @@ def Fbe.over?(
     end
   end
   if (lifetime_aware && options.lifetime) || (timeout_aware && options.timeout)
-    wall_now = Time.now
-    monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    wallnow = Time.now
+    monotonicnow = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     starts = global[:fbe_monotonic_starts] ||= {}
     if lifetime_aware && options.lifetime
-      epoch_start = starts[[:epoch, epoch]] ||= monotonic_now - (wall_now - epoch)
-      if monotonic_now - epoch_start > options.lifetime * 0.9
-        loog.info("We ran out of lifetime after #{(monotonic_now - epoch_start).round} seconds, must stop here")
+      epochstart = starts[[:epoch, epoch]] ||= monotonicnow - (wallnow - epoch)
+      if monotonicnow - epochstart > options.lifetime * 0.9
+        loog.info("We ran out of lifetime after #{(monotonicnow - epochstart).round} seconds, must stop here")
         return true
       end
     end
     if timeout_aware && options.timeout
-      kickoff_start = starts[[:kickoff, kickoff]] ||= monotonic_now - (wall_now - kickoff)
-      if monotonic_now - kickoff_start > options.timeout * 0.9
-        loog.info("We've spent #{(monotonic_now - kickoff_start).round} seconds, must stop here")
+      kickoffstart = starts[[:kickoff, kickoff]] ||= monotonicnow - (wallnow - kickoff)
+      if monotonicnow - kickoffstart > options.timeout * 0.9
+        loog.info("We've spent #{(monotonicnow - kickoffstart).round} seconds, must stop here")
         return true
       end
     end
