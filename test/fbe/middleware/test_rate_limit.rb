@@ -40,16 +40,16 @@ class RateLimitTest < Fbe::Test
     assert_requested(:get, 'https://api.github.com/rate_limit', times: 1)
   end
 
-  def test_refreshes_after_core_reset_without_ordinary_requests
+  def test_refreshes_after_core_reset_without_ordinary_requests # rubocop:disable Minitest/MultipleAssertions
     now = Time.utc(2026, 9, 8)
     tracker = {}
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       {
-        body: { rate: { remaining: 7, reset: now.to_i + 60 } }.to_json,
+        body: { rate: { remaining: 7, reset: Integer(now) + 60 } }.to_json,
         headers: { 'Content-Type' => 'application/json' }
       },
       {
-        body: { rate: { remaining: 5000, reset: now.to_i + 3600 } }.to_json,
+        body: { rate: { remaining: 5000, reset: Integer(now) + 3600 } }.to_json,
         headers: { 'Content-Type' => 'application/json' }
       }
     )
@@ -65,13 +65,13 @@ class RateLimitTest < Fbe::Test
     assert_requested(:get, 'https://api.github.com/rate_limit', times: 2)
   end
 
-  def test_search_expiry_does_not_discard_the_core_count
+  def test_search_expiry_does_not_discard_the_core_count # rubocop:disable Minitest/MultipleAssertions
     now = Time.utc(2026, 9, 8)
     tracker = {}
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
       body: {
-        rate: { remaining: 5000, reset: now.to_i + 3600 },
-        resources: { search: { remaining: 1, reset: now.to_i + 60 } }
+        rate: { remaining: 5000, reset: Integer(now) + 3600 },
+        resources: { search: { remaining: 1, reset: Integer(now) + 60 } }
       }.to_json,
       headers: { 'Content-Type' => 'application/json' }
     )
@@ -95,7 +95,7 @@ class RateLimitTest < Fbe::Test
       headers: {
         'Content-Type' => 'application/json',
         'X-RateLimit-Remaining' => '7',
-        'X-RateLimit-Reset' => (now.to_i + 60).to_s
+        'X-RateLimit-Reset' => (Integer(now) + 60).to_s
       }
     )
     conn = create_connection(tracker)

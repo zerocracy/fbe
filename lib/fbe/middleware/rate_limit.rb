@@ -32,8 +32,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @cached = nil
     @remaining = nil
     @searchleft = nil
-    @core_reset = nil
-    @search_reset = nil
+    @corereset = nil
+    @searchreset = nil
     @counter = 0
     @lock = Mutex.new
     @refresh = Mutex.new
@@ -84,8 +84,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @cached = response
       @remaining = extract_remaining_count(response)
       @searchleft = extract_search_remaining_count(response)
-      @core_reset = extract_reset_time(response, :core)
-      @search_reset = extract_reset_time(response, :search)
+      @corereset = extract_reset_time(response, :core)
+      @searchreset = extract_reset_time(response, :search)
       @counter = 0
     end
     response
@@ -98,9 +98,9 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   def expired?(resource = nil)
     resets =
       if resource.nil?
-        [@core_reset, @search_reset]
+        [@corereset, @searchreset]
       else
-        [resource == :search ? @search_reset : @core_reset]
+        [resource == :search ? @searchreset : @corereset]
       end
     now = Time.now.to_i
     resets.any? { |reset| !reset.nil? && now >= reset }
@@ -176,12 +176,11 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @remaining = count
     end
     reset = Integer(headers['x-ratelimit-reset'], exception: false)
-    unless reset.nil?
-      if path&.start_with?('/search/')
-        @search_reset = reset
-      else
-        @core_reset = reset
-      end
+    return if reset.nil?
+    if path&.start_with?('/search/')
+      @searchreset = reset
+    else
+      @corereset = reset
     end
   end
 
