@@ -596,14 +596,14 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @return [GraphQL::Client::Response] The response
   def execute_query(qry)
     graphql = client
-    raise_graphql_off_quota if http.remaining == 0
+    raise_graphql_off_quota if http.remaining&.zero?
     result = graphql.query(graphql.parse(qry))
-    raise_graphql_off_quota if http.remaining == 0 && !graphql_messages(result).empty?
+    raise_graphql_off_quota if http.remaining&.zero? && !graphql_messages(result).empty?
     result
   rescue Fbe::OffQuota
     raise
   rescue StandardError
-    raise_graphql_off_quota if @http&.remaining == 0
+    raise_graphql_off_quota if @http&.remaining&.zero?
     raise
   end
 
