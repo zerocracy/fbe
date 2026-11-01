@@ -219,27 +219,27 @@ class Fbe::Conclude
   def roll(&)
     return 0 if expired?
     passed = 0
-    max_id = @fb.query('(max _id)').one
+    maxid = @fb.query('(max _id)').one
     facts =
-      if max_id.nil?
+      if maxid.nil?
         @fb.query(@query).each.to_a.each
       else
         Enumerator.new do |items|
-          last_id = nil
+          lastid = nil
           loop do
             break if expired?
-            conditions = ["(lte _id #{max_id})"]
-            conditions << "(gt _id #{last_id})" unless last_id.nil?
+            conditions = ["(lte _id #{maxid})"]
+            conditions << "(gt _id #{lastid})" unless lastid.nil?
             a = @fb.query("(and #{@query} #{conditions.join(' ')})").each.first
             break if a.nil?
             break if expired?
-            last_id = a['_id'].first
+            lastid = a['_id'].first
             items << a
           end
         end
       end
     facts.each do |a|
-      break if max_id.nil? && expired?
+      break if maxid.nil? && expired?
       @fb.txn do |fbt|
         n = yield(fbt, a)
         unless n.nil?

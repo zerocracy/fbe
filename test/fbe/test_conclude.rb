@@ -172,9 +172,9 @@ class TestConclude < Fbe::Test
       fact.foo = i
     end
     traversed = 0
-    original_query = fb.method(:query)
+    originalquery = fb.method(:query)
     fb.define_singleton_method(:query) do |term, maps = nil|
-      query = original_query.call(term, maps)
+      query = originalquery.call(term, maps)
       next query unless query.to_s.include?('exists foo')
       each = query.method(:each)
       query.define_singleton_method(:each) do |*args, &block|
@@ -188,7 +188,12 @@ class TestConclude < Fbe::Test
     end
     checks = 0
     visited = []
-    Fbe.stub(:over?, ->(**_kwargs) { checks += 1; checks > 3 }) do
+    stop =
+      lambda do |**_kwargs|
+        checks += 1
+        checks > 3
+      end
+    Fbe.stub(:over?, stop) do
       Fbe.conclude(fb:, judge: 'budget', loog: Loog::NULL, options: Judges::Options.new, global: {}) do
         quota_unaware
         on('(exists foo)')
