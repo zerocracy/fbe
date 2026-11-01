@@ -386,7 +386,7 @@ class Fbe::Iterate
   def type_aware_sort_key(value)
     case value
     when Numeric then [0, value]
-    when Time then [1, value.to_f]
+    when Time then [1, Float(value)]
     else [2, value.to_s]
     end
   end

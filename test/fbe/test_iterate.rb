@@ -485,7 +485,6 @@ class TestIterate < Fbe::Test
       fact.rank = rank
     end
     seen = []
-
     Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
       as('mixed_values')
       repeats(2)
@@ -496,7 +495,6 @@ class TestIterate < Fbe::Test
         0
       end
     end
-
     assert_equal([2, 'alpha'], seen)
   end
 
