@@ -259,11 +259,10 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.remove_organization_membership('zerocracy') #=> true
-  # rubocop:disable Naming/PredicateMethod
+  # rubocop:disable-next Naming/PredicateMethod
   def remove_organization_membership(_org, _user = nil)
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   # Accepts a repository invitation.
   #
@@ -272,12 +271,11 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.accept_repository_invitation(1) #=> true
-  # rubocop:disable Naming/PredicateMethod
+  # rubocop:disable-next Naming/PredicateMethod
   def accept_repository_invitation(id)
     raise(Octokit::NotFound) if id == 404_000
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   # Gives a star to a repository.
   #
@@ -286,11 +284,10 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.star('octocat/Hello-World') #=> true
-  # rubocop:disable Naming/PredicateMethod
+  # rubocop:disable-next Naming/PredicateMethod
   def star(_repo)
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   # Gets details of a GitHub user.
   #
@@ -628,7 +625,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         changed_files: 2
       }
     else
-      fixture = pull_requests(repo).find { |p| p[:number] == number } || {}
+      fixture = pull_requests(repo).find { |p| p[:number] == number }&.to_attrs || {}
       {
         id: 42,
         number:,
