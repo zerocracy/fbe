@@ -749,6 +749,93 @@ class TestIterate < Fbe::Test
     assert_equal([[1, 2], [3], []], runs)
   end
 
+  def test_sort_by_skips_values_up_to_the_one_block_returns
+    seed = Random.new_seed
+    base = Random.new(seed).rand(0..1_000)
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    (base + 1).upto(base + 6) do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    seen = []
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('skipped')
+      by('(and (eq what "issue") (gt n $before))')
+      sort_by('n')
+      since!(base)
+      repeats(10)
+      over do |_repository, n|
+        seen << n
+        n + 2
+      end
+    end
+    assert_equal([base + 1, base + 4], seen, "values below the returned one are visited, seed #{seed}")
+  end
+
+  def test_sort_by_stores_the_value_block_returns
+    seed = Random.new_seed
+    base = Random.new(seed).rand(0..1_000)
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    (base + 1).upto(base + 6) do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('stored')
+      by('(and (eq what "issue") (gt n $before))')
+      sort_by('n')
+      since!(base)
+      repeats(10)
+      over do |_repository, n|
+        n + 2
+      end
+    end
+    assert_equal(
+      base + 6, fb.query('(eq what "iterate")').each.first.stored,
+      "marker is not what was processed, seed #{seed}"
+    )
+  end
+
+  def test_sort_by_visits_what_a_plain_query_visits
+    seed = Random.new_seed
+    base = Random.new(seed).rand(0..1_000)
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    (base + 1).upto(base + 9) do |n|
+      f = fb.insert
+      f.what = 'issue'
+      f.n = n
+    end
+    plain = []
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('plain')
+      by('(agg (and (eq what "issue") (gt n $before)) (min n))')
+      since!(base)
+      repeats(10)
+      over do |_repository, n|
+        plain << n
+        n + 3
+      end
+    end
+    sorted = []
+    Fbe.iterate(fb:, loog: Loog::NULL, options: opts, global: {}, epoch: Time.now, kickoff: Time.now) do
+      as('sorted')
+      by('(and (eq what "issue") (gt n $before))')
+      sort_by('n')
+      since!(base)
+      repeats(10)
+      over do |_repository, n|
+        sorted << n
+        n + 3
+      end
+    end
+    assert_equal(plain, sorted, "sort_by visits other values than a plain query, seed #{seed}")
+  end
+
   private
 
   def fresh_iterator
