@@ -209,6 +209,46 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(['foo/bar'], list, 'the repo is not kept when the quota check itself is off-quota')
   end
 
+  def test_raises_off_quota_while_expanding_wildcard_mask
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    org = "Ωrg#{Random.new(seed).rand(1_000_000)}"
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 7 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '7' }
+    )
+    options = Judges::Options.new({ 'github_token' => 'fake-token', 'repositories' => "#{org}/*" })
+    assert_raises(Fbe::OffQuota, "the off-quota expansion of #{org}/* is not reported as such, seed is #{seed}") do
+      Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    end
+  end
+
+  def test_raises_off_quota_when_exact_mask_precedes_wildcard
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    org = "λ#{Random.new(seed).rand(1_000_000)}"
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 3 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '3' }
+    )
+    options = Judges::Options.new({ 'github_token' => 'fake-token', 'repositories' => "bar/baz,#{org}/*" })
+    assert_raises(Fbe::OffQuota, "the off-quota expansion hides behind the exact mask, seed is #{seed}") do
+      Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    end
+  end
+
+  def test_raises_off_quota_to_block_caller_that_is_not_quota_aware
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: { rate: { remaining: 0 } }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '0' }
+    )
+    options = Judges::Options.new({ 'github_token' => 'fake-token', 'repositories' => 'foo/*' })
+    assert_raises(Fbe::OffQuota, 'the off-quota expansion is not reported to the block caller') do
+      Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL, quota_aware: false) { |r| r }
+    end
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })
