@@ -67,18 +67,17 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
   yield(f)
   q = attrs.except(:_id, :_time, :_version).map do |k, v|
     raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
-    vv = v.to_s
-    if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-    elsif v.is_a?(Time)
-      vv = v.utc.iso8601
-    end
+    vv =
+      case v
+      when String then "'#{v.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
+      when Time then v.utc.iso8601
+      else v.to_s
+      end
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
   before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }
-  return before if before && always
-  return nil if before
+  return always ? before : nil if before
   n = fb.insert
   attrs.each { |k, v| n.public_send(:"#{k}=", v) }
   n
