@@ -594,8 +594,10 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @return [GraphQL::Client::Response] The (possibly partial) query result data
   def query_with_partial_data(qry)
     result = client.query(client.parse(qry))
-    messages = result.errors.messages.values.flatten
-    raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}") unless messages.empty?
+    if result.data.nil?
+      messages = result.errors.messages.values.flatten
+      raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}")
+    end
     result.data
   end
 
