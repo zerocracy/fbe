@@ -96,7 +96,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
       if node.nil?
         Class.new do
           define_method(:properties) do
-            query.call(area).each.flat_map { |f| f.all_properties.map(&:to_s) }.uniq
+            query.call(area).each.flat_map { |f| f.all_properties.map(&:to_s) }.tap(&:uniq!)
           end
           others do |*args2|
             param = args2.first.to_s

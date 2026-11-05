@@ -102,7 +102,7 @@ class TestConclude < Fbe::Test
     Fbe.conclude do
       on('(always)')
       consider do |f|
-        f.when = Time.new
+        f.when = Time.now
       end
     end
     f = $fb.query('(exists when)').each.to_a[0]
