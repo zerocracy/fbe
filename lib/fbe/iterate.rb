@@ -319,7 +319,7 @@ class Fbe::Iterate
           if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.uniq.sort_by { |value| type_aware_sort_key(value) }.each
+            ).filter_map { _1[@sorting]&.first }.tap(&:uniq!).sort_by { |value| type_aware_sort_key(value) }.each
             begin
               values[repo].next
             rescue StopIteration
