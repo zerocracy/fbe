@@ -69,7 +69,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
     vv =
       case v
-      when String then "'#{v.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
+      when String then "'#{v.gsub('\\', '\\\\\\\\').gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
       when Time then v.utc.iso8601
       else v.to_s
       end

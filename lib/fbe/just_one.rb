@@ -54,7 +54,7 @@ def Fbe.just_one(fb: Fbe.fb)
     raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
     vv = v.to_s
     if v.is_a?(String)
-      vv = "'#{vv.gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
+      vv = "'#{vv.gsub('\\', '\\\\\\\\').gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
     elsif v.is_a?(Time)
       vv = v.utc.iso8601
     end
