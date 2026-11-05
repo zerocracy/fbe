@@ -23,7 +23,7 @@ Elegant/NoRedundantVariable:
   Enabled: false
 Elegant/NoNilReturn:
   Enabled: false
-Elegant/IndentationLadder:
+Elegant/MonotonicIndents:
   Enabled: false
 Elegant/NoClassInModule:
   Exclude:

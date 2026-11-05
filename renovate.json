@@ -9,5 +9,7 @@
       "matchManagers": ["ruby-version"],
       "enabled": false
     }
-  ]
+  ],
+  "automerge": true,
+  "platformAutomerge": false
 }
