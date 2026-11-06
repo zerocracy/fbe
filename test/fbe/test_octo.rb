@@ -946,6 +946,35 @@ class TestOcto < Fbe::Test
     assert_respond_to(o, :auto_paginate=)
   end
 
+  def test_fake_auto_paginate_keeps_assigned_value
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    [true, false, true].each do |value|
+      o.auto_paginate = value
+      assert_equal(value, o.auto_paginate)
+    end
+  end
+
+  def test_fake_with_disable_auto_paginate_restores_value
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.auto_paginate = true
+    o.with_disable_auto_paginate do |c|
+      refute(c.auto_paginate)
+    end
+    assert(o.auto_paginate)
+    o.auto_paginate = nil
+    o.with_disable_auto_paginate do |c|
+      refute(c.auto_paginate)
+    end
+    assert_nil(o.auto_paginate)
+    assert_raises(Fbe::Error) do
+      o.with_disable_auto_paginate do |c|
+        refute(c.auto_paginate)
+        raise(Fbe::Error, 'some error')
+      end
+    end
+    assert_nil(o.auto_paginate)
+  end
+
   def test_with_disable_auto_paginate
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit')
