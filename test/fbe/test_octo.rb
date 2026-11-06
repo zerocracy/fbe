@@ -1681,10 +1681,7 @@ class TestOcto < Fbe::Test
 
   def test_fake_workflow_run_has_coherent_timeline
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    runs = [
-      o.workflow_run('yegor256/test', 10_438_531_072),
-      o.workflow_run('yegor256/test', 999)
-    ]
+    runs = [o.workflow_run('yegor256/test', 10_438_531_072), o.workflow_run('yegor256/test', 999)]
     runs += o.repository_workflow_runs('yegor256/test')[:workflow_runs]
     runs.each do |run|
       created = run[:created_at]
