@@ -125,16 +125,22 @@ class TestIterate < Fbe::Test
   def test_raises_when_label_clashes_with_marker_property
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
-    %w[what where repository].each do |label|
+    calls = 0
+    %w[what where repository all_properties object_id hash].each do |label|
       e =
         assert_raises(Fbe::Error, label) do
           Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
             as(label)
             by('(plus 1 1)')
-            over { |_, nxt| nxt }
+            over do |_, nxt|
+              calls += 1
+              nxt
+            end
           end
         end
-      assert_includes(e.message, 'clashes', label)
+      assert_includes(e.message, label, label)
+      assert_equal(0, calls, label)
+      assert_empty(fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a, label)
     end
   end
 
