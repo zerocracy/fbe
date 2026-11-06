@@ -61,4 +61,11 @@ class TestSec < Fbe::Test
     error = assert_raises(Fbe::Error) { Fbe.sec(nil) }
     assert_equal('The fact is nil', error.message)
   end
+
+  def test_refuses_a_fact_without_seconds
+    fb = Factbase.new
+    f = fb.insert
+    error = assert_raises(Fbe::Error) { Fbe.sec(f) }
+    assert_equal('There is no :seconds property', error.message)
+  end
 end
