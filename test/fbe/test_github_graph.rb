@@ -794,6 +794,52 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(1, calls)
   end
 
+  def test_real_total_releases_published_excludes_release_at_since
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [
+              { 'isDraft' => false, 'publishedAt' => '2025-03-01T00:00:00Z' },
+              { 'isDraft' => false, 'publishedAt' => '2025-01-01T00:00:00Z' },
+              { 'isDraft' => false, 'publishedAt' => '2024-11-01T00:00:00Z' }
+            ],
+            'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+          }
+        }
+      }
+    end
+    result = graph.total_releases_published(
+      'foo', 'bar', Time.parse('2025-01-01T00:00:00Z'), till: Time.parse('2025-06-01T00:00:00Z')
+    )
+    assert_equal(1, result['releases'], 'a release published exactly at the since moment is counted')
+  end
+
+  def test_real_total_releases_published_counts_release_at_till
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'releases' => {
+            'nodes' => [
+              { 'isDraft' => false, 'publishedAt' => '2025-07-01T00:00:00Z' },
+              { 'isDraft' => false, 'publishedAt' => '2025-05-01T00:00:00Z' },
+              { 'isDraft' => false, 'publishedAt' => '2025-03-01T00:00:00Z' }
+            ],
+            'pageInfo' => { 'endCursor' => nil, 'hasNextPage' => false }
+          }
+        }
+      }
+    end
+    result = graph.total_releases_published(
+      'foo', 'bar', Time.parse('2025-01-01T00:00:00Z'), till: Time.parse('2025-05-01T00:00:00Z')
+    )
+    assert_equal(2, result['releases'], 'a release published exactly at the till moment is not counted')
+  end
+
   def test_real_pull_requests_with_reviews
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
