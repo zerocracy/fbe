@@ -1695,6 +1695,7 @@ class TestOcto < Fbe::Test
       assert_operator(created, :<=, started, "created after started_at for #{run[:id]}")
       assert_operator(started, :<=, completed, "started_at after completed_at for #{run[:id]}")
       assert_operator(completed, :>, Time.now - 86_400, "completed_at is stale for #{run[:id]}")
+      assert_operator(completed, :<=, Time.now, "completed_at is in the future for #{run[:id]}")
     end
   end
 end
