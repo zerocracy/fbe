@@ -814,7 +814,7 @@ class TestGitHubGraph < Fbe::Test
     result = graph.total_releases_published(
       'foo', 'bar', Time.parse('2025-01-01T00:00:00Z'), till: Time.parse('2025-06-01T00:00:00Z')
     )
-    assert_equal(1, result['releases'], 'a release published exactly at the since moment is counted')
+    assert_equal(1, result['releases'], 'a release published exactly at the since moment is excluded')
   end
 
   def test_real_total_releases_published_counts_release_at_till
@@ -837,7 +837,7 @@ class TestGitHubGraph < Fbe::Test
     result = graph.total_releases_published(
       'foo', 'bar', Time.parse('2025-01-01T00:00:00Z'), till: Time.parse('2025-05-01T00:00:00Z')
     )
-    assert_equal(2, result['releases'], 'a release published exactly at the till moment is not counted')
+    assert_equal(2, result['releases'], 'a release published exactly at the till moment is counted')
   end
 
   def test_real_pull_requests_with_reviews
