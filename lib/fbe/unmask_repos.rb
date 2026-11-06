@@ -22,8 +22,9 @@ require_relative 'over'
 #
 # @param [String] mask Repository mask in format 'org/repo' where repo can contain '*'
 # @return [Regexp] Case-insensitive regular expression for matching repositories
-# @raise [Fbe::Error] If the mask is not 'org/repo' or the organization part contains asterisk
+# @raise [Fbe::Error] If the mask is nil, not in 'org/repo' format, or the organization part contains asterisk
 def Fbe.mask_to_regex(mask)
+  raise(Fbe::Error, 'The mask is nil') if mask.nil?
   raise(Fbe::Error, "Mask #{mask.inspect} is not in the 'org/repo' format") unless mask.match?(%r{\A[^/]+/[^/]+\z})
   org, repo = mask.split('/')
   raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
@@ -68,6 +69,9 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   options: $options, global: $global, loog: $loog, epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
 )
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   raise(Fbe::Error, 'Repositories mask is not specified') unless options.repositories
   raise(Fbe::Error, 'Repositories mask is empty') if options.repositories.empty?
   return if block_given? && Fbe.over?(
