@@ -70,7 +70,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Lists repositories for a user or organization.
   #
   # @param [String] _user The user/org name (ignored in mock)
-  # @return [Array<Hash>] Array of repository hashes
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of repository answers
   # @example
   #   client.repositories('octocat')
   #   # => [{:id=>123, :full_name=>"yegor256/judges", ...}, ...]
@@ -85,7 +85,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] _org The organization name (ignored in mock)
   # @param [Hash] _options Filters such as +type:+ (e.g. 'all', 'private', 'public')
-  # @return [Array<Hash>] Array of repository hashes
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of repository answers
   # @example
   #   client.organization_repositories('zerocracy', type: 'all')
   #   # => [{:id=>123, :full_name=>"yegor256/judges", ...}, ...]
@@ -99,7 +99,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Gets repository invitations for the authenticated user.
   #
   # @param [Hash] _options Additional options (not used in mock)
-  # @return [Array<Hash>] Array of invitation objects with repository and inviter information
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of invitation answers with repository and inviter information
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.user_repository_invitations #=> [{:id=>1, :node_id=>"INV_", ...}]
@@ -135,7 +135,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Gets organization memberships for the authenticated user.
   #
   # @param [Hash] _options Additional options (not used in mock)
-  # @return [Array<Hash>] Array of organization membership objects
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of organization membership answers
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.organization_memberships #=> [{:url=>"https://api.github.com/orgs/...", ...}]
@@ -212,7 +212,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] org The organization name (e.g., 'zerocracy')
   # @param [Hash] _options Additional options (typically includes :state to update membership state)
-  # @return [Hash] Updated membership information
+  # @return [Fbe::FakeOctokit::Answer] Updated membership information
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.update_organization_membership('zerocracy', state: 'active')
@@ -292,7 +292,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Gets details of a GitHub user.
   #
   # @param [String, Integer] uid The login of the user or its numeric ID
-  # @return [Hash] User information including id, login, and type
+  # @return [Fbe::FakeOctokit::Answer] User information including id, login, and type
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.user(526_301) #=> {:id=>444, :login=>"yegor256", :type=>"User"}
@@ -311,7 +311,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] repo The repository name
   # @param [Hash] _opts Additional options (not used in mock)
-  # @return [Hash] Information about workflow runs including counts and details
+  # @return [Fbe::FakeOctokit::Answer] Information about workflow runs including counts and details
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   result = fake_client.repository_workflow_runs('octocat/Hello-World')
@@ -330,7 +330,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] _repo The repository name
   # @param [Integer] _id The workflow run ID
-  # @return [Hash] Billing and usage information for the workflow run
+  # @return [Fbe::FakeOctokit::Answer] Billing and usage information for the workflow run
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   usage = fake_client.workflow_run_usage('octocat/Hello-World', 42)
@@ -357,7 +357,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] repo Repository name
   # @param [Hash] _opts Options hash (ignored in mock)
-  # @return [Array<Hash>] Array of release hashes
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of release answers
   # @example
   #   client.releases('octocat/Hello-World')
   #   # => [{:id=>1, :tag_name=>"0.19.1", :name=>"just a fake name", ...}, ...]
@@ -372,7 +372,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] _repo Repository name (ignored in mock)
   # @param [Hash] _options Query options (ignored in mock)
-  # @return [Array<Hash>] Milestones with the fields used by milestone judges
+  # @return [Array<Fbe::FakeOctokit::Answer>] Milestones with the fields used by milestone judges
   # @example
   #   client.list_milestones('octocat/Hello-World', state: 'all')
   #   # => [{:id=>1, :number=>1, :title=>"Milestone 1", ...}, ...]
@@ -396,7 +396,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # one repository differ from each other the way real ones do.
   #
   # @param [String] url Release URL
-  # @return [Hash] Release information
+  # @return [Fbe::FakeOctokit::Answer] Release information
   # @example
   #   client.release('https://api.github.com/repos/octocat/Hello-World/releases/1')
   #   # => {:id=>1, :tag_name=>"0.19.1", :name=>"just a fake name", ...}
@@ -420,7 +420,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Gets repository information.
   #
   # @param [String, Integer] name Repository name ('owner/repo') or ID
-  # @return [Hash] Repository information
+  # @return [Fbe::FakeOctokit::Answer] Repository information
   # @raise [Octokit::NotFound] If name is 404123 or 404124 (for testing)
   # @example
   #   client.repository('octocat/Hello-World')
@@ -471,7 +471,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] repo Repository name ('owner/repo')
   # @param [String] _sha Commit SHA (ignored in mock)
-  # @return [Array<Hash>] Array of pull request hashes
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of pull request answers
   # @example
   #   client.commit_pulls('octocat/Hello-World', 'abc123')
   #   # => [{:number=>42, :state=>"open", ...}]
@@ -485,7 +485,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] repo Repository name ('owner/repo')
   # @param [Hash] _options Query options (ignored in mock)
-  # @return [Array<Hash>] Array of issue hashes
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of issue answers
   # @example
   #   client.list_issues('octocat/Hello-World', state: 'open')
   #   # => [{:number=>42, :title=>"Found a bug", ...}, ...]
@@ -502,7 +502,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] repo Repository name ('owner/repo')
   # @param [Integer] number Issue number
-  # @return [Hash] Issue information
+  # @return [Fbe::FakeOctokit::Answer] Issue information
   # @example
   #   client.issue('octocat/Hello-World', 42)
   #   # => {:id=>42, :number=>42, :created_at=>...}
@@ -577,7 +577,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] repo Repository name ('owner/repo')
   # @param [Integer] number Pull request number
-  # @return [Hash] Pull request information
+  # @return [Fbe::FakeOctokit::Answer] Pull request information
   # @example
   #   client.pull_request('octocat/Hello-World', 1)
   #   # => {:id=>42, :number=>1, :additions=>12, ...}
@@ -651,7 +651,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] _repo Repository name (ignored in mock)
   # @param [Hash] _options Query options (ignored in mock)
-  # @return [Array<Hash>] Array of pull request hashes
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of pull request answers
   # @example
   #   client.pull_requests('octocat/Hello-World', state: 'open')
   #   # => [{:number=>100, :state=>"closed", :title=>"#90: some title", ...}]
@@ -851,7 +851,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] repo Repository name ('owner/repo')
   # @param [Hash] _options Additional options (not used in mock, e.g. +per_page+)
-  # @return [Array<Hash>] Array of commit hashes
+  # @return [Array<Fbe::FakeOctokit::Answer>] Array of commit answers
   # @example
   #   client.commits('octocat/Hello-World', per_page: 1)
   #   # => [{:sha=>"a1b2c3d4e5f6a1b2c3d4e5f6", :stats=>{:total=>123}}]
@@ -873,7 +873,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   #
   # @param [String] _path The API path (ignored in mock)
   # @param [Hash] _options Additional options (not used in mock)
-  # @return [Hash] An empty Hash
+  # @return [Fbe::FakeOctokit::Answer] An empty answer
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.get('/rate_limit') #=> {}
