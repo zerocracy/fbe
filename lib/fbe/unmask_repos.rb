@@ -58,7 +58,12 @@ end
 # @param [Boolean] quota_aware Should we stop if quota is off?
 # @param [Boolean] lifetime_aware Should we stop if lifetime is over?
 # @param [Boolean] timeout_aware Should we stop if timeout is over?
-# @return [Array<String>] Shuffled list of repository full names (e.g., 'org/repo')
+# @return [Array<String>, nil] Shuffled list of repository full names (e.g., 'org/repo') when
+#   no block is given; +nil+ when a block is given and the initial run-budget check
+#   (Fbe.over?) stops before the first repository is yielded
+# @yield [String] Repository full name (e.g., 'org/repo'), yielded one by one when a block
+#   is given; in this mode the method iterates instead of being used for the returned list
+# @yieldparam [String] repo Repository full name (e.g., 'org/repo')
 # @raise [Fbe::Error] If a mask is not in the 'org/repo' format or no repositories match
 # @note Exclusion patterns must start with '-' (e.g., '-org/pattern*')
 # @note Results are shuffled to distribute load when processing
