@@ -334,6 +334,22 @@ class TestOverwrite < Fbe::Test
     end
   end
 
+  def test_overwrite_with_string_fact_not_found_in_db
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 999
+    f.foo = 42
+    fb.txn do |fbt|
+      n = fbt.insert
+      n._id = 999
+      n.foo = 42
+    end
+    fb.query('(eq _id 999)').delete!
+    assert_raises(Fbe::Error, 'No facts by _id = 999') do
+      Fbe.overwrite(f, 'foo', 55, fb:)
+    end
+  end
+
   def test_overwrite_with_hash_complex_data_types
     fb = Factbase.new
     f = fb.insert
