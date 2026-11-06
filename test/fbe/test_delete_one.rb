@@ -65,6 +65,26 @@ class TestDeleteOne < Fbe::Test
     assert_equal(1, fb.query('(eq foo 42)').each.to_a.size)
   end
 
+  def test_raises_when_fact_has_no_id
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.delete_one(f, 'foo', 42, fb:) }
+    assert_equal('There is no "_id" in the fact', error.message)
+    assert_equal(1, fb.size)
+    assert_equal(1, fb.query('(always)').each.to_a.size)
+  end
+
+  def test_raises_when_custom_id_is_missing
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 555
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.delete_one(f, 'foo', 42, fb:, id: 'whatever') }
+    assert_equal('There is no "whatever" in the fact', error.message)
+    assert_equal(1, fb.size)
+  end
+
   def test_does_not_recreate_fact_when_value_not_present
     opts = Judges::Options.new(['testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
