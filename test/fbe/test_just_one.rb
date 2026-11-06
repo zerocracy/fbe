@@ -46,6 +46,14 @@ class TestJustOne < Fbe::Test
     assert_equal(42, n.foo)
   end
 
+  def test_reads_attribute_back_inside_block
+    fb = Factbase.new
+    Fbe.just_one(fb:) do |f|
+      f.foo = 42
+      assert_equal(42, f.foo)
+    end
+  end
+
   def test_ignores_system_attributes_when_matching
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
