@@ -1570,14 +1570,17 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       { id: 10_438_531_077, event: 'commit', conclusion: 'success', name: 'shellcheck' },
       { id: 10_438_531_078, event: 'pull_request', conclusion: 'failure', name: 'yamllint' }
     ].find { |json| json[:id] == id } || { id:, event: 'push', conclusion: 'success', name: 'copyrights' }
+    created = random_time.round
+    started = created + rand(60)
+    completed = started + rand(3600)
     {
       head_branch: 'master',
       head_sha: '7d34c53e6743944dbf6fc729b1066bcbb3b18443',
       status: 'completed',
-      started_at: '2024-08-18T08:04:44Z',
-      completed_at: '2024-08-18T08:20:17Z',
-      created_at: random_time,
-      run_started_at: random_time,
+      started_at: started.utc.iso8601,
+      completed_at: completed.utc.iso8601,
+      created_at: created,
+      run_started_at: started,
       workflow_id: known[:id],
       repository: repository(repo)
     }.merge(known)

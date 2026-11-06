@@ -1678,4 +1678,23 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_workflow_run_has_coherent_timeline
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    runs = [
+      o.workflow_run('yegor256/test', 10_438_531_072),
+      o.workflow_run('yegor256/test', 999)
+    ]
+    runs += o.repository_workflow_runs('yegor256/test')[:workflow_runs]
+    runs.each do |run|
+      created = run[:created_at]
+      started = Time.parse(run[:started_at])
+      completed = Time.parse(run[:completed_at])
+      assert_operator(created, :<=, run[:run_started_at], "created after run_started_at for #{run[:id]}")
+      assert_operator(run[:run_started_at], :<=, completed, "run_started_at after completed_at for #{run[:id]}")
+      assert_operator(created, :<=, started, "created after started_at for #{run[:id]}")
+      assert_operator(started, :<=, completed, "started_at after completed_at for #{run[:id]}")
+      assert_operator(completed, :>, Time.now - 86_400, "completed_at is stale for #{run[:id]}")
+    end
+  end
 end
