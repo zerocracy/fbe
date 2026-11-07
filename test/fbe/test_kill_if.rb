@@ -60,6 +60,17 @@ class TestKillIf < Fbe::Test
     assert_equal(2, fb.size)
   end
 
+  def test_cannot_kill_fact_without_id
+    fb = Factbase.new
+    fb.insert._id = 1
+    f = fb.insert
+    f.foo = 1
+    assert_raises(Fbe::Error, 'fact without _id is not rejected with Fbe::Error') do
+      Fbe.kill_if([f], fb:)
+    end
+    assert_equal(2, fb.size)
+  end
+
   def test_cannot_kill_nil_facts
     assert_raises(Fbe::Error, 'nil facts are not rejected with Fbe::Error') do
       Fbe.kill_if(nil, fb: Factbase.new, fid: '_id')
