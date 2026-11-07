@@ -80,8 +80,8 @@ class TestBylaws < Fbe::Test
         { hoc: 600, comments: 1, self: 0 } => 8,
         { hoc: 500, comments: 40, self: 0 } => 24,
         { hoc: 5_000, comments: 100, self: 0 } => 24,
-        { hoc: 100, comments: 50, self: 1 } => 4,
-        { hoc: 10_000, comments: 200, self: 1 } => 4
+        { hoc: 100, comments: 50, self: 1 } => -12,
+        { hoc: 10_000, comments: 200, self: 1 } => -12
       },
       'code-contribution-was-rewarded' => {
         { hoc: 0, comments: 0, reviews: 0 } => 4,
