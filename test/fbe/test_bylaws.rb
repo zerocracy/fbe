@@ -169,6 +169,36 @@ class TestBylaws < Fbe::Test
     assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
   end
 
+  def test_release_pays_no_hits_of_code_bonus_below_its_floor
+    seed = Random.new_seed
+    hoc = Random.new(seed).rand(300..399)
+    a = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded'])
+    assert_equal(
+      24, a.bill({ hoc:, contributors: 2 }).points,
+      "release of #{hoc} hits-of-code is paid a bonus under its floor of 4 points (seed: #{seed})"
+    )
+  end
+
+  def test_release_pays_hits_of_code_bonus_at_its_floor
+    a = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded'])
+    assert_equal(28, a.bill({ hoc: 400, contributors: 2 }).points, '400 hits-of-code are not paid 4 points')
+  end
+
+  def test_release_pays_one_point_per_hundred_hits_of_code_above_its_floor
+    seed = Random.new_seed
+    hoc = Random.new(seed).rand(400..600)
+    a = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded'])
+    assert_equal(
+      1, a.bill({ hoc: hoc + 100, contributors: 3 }).points - a.bill({ hoc:, contributors: 3 }).points,
+      "100 more hits-of-code over #{hoc} are not paid one more point (seed: #{seed})"
+    )
+  end
+
+  def test_release_pays_hits_of_code_bonus_just_above_its_floor
+    a = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded'])
+    assert_equal(29, a.bill({ hoc: 450, contributors: 2 }).points, '450 hits-of-code are not paid 5 points')
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
