@@ -44,6 +44,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     overwrites = false
     property_or_hash.each do |k, vv|
       sk = k.to_s
+      raise(Fbe::Error, 'The property cannot be empty') if sk.strip.empty?
       raise(Fbe::Error, "The value for #{k} is nil") if vv.nil?
       vv = [vv] unless vv.is_a?(Array)
       existing = before[sk]
@@ -89,6 +90,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   end
   property = property_or_hash
   raise(Fbe::Error, "The property is not a String but #{property.class} (#{property})") unless property.is_a?(String)
+  raise(Fbe::Error, 'The property cannot be empty') if property.strip.empty?
   raise(Fbe::Error, 'The values is nil') if values.nil?
   values = [values] unless values.is_a?(Array)
   return if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
