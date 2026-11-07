@@ -223,6 +223,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             rescue Octokit::NotFound, Octokit::Forbidden => e
               raise(Fbe::Error, "GitHub user ##{id} is not accessible: #{e.message}")
             end
+            def identity(name) # rubocop:disable Layout/EmptyLineBetweenDefs
+              repo_id_by_name(name)
+            end
             def repo_id_by_name(name) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The name of the repo is nil') if name.nil?
               json = @origin.repository(name)
@@ -265,7 +268,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         o =
           intercepted(o) do |e, m, args, _r|
             next unless e == :before
-            next if %i[off_quota? print_trace! rate_limit rate_limit!].include?(m)
+            next if %i[identity off_quota? print_trace! rate_limit rate_limit!].include?(m)
             next if m == :get && %w[/rate_limit rate_limit].include?(args.first)
             if Fbe::SEARCH_METHODS.include?(m)
               raise(Fbe::OffQuota, "We are off-quota on the search resource, can't do #{m}()") if
