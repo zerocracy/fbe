@@ -608,6 +608,22 @@ class TestOcto < Fbe::Test
     end
   end
 
+  def test_retries_a_failed_get_four_times
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    ok = stub_request(:get, 'https://api.github.com/repositories/77')
+      .to_return(status: 503).times(4)
+      .then.to_return(body: '{}', headers: { 'Content-Type' => 'application/json' })
+    o.repository(77)
+    assert_requested(ok, times: 5)
+    bad = stub_request(:get, 'https://api.github.com/repositories/78').to_return(status: 503)
+    assert_raises(Octokit::ServiceUnavailable) { o.repository(78) }
+    assert_requested(bad, times: 5)
+  end
+
   def test_retrying_on_too_many_requests
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
