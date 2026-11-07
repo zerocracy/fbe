@@ -14,6 +14,13 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  def test_fake_issue_comments_look_like_issue_comments
+    c = Fbe::FakeOctokit.new.issue_comments('foo/bar', 42)
+    assert_equal(2, c.size, 'Both comments stay')
+    assert(c.all? { |x| x[:issue_url].end_with?('/foo/bar/issues/42') }, 'An issue comment points to its issue')
+    assert(c.none? { |x| x.key?(:path) || x.key?(:in_reply_to_id) }, 'An issue comment has no diff position')
+  end
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
