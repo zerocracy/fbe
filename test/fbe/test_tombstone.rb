@@ -201,4 +201,14 @@ class TestTombstone < Fbe::Test
     end
     assert_equal(0, fb.size, "factbase is touched by member #{member.inspect}, seed is #{seed}")
   end
+
+  def test_where_with_a_quote
+    fb = Factbase.new
+    ts = Fbe::Tombstone.new(fb:)
+    where = "git'hub"
+    ts.bury!(where, 42, 7)
+    assert_equal([7], ts.issues(where, 42))
+    assert(ts.has?(where, 42, 7))
+    refute(ts.has?('github', 42, 7))
+  end
 end
