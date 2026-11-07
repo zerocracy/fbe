@@ -43,4 +43,14 @@ class TestIssue < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
   end
+
+  def test_with_non_numeric_issue
+    fb = Factbase.new
+    f = fb.insert
+    f.repository = 323
+    f.issue = 'abc'
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
+  end
 end
