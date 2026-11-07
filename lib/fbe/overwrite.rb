@@ -40,6 +40,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     fact.all_properties.each do |k|
       before[k.to_s] = fact[k]
     end
+    before.compact!
     modified = false
     overwrites = false
     property_or_hash.each do |k, vv|
@@ -102,6 +103,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   fact.all_properties.each do |k|
     before[k.to_s] = fact[k]
   end
+  before.compact!
   id = fact[fid]&.first
   raise(Fbe::Error, "There is no #{fid} in the fact, cannot use Fbe.overwrite") if id.nil?
   fb.txn do |fbt|

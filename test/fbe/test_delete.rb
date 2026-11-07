@@ -15,6 +15,26 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestDelete < Fbe::Test
+  def test_skips_query_parameters_when_recreating_the_fact
+    ['(eq _id $wanted)', '(eq _id 1)'].each do |query|
+      fb = Factbase.new
+      original = fb.insert
+      original._id = 1
+      original.x = 1
+      original.x = 2
+      original.keep = 'unchanged'
+      fb.query(query).each(fb, wanted: 1) do |fact|
+        Fbe.delete(fact, 'x', fb: fb)
+      end
+      result = fb.query('(always)').each.first
+      assert_equal([1], result['_id'])
+      assert_equal(['unchanged'], result['keep'])
+      assert_nil(result['x'])
+      refute_includes(result.all_properties, 'wanted')
+      assert_equal(1, fb.size)
+    end
+  end
+
   def test_deletes_one_property
     fb = Factbase.new
     f = fb.insert
