@@ -539,7 +539,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [Time] since The datetime from
   # @param [Time] till The datetime to, a release published later is not counted
   # @return [Hash] A hash with total releases
-  def total_releases_published(owner, name, since, till: Time.now)
+  def total_releases_published(owner, name, since, till = Time.now)
     total = 0
     cursor = nil
     loop do
@@ -899,7 +899,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       }
     end
 
-    def total_releases_published(_owner, _name, since, till: Time.now)
+    def total_releases_published(_owner, _name, since, till = Time.now)
       { 'releases' => (1..7).count { since + (_1 * 60) <= till } }
     end
 
