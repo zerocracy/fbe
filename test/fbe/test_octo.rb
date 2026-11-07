@@ -622,6 +622,70 @@ class TestOcto < Fbe::Test
     o.repository(429)
   end
 
+  def test_dont_retry_when_primary_quota_is_spent
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    calls = 0
+    stub_request(:get, 'https://api.github.com/users/ёж').to_return do
+      calls += 1
+      {
+        status: 403, body: { message: 'API rate limit exceeded for user ID 1.' }.to_json,
+        headers: {
+          'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '0',
+          'X-RateLimit-Reset' => (Time.now + 3000).strftime('%s')
+        }
+      }
+    end
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    seen =
+      begin
+        o.user('ёж')
+      rescue Octokit::TooManyRequests
+        calls
+      end
+    assert_equal(1, seen, 'a spent primary quota is asked again before it resets')
+  end
+
+  def test_dont_retry_too_many_requests_when_primary_quota_is_spent
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    calls = 0
+    stub_request(:get, 'https://api.github.com/repositories/429').to_return do
+      calls += 1
+      { status: 429, body: '', headers: { 'x-ratelimit-remaining' => '0' } }
+    end
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    seen =
+      begin
+        o.repository(429)
+      rescue Octokit::ClientError
+        calls
+      end
+    assert_equal(1, seen, 'a 429 with no quota left is asked again before it resets')
+  end
+
+  def test_still_retries_secondary_limit_while_quota_remains
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    left = Random.new(seed).rand(1..5000)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/users/yegor256')
+      .to_return(
+        status: 403, body: { message: 'You have exceeded a secondary rate limit' }.to_json,
+        headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => left.to_s }
+      )
+      .then
+      .to_return(status: 200, body: { login: 'yegor256' }.to_json, headers: { 'Content-Type' => 'application/json' })
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    assert_equal('yegor256', o.user('yegor256')[:login], "secondary limit, #{left} left, not retried (seed: #{seed})")
+  end
+
   def test_not_retrying_on_not_found
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(

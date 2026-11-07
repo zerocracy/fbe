@@ -96,6 +96,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 retry_if: lambda do |env, exception|
                   next false unless env[:method] == :get
                   next true unless exception.is_a?(Octokit::ClientError)
+                  next false if env[:response_headers]&.[]('x-ratelimit-remaining') == '0'
                   Octokit::RATE_LIMITED_ERRORS.any? { |k| exception.is_a?(k) } || exception.response_status == 429
                 end,
                 backoff_factor: 2
