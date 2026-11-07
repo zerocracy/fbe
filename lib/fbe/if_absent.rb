@@ -58,7 +58,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
         k = k[0..-2].to_sym
         v = args[1]
         raise(Fbe::Error, "Can't set #{k} to nil") if v.nil?
-        raise(Fbe::Error, "Can't set #{k} to empty string") if v.is_a?(String) && v.empty?
+        raise(Fbe::Error, "Can't set #{k} to empty string") if v == ''
         @map[k] = v
       else
         @map[k.to_sym]
@@ -76,7 +76,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }
+  before = fb.query(q).each.find { |f| Fbe.same?(f, attrs.except(:_id, :_time, :_version)) }
   return always ? before : nil if before
   n = fb.insert
   attrs.each { |k, v| n.public_send(:"#{k}=", v) }
