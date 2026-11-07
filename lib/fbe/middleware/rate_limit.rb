@@ -35,7 +35,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @counter = 0
     @lock = Mutex.new
     @refresh = Mutex.new
-    tracker[:rate_limit] = self unless tracker.nil?
+    tracker[:rate_limit] ||= self unless tracker.nil?
   end
 
   # Processes the HTTP request and handles rate limit caching.
