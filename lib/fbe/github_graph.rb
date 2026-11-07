@@ -262,10 +262,10 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         fragment ActorFragment on Actor {
           __typename
           login
-          ... on User { databaseId name email }
+          ... on User { databaseId name }
           ... on Bot { databaseId }
-          ... on EnterpriseUserAccount { user { databaseId name email } }
-          ... on Mannequin { claimant { databaseId name email } }
+          ... on EnterpriseUserAccount { user { databaseId name } }
+          ... on Mannequin { claimant { databaseId name } }
         }
         fragment IssueTypeFragment on IssueType {
           id
@@ -301,10 +301,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           result.dig('node', 'actor', 'claimant', 'databaseId'),
         'name' => result.dig('node', 'actor', 'name') ||
           result.dig('node', 'actor', 'user', 'name') ||
-          result.dig('node', 'actor', 'claimant', 'name'),
-        'email' => result.dig('node', 'actor', 'email') ||
-          result.dig('node', 'actor', 'user', 'email') ||
-          result.dig('node', 'actor', 'claimant', 'email')
+          result.dig('node', 'actor', 'claimant', 'name')
       }
     }
   end
@@ -797,8 +794,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
             'login' => 'yegor256',
             'type' => 'User',
             'id' => 526_301,
-            'name' => 'Yegor',
-            'email' => 'example@gmail.com'
+            'name' => 'Yegor'
           }
         }
       when 'ITCE_examplevq862Ga8lzwAAAAQZbq9S'
@@ -819,8 +815,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
             'login' => 'yegor256',
             'type' => 'User',
             'id' => 526_301,
-            'name' => 'Yegor',
-            'email' => 'example@gmail.com'
+            'name' => 'Yegor'
           }
         }
       when 'ITRE_examplevq862Ga8lzwAAAAQcqceV'
@@ -837,8 +832,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
             'login' => 'yegor256',
             'type' => 'User',
             'id' => 526_301,
-            'name' => 'Yegor',
-            'email' => 'example@gmail.com'
+            'name' => 'Yegor'
           }
         }
       end

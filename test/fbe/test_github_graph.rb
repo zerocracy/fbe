@@ -569,8 +569,7 @@ class TestGitHubGraph < Fbe::Test
             '__typename' => 'User',
             'login' => 'yegor256',
             'databaseId' => 526_301,
-            'name' => 'Yegor',
-            'email' => 'yegor@test.com'
+            'name' => 'Yegor'
           }
         }
       }
@@ -595,8 +594,7 @@ class TestGitHubGraph < Fbe::Test
             '__typename' => 'User',
             'login' => 'yegor256',
             'databaseId' => 526_301,
-            'name' => 'Yegor',
-            'email' => 'yegor@test.com'
+            'name' => 'Yegor'
           }
         }
       }
@@ -605,6 +603,49 @@ class TestGitHubGraph < Fbe::Test
     assert_equal('IssueTypeChangedEvent', result['type'])
     assert_equal('Task', result.dig('issue_type', 'name'))
     assert_equal('Bug', result.dig('prev_issue_type', 'name'))
+  end
+
+  def test_real_issue_type_event_dont_ask_for_actor_email
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    sent = []
+    graph.define_singleton_method(:query) do |qry|
+      sent << qry
+      { 'node' => nil }
+    end
+    graph.issue_type_event('ITAE_ёжик')
+    refute_match(/\bemail\b/, sent.join, 'issue type event query asks for the email the repo scope cannot read')
+  end
+
+  def test_real_issue_type_event_still_asks_for_actor_id
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    sent = []
+    graph.define_singleton_method(:query) do |qry|
+      sent << qry
+      { 'node' => nil }
+    end
+    graph.issue_type_event('ITCE_ünïcødé')
+    assert_equal(3, sent.join.scan(/databaseId name\b/).size, 'issue type event query lost the id of an actor')
+  end
+
+  def test_fake_issue_type_event_actor_has_keys_of_real_one
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'node' => {
+          '__typename' => 'IssueTypeRemovedEvent', 'createdAt' => '2025-05-11T22:09:42Z',
+          'issueType' => { 'id' => 'it1', 'name' => 'Ошибка', 'description' => '' },
+          'actor' => { '__typename' => 'User', 'login' => 'ж', 'databaseId' => 1, 'name' => 'Ж' }
+        }
+      }
+    end
+    assert_equal(
+      graph.issue_type_event('x')['actor'].keys,
+      Fbe::Graph::Fake.new.issue_type_event('ITRE_examplevq862Ga8lzwAAAAQcqceV')['actor'].keys,
+      'actor of a fake issue type event has other keys than the real one'
+    )
   end
 
   def test_real_issue_type_event_returns_nil_for_unknown
