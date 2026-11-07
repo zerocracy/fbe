@@ -218,13 +218,15 @@ class TestIterate < Fbe::Test
   def test_raises_when_repeats_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
-    assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as('nil_repeats_test')
-        by('(plus 1 1)')
-        repeats(nil)
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as('nil_repeats_test')
+          by('(plus 1 1)')
+          repeats(nil)
+        end
       end
-    end
+    assert_equal('Cannot set "repeats" to nil', error.message)
   end
 
   def test_raises_when_repeats_is_not_positive
@@ -265,24 +267,63 @@ class TestIterate < Fbe::Test
     assert_equal('Sort field cannot be empty', error.message)
   end
 
+  def test_raises_when_fb_is_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb: nil, loog: Loog::NULL, options: opts, global: {})
+      end
+    assert_equal('The fb is nil', error.message)
+  end
+
+  def test_raises_when_global_is_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb: Factbase.new, loog: Loog::NULL, options: opts, global: nil)
+      end
+    assert_equal('The $global is not set', error.message)
+  end
+
+  def test_raises_when_options_is_nil
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb: Factbase.new, loog: Loog::NULL, options: nil, global: {})
+      end
+    assert_equal('The $options is not set', error.message)
+  end
+
+  def test_raises_when_loog_is_nil
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb: Factbase.new, loog: nil, options: opts, global: {})
+      end
+    assert_equal('The $loog is not set', error.message)
+  end
+
   def test_raises_when_label_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
-    assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as(nil)
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as(nil)
+        end
       end
-    end
+    assert_equal('Cannot set "label" to nil', error.message)
   end
 
   def test_raises_when_query_is_nil
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
-    assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        by(nil)
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          by(nil)
+        end
       end
-    end
+    assert_equal('Cannot set query to nil', error.message)
   end
 
   def test_persists_marker_facts
