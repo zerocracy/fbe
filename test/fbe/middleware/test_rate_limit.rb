@@ -495,6 +495,45 @@ class RateLimitTest < Fbe::Test
     assert_equal(30, second.body['resources']['search']['remaining'])
   end
 
+  def test_asks_again_after_server_error
+    seed = Random.new_seed
+    status = Random.new(seed).rand(500..599)
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status:, body: '{}', headers: { 'Content-Type' => 'application/json' })
+      .then
+      .to_return(status: 200, body: '{"rate":{"remaining":4000}}', headers: { 'Content-Type' => 'application/json' })
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_equal(200, conn.get('/rate_limit').status, "error #{status} is served from cache, seed #{seed}")
+  end
+
+  def test_asks_again_after_client_error
+    seed = Random.new_seed
+    status = [401, 403, 404, 422].sample(random: Random.new(seed))
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status:, body: '{"message":"Ω"}', headers: { 'Content-Type' => 'application/json' })
+      .then
+      .to_return(status: 200, body: '{"rate":{"remaining":4000}}', headers: { 'Content-Type' => 'application/json' })
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_equal(200, conn.get('/rate_limit').status, "error #{status} is served from cache, seed #{seed}")
+  end
+
+  def test_passes_on_error_with_html_body
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(status: 502, body: '<html>Bad gateway</html>', headers: { 'Content-Type' => 'text/html' })
+    assert_equal(502, create_connection.get('/rate_limit').status, 'error with html body is not passed on')
+  end
+
+  def test_leaves_remaining_unknown_after_error
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      status: 503, body: '{"rate":{"remaining":0}}', headers: { 'Content-Type' => 'application/json' }
+    )
+    tracker = {}
+    create_connection(tracker).get('/rate_limit')
+    assert_nil(tracker[:rate_limit].remaining, 'remaining is taken from an error response')
+  end
+
   private
 
   def create_connection(tracker = nil)
