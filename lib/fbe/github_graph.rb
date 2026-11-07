@@ -695,6 +695,49 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     def headers(_context)
       { Authorization: "Bearer #{@token}" }
     end
+
+    # Wraps each connection with bounded retries for read-only operations.
+    #
+    # @return [Connection] The transport used for one GraphQL request
+    def connection
+      Connection.new(super)
+    end
+
+    # Retries transient failures without repeating GraphQL mutations.
+    class Connection
+      def initialize(http)
+        @http = http
+      end
+
+      # Makes at most five attempts for a query, but only one for a mutation.
+      #
+      # @param [Net::HTTPRequest] request The serialized GraphQL request
+      # @return [Net::HTTPResponse] The final response, including a final error
+      def request(request)
+        attempts = 0
+        readable = readable?(request)
+        loop do
+          begin
+            response = @http.request(request)
+            return response unless readable && response.is_a?(Net::HTTPServerError) && attempts < 4
+          rescue Net::OpenTimeout, Net::ReadTimeout, Net::WriteTimeout
+            raise unless readable && attempts < 4
+          end
+          sleep((ENV['RACK_ENV'] == 'test' ? 0.01 : 4) * (2**attempts))
+          attempts += 1
+        end
+      end
+
+      private
+
+      def readable?(request)
+        payload = JSON.parse(request.body)
+        operations = GraphQL.parse(payload.fetch('query')).definitions.grep(GraphQL::Language::Nodes::OperationDefinition)
+        name = payload['operationName']
+        operations = operations.select { _1.name == name } if name
+        operations.one? && operations.first.operation_type == 'query'
+      end
+    end
   end
 
   # Fake GitHub GraphQL client for testing.
