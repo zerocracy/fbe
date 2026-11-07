@@ -32,6 +32,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @cached = nil
     @remaining = nil
     @searchleft = nil
+    @codeleft = nil
     @counter = 0
     @lock = Mutex.new
     @refresh = Mutex.new
@@ -59,11 +60,11 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
 
   # Returns the remaining requests count tracked by this middleware.
   #
-  # @param [Symbol] resource The GitHub API resource (:core or :search)
+  # @param [Symbol] resource The GitHub API resource (:core, :search or :code_search)
   # @return [Integer, nil] The remaining count, or nil when the resource is absent
   def remaining(resource = :core)
     @lock.synchronize do
-      resource == :search ? @searchleft : @remaining
+      { search: @searchleft, code_search: @codeleft }.fetch(resource, @remaining)
     end
   end
 
@@ -80,7 +81,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @lock.synchronize do
       @cached = response
       @remaining = extract_remaining_count(response)
-      @searchleft = extract_search_remaining_count(response)
+      @searchleft = left(response, 'search')
+      @codeleft = left(response, 'code_search')
       @counter = 0
     end
     response
@@ -152,15 +154,16 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     value.nil? ? nil : Integer(value)
   end
 
-  # Extracts the search-resource remaining count from the response body.
+  # Extracts the remaining count of one resource from the response body.
   #
   # @param [Faraday::Response] response The API response
-  # @return [Integer, nil] The remaining search-API requests count
-  def extract_search_remaining_count(response)
+  # @param [String] resource The resource, as GitHub names it in +resources+
+  # @return [Integer, nil] The remaining requests count of the resource
+  def left(response, resource)
     body = response.body
     body = JSON.parse(body) if body.is_a?(String)
     return nil unless body.is_a?(Hash)
-    value = body.dig('resources', 'search', 'remaining')
+    value = body.dig('resources', resource, 'remaining')
     value.nil? ? nil : Integer(value)
   end
 
