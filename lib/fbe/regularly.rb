@@ -15,7 +15,7 @@ require_relative 'fb'
 #
 # @param [String] area The name of the PMP area
 # @param [String] p_every_days PMP property name for interval (defaults to 7 days if not in PMP)
-# @param [String] p_since_days PMP property name for since period (defaults to 28 days if not in PMP)
+# @param [String] p_sincedays PMP property name for since period (defaults to 28 days if not in PMP)
 # @param [Factbase] fb The factbase (defaults to Fbe.fb)
 # @param [String] judge The name of the judge (uses $judge global)
 # @param [Loog] loog The logging facility (uses $loog global)
@@ -23,20 +23,36 @@ require_relative 'fb'
 # @return [nil] Nothing
 # @raise [Fbe::Error] If required parameters or globals are nil
 # @note Skips execution if judge was run within the interval period
-# @note The 'since' property is added to the fact when p_since_days is provided
+# @note The 'since' property is added to the fact when p_sincedays is provided
 # @example Run a cleanup task every 3 days
 #   Fbe.regularly('cleanup', 'days_between_cleanups', 'cleanup_history_days') do |f|
 #     f.total_cleaned = cleanup_old_records
 #     # PMP might have: days_between_cleanups=3, cleanup_history_days=30
 #   end
-def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.regularly(area, p_every_days, p_sincedays = nil, fb: Fbe.fb, judge: $judge, loog: $loog, &) # rubocop:disable Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity, Metrics/AbcSize
   { 'area' => area, 'p_every_days' => p_every_days, 'fb' => fb }.each do |name, value|
     raise(Fbe::Error, "The #{name} is nil") if value.nil?
   end
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
+  todays =
+    lambda do |value, property|
+      number = Float(value)
+      unless number.finite? && (number % 1).zero?
+        raise(Fbe::Error, "The PMP property '#{property}' must be a whole number of days")
+      end
+      Integer(number)
+    rescue ArgumentError, TypeError, RangeError
+      raise(Fbe::Error, "The PMP property '#{property}' must be a whole number of days")
+    end
   pmp = fb.query("(and (eq what 'pmp') (eq area '#{area.gsub("'", "\\\\'")}'))").each.to_a
-  interval = pmp.filter_map { |f| f[p_every_days]&.first }.first || 7
+  interval = todays.call(pmp.filter_map { |f| f[p_every_days]&.first }.first || 7, p_every_days)
+  sincedays =
+    if p_sincedays.nil?
+      nil
+    else
+      todays.call(pmp.filter_map { |f| f[p_sincedays]&.first }.first || 28, p_sincedays)
+    end
   recent = fb.query(
     "(and
       (eq what 'regularly')
@@ -56,9 +72,8 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     f.what = 'regularly'
     f.judge = judge
     f.when = Time.now
-    unless p_since_days.nil?
-      days = pmp.filter_map { |f| f[p_since_days]&.first }.first || 28
-      since = Time.now - (days * 24 * 60 * 60)
+    unless sincedays.nil?
+      since = Time.now - (sincedays * 24 * 60 * 60)
       f.since = since
     end
     yield(f)
