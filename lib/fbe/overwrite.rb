@@ -54,12 +54,19 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     end
     return unless modified
     unless overwrites
-      property_or_hash.each do |k, vv|
-        sk = k.to_s
-        next unless fact[sk].nil?
-        vv = [vv] unless vv.is_a?(Array)
-        vv.each do |v|
-          fact.public_send(:"#{sk}=", v)
+      add =
+        lambda do |target|
+          property_or_hash.each do |k, vv|
+            next unless target[k.to_s].nil?
+            (vv.is_a?(Array) ? vv : [vv]).each { |v| target.public_send(:"#{k}=", v) }
+          end
+        end
+      id = fact[fid]&.first
+      if id.nil?
+        add.call(fact)
+      else
+        fb.txn do |fbt|
+          add.call(fbt.query("(eq #{fid} #{id})").each.first || raise(Fbe::Error, "No facts by #{fid} = #{id}"))
         end
       end
       return
