@@ -351,7 +351,7 @@ class TestConclude < Fbe::Test
     Fbe.conclude(judge: 'judge-follow') do
       quota_unaware
       on('(exists foo)')
-      follow('tags')
+      follow(%w[tags])
       draw do |n, _prev|
         n.processed = 'yes'
         'Some long description that satisfies the twenty five chars minimum.'
@@ -424,6 +424,19 @@ class TestConclude < Fbe::Test
         end
       end
     end
+  end
+
+  def test_follow_rejects_non_string_properties
+    fb = Factbase.new
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.conclude(fb:, judge: 'judge-follow', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+          quota_unaware
+          on('(exists foo)')
+          follow(['tags', 42])
+        end
+      end
+    assert_includes(error.message, 'Array of Strings')
   end
 
   def test_follow_refuses_properties_set_by_judge
