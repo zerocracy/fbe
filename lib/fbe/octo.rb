@@ -125,6 +125,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.adapter(Faraday.default_adapter)
             end
           o.middleware = stack
+          twin = o.dup
+          twin.auto_paginate = false
+          twin = Verbose.new(twin, log: loog)
           o = Verbose.new(o, log: loog)
           unless token.nil? || token.empty?
             quota =
@@ -141,6 +144,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         else
           loog.debug('The connection to GitHub API is mocked')
           o = Fbe::FakeOctokit.new
+          twin = o
         end
         o =
           decoor(o, loog:, trace:, limits:, mutex:) do # rubocop:disable Metrics/BlockLength
@@ -254,16 +258,11 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             #        octo.list_issue('zerocracy/fbe', per_page: 1).first
             #      end
             def with_disable_auto_paginate # rubocop:disable Layout/EmptyLineBetweenDefs
-              ap = @origin.auto_paginate
-              @origin.auto_paginate = false
-              yield(@top || self) if block_given?
-            ensure
-              @origin.auto_paginate = ap
+              yield(@twin) if block_given?
             end
           end
-        client = o
-        o =
-          intercepted(o) do |e, m, args, _r|
+        guard =
+          proc do |e, m, args, _r|
             next unless e == :before
             next if %i[off_quota? print_trace! rate_limit rate_limit!].include?(m)
             next if m == :get && %w[/rate_limit rate_limit].include?(args.first)
@@ -275,7 +274,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               raise(Fbe::OffQuota, "We are off-quota (remaining: #{left}), can't do #{m}()")
             end
           end
-        client.instance_variable_set(:@top, o)
+        client = o
+        o = intercepted(o, &guard)
+        client.instance_variable_set(:@twin, intercepted(twin, &guard))
         o.instance_eval do
           def send(...)
             __send__(...)
