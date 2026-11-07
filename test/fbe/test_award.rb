@@ -167,6 +167,23 @@ class TestAward < Fbe::Test
     assert_equal("You've earned +20 points for this: +12 as a basis; +8 for comments. ", g)
   end
 
+  def test_preserves_integer_points_beyond_float_precision
+    [9_007_199_254_740_993, -9_007_199_254_740_993, 10**400].each do |value|
+      bill = Fbe::Award::Bill.new
+      bill.line(value, 'base')
+      assert_equal(value, bill.points)
+      assert_equal("You've earned #{format('%+d', value)} points. ", bill.greeting)
+    end
+  end
+
+  def test_preserves_large_integer_line_values_in_a_greeting
+    bill = Fbe::Award::Bill.new
+    bill.line(9_007_199_254_740_993, 'base')
+    bill.line(2, 'bonus')
+    assert_equal(9_007_199_254_740_995, bill.points)
+    assert_includes(bill.greeting, '+9007199254740993 base')
+  end
+
   def test_rounds_the_sum_once
     bill = Fbe::Award::Bill.new
     bill.line(0.5, 'first')
