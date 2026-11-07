@@ -24,12 +24,14 @@ require_relative 'fb'
 #   # new_fact will have all properties except 'age' and 'city'
 def Fbe.delete(fact, *props, fb: Fbe.fb, id: '_id') # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
+  props = props.map { |p| p.to_s.strip }
+  raise(Fbe::Error, 'A property name cannot be empty') if props.any?(&:empty?)
   i = fact[id]
   raise(Fbe::Error, "There is no #{id.inspect} in the fact") if i.nil?
   return if props.all? { |k| fact[k].nil? }
   i = i.first
   before = {}
-  (fact.all_properties - props.map(&:to_s)).each do |k|
+  (fact.all_properties - props).each do |k|
     before[k] = fact[k]
   end
   fb.txn do |fbt|
