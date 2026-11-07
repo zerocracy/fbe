@@ -1034,7 +1034,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           url: "https://api.github.com/repos/#{repo}"
         },
         payload: {
-          action: 'closed',
+          action: 'opened',
           issue: {
             number: 42
           }
@@ -1056,7 +1056,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           url: "https://api.github.com/repos/#{repo}"
         },
         payload: {
-          action: 'opened',
+          action: 'closed',
           issue: {
             number: 42
           }
@@ -1080,7 +1080,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           url: "https://api.github.com/repos/#{repo}"
         },
         payload: {
-          action: 'closed',
+          action: 'reopened',
           number: 172,
           pull_request: {
             url: 'https://api.github.com/repos/yegor256/judges/pulls/93',
