@@ -827,6 +827,77 @@ class TestGitHubGraph < Fbe::Test
     assert_nil(result['next_cursor'])
   end
 
+  def test_pull_requests_with_reviews_continues_on_empty_page
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pullRequests' => {
+            'nodes' => [],
+            'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }
+          }
+        }
+      }
+    end
+    result = graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
+    assert(result['has_next_page'])
+  end
+
+  def test_pull_requests_with_reviews_continues_when_page_mixes_old_and_new_pulls
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pullRequests' => {
+            'nodes' => [
+              {
+                'id' => 'PR_1',
+                'number' => 1,
+                'updatedAt' => '2025-01-01T00:00:00Z',
+                'timelineItems' => { 'nodes' => [] }
+              },
+              {
+                'id' => 'PR_2',
+                'number' => 2,
+                'updatedAt' => '2025-08-02T12:00:00Z',
+                'timelineItems' => { 'nodes' => [] }
+              }
+            ],
+            'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }
+          }
+        }
+      }
+    end
+    result = graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
+    assert(result['has_next_page'])
+  end
+
+  def test_pull_requests_with_reviews_continues_when_pull_updated_exactly_at_since
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pullRequests' => {
+            'nodes' => [
+              {
+                'id' => 'PR_1',
+                'number' => 1,
+                'updatedAt' => '2025-08-01T18:00:00Z',
+                'timelineItems' => { 'nodes' => [] }
+              }
+            ],
+            'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }
+          }
+        }
+      }
+    end
+    result = graph.pull_requests_with_reviews('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
+    assert(result['has_next_page'])
+  end
+
   def test_pull_requests_with_reviews_stops_once_page_is_older_than_since
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
