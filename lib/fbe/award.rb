@@ -6,6 +6,7 @@
 require 'factbase/syntax'
 require 'joined'
 require_relative 'fb'
+require_relative 'pmp'
 
 # A generator of awards.
 #
@@ -37,7 +38,7 @@ class Fbe::Award
   # @param [Judges::Options] options The options coming from the +judges+ tool
   # @param [Loog] loog The logging facility
   def initialize(query = nil, judge: $judge, global: $global, options: $options, loog: $loog)
-    query = Fbe.pmp(fb: Fbe.fb, global:, options:, loog:).hr.public_send(judge.tr('-', '_')) if query.nil?
+    query ||= Fbe.pmp(fb: Fbe.fb(global:, options:, loog:), global:, options:, loog:).hr.public_send(judge.tr('-', '_'))
     @query = query
   end
 
