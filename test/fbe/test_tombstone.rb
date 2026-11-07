@@ -201,4 +201,14 @@ class TestTombstone < Fbe::Test
     end
     assert_equal(0, fb.size, "factbase is touched by member #{member.inspect}, seed is #{seed}")
   end
+
+  def test_rejects_non_positive_repo
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    [0, -3].each do |repo|
+      assert_raises(Fbe::Error) { ts.bury!('github', repo, 5) }
+      assert_raises(Fbe::Error) { ts.has?('github', repo, 5) }
+      assert_raises(Fbe::Error) { ts.issues('github', repo) }
+    end
+  end
+
 end
