@@ -581,6 +581,30 @@ class TestGitHubGraph < Fbe::Test
     assert_nil(result['prev_issue_type'])
   end
 
+  def test_real_issue_type_event_reads_the_actor_of_every_kind
+    WebMock.disable_net_connect!
+    person = { 'databaseId' => 42, 'name' => 'Jeff', 'email' => 'jeff@example.com' }
+    [
+      { '__typename' => 'User', 'login' => 'jeff' }.merge(person),
+      { '__typename' => 'EnterpriseUserAccount', 'login' => 'jeff', 'user' => person },
+      { '__typename' => 'Mannequin', 'login' => 'jeff', 'claimant' => person }
+    ].each do |actor|
+      graph = Fbe::Graph.new(token: 'test')
+      graph.define_singleton_method(:query) do |_qry|
+        {
+          'node' => {
+            '__typename' => 'IssueTypeAddedEvent',
+            'createdAt' => '2025-05-11T18:17:16Z',
+            'issueType' => { 'id' => 'it1', 'name' => 'Bug', 'description' => 'A bug' },
+            'actor' => actor
+          }
+        }
+      end
+      got = graph.issue_type_event('some_id')['actor']
+      assert_equal([42, 'Jeff', 'jeff@example.com'], got.values_at('id', 'name', 'email'), actor['__typename'])
+    end
+  end
+
   def test_real_issue_type_event_changed
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
