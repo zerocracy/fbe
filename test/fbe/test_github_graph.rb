@@ -501,7 +501,36 @@ class TestGitHubGraph < Fbe::Test
     assert_equal('foo', result[0]['owner'])
     assert_equal(10, result[0]['total_commits'])
   end
+
+  def test_total_commits_skips_a_repo_whose_branch_is_missing
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    gone = Object.new
+    gone.define_singleton_method(:ref) { nil }
+    data = stub_batch_data({ repo_0: stub_repo_entry(10), repo_1: gone })
+    graph.define_singleton_method(:query_with_partial_data) { |_qry| data }
+    result = graph.total_commits(repos: [%w[foo bar main], %w[baz qux absent]])
+    assert_equal([10], result.map { |r| r['total_commits'] })
+  end
+
   # rubocop:enable Naming/VariableNumber, Elegant/GoodVariableName
+
+  def test_total_commits_checks_its_arguments
+    WebMock.disable_net_connect!
+    [Fbe::Graph.new(token: 'test'), Fbe::Graph::Fake.new].each do |graph|
+      assert_equal('Need owner, name and branch or repos', assert_raises(Fbe::Error) { graph.total_commits }.message)
+      assert_equal(
+        'Owner, name and branch is required', assert_raises(Fbe::Error) { graph.total_commits('foo') }.message
+      )
+      assert_equal('Repos list cannot be empty', assert_raises(Fbe::Error) { graph.total_commits(repos: []) }.message)
+    end
+    assert_equal(
+      'Need only owner, name and branch or repos',
+      assert_raises(Fbe::Error) do
+        Fbe::Graph.new(token: 'test').total_commits('foo', 'bar', 'main', repos: [%w[foo bar main]])
+      end.message
+    )
+  end
 
   def test_real_total_issues_and_pulls
     WebMock.disable_net_connect!
