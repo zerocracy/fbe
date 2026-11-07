@@ -341,7 +341,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
                 id
                 number
                 updatedAt
-                timelineItems(first: 1, itemTypes: [PULL_REQUEST_REVIEW], since: "#{since.utc.iso8601}") {
+                timelineItems(first: 1, itemTypes: [PULL_REQUEST_REVIEW], since: "#{since.getutc.iso8601}") {
                   nodes {
                     ... on PullRequestReview { id }
                   }
@@ -463,7 +463,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
               defaultBranchRef {
                 target {
                   ... on Commit {
-                    history(#{after}first: 100, since: "#{since.utc.iso8601}", until: "#{till.utc.iso8601}") {
+                    history(#{after}first: 100, since: "#{since.getutc.iso8601}", until: "#{till.getutc.iso8601}") {
                       totalCount
                       nodes {
                         oid
@@ -507,7 +507,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [Time] till The datetime to
   # @return [Hash] A hash with total issues and pulls
   def total_issues_created(owner, name, since, till = Time.now)
-    window = "created:#{since.utc.iso8601}..#{till.utc.iso8601}"
+    window = "created:#{since.getutc.iso8601}..#{till.getutc.iso8601}"
     result = query(
       <<~GRAPHQL
         {

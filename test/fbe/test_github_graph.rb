@@ -1058,4 +1058,50 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_total_issues_created_keeps_the_given_since
+    seed = Random.new_seed
+    t = Time.new(2025, 1, 1, 10, 0, 0, format('+%02d:00', Random.new(seed).rand(1..12)))
+    g = Fbe::Graph.new(token: 'fake')
+    g.stub(:query, ->(_q) { {} }) { g.total_issues_created('o', 'n', t, t + 3600) }
+    refute_predicate(t, :utc?, "since is converted to UTC in place, seed #{seed}")
+  end
+
+  def test_total_issues_created_accepts_frozen_since
+    t = Time.new(2025, 1, 1, 10, 0, 0, '+03:00').freeze
+    g = Fbe::Graph.new(token: 'fake')
+    h = g.stub(:query, ->(_q) { {} }) { g.total_issues_created('o', 'n', t, t + 3600) }
+    assert_equal(0, h['issues'], 'frozen since is refused')
+  end
+
+  def test_total_issues_created_renders_the_window_in_utc
+    t = Time.new(2025, 1, 1, 10, 0, 0, '+03:00')
+    g = Fbe::Graph.new(token: 'fake')
+    seen = nil
+    g.stub(:query, ->(q) { seen = q and {} }) { g.total_issues_created('o', 'n', t, t + 3600) }
+    assert_includes(seen, 'created:2025-01-01T07:00:00Z..2025-01-01T08:00:00Z', 'window is not rendered in UTC')
+  end
+
+  def test_total_commits_pushed_keeps_the_given_till
+    seed = Random.new_seed
+    t = Time.new(2025, 1, 1, 10, 0, 0, format('-%02d:00', Random.new(seed).rand(1..11)))
+    g = Fbe::Graph.new(token: 'fake')
+    g.stub(:query, ->(_q) { { 'repository' => {} } }) { g.total_commits_pushed('o', 'n', t - 3600, t) }
+    refute_predicate(t, :utc?, "till is converted to UTC in place, seed #{seed}")
+  end
+
+  def test_total_commits_pushed_accepts_frozen_since
+    t = Time.new(2025, 1, 1, 10, 0, 0, '+03:00').freeze
+    g = Fbe::Graph.new(token: 'fake')
+    h = g.stub(:query, ->(_q) { { 'repository' => {} } }) { g.total_commits_pushed('o', 'n', t, t + 3600) }
+    assert_equal(0, h['commits'], 'frozen since is refused')
+  end
+
+  def test_pull_requests_with_reviews_accepts_frozen_since
+    t = Time.new(2025, 1, 1, 10, 0, 0, '+03:00').freeze
+    g = Fbe::Graph.new(token: 'fake')
+    answer = { 'repository' => { 'pullRequests' => { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false } } } }
+    h = g.stub(:query, ->(_q) { answer }) { g.pull_requests_with_reviews('o', 'n', t) }
+    assert_empty(h['pulls_with_reviews'], 'frozen since is refused')
+  end
 end
