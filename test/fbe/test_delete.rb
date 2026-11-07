@@ -178,4 +178,16 @@ class TestDelete < Fbe::Test
     assert_equal(snapshot[:version], after._version)
     assert_equal(snapshot[:job], after._job)
   end
+
+  def test_raises_when_fact_is_gone
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    f._id = 1
+    gone = fb.query('(always)').each.first
+    fb.query('(always)').delete!
+    error = assert_raises(Fbe::Error) { Fbe.delete(gone, 'foo', fb:) }
+    assert_equal('No facts by _id = 1', error.message)
+    assert_equal(0, fb.size)
+  end
 end
