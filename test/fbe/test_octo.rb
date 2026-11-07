@@ -189,6 +189,22 @@ class TestOcto < Fbe::Test
     assert_raises(StandardError) { o.user(42) }
   end
 
+  def test_raises_no_method_error_for_a_missing_method
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '4000' } }
+    )
+    {
+      { 'testing' => true } => 'Fbe::FakeOctokit',
+      { 'github_token' => 'fake-token' } => 'Octokit::Client'
+    }.each do |opts, kind|
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new(opts))
+      e = assert_raises(NoMethodError) { o.no_such_method('foo/bar') }
+      assert_equal(:no_such_method, e.name, "wrong method name in #{e.message.inspect}")
+      assert_includes(e.message, kind, "the client class is not named in #{e.message.inspect}")
+    end
+  end
+
   def test_rate_limit_bang_works_when_off_quota
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
