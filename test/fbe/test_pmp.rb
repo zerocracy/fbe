@@ -130,6 +130,50 @@ class TestPmp < Fbe::Test
     assert(v.memo)
   end
 
+  def test_reads_memo_of_bool_property
+    pmp = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    refute_empty(pmp.communications.property(:stealth).memo, 'bool property has no memo')
+  end
+
+  def test_reads_type_of_bool_property
+    pmp = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_equal('bool', pmp.communications.property('stealth').type, 'bool property is not typed as bool')
+  end
+
+  def test_reads_value_of_bool_property
+    seed = Random.new_seed
+    flag = [true, false].sample(random: Random.new(seed))
+    fb = Factbase.new
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'communications'
+    f.stealth = flag.to_s
+    pmp = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_equal(flag, pmp.communications.property(:stealth).value, "bool property is not #{flag} (seed: #{seed})")
+  end
+
+  def test_reads_default_of_bool_property
+    pmp = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_same(false, pmp.communications.property(:stealth).default, 'bool property has no false default')
+  end
+
+  def test_reads_int_property_the_same_way
+    pmp = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_equal(pmp.hr.days_to_reward.value, pmp.hr.property(:days_to_reward).value, 'int property reads otherwise')
+  end
+
+  def test_reads_property_of_custom_area
+    seed = Random.new_seed
+    text = "ёжик-#{Random.new(seed).rand(1_000)}"
+    fb = Factbase.new
+    f = fb.insert
+    f.what = 'pmp'
+    f.area = 'ünïcødé'
+    f.motto = text
+    pmp = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_equal(text, pmp.public_send(:ünïcødé).property(:motto).value, "custom property is lost (seed: #{seed})")
+  end
+
   def test_reads_other_props
     $fb = Factbase.new
     $global = {}
