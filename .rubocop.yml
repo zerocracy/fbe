@@ -36,6 +36,11 @@ Elegant/GoodMethodName:
   Exclude:
     - 'test/**/*'
   AllowedNames:
+    - execute_query
+    - graphql_messages
+    - raise_graphql_off_quota
+    - reset_at
+    - header_integer
     - accept_repository_invitation
     - add_comment
     - auto_paginate
