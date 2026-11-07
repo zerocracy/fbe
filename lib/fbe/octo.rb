@@ -225,6 +225,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             end
             def repo_id_by_name(name) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The name of the repo is nil') if name.nil?
+              unless name.is_a?(String) && name.match?(%r{\A[^/]+/[^/]+\z})
+                raise(Fbe::Error, "The name of the repo #{name.inspect} is not in the owner/repo form")
+              end
               json = @origin.repository(name)
               id = json[:id]
               raise(Fbe::Error, "Repository #{name} not found") if id.nil?
