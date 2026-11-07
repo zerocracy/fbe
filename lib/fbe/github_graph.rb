@@ -60,7 +60,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # Executes a GraphQL query against the GitHub API.
   #
   # @param [String] qry The GraphQL query to execute
-  # @return [GraphQL::Client::Response] The query result data
+  # @return [GraphQL::Client::Schema::ObjectClass] The data of the response
   # @example
   #   graph = Fbe::Graph.new(token: 'github_token')
   #   result = graph.query('{viewer {login}}')
@@ -377,7 +377,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @param [String] owner The repository owner (username or organization)
   # @param [String] name The repository name
   # @param [Array<Array<Integer, (String, nil)>>] pulls Array of pull number and Github cursor
-  # @return [Hash] A hash with reviews
+  # @return [Array<Hash>] One hash per pull, with its reviews
   # @example
   #   graph = Fbe::Graph.new(token: 'github_token')
   #   queue = [[1108, nil], [1105, nil]]
@@ -583,7 +583,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # +data.errors.messages[alias]+ before reading a given alias.
   #
   # @param [String] qry The GraphQL query to execute
-  # @return [GraphQL::Client::Response] The (possibly partial) query result data
+  # @return [GraphQL::Client::Schema::ObjectClass] The (possibly partial) data of the response
   def query_with_partial_data(qry)
     result = client.query(client.parse(qry))
     messages = result.errors.messages.values.flatten
