@@ -20,6 +20,12 @@ class TestFbe < Fbe::Test
     refute_kind_of(RuntimeError, Fbe::Error.new)
   end
 
+  def test_all_workflows_have_timeout_minutes
+    Dir[File.join(__dir__, '../.github/workflows/*.yml')].each do |f|
+      assert_includes(File.read(f), 'timeout-minutes', "#{f} has no timeout-minutes")
+    end
+  end
+
   def test_documented_raise_tags_name_the_class_that_is_raised
     Dir[File.join(__dir__, '../lib/**/*.rb')].each do |f|
       tags = File.readlines(f).grep(/@raise \[/)
