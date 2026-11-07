@@ -215,7 +215,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             # @see https://github.com/zerocracy/pages-action/issues/131
             def user_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The ID of the user is nil') if id.nil?
-              raise(Fbe::Error, 'The ID of the user must be an Integer') unless id.is_a?(Integer)
+              unless id.is_a?(Integer) && id.positive?
+                raise(Fbe::Error, 'The ID of the user must be a positive Integer')
+              end
               json = @origin.user(id)
               name = json[:login].downcase
               @loog.debug("GitHub user ##{id} has a name: @#{name}")
@@ -235,7 +237,9 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
             end
             def repo_name_by_id(id) # rubocop:disable Layout/EmptyLineBetweenDefs
               raise(Fbe::Error, 'The ID of the repo is nil') if id.nil?
-              raise(Fbe::Error, 'The ID of the repo must be an Integer') unless id.is_a?(Integer)
+              unless id.is_a?(Integer) && id.positive?
+                raise(Fbe::Error, 'The ID of the repo must be a positive Integer')
+              end
               json = @origin.repository(id)
               name = json[:full_name].downcase
               @loog.debug("GitHub repository ##{id} has a name: #{name}")
