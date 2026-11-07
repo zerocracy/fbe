@@ -44,8 +44,9 @@ require_relative '../fbe'
 #   #      (explain \"When an issue is submitted but then rejected by the team, ...\")
 #   #      (aka
 #   #        (let fee -32)
+#   #        (let penalty 32)
 #   #        (give fee \"as a basis\")
-#   #        \"deduct ${fee} points\")
+#   #        \"deduct ${penalty} points\")
 #   #      )"
 def Fbe.bylaws(anger: 2, love: 2, paranoia: 2)
   raise(Fbe::Error, "The 'anger' must be an Integer: #{anger.inspect}") unless anger.is_a?(Integer)
