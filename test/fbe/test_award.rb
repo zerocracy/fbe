@@ -82,7 +82,7 @@ class TestAward < Fbe::Test
   end
 
   def test_refuses_unknown_terms
-    ['(award (giv 5 "x"))', '(award (give (tims 2 3) "x"))'].each do |q|
+    ['(award (grant 5 "x"))', '(award (give (multiply 2 3) "x"))'].each do |q|
       assert_includes(assert_raises(Fbe::Error, q) { Fbe::Award.new(q).bill }.message, 'Unknown term', q)
     end
   end
