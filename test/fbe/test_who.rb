@@ -40,4 +40,13 @@ class TestWho < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
   end
+
+  def test_refuses_a_fact_without_who
+    fb = Factbase.new
+    f = fb.insert
+    global = {}
+    options = Judges::Options.new({})
+    error = assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
+    assert_equal('There is no :who property', error.message)
+  end
 end
