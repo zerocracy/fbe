@@ -442,6 +442,26 @@ class TestConclude < Fbe::Test
     end
   end
 
+  def test_on_rejects_empty_query
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.conclude(fb: Factbase.new, judge: 'judge-empty-q', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+          on('')
+        end
+      end
+    assert_equal('Query cannot be empty', error.message)
+  end
+
+  def test_on_rejects_whitespace_only_query
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.conclude(fb: Factbase.new, judge: 'judge-ws-q', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+          on('   ')
+        end
+      end
+    assert_equal('Query cannot be empty', error.message)
+  end
+
   def test_follow_raises_on_second_call_after_empty_one
     $fb = Factbase.new
     $global = {}
