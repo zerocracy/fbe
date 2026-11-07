@@ -207,8 +207,8 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 @loog.debug("Still #{left} #{label} quota left (>#{threshold})")
                 false
               end
-            rescue Octokit::ServerError, Octokit::Unauthorized, Octokit::Forbidden,
-              Faraday::ConnectionFailed, Faraday::TimeoutError => e
+            rescue Octokit::ServerError, Octokit::ClientError,
+              Faraday::ConnectionFailed, Faraday::TimeoutError, Faraday::SSLError => e
               @loog.warn("Failed to check #{label} quota, assuming it is over: #{e.message}")
               true
             end
