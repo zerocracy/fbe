@@ -277,7 +277,12 @@ class Fbe::Iterate
     repos =
       Fbe.unmask_repos(
         loog: @loog, options: @options, global: @global, quota_aware: @quota
-      ).map { |n| oct.repo_id_by_name(n) }
+      ).filter_map do |n|
+        oct.repo_id_by_name(n)
+      rescue Fbe::Error => e
+        @loog.warn("Skipping repository #{n}: #{e.message}")
+        nil
+      end
     started = Time.now
     restarted = []
     markers = {}
