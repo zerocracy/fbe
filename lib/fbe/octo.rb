@@ -109,11 +109,12 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.use(Fbe::Middleware::RateLimit, limits)
               builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh], mutex:)
               if options.sqlite_cache
-                bytes_of = lambda do |value, default|
-                  value.is_a?(Integer) ? value : Integer(Filesize.from(value || default))
-                end
-                maxsize = bytes_of.call(options.sqlite_cache_maxsize, '100M')
-                maxvsize = bytes_of.call(options.sqlite_cache_maxvsize, '100K')
+                bytes =
+                  lambda do |value, default|
+                    value.is_a?(Integer) ? value : Integer(Filesize.from(value || default))
+                  end
+                maxsize = bytes.call(options.sqlite_cache_maxsize, '100M')
+                maxvsize = bytes.call(options.sqlite_cache_maxvsize, '100K')
                 minage = options.sqlite_cache_min_age.nil? ? nil : Integer(options.sqlite_cache_min_age.to_s, 10)
                 store = Fbe::Middleware::SqliteStore.new(
                   options.sqlite_cache, Fbe::VERSION, loog:, maxsize:, maxvsize:, ttl: 24, cache_min_age: minage
