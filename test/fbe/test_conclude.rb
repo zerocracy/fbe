@@ -528,11 +528,14 @@ class TestConclude < Fbe::Test
     octo = Fbe.octo(loog:, options:, global:)
     octo.define_singleton_method(:off_quota?) { |**_opts| true }
     seen = []
-    count =
-      Fbe.conclude(fb:, judge: 'judge-quota', loog:, options:, global:) do
-        on('(exists foo)')
-        consider { |f| seen << f.foo }
-      end
+    count = nil
+    fb.stub(:query, ->(*) { flunk('the factbase must not be queried when off quota') }) do
+      count =
+        Fbe.conclude(fb:, judge: 'judge-quota', loog:, options:, global:) do
+          on('(exists foo)')
+          consider { |f| seen << f.foo }
+        end
+    end
     assert_equal(0, count)
     assert_empty(seen)
   end
