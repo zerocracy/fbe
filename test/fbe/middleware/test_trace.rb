@@ -91,6 +91,8 @@ class TraceTest < Fbe::Test
     refute_nil(entry[:error])
     assert_nil(entry[:status])
     assert_instance_of(Float, entry[:duration])
+    assert_instance_of(Time, entry[:finished_at])
+    assert_operator(entry[:finished_at], :>=, entry[:started_at])
   end
 
   def test_preserves_request_with_query_params # rubocop:disable Minitest/MultipleAssertions
