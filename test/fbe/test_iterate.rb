@@ -138,6 +138,49 @@ class TestIterate < Fbe::Test
     end
   end
 
+  def test_raises_when_label_is_a_system_property
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error, "a system property was accepted as a label, seed #{seed}") do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as(%w[_id _time _version _job].sample(random: rnd))
+        by('(plus 1 1)')
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_raises_when_label_starts_with_underscore
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    assert_raises(Fbe::Error, "a label with a leading underscore was accepted, seed #{seed}") do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as("_#{('a'..'z').to_a.sample(rnd.rand(1..40), random: rnd).join}")
+        by('(plus 1 1)')
+        over { |_, nxt| nxt }
+      end
+    end
+  end
+
+  def test_stores_cursor_under_label_with_inner_underscore
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    label = "x#{rnd.rand(1000)}_#{('a'..'z').to_a.sample(rnd.rand(1..40), random: rnd).join}"
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as(label)
+      by('(plus 1 1)')
+      over { |_, nxt| nxt }
+    end
+    marker = fb.query("(eq what 'iterate')").each.first
+    assert_equal([2], marker[label], "label #{label} lost the cursor, seed #{seed}")
+  end
+
   def test_raises_when_query_not_set
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
