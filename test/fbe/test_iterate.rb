@@ -360,6 +360,34 @@ class TestIterate < Fbe::Test
     assert_equal(4, results.size)
   end
 
+  def test_starts_with_the_repository_whose_marker_is_the_lowest
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true', 'timeout=1'])
+    3.times do
+      global = {}
+      fb = Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL)
+      octo = Fbe.octo(loog: Loog::NULL, global:, options: opts)
+      { 'foo/bar' => 50, 'foo/baz' => 10 }.each do |name, marker|
+        f = fb.insert
+        f.what = 'iterate'
+        f.where = 'github'
+        f.repository = octo.repo_id_by_name(name)
+        f.lowest_first = marker
+      end
+      seen = []
+      Fbe.iterate(fb:, loog: Loog::NULL, global:, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('lowest_first')
+        by('(plus $before 1)')
+        repeats(5)
+        over do |repo, nxt|
+          seen << repo
+          sleep(1)
+          nxt
+        end
+      end
+      assert_equal([octo.repo_id_by_name('foo/baz')], seen, 'the repository with the lowest marker was not first')
+    end
+  end
+
   def test_all_repos_restart_causes_exit
     opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
