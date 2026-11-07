@@ -183,7 +183,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       ref.target.history.total_count
     else
       data = query_with_partial_data("{\n#{requests.join("\n")}\n}")
-      failed = data.errors.messages
+      failed = data.respond_to?(:errors) ? data.errors.messages : {}
       repos.each_with_index.filter_map do |(owner, name, branch), i|
         next if failed["repo_#{i}"]&.any?
         ref = data.public_send(:"repo_#{i}")&.ref
@@ -586,8 +586,12 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   # @return [GraphQL::Client::Response] The (possibly partial) query result data
   def query_with_partial_data(qry)
     result = client.query(client.parse(qry))
-    messages = result.errors.messages.values.flatten
-    raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}") unless messages.empty?
+    if result.data.nil?
+      messages = result.errors.messages.values.flatten
+      raise(Fbe::Error, "GitHub GraphQL query failed: #{messages.join('; ')}")
+    end
+    errors = result.errors
+    result.data.define_singleton_method(:errors) { errors } unless result.data.respond_to?(:errors)
     result.data
   end
 
