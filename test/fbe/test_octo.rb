@@ -14,6 +14,12 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  def test_fake_repository_gives_each_owner_its_id
+    o = Fbe::FakeOctokit.new
+    assert_equal(24_234_201, o.repository('zerocracy/fbe')[:owner][:id], 'zerocracy has its own id')
+    assert_equal(526_301, o.repository('yegor256/judges')[:owner][:id], 'yegor256 keeps his id')
+  end
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
