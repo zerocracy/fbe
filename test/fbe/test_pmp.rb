@@ -289,4 +289,58 @@ class TestPmp < Fbe::Test
     assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: nil, loog: Loog::NULL) }
     assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: opts, loog: nil) }
   end
+
+  def test_custom_area_boolean_false_evaluates_falsy_in_conditional
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    fb = Factbase.new
+    fb.import(Marshal.dump([{ 'what' => ['pmp'], 'area' => ['custom_toggle'], 'enabled' => [false] }]))
+    val = Fbe.pmp(fb:, loog: Loog::NULL).custom_toggle.enabled
+    refute(val)
+    assert_instance_of(FalseClass, val)
+    flag = true
+    flag = false if val
+    assert(flag, 'Boolean false in custom PMP area must evaluate as falsy in conditionals')
+  end
+
+  def test_custom_area_boolean_true_evaluates_truthy_in_conditional
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    fb = Factbase.new
+    fb.import(Marshal.dump([{ 'what' => ['pmp'], 'area' => ['custom_toggle'], 'enabled' => [true] }]))
+    val = Fbe.pmp(fb:, loog: Loog::NULL).custom_toggle.enabled
+    assert(val)
+    assert_instance_of(TrueClass, val)
+    flag = false
+    flag = true if val
+    assert(flag, 'Boolean true in custom PMP area must evaluate as truthy in conditionals')
+  end
+
+  def test_custom_area_multiple_boolean_properties
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    fb = Factbase.new
+    fb.import(
+      Marshal.dump(
+        [{ 'what' => ['pmp'], 'area' => ['feature_flags'], 'alpha' => [false], 'beta' => [true] }]
+      )
+    )
+    pmp = Fbe.pmp(fb:, loog: Loog::NULL)
+    refute(pmp.feature_flags.alpha)
+    assert(pmp.feature_flags.beta)
+  end
+
+  def test_custom_area_non_boolean_is_wrapped_in_delegator
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    fb = Factbase.new
+    fb.import(Marshal.dump([{ 'what' => ['pmp'], 'area' => ['custom_metrics'], 'timeout' => [30] }]))
+    val = Fbe.pmp(fb:, loog: Loog::NULL).custom_metrics.timeout
+    assert_equal(30, val)
+    assert_kind_of(SimpleDelegator, val)
+  end
 end
