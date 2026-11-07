@@ -69,9 +69,8 @@ class TestOverwrite < Fbe::Test
     fb = Factbase.new
     f = fb.insert
     f.foo = 43
-    assert_raises(StandardError) do
-      Fbe.overwrite(f, 'foo', 42, fb:)
-    end
+    e = assert_raises(Fbe::Error) { Fbe.overwrite(f, 'foo', 42, fb:) }
+    assert_includes(e.message, 'There is no _id', e.message)
   end
 
   def test_without_previous_property
