@@ -20,6 +20,7 @@ require 'uri'
 require 'veil'
 require 'verbose'
 require_relative '../fbe'
+require_relative 'github_graph'
 require_relative 'middleware'
 require_relative 'middleware/formatter'
 require_relative 'middleware/rate_limit'
@@ -59,7 +60,10 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
         trace = []
         mutex = Mutex.new
         limits = {}
-        if options.testing.nil?
+        if Fbe.testing?(options)
+          loog.debug('The connection to GitHub API is mocked')
+          o = Fbe::FakeOctokit.new
+        else
           o = Octokit::Client.new
           token = options.github_token
           if token.nil?
@@ -138,9 +142,6 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               "#{quota})"
             )
           end
-        else
-          loog.debug('The connection to GitHub API is mocked')
-          o = Fbe::FakeOctokit.new
         end
         o =
           decoor(o, loog:, trace:, limits:, mutex:) do # rubocop:disable Metrics/BlockLength
