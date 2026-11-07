@@ -355,9 +355,18 @@ class TestGitHubGraph < Fbe::Test
   def test_pull_requests_with_reviews_when_repository_is_missing
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
-    graph.define_singleton_method(:query) do |_qry|
-      { 'errors' => [{ 'message' => 'Could not resolve to a Repository' }] }
-    end
+    msg = "Could not resolve to a Repository with the name 'bad-owner/bad-repo'"
+    raw = [{ 'message' => msg, 'path' => ['repository'] }]
+    GraphQL::Client::Errors.normalize_error_paths({ 'repository' => nil }, raw)
+    data = Object.new
+    data.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw, ['data']) }
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { data }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
     error =
       assert_raises(Fbe::Error) do
         graph.pull_requests_with_reviews('bad-owner', 'bad-repo', Time.parse('2025-08-01T18:00:00Z'))
@@ -656,9 +665,17 @@ class TestGitHubGraph < Fbe::Test
   def test_real_total_commits_pushed_raises_when_repo_not_found
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
-    graph.define_singleton_method(:query) do |_qry|
-      { 'repository' => nil }
-    end
+    raw = [{ 'message' => "Could not resolve to a Repository with the name 'foo/bar'", 'path' => ['repository'] }]
+    GraphQL::Client::Errors.normalize_error_paths({ 'repository' => nil }, raw)
+    data = Object.new
+    data.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw, ['data']) }
+    response = Object.new
+    response.define_singleton_method(:errors) { GraphQL::Client::Errors.new(raw) }
+    response.define_singleton_method(:data) { data }
+    fake_client = Object.new
+    fake_client.define_singleton_method(:parse) { |q| q }
+    fake_client.define_singleton_method(:query) { |_parsed| response }
+    graph.define_singleton_method(:client) { fake_client }
     assert_raises(Fbe::Error) { graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01')) }
   end
 
