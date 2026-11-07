@@ -193,6 +193,9 @@ class Fbe::Middleware::SqliteStore
     end
     return [] if @disabled
     @db.transaction(&)
+  rescue SQLite3::BusyException => e
+    @loog.warn("SQLite cache at #{@path} is locked, skipping it this time: #{e.message}")
+    []
   end
 
   # Opens the database, discarding and recreating an unusable cache file once.

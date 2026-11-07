@@ -13,6 +13,20 @@ require_relative '../../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class SqliteStoreTest < Fbe::Test
+  def test_answers_nothing_on_a_read_while_locked
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, 'busy.db')
+      store = Fbe::Middleware::SqliteStore.new(path, '1.0')
+      store.write('k', [[JSON.dump({ 'method' => 'get' }), JSON.dump({ 'status' => 200 })]])
+      holder = SQLite3::Database.new(path)
+      holder.execute('BEGIN EXCLUSIVE')
+      assert_nil(store.read('k'), 'A locked cache must miss, not fail the request')
+      holder.execute('COMMIT')
+      holder.close
+      refute_nil(store.read('k'), 'After the lock the entry must be there')
+    end
+  end
+
   def test_simple_caching_algorithm # rubocop:disable Minitest/MultipleAssertions
     with_tmpfile('x.db') do |f|
       store = Fbe::Middleware::SqliteStore.new(f, '0.0.0')
