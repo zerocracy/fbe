@@ -154,6 +154,63 @@ class LoggingFormatterTest < Fbe::Test
     refute_match(%r{http://example.com/bravo}, str, 'the response is logged against the wrong request')
   end
 
+  def test_uses_warning_for_json_regardless_of_media_type_case
+    ['application/json', 'Application/JSON; Charset=UTF-8', 'APPLICATION/JSON'].each do |type|
+      logger = Loog::Buffer.new
+      warnings = []
+      formatter = Fbe::Middleware::Formatter.new(logger:, options: {})
+      env = Faraday::Env.from(
+        {
+          method: :get, url: URI('http://example.com'), status: 403,
+          request_headers: {}, response_headers: { 'content-type' => type },
+          response_body: '{"message":"denied"}'
+        }
+      )
+      logger.stub(:warn, ->(message) { warnings << message }) do
+        formatter.response(env)
+      end
+      assert_equal(['GET http://example.com -> 403 / denied'], warnings)
+    end
+  end
+
+  def test_truncates_text_regardless_of_media_type_case
+    body = 'x' * 120
+    ['text/plain', 'Text/Plain; Charset=UTF-8', 'TEXT/HTML'].each do |type|
+      log_it(status: 502, response_body: body, response_headers: { 'content-type' => type }) do |loog|
+        assert_includes(loog.to_s, "#{body[0, 97]}...")
+        refute_includes(loog.to_s, body)
+        assert_includes(loog.to_s, "content-type: #{type.inspect}")
+      end
+    end
+  end
+
+  def test_transcodes_valid_bodies_before_filtering_and_truncation
+    body = "Ошибка #{'x' * 110}"
+    %w[UTF-16LE UTF-16BE UTF-32LE UTF-32BE].product([404, 502]).each do |encoding, status|
+      log_it(
+        status:,
+        request_body: 'Authorization: Bearer body-secret'.encode(encoding),
+        response_body: body.encode(encoding),
+        response_headers: { 'content-type' => "text/plain; charset=#{encoding.downcase}" }
+      ) do |loog, env|
+        expected = status == 502 ? "#{body[0, 97]}..." : body
+        [expected, 'Authorization: Bearer [FILTERED]'].each { |text| assert_includes(loog.to_s, text) }
+        refute_includes(loog.to_s, 'body-secret')
+        assert_equal(
+          [Encoding::UTF_8, Encoding.find(encoding), Encoding.find(encoding)],
+          [loog.to_s.encoding, env.response_body.encoding, env.request_body.encoding]
+        )
+      end
+    end
+  end
+
+  def test_logs_binary_response_bodies
+    body = "\xFFdata".b
+    log_it(status: 404, response_body: body) do |loog|
+      assert_includes(loog.to_s, 'data')
+    end
+  end
+
   def test_survives_a_response_without_a_request
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
@@ -170,26 +227,19 @@ class LoggingFormatterTest < Fbe::Test
   def log_it(
     status:,
     method: :get,
+    request_body: 'some request body',
     response_body: '{"message": "hello, world!"}',
     response_headers: { 'content-type' => 'application/json', 'x-github-api-version-selected' => '2022-11-28' },
     request_headers: { 'Authorization' => 'Bearer github_pat_11AAsecret' }
   )
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
-    env =
-      Faraday::Env.from(
-        {
-          method:,
-          request_body: 'some request body',
-          url: URI('http://example.com'),
-          request_headers:
-        }
-      )
+    env = Faraday::Env.from({ method:, request_body:, url: URI('http://example.com'), request_headers: })
     formatter.request(env)
     env.status = status
     env.response_headers = response_headers
     env.response_body = response_body
     formatter.response(env)
-    yield(loog)
+    yield(loog, env)
   end
 end
