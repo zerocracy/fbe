@@ -18,9 +18,10 @@ require_relative 'same'
 # @example Creating or finding a unique fact
 #   require 'fbe/just_one'
 #   fact = Fbe.just_one do |f|
-#     f.what = 'github_issue'
+#     f.what = 'github-issue'
 #     f.issue_id = 123
-#     f.repository = 'zerocracy/fbe'
+#     f.where = 'github'
+#     f.repository = 820463873 # ID of zerocracy/fbe
 #   end
 #   # Returns existing fact if one exists with these exact attributes,
 #   # otherwise creates and returns a new fact
