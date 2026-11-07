@@ -741,11 +741,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     ]
   end
 
-  def pull_request_review_comments(_repo, _number, _review, _options = {})
-    [
-      { id: 22_447_120, user: { login: 'yegor256', id: 526_301, type: 'User' } },
-      { id: 22_447_121, user: { login: 'yegor256', id: 526_301, type: 'User' } }
-    ]
+  def pull_request_review_comments(repo, number, review, _options = {})
+    pull_request_comments(repo, number).select { |c| c[:pull_request_review_id] == review }
   end
 
   def add_comment(_repo, _issue, _text)
@@ -1197,7 +1194,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   def pull_request_comments(_name, _number)
     [
       {
-        pull_request_review_id: 2_227_372_510,
+        pull_request_review_id: 22_449_327,
         id: 1_709_082_318,
         path: 'test/baza/test_locks.rb',
         commit_id: 'a9f5f94cf28f29a64d5dd96d0ee23b4174572847',
@@ -1224,7 +1221,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         subject_type: 'line'
       },
       {
-        pull_request_review_id: 2_227_372_510,
+        pull_request_review_id: 22_449_327,
         id: 1_709_082_319,
         path: 'test/baza/test_locks.rb',
         commit_id: 'a9f5f94cf28f29a64d5dd96d0ee23b4174572847',
