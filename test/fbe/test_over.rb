@@ -89,6 +89,58 @@ class TestOver < Fbe::Test
     refute(Fbe.over?(global:, options:, loog:, kickoff: Time.now - 120, timeout_aware: false))
   end
 
+  def test_stops_when_nine_tenths_of_lifetime_are_spent
+    seed = Random.new_seed
+    lifetime = Random.new(seed).rand(100..10_000)
+    options = Judges::Options.new({ 'testing' => true, 'lifetime' => lifetime })
+    assert(
+      Fbe.over?(
+        global: {}, options:, loog: Loog::NULL, epoch: Time.now - (lifetime * 0.95), kickoff: Time.now,
+        quota_aware: false, lifetime_aware: true, timeout_aware: false
+      ),
+      "the run went on with 95% of #{lifetime}s lifetime spent, seed #{seed}"
+    )
+  end
+
+  def test_goes_on_while_lifetime_is_mostly_left
+    seed = Random.new_seed
+    lifetime = Random.new(seed).rand(100..10_000)
+    options = Judges::Options.new({ 'testing' => true, 'lifetime' => lifetime })
+    refute(
+      Fbe.over?(
+        global: {}, options:, loog: Loog::NULL, epoch: Time.now - (lifetime * 0.8), kickoff: Time.now,
+        quota_aware: false, lifetime_aware: true, timeout_aware: false
+      ),
+      "the run stopped with 80% of #{lifetime}s lifetime spent, seed #{seed}"
+    )
+  end
+
+  def test_stops_when_nine_tenths_of_timeout_are_spent
+    seed = Random.new_seed
+    timeout = Random.new(seed).rand(100..10_000)
+    options = Judges::Options.new({ 'testing' => true, 'timeout' => timeout })
+    assert(
+      Fbe.over?(
+        global: {}, options:, loog: Loog::NULL, epoch: Time.now, kickoff: Time.now - (timeout * 0.95),
+        quota_aware: false, lifetime_aware: false, timeout_aware: true
+      ),
+      "the run went on with 95% of #{timeout}s timeout spent, seed #{seed}"
+    )
+  end
+
+  def test_goes_on_while_timeout_is_mostly_left
+    seed = Random.new_seed
+    timeout = Random.new(seed).rand(100..10_000)
+    options = Judges::Options.new({ 'testing' => true, 'timeout' => timeout })
+    refute(
+      Fbe.over?(
+        global: {}, options:, loog: Loog::NULL, epoch: Time.now, kickoff: Time.now - (timeout * 0.8),
+        quota_aware: false, lifetime_aware: false, timeout_aware: true
+      ),
+      "the run stopped with 80% of #{timeout}s timeout spent, seed #{seed}"
+    )
+  end
+
   def test_refuses_a_missing_context
     opts = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) do
