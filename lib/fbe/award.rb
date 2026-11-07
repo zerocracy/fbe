@@ -435,8 +435,6 @@ class Fbe::Award
   # introductions, calculation steps, and variable substitutions.
   # It produces Markdown-formatted output describing how awards are calculated.
   class Bylaw
-    attr_reader :vars
-
     # Creates a new empty bylaw.
     #
     # @example
