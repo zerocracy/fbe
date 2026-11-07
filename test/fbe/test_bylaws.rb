@@ -169,6 +169,46 @@ class TestBylaws < Fbe::Test
     assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
   end
 
+  def test_charges_missing_review_at_highest_love
+    a = Fbe::Award.new(Fbe.bylaws(anger: 2, love: 4, paranoia: 2)['code-contribution-was-rewarded'])
+    assert_operator(
+      a.bill({ hoc: 150, comments: 0, reviews: 0 }).points, :<, a.bill({ hoc: 150, comments: 0, reviews: 1 }).points,
+      'pull request without review is paid as much as a reviewed one at love 4'
+    )
+  end
+
+  def test_charges_too_many_hits_of_code_at_highest_love
+    a = Fbe::Award.new(Fbe.bylaws(anger: 2, love: 4, paranoia: 2)['code-contribution-was-rewarded'])
+    assert_operator(
+      a.bill({ hoc: 300, comments: 0, reviews: 1 }).points, :<, a.bill({ hoc: 150, comments: 0, reviews: 1 }).points,
+      'pull request over the hits-of-code threshold is paid as much as a small one at love 4'
+    )
+  end
+
+  def test_pays_release_hits_of_code_at_high_love
+    seed = Random.new_seed
+    love = Random.new(seed).rand(3..4)
+    a = Fbe::Award.new(Fbe.bylaws(anger: 2, love:, paranoia: 2)['published-release-was-rewarded'])
+    assert_operator(
+      a.bill({ hoc: 100, contributors: 1 }).points, :<, a.bill({ hoc: 4_000, contributors: 1 }).points,
+      "release with 4000 hits-of-code is paid as much as one with 100 at love #{love} (seed: #{seed})"
+    )
+  end
+
+  def test_keeps_code_contribution_cap_at_low_love
+    seed = Random.new_seed
+    love = Random.new(seed).rand(0..2)
+    md = Fbe::Award.new(Fbe.bylaws(anger: 2, love:, paranoia: 2)['code-contribution-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'not larger than **24** points', "code contribution cap moves at love #{love} (seed: #{seed})")
+  end
+
+  def test_keeps_release_cap_at_low_love
+    seed = Random.new_seed
+    love = Random.new(seed).rand(0..2)
+    md = Fbe::Award.new(Fbe.bylaws(anger: 2, love:, paranoia: 2)['published-release-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'not larger than **32** points', "cap of release moves at love #{love} (seed: #{seed})")
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
