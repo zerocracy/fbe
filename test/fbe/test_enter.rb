@@ -57,4 +57,10 @@ class TestEnter < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_equal('hi', Fbe.enter('foo', 'no reason', options:, loog: Loog::NULL) { 'hi' })
   end
+
+  def test_rejects_whitespace_only_why
+    options = Judges::Options.new({ 'testing' => true })
+    err = assert_raises(Fbe::Error) { Fbe.enter('foo', '   ', options:, loog: Loog::NULL) { 'hi' } }
+    assert_match(/why/i, err.message)
+  end
 end
