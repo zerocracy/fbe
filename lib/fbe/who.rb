@@ -31,7 +31,7 @@ def Fbe.who(fact, prop = :who, options: $options, global: $global, loog: $loog)
   raise(Fbe::Error, "There is no #{prop.inspect} property") if id.nil?
   begin
     id = Integer(Float(id.first).round)
-  rescue ArgumentError, TypeError
+  rescue ArgumentError, TypeError, FloatDomainError
     raise(Fbe::Error, "The #{prop.inspect} property (#{id.first.inspect}) is not a number")
   end
   "@#{Fbe.octo(options:, global:, loog:).user_name_by_id(id)}"

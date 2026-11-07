@@ -40,4 +40,16 @@ class TestWho < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
   end
+
+  def test_cannot_name_user_with_non_finite_id
+    seed = Random.new_seed
+    value = [Float::NAN, Float::INFINITY, -Float::INFINITY].sample(random: Random.new(seed))
+    fb = Factbase.new
+    f = fb.insert
+    f.who = value
+    options = Judges::Options.new({ 'testing' => true })
+    assert_raises(Fbe::Error, "the user #{value} is named, seed is #{seed}") do
+      Fbe.who(f, global: {}, options:, loog: Loog::NULL)
+    end
+  end
 end
