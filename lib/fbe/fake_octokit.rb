@@ -1213,14 +1213,14 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082318/reactions',
           total_count: 0
         },
-        start_line: 'null',
-        original_start_line: 'null',
-        start_side: 'null',
-        line: 'null',
+        start_line: nil,
+        original_start_line: nil,
+        start_side: nil,
+        line: nil,
         original_line: 62,
         side: 'RIGHT',
         original_position: 25,
-        position: 'null',
+        position: nil,
         subject_type: 'line'
       },
       {
@@ -1240,15 +1240,15 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082319/reactions',
           total_count: 0
         },
-        start_line: 'null',
-        original_start_line: 'null',
-        start_side: 'null',
-        line: 'null',
+        start_line: nil,
+        original_start_line: nil,
+        start_side: nil,
+        line: nil,
         original_line: 62,
         side: 'RIGHT',
         original_position: 25,
         in_reply_to_id: 1_709_082_318,
-        position: 'null',
+        position: nil,
         subject_type: 'line'
       }
     ]
@@ -1275,14 +1275,14 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082320/reactions',
           total_count: 1
         },
-        start_line: 'null',
-        original_start_line: 'null',
-        start_side: 'null',
-        line: 'null',
+        start_line: nil,
+        original_start_line: nil,
+        start_side: nil,
+        line: nil,
         original_line: 62,
         side: 'RIGHT',
         original_position: 25,
-        position: 'null',
+        position: nil,
         subject_type: 'line'
       },
       {
@@ -1302,15 +1302,15 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082321/reactions',
           total_count: 1
         },
-        start_line: 'null',
-        original_start_line: 'null',
-        start_side: 'null',
-        line: 'null',
+        start_line: nil,
+        original_start_line: nil,
+        start_side: nil,
+        line: nil,
         original_line: 62,
         side: 'RIGHT',
         original_position: 25,
         in_reply_to_id: 1_709_082_318,
-        position: 'null',
+        position: nil,
         subject_type: 'line'
       }
     ]
