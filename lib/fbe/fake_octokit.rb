@@ -505,7 +505,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @return [Hash] Issue information
   # @example
   #   client.issue('octocat/Hello-World', 42)
-  #   # => {:id=>42, :number=>42, :created_at=>...}
+  #   # => {:id=>2419512254, :number=>42, :created_at=>...}
   def issue(repo, number)
     case number
     when 94
@@ -558,7 +558,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       }
     else
       {
-        id: 42,
+        id: name_to_number(repo) + number,
         number:,
         repo: {
           full_name: repo
