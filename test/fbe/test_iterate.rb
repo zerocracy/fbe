@@ -113,13 +113,27 @@ class TestIterate < Fbe::Test
   def test_raises_when_label_not_in_snake_case
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
-    assert_raises(StandardError) do
-      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
-        as('kebab-case')
-        by('(plus 1 1)')
-        over { |_, nxt| nxt }
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          as('kebab-case')
+          by('(plus 1 1)')
+          over { |_, nxt| nxt }
+        end
       end
-    end
+    assert_includes(e.message, "Wrong label format 'kebab-case'")
+  end
+
+  def test_raises_when_since_is_not_an_integer
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+          since!('abc')
+        end
+      end
+    assert_equal('The "since" must be an Integer', e.message)
   end
 
   def test_raises_when_label_clashes_with_marker_property
