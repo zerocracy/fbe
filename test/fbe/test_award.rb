@@ -86,7 +86,8 @@ class TestAward < Fbe::Test
       '(award (give (times 7 0.25 "fun")))' => 'You\'ve earned +2 points. ',
       '(award (give (times 5 0.25 "fun")))' => 'You\'ve earned +1 points. ',
       '(award (give 25 "for being a good boy"))' => 'You\'ve earned +25 points. ',
-      '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 points. '
+      '(award (let x 0.1) (set b (times x 14)) (give b "fun"))' => 'You\'ve earned +1 points. ',
+      '(award (give 5) (give 3 "for tests"))' => 'You\'ve earned +8 points for this: +5; +3 for tests. '
     }.each do |q, v|
       a = Fbe::Award.new(q)
       assert_equal(v, a.bill.greeting, q)
