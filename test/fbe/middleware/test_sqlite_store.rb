@@ -522,6 +522,48 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_delete_key_on_nil_request_entry
+    with_tmpfile('nil_request.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+        store.write('k', faraday_value)
+        store.write('k', [[nil, '{}']])
+        assert_nil(store.read('k'))
+      end
+    end
+  end
+
+  def test_keep_single_element_pair_under_cache_min_age
+    with_tmpfile('single.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300).then do |store|
+        value = faraday_value(req: { 'method' => 'get', 'url' => 'https://example.com/test' }, resp: nil)
+        store.write('k', value)
+        assert_equal(value, store.read('k'))
+      end
+    end
+  end
+
+  def test_keep_non_json_response_under_cache_min_age
+    with_tmpfile('non_json.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300).then do |store|
+        value = [[JSON.dump({ 'method' => 'get' }), 'not-json']]
+        store.write('k', value)
+        assert_equal(value, store.read('k'))
+      end
+    end
+  end
+
+  def test_rewrite_blank_cache_control_directive
+    with_tmpfile('blank.db') do |f|
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300).then do |store|
+        store.write('k', faraday_value(resp: { 'response_headers' => { 'cache-control' => 'public, , max-age=1' } }))
+        assert_equal(
+          'public, max-age=300',
+          JSON.parse(store.read('k')[0][1]).dig('response_headers', 'cache-control')
+        )
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
