@@ -515,9 +515,6 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         repo: {
           full_name: repo
         },
-        pull_request: {
-          merged_at: nil
-        },
         state: 'open',
         created_at: Time.parse('2024-09-20 19:00:00 UTC')
       }
@@ -552,7 +549,6 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         number:,
         repo: { full_name: repo },
         user: { login: 'yegor256', id: 526_301, type: 'User' },
-        pull_request: { merged_at: nil },
         state: 'open',
         created_at: Time.parse('2025-05-29 17:00:55 UTC')
       }
@@ -564,9 +560,6 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           full_name: repo
         },
         user: { login: 'yegor256', id: 526_301, type: 'User' },
-        pull_request: {
-          merged_at: nil
-        },
         state: 'open',
         created_at: Time.parse('2024-09-20 19:00:00 UTC')
       }
