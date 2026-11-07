@@ -391,7 +391,7 @@ class Fbe::Iterate
   # @raise [Fbe::Error] If matched facts exist but none of them carry the sort field
   def sorted_values(repo, since)
     raw = @fb.query(@query).each(@fb, before: since, repository: repo).to_a
-    sorted = raw.filter_map { _1[@sorting]&.first }.uniq
+    sorted = raw.filter_map { _1[@sorting]&.first }.tap(&:uniq!)
     if sorted.empty? && !raw.empty?
       raise(Fbe::Error, "None of the #{raw.size} matched facts in ##{repo} carry the '#{@sorting}' property")
     end
