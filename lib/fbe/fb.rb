@@ -41,6 +41,7 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog) # rubocop:d
     end
     global[:fb] ||=
       begin
+        Fbe.explaining
         rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }
         fbe = Factbase::Rules.new(
           fb,
@@ -70,4 +71,12 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog) # rubocop:d
         )
       end
   end
+end
+
+# Define the term that the rules use, unless it is defined already.
+def Fbe.explaining
+  return if Factbase::Term.private_method_defined?(:explain, false)
+  seed = Factbase.new
+  seed.insert
+  seed.query(File.read(File.join(__dir__, '../../assets/explain.fe'))).each.to_a
 end
