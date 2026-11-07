@@ -236,4 +236,56 @@ class TestBylaws < Fbe::Test
       end
     end
   end
+
+  def test_dud_penalty_reads_anger
+    seed = Random.new_seed
+    lv = levels(seed)
+    assert_equal(
+      -8 * lv[:anger], Fbe::Award.new(Fbe.bylaws(**lv)['dud-was-punished']).bill({}).points,
+      "dud penalty does not follow anger at #{lv} (seed: #{seed})"
+    )
+  end
+
+  def test_code_contribution_basis_reads_love
+    seed = Random.new_seed
+    lv = levels(seed)
+    md = Fbe::Award.new(Fbe.bylaws(**lv)['code-contribution-was-rewarded']).bylaw.markdown
+    assert_includes(md, "award **#{8 * lv[:love]}** points", "basis does not follow love at #{lv} (seed: #{seed})")
+  end
+
+  def test_code_contribution_review_fee_reads_anger
+    seed = Random.new_seed
+    lv = levels(seed)
+    md = Fbe::Award.new(Fbe.bylaws(**lv)['code-contribution-was-rewarded']).bylaw.markdown
+    assert_includes(
+      md, "deduct **#{8 * lv[:anger]}** points if there were no code review",
+      "fee for no review does not follow anger at #{lv} (seed: #{seed})"
+    )
+  end
+
+  def test_resolved_bug_threshold_reads_paranoia
+    seed = Random.new_seed
+    lv = levels(seed)
+    md = Fbe::Award.new(Fbe.bylaws(**lv)['resolved-bug-was-rewarded']).bylaw.markdown
+    assert_includes(
+      md, "resolved in less than **#{48 / lv[:paranoia]}** hours",
+      "fast-fix threshold does not follow paranoia at #{lv} (seed: #{seed})"
+    )
+  end
+
+  def test_resolved_bug_bonus_reads_love
+    seed = Random.new_seed
+    lv = levels(seed)
+    md = Fbe::Award.new(Fbe.bylaws(**lv)['resolved-bug-was-rewarded']).bylaw.markdown
+    assert_includes(
+      md, "add **#{4 * lv[:love]}** points if it was resolved",
+      "fast-fix bonus does not follow love at #{lv} (seed: #{seed})"
+    )
+  end
+
+  private
+
+  def levels(seed)
+    %i[anger love paranoia].zip([1, 2, 3, 4].shuffle(random: Random.new(seed))).to_h
+  end
 end
