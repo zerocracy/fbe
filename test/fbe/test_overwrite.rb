@@ -74,6 +74,22 @@ class TestOverwrite < Fbe::Test
     end
   end
 
+  def test_adds_a_new_property_without_an_id
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 43
+    marker = fb.insert
+    marker.what = 'marker'
+    Fbe.overwrite(f, 'bar', 42, fb:)
+    Fbe.overwrite(f, { 'baz' => 7 }, fb:)
+    assert_equal([42], f['bar'])
+    assert_equal([7], f['baz'])
+    assert_equal(
+      [43, nil], fb.query('(always)').each.to_a.map { |x| x['foo']&.first },
+      'The fact must stay where it was, not be deleted and inserted again'
+    )
+  end
+
   def test_without_previous_property
     fb = Factbase.new
     global = {}
