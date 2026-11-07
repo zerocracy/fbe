@@ -183,7 +183,7 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Query is already set') unless @query.nil?
     raise(Fbe::Error, 'Cannot set query to nil') if query.nil?
     raise(Fbe::Error, "Query must be a String, while #{query.class} provided") unless query.is_a?(String)
-    raise(Fbe::Error, 'Query cannot be empty') if query.empty?
+    raise(Fbe::Error, 'Query cannot be empty') if query.strip.empty?
     @query = query
   end
 
