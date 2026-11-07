@@ -27,6 +27,18 @@ class TestFb < Fbe::Test
     assert_includes(stdout, 'Inserted new fact #1', stdout)
   end
 
+  def test_stamps_the_version_of_the_action
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new({ 'action_version' => '1.2.3' }), loog: Loog::NULL)
+    fb.insert.foo = 1
+    assert_match(%r{/1\.2\.3\z}, fb.query('(exists foo)').each.first._version)
+  end
+
+  def test_leaves_no_trailing_slash_without_the_version_of_the_action
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.insert.foo = 1
+    refute(fb.query('(exists foo)').each.first._version.end_with?('/'))
+  end
+
   def test_refuses_another_fb_for_the_same_global
     opts = Judges::Options.new
     global = {}
