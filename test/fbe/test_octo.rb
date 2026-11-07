@@ -622,6 +622,68 @@ class TestOcto < Fbe::Test
     o.repository(429)
   end
 
+  def test_gives_up_at_once_when_retry_after_is_too_long
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    calls = 0
+    stub_request(:get, 'https://api.github.com/users/ёж').to_return do
+      calls += 1
+      {
+        status: 403, body: { message: 'You have exceeded a secondary rate limit' }.to_json,
+        headers: { 'Content-Type' => 'application/json', 'Retry-After' => '1' }
+      }
+    end
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    seen =
+      begin
+        o.user('ёж')
+      rescue Octokit::TooManyRequests
+        calls
+      end
+    assert_equal(1, seen, 'a long Retry-After is waited out instead of raised at once')
+  end
+
+  def test_gives_up_at_once_when_retry_after_is_a_distant_date
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    calls = 0
+    stub_request(:get, 'https://api.github.com/users/yegor256').to_return do
+      calls += 1
+      {
+        status: 403, body: { message: 'You have exceeded a secondary rate limit' }.to_json,
+        headers: { 'Content-Type' => 'application/json', 'Retry-After' => (Time.now + 3600).httpdate }
+      }
+    end
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    seen =
+      begin
+        o.user('yegor256')
+      rescue Octokit::TooManyRequests
+        calls
+      end
+    assert_equal(1, seen, 'a Retry-After an hour ahead is waited out instead of raised at once')
+  end
+
+  def test_still_waits_out_short_retry_after
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/users/yegor256')
+      .to_return(
+        status: 403, body: { message: 'You have exceeded a secondary rate limit' }.to_json,
+        headers: { 'Content-Type' => 'application/json', 'Retry-After' => '0.05' }
+      )
+      .then
+      .to_return(status: 200, body: { login: 'yegor256' }.to_json, headers: { 'Content-Type' => 'application/json' })
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'github_token' => 'x' * 40 }))
+    assert_equal('yegor256', o.user('yegor256')[:login], 'a short Retry-After is not retried')
+  end
+
   def test_not_retrying_on_not_found
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
