@@ -67,7 +67,7 @@ class TestRegularly < Fbe::Test
     assert_equal(2, fb.size)
     fact = fb.query("(and (eq what 'regularly') (eq judge '#{judge}'))").each.first
     refute_nil(fact)
-    refute_nil(fact.since)
+    assert_in_delta(28 * 24 * 60 * 60, fact.when - fact.since, 2)
   end
 
   def test_does_not_mistake_a_conclusion_fact_for_its_own_marker
