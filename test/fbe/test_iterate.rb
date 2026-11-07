@@ -6,6 +6,7 @@
 require 'factbase'
 require 'judges/options'
 require 'loog'
+require 'timeout'
 require_relative '../../lib/fbe/iterate'
 require_relative '../test__helper'
 
@@ -358,6 +359,25 @@ class TestIterate < Fbe::Test
       end
     end
     assert_equal(4, results.size)
+  end
+
+  def test_stops_in_the_middle_of_a_run_when_time_is_over
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true', 'timeout=1'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    seen = []
+    Timeout.timeout(30) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('stops_in_middle')
+        by('(plus $before 1)')
+        repeats(10)
+        over do |repo, nxt|
+          seen << repo
+          sleep(1)
+          nxt
+        end
+      end
+    end
+    assert_equal(1, seen.size, "the run went on after the time was over: #{seen}")
   end
 
   def test_all_repos_restart_causes_exit
