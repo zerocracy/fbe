@@ -19,6 +19,23 @@ class TestBylaws < Fbe::Test
     assert_raises(Fbe::Error) { bylaw.revert(-1) }
   end
 
+  def test_rejects_revert_count_larger_than_size
+    bylaw = Fbe::Award::Bylaw.new
+    bylaw.line('first')
+    bylaw.line('second')
+    error = assert_raises(Fbe::Error) { bylaw.revert(3) }
+    assert_equal("Can't revert 3 lines, the bylaw has only 2", error.message)
+    assert_equal(2, bylaw.size)
+  end
+
+  def test_reverts_all_lines
+    bylaw = Fbe::Award::Bylaw.new
+    bylaw.line('first')
+    bylaw.line('second')
+    assert_equal(%w[first second], bylaw.revert(2))
+    assert_equal(0, bylaw.size)
+  end
+
   def test_simple
     laws = Fbe.bylaws
     assert_operator(laws.size, :>, 1)
