@@ -289,4 +289,43 @@ class TestPmp < Fbe::Test
     assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: nil, loog: Loog::NULL) }
     assert_raises(Fbe::Error) { Fbe.pmp(fb: Factbase.new, global: {}, options: opts, loog: nil) }
   end
+
+  def test_reads_custom_area_spread_over_two_facts
+    fb = Factbase.new
+    { alpha: 1, beta: 2 }.each do |k, v|
+      f = fb.insert
+      f.what = 'pmp'
+      f.area = 'custom'
+      f.public_send(:"#{k}=", v)
+    end
+    pmp = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_equal(1, pmp.custom.alpha, 'the property of the first fact was not read')
+    assert_equal(2, pmp.custom.beta, 'the property of the second fact was not read')
+    assert_equal(%w[alpha area beta what], pmp.custom.properties.sort, 'the properties of the area were not unique')
+  end
+
+  def test_refuses_property_absent_in_every_fact_of_custom_area
+    fb = Factbase.new
+    2.times do |i|
+      f = fb.insert
+      f.what = 'pmp'
+      f.area = 'custom'
+      f.public_send(:"p#{i}=", i)
+    end
+    pmp = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    error = assert_raises(Fbe::Error) { pmp.custom.gamma }
+    assert_equal("There is no 'gamma' property in the 'custom' area", error.message, 'the error is wrong')
+  end
+
+  def test_reads_custom_area_ignoring_facts_of_another_area
+    fb = Factbase.new
+    { 'other' => 9, 'custom' => 2 }.each do |area, v|
+      f = fb.insert
+      f.what = 'pmp'
+      f.area = area
+      f.beta = v
+    end
+    pmp = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_equal(2, pmp.custom.beta, 'the value came from another area')
+  end
 end
