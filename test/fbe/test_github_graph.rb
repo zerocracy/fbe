@@ -889,6 +889,56 @@ class TestGitHubGraph < Fbe::Test
     refute_includes(captured, 'after: ""')
   end
 
+  def test_real_pull_requests_with_reviews_asks_for_latest_updated_first
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    captured = nil
+    page = { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      { 'repository' => { 'pullRequests' => page } }
+    end
+    graph.pull_requests_with_reviews('ёж', 'ünï', Time.parse('2025-08-01T18:00:00Z'))
+    assert_match(
+      /pullRequests\([^)]*orderBy: \{ field: UPDATED_AT, direction: DESC \}/, captured,
+      'pull requests are not asked latest updated first'
+    )
+  end
+
+  def test_real_pull_requests_with_reviews_keeps_order_on_next_page
+    seed = Random.new_seed
+    cursor = "Y3Vyc29y#{Random.new(seed).rand(1_000_000)}"
+    graph = Fbe::Graph.new(token: 'fake')
+    captured = nil
+    page = { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      { 'repository' => { 'pullRequests' => page } }
+    end
+    graph.pull_requests_with_reviews('a', 'b', Time.parse('2025-08-01T18:00:00Z'), cursor:)
+    assert_match(
+      /pullRequests\(after: "#{cursor}", [^)]*orderBy: \{ field: UPDATED_AT, direction: DESC \}/, captured,
+      "page after #{cursor} is not asked latest updated first (seed: #{seed})"
+    )
+  end
+
+  def test_real_pull_requests_with_reviews_asks_for_reviews_since
+    seed = Random.new_seed
+    since = Time.at(Random.new(seed).rand(1_500_000_000..1_800_000_000)).localtime('+05:30')
+    graph = Fbe::Graph.new(token: 'fake')
+    captured = nil
+    page = { 'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+    graph.define_singleton_method(:query) do |qry|
+      captured = qry
+      { 'repository' => { 'pullRequests' => page } }
+    end
+    graph.pull_requests_with_reviews('foo', 'bar', since)
+    assert_match(
+      /timelineItems\([^)]*itemTypes: \[PULL_REQUEST_REVIEW\], since: "#{since.utc.iso8601}"\)/, captured,
+      "reviews are not asked since #{since.utc.iso8601} (seed: #{seed})"
+    )
+  end
+
   def test_pull_request_reviews_skips_pull_that_no_longer_exists
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'fake')
