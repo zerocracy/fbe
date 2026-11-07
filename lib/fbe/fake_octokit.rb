@@ -1353,6 +1353,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1363,6 +1365,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1373,6 +1377,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1383,6 +1389,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1393,6 +1401,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'failure',
             app: {
               slug: 'github-actions'
             }
@@ -1403,6 +1413,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1413,6 +1425,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1428,6 +1442,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'codacy-production'
             }
@@ -1438,6 +1454,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1448,6 +1466,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1458,6 +1478,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1468,6 +1490,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'failure',
             app: {
               slug: 'github-actions'
             }
@@ -1478,6 +1502,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
@@ -1488,6 +1514,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
             head_sha: sha,
             started_at: '2024-08-18T08:04:44Z',
             completed_at: '2024-08-18T08:20:17Z',
+            status: 'completed',
+            conclusion: 'success',
             app: {
               slug: 'github-actions'
             }
