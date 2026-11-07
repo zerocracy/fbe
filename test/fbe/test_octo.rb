@@ -1042,6 +1042,45 @@ class TestOcto < Fbe::Test
     assert_operator(repos, :<, users, 'URLs should be sorted by request count (highest first)')
   end
 
+  def test_prints_trace_lines_in_a_short_form
+    loog = Loog::Buffer.new
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    stub_request(:get, %r{https://api.github.com/user/\d+}).to_return(
+      body: '{"id":1,"login":"test"}', headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, %r{https://api.github.com/search/issues}).to_return(
+      body: '{"total_count":0,"items":[]}', headers: { 'Content-Type' => 'application/json' }
+    )
+    octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
+    octo.user(123)
+    octo.search_issues("repo:foo/bar #{'x' * 80}")
+    octo.print_trace!(all: true, max: 9_999)
+    lines = loog.to_s.lines.select { |l| l.start_with?('  ') }
+    assert(lines.any? { |l| l.start_with?('  /user/123: 1 (') }, "no short line for the user in #{loog}")
+    refute(lines.any? { |l| l.include?('https://api.github.com') }, "the host is not stripped in #{loog}")
+    search = lines.find { |l| l.start_with?('  /search/issues?') }
+    refute_nil(search, loog.to_s)
+    assert_operator(search[/\?(\S+):/, 1].length, :<=, 40, search)
+  end
+
+  def test_prints_no_more_trace_lines_than_max
+    loog = Loog::Buffer.new
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{"rate":{"remaining":222}}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    stub_request(:get, %r{https://api.github.com/user/\d+}).to_return(
+      body: '{"id":1,"login":"test"}', headers: { 'Content-Type' => 'application/json' }
+    )
+    octo = Fbe.octo(loog:, global: {}, options: Judges::Options.new)
+    (1..4).each { |i| octo.user(i) }
+    octo.print_trace!(all: true, max: 2)
+    assert_equal(2, loog.to_s.lines.count { |l| l.start_with?('  /') }, loog.to_s)
+  end
+
   def test_prints_only_real_requests
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
