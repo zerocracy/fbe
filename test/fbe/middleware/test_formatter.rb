@@ -137,6 +137,16 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_logs_error_text_response_with_invalid_utf8_body
+    log_it(
+      status: 502,
+      response_body: "<html>Bad gateway \xE9</html>",
+      response_headers: { 'content-type' => 'text/html; charset=utf-8' }
+    ) do |loog|
+      assert_match(/Bad gateway/, loog.to_s)
+    end
+  end
+
   def test_logs_the_request_the_response_belongs_to
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
