@@ -411,6 +411,42 @@ class TestGitHubGraph < Fbe::Test
     end
   end
 
+  def test_fake_total_commits_pushed_counts_nothing_in_future
+    seed = Random.new_seed
+    since = Time.now + (Random.new(seed).rand(1..90) * 24 * 60 * 60)
+    assert_equal(
+      { 'commits' => 0, 'hoc' => 0 }, Fbe::Graph::Fake.new.total_commits_pushed('ёж', 'ü', since),
+      "fake counts commits pushed after #{since} (seed: #{seed})"
+    )
+  end
+
+  def test_fake_total_commits_pushed_counts_nothing_in_empty_window
+    seed = Random.new_seed
+    t = Time.now - Random.new(seed).rand(1..1_000_000)
+    assert_equal(
+      { 'commits' => 0, 'hoc' => 0 }, Fbe::Graph::Fake.new.total_commits_pushed('a', 'b', t, t),
+      "fake counts commits pushed between #{t} and itself (seed: #{seed})"
+    )
+  end
+
+  def test_fake_total_issues_created_counts_nothing_in_future
+    seed = Random.new_seed
+    since = Time.now + (Random.new(seed).rand(1..90) * 24 * 60 * 60)
+    assert_equal(
+      { 'issues' => 0, 'pulls' => 0 }, Fbe::Graph::Fake.new.total_issues_created('ёж', 'ü', since),
+      "fake counts issues created after #{since} (seed: #{seed})"
+    )
+  end
+
+  def test_fake_total_issues_created_counts_nothing_when_till_precedes_since
+    seed = Random.new_seed
+    till = Time.now - Random.new(seed).rand(1..1_000_000)
+    assert_equal(
+      { 'issues' => 0, 'pulls' => 0 }, Fbe::Graph::Fake.new.total_issues_created('a', 'b', till + 1, till),
+      "fake counts issues created in a window that ends at #{till} before it starts (seed: #{seed})"
+    )
+  end
+
   def test_fake_total_releases_published
     WebMock.disable_net_connect!
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
