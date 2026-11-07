@@ -14,6 +14,46 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  def test_leaves_merging_of_pages_to_a_given_block
+    WebMock.disable_net_connect!
+    url = 'https://api.github.com/repos/foo/bar/things'
+    base = { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' }
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: {
+        resources: { core: { remaining: 5000, limit: 5000, reset: 1 } },
+        rate: { remaining: 5000, limit: 5000, reset: 1 }
+      }.to_json,
+      headers: base
+    )
+    stub_request(:get, /things/).to_return(
+      { body: [{ number: 1 }].to_json, headers: base.merge('Link' => "<#{url}?page=2>; rel=\"next\"") },
+      { body: [{ number: 2 }].to_json, headers: base }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new('github_token' => 'x' * 40))
+    calls = 0
+    o.paginate('/repos/foo/bar/things') { |_d, _l| calls += 1 }
+    assert_equal(1, calls, 'A block of the caller must be called for the next page')
+  end
+
+  def test_paginates_through_all_pages
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: {
+        resources: { core: { remaining: 5000, limit: 5000, reset: 1 } },
+        rate: { remaining: 5000, limit: 5000, reset: 1 }
+      }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' }
+    )
+    url = 'https://api.github.com/repos/foo/bar/things'
+    base = { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '5000' }
+    stub_request(:get, /things/).to_return(
+      { body: [{ number: 1 }].to_json, headers: base.merge('Link' => "<#{url}?page=2>; rel=\"next\"") },
+      { body: [{ number: 2 }].to_json, headers: base }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new('github_token' => 'x' * 40))
+    assert_equal([1, 2], o.paginate('/repos/foo/bar/things').map(&:number), 'Every page must come back')
+  end
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
