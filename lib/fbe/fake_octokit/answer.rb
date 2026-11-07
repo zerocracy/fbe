@@ -4,7 +4,10 @@
 # SPDX-License-Identifier: MIT
 
 require 'sawyer'
-require_relative '../fake_octokit'
+require_relative '../../fbe'
+
+# The namespace shared by the fake client and its answers.
+class Fbe::FakeOctokit; end
 
 # An answer of the fake.
 #
