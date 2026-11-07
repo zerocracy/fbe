@@ -121,6 +121,18 @@ class TestOcto < Fbe::Test
     assert_raises(Fbe::Error) { o.user_name_by_id(42) }
   end
 
+  def test_repo_name_by_id_refuses_a_string
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_equal(
+      'The ID of the repo must be an Integer',
+      assert_raises(Fbe::Error) { o.repo_name_by_id('42') }.message
+    )
+  end
+
   def test_user_name_by_id_raises_on_not_found
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
