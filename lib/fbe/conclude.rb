@@ -163,7 +163,7 @@ class Fbe::Conclude
     roll do |fbt, a|
       n = fbt.insert
       fill(n, a, &)
-      throw(:rollback) if n.all_properties.all? { |p| p.start_with?('_') }
+      throw(:rollback) if n.all_properties.all? { |p| p.start_with?('_') || @follows.to_a.map(&:to_s).include?(p) }
       n
     end
   end
