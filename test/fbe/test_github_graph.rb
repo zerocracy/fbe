@@ -607,6 +607,76 @@ class TestGitHubGraph < Fbe::Test
     assert_equal('Bug', result.dig('prev_issue_type', 'name'))
   end
 
+  def test_resolved_conversations_sends_cursor_of_previous_page
+    seed = Random.new_seed
+    cursor = "Y3Vy#{Random.new(seed).rand(1_000_000)}"
+    graph = Fbe::Graph.new(token: 'test')
+    sent = []
+    graph.define_singleton_method(:query) do |qry|
+      sent << qry
+      info = sent.size == 1 ? { 'hasNextPage' => true, 'endCursor' => cursor } : { 'hasNextPage' => false }
+      { 'repository' => { 'pullRequest' => { 'reviewThreads' => { 'nodes' => [], 'pageInfo' => info } } } }
+    end
+    graph.resolved_conversations('ёж', 'ü', 42)
+    assert_includes(sent.last, "reviewThreads(after: \"#{cursor}\", first: 100)", "#{cursor} is lost (seed: #{seed})")
+  end
+
+  def test_resolved_conversations_stops_after_last_page
+    graph = Fbe::Graph.new(token: 'test')
+    sent = []
+    graph.define_singleton_method(:query) do |qry|
+      sent << qry
+      raise(Fbe::Error, "page #{sent.size} is asked after the last one") if sent.size > 10
+      info = { 'hasNextPage' => sent.size < 3, 'endCursor' => "c#{sent.size}" }
+      { 'repository' => { 'pullRequest' => { 'reviewThreads' => { 'nodes' => [], 'pageInfo' => info } } } }
+    end
+    graph.resolved_conversations('foo', 'bar', 7)
+    assert_equal(3, sent.size, 'review threads are asked again after the last page')
+  end
+
+  def test_total_commits_pushed_sends_cursor_of_previous_page
+    seed = Random.new_seed
+    cursor = "aGlzdG9yeQ#{Random.new(seed).rand(1_000_000)}"
+    graph = Fbe::Graph.new(token: 'test')
+    sent = []
+    graph.define_singleton_method(:query) do |qry|
+      sent << qry
+      info = sent.size == 1 ? { 'hasNextPage' => true, 'endCursor' => cursor } : { 'hasNextPage' => false }
+      { 'repository' => { 'defaultBranchRef' => { 'target' => { 'history' => { 'pageInfo' => info } } } } }
+    end
+    graph.total_commits_pushed('ёж', 'ü', Time.parse('2025-01-01T00:00:00Z'))
+    assert_includes(sent.last, "history(after: \"#{cursor}\", first: 100,", "cursor #{cursor} is lost (seed: #{seed})")
+  end
+
+  def test_total_commits_pushed_stops_after_last_page
+    graph = Fbe::Graph.new(token: 'test')
+    sent = []
+    graph.define_singleton_method(:query) do |qry|
+      sent << qry
+      raise(Fbe::Error, "page #{sent.size} is asked after the last one") if sent.size > 10
+      info = { 'hasNextPage' => sent.size < 4, 'endCursor' => "h#{sent.size}" }
+      { 'repository' => { 'defaultBranchRef' => { 'target' => { 'history' => { 'pageInfo' => info } } } } }
+    end
+    graph.total_commits_pushed('foo', 'bar', Time.parse('2025-01-01T00:00:00Z'))
+    assert_equal(4, sent.size, 'history is asked again after the last page')
+  end
+
+  def test_pull_request_reviews_sends_cursor_of_each_pull
+    seed = Random.new_seed
+    cursor = "cmV2aWV3#{Random.new(seed).rand(1_000_000)}"
+    graph = Fbe::Graph.new(token: 'test')
+    sent = nil
+    graph.define_singleton_method(:query) do |qry|
+      sent = qry
+      { 'repository' => {} }
+    end
+    graph.pull_request_reviews('foo', 'bar', pulls: [[2, cursor], [5, nil]])
+    assert_match(
+      /pr_2: pullRequest\(number: 2\) \{\s+id\s+number\s+reviews\(after: "#{cursor}", first: 100\)/, sent,
+      "reviews of pull 2 are not asked after #{cursor} (seed: #{seed})"
+    )
+  end
+
   def test_real_issue_type_event_returns_nil_for_unknown
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
