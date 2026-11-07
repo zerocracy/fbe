@@ -217,6 +217,45 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(%w[C1 C2], threads.first['comments']['nodes'].map { |c| c['id'] })
   end
 
+  def test_reads_two_extra_pages_of_comments_in_a_thread
+    pages = [
+      {
+        'repository' => {
+          'pullRequest' => {
+            'reviewThreads' => {
+              'nodes' => [
+                {
+                  'id' => 'T1', 'isResolved' => true,
+                  'comments' => {
+                    'nodes' => [{ 'id' => 'C1' }],
+                    'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }
+                  }
+                }
+              ],
+              'pageInfo' => { 'hasNextPage' => false }
+            }
+          }
+        }
+      },
+      {
+        'node' => {
+          'comments' => { 'nodes' => [{ 'id' => 'C2' }], 'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c2' } }
+        }
+      },
+      {
+        'node' => {
+          'comments' => { 'nodes' => [{ 'id' => 'C3' }], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => 'c3' } }
+        }
+      }
+    ]
+    g = Fbe::Graph.new(token: 'fake')
+    threads =
+      g.stub(:query, ->(_q) { pages.shift }) do
+        g.resolved_conversations('foo', 'bar', 42)
+      end
+    assert_equal(%w[C1 C2 C3], threads.first['comments']['nodes'].map { |c| c['id'] })
+  end
+
   def test_quotes_a_branch_name_that_carries_a_quote
     g = Fbe::Graph.new(token: 'fake')
     history = Struct.new(:history).new(Struct.new(:total_count).new(7))
