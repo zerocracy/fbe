@@ -344,6 +344,40 @@ class TestIterate < Fbe::Test
     assert_equal(10, fb.query("(eq what 'iterate')").each.to_a.first.wrap_test)
   end
 
+  def test_writes_no_marker_when_nothing_is_found
+    seed = Random.new_seed
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('idle_test')
+      by('(agg (gt num $before) (min num))')
+      since!(Random.new(seed).rand(1_000_000))
+      repeats(3)
+      over { |_, nxt| nxt }
+    end
+    assert_equal(0, fb.query("(eq what 'iterate')").each.to_a.size, "an idle run wrote a marker, seed #{seed}")
+  end
+
+  def test_writes_marker_only_for_repository_that_moved
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Factbase.new
+    moved = Fbe.octo(loog: Loog::NULL, options: opts, global: {}).repo_id_by_name('foo/bar')
+    fb.insert.then do |f|
+      f.repository = moved
+      f.num = 7
+    end
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('moved_test')
+      by('(agg (and (eq repository $repository) (gt num $before)) (min num))')
+      repeats(3)
+      over { |_, nxt| nxt }
+    end
+    assert_equal(
+      [moved], fb.query("(eq what 'iterate')").each.map(&:repository),
+      'a marker was written for the repository that did not move'
+    )
+  end
+
   def test_multiple_repositories_with_different_progress
     opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
