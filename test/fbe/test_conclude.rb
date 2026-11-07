@@ -17,6 +17,14 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestConclude < Fbe::Test
+  def test_follow_takes_as_value_equal_to_the_first_one
+    assert_equal([7], followed_who('(and (exists foo) (as who assignee))'), 'The value of the query must win')
+  end
+
+  def test_follow_copies_all_values_without_as
+    assert_equal([7, 8], followed_who('(exists foo)'), 'Without a rewrite every value must be copied')
+  end
+
   def test_with_defaults
     $fb = Factbase.new
     $epoch = Time.now
@@ -488,5 +496,26 @@ class TestConclude < Fbe::Test
       end
     end
     assert_equal(51, count)
+  end
+
+  private
+
+  def followed_who(query)
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 1
+    f.who = 7
+    f.who = 8
+    f.assignee = 7
+    Fbe.conclude(fb:, judge: 'judge-x', loog: Loog::NULL, options: Judges::Options.new, global: {}) do
+      quota_unaware
+      on(query)
+      follow('who')
+      draw do |n, _prev|
+        n.processed = 'yes'
+        'Some long description that satisfies the twenty five chars minimum.'
+      end
+    end
+    fb.query('(exists processed)').each.first['who']
   end
 end

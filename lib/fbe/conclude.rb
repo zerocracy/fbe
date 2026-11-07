@@ -287,7 +287,7 @@ class Fbe::Conclude
       values = prev[key]
       next if values.nil?
       rewritten = prev.public_send(follow)
-      values = [rewritten] unless values.first == rewritten
+      values = [rewritten] if values.first != rewritten || @query.match?(/\(as\s+#{Regexp.escape(key)}\s/)
       values.each do |v|
         fact.public_send(:"#{follow}=", v)
       end
