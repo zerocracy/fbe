@@ -19,8 +19,9 @@ require_relative '../fbe'
 # @return [String] The result of the valve, always as a string, whether
 #   it comes from a fresh run of the block (on a miss) or from what was
 #   previously stored (on a hit)
-# @raise [Fbe::Error] If badge, why, or required globals are nil
+# @raise [Fbe::Error] If badge, why, or required globals are nil, or job_name is empty
 # @note Requires $options and $loog global variables to be set
+# @note Outside testing mode, options.job_name must identify the Zerocracy project
 # @note In testing mode (options.testing != nil), bypasses valve recording
 # @note Without a job ID the valve is entered with no job attached, since
 #   the API takes nil for that and rejects zero
@@ -35,6 +36,10 @@ def Fbe.enter(badge, why, options: $options, loog: $loog, &)
   raise(Fbe::Error, 'The $options is not set') if options.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   return yield unless options.testing.nil?
+  name = options.job_name
+  unless name.is_a?(String) && !name.strip.empty?
+    raise(Fbe::Error, 'The job_name option must be a non-empty String identifying the Zerocracy project')
+  end
   baza = BazaRb.new('api.zerocracy.com', 443, options.zerocracy_token, loog:)
-  baza.enter(options.job_name, badge, why, options.job_id.nil? ? nil : Integer(options.job_id.to_s, 10), &).to_s
+  baza.enter(name, badge, why, options.job_id.nil? ? nil : Integer(options.job_id.to_s, 10), &).to_s
 end
