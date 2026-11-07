@@ -43,8 +43,10 @@ def Fbe.just_one(fb: Fbe.fb)
       if k.end_with?('=')
         v = args[1]
         raise(Fbe::Error, "Can't set #{k[0..-2]} to nil") if v.nil?
-        raise(Fbe::Error, "Can't set #{k[0..-2]} to empty string") if v.is_a?(String) && v.empty?
-        @map[k[0..-2].to_sym] = v
+        raise(Fbe::Error, "Can't set #{k[0..-2]} to empty string") if v == ''
+        k = k[0..-2].to_sym
+        raise(Fbe::Error, "Can't set #{k} to #{v.inspect}, it is already #{@map[k].inspect}") if @map.key?(k)
+        @map[k] = v
       else
         @map[k.to_sym]
       end
