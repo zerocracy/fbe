@@ -1524,7 +1524,15 @@ class TestOcto < Fbe::Test
 
   def test_fake_get
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    assert_equal({}, o.get('/rate_limit'))
+    assert_equal({}, o.get('/user'))
+  end
+
+  def test_fake_get_of_rate_limit_agrees_with_rate_limit
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    json = o.get('/rate_limit')
+    assert_equal(o.rate_limit.remaining, json.dig(:rate, :remaining))
+    assert_equal(o.rate_limit.remaining, json.dig(:resources, :core, :remaining))
+    assert_predicate(json.dig(:resources, :search, :remaining), :positive?)
   end
 
   def test_fake_search_commits
