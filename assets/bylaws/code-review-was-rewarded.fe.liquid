@@ -25,7 +25,7 @@
     (give bonus_for_hoc "for the ${hoc} hits-of-code that you reviewed")
     "add ${hoc_k} points for each
       [hit-of-code](https://www.yegor256.com/2014/11/14/hits-of-code.html),
-      but not more than ${hoc_max} points")
+      but not more than ${hoc_max} points, unless they reviewed their own contribution")
 
   (aka
     (let few_comments_fee {{ 5 | times: anger }})
@@ -49,7 +49,8 @@
     (set bonus_for_comments (between bonus_for_comments comments_min comments_max))
     (set bonus_for_comments (if (eq self 1) 0 bonus_for_comments))
     (give bonus_for_comments "for the ${comments} comment(s) that you have made")
-    "add ${comments_k} points for each comment during the review, but not more than ${comments_max} points")
+    "add ${comments_k} points for each comment during the review, but not more than ${comments_max} points,
+      unless they reviewed their own contribution")
 
   (aka
     (let hoc_fee {{ 4 | times: anger }})
