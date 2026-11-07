@@ -495,11 +495,33 @@ class RateLimitTest < Fbe::Test
     assert_equal(30, second.body['resources']['search']['remaining'])
   end
 
+  def test_refuses_request_below_floor
+    seed = Random.new_seed
+    left = Random.new(seed).rand(0..49)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      status: 200, body: { rate: { remaining: left } }.to_json, headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, "https://api.github.com/user/#{left}").to_return(status: 200, body: '{}')
+    conn = create_connection(nil, { core: 50 })
+    conn.get('/rate_limit')
+    assert_raises(Fbe::OffQuota, "request goes out with #{left} left below 50 (seed: #{seed})") { conn.get("/user/#{left}") }
+  end
+
+  def test_sends_request_with_little_quota_when_no_floor_is_set
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      status: 200, body: { 'rate' => { 'remaining' => 3 } }.to_json, headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, 'https://api.github.com/user').to_return(status: 200, body: '{}')
+    conn = create_connection
+    conn.get('/rate_limit')
+    assert_equal(200, conn.get('/user').status, 'request is refused though no floor is set')
+  end
+
   private
 
-  def create_connection(tracker = nil)
+  def create_connection(tracker = nil, floor = {})
     Faraday.new(url: 'https://api.github.com') do |f|
-      f.use(Fbe::Middleware::RateLimit, tracker)
+      f.use(Fbe::Middleware::RateLimit, tracker, floor)
       f.response(:json)
       f.adapter(:net_http)
     end

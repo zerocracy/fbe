@@ -8,6 +8,9 @@ require 'json'
 require_relative '../../fbe'
 require_relative '../../fbe/middleware'
 
+# When we are off quota.
+class Fbe::OffQuota < StandardError; end
+
 # Faraday middleware that caches GitHub API rate limit information.
 #
 # This middleware intercepts calls to the /rate_limit endpoint and caches
@@ -27,12 +30,15 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # Initializes the rate limit middleware.
   #
   # @param [Object] app The next middleware in the stack
-  def initialize(app, tracker = nil)
+  # @param [Hash] floor The least remaining count of each resource (:core, :search)
+  #   below which no request goes out and Fbe::OffQuota is raised instead
+  def initialize(app, tracker = nil, floor = {})
     super(app)
     @cached = nil
     @remaining = nil
     @searchleft = nil
     @counter = 0
+    @floor = floor
     @lock = Mutex.new
     @refresh = Mutex.new
     tracker[:rate_limit] = self unless tracker.nil?
@@ -91,6 +97,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @return [Symbol, nil] The counter the request was taken off, or NIL if none was
   def track_request(path = nil)
     @counter += 1
+    guard(path)
     if path&.start_with?('/search/')
       return nil unless @searchleft&.positive?
       @searchleft -= 1
@@ -100,6 +107,14 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @remaining -= 1
       :core
     end
+  end
+
+  def guard(path)
+    resource = path&.start_with?('/search/') ? :search : :core
+    left = resource == :search ? @searchleft : @remaining
+    least = @floor[resource]
+    return if left.nil? || least.nil? || left >= least
+    raise(Fbe::OffQuota, "Only #{left} of #{resource} quota left, less than #{least}, can't request #{path}")
   end
 
   # Reverts the counter decrement when the request fails.
