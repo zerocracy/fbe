@@ -12,8 +12,8 @@ require_relative '../../fbe/middleware'
 # Custom Faraday formatter that logs only error responses (4xx/5xx).
 #
 # This formatter reduces log noise by only outputting details when HTTP
-# requests fail. For 403 errors with JSON responses, it shows a compact
-# warning with the error message. For other errors, it logs the full
+# requests fail. For 403 and 404 errors with JSON responses, it shows a
+# compact warning with the error message. For other errors, it logs the full
 # request/response details including headers and bodies.
 #
 # @example Usage in Faraday middleware
@@ -24,7 +24,10 @@ require_relative '../../fbe/middleware'
 # @example Log output for 403 error
 #   # GET https://api.github.com/repos/private/repo -> 403 / Repository access denied
 #
-# @example Log output for other errors (500, 404, etc)
+# @example Log output for 404 error
+#   # GET https://api.github.com/repos/foo/bar/issues/7 -> 404 / Not Found
+#
+# @example Log output for other errors (500, 401, etc)
 #   # GET https://api.example.com/endpoint HTTP/1.1
 #   #   Content-Type: "application/json"
 #   #   Authorization: "Bearer [FILTERED]"
@@ -68,10 +71,10 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   # @param [Hash] http Response data including status, headers, and body
   # @return [void]
   # @note Only logs when status >= 400
-  # @note Special handling for 403 JSON responses to show compact error message
+  # @note Special handling for 403 and 404 JSON responses to show compact error message
   def response(http) # rubocop:disable Metrics/AbcSize
     return if http.status < 400
-    if http.status == 403 && http.response_headers['content-type']&.start_with?('application/json')
+    if [403, 404].include?(http.status) && http.response_headers['content-type']&.start_with?('application/json')
       msg =
         begin
           parsed = JSON.parse(http.response_body)
