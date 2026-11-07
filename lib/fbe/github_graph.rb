@@ -918,16 +918,17 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
             {
               'id' => 'PRRC_kwDOK2_4A85l3obO',
               'body' => 'first message',
-              'author' => { '__typename' => 'User', 'login' => 'reviewer' },
+              'author' => { 'login' => 'reviewer' },
               'createdAt' => '2024-08-08T09:41:46Z'
             },
             {
               'id' => 'PRRC_kwDOK2_4A85l3yTp',
               'body' => 'second message',
-              'author' => { '__typename' => 'User', 'login' => 'programmer' },
+              'author' => { 'login' => 'programmer' },
               'createdAt' => '2024-08-08T10:01:55Z'
             }
-          ]
+          ],
+          'pageInfo' => { 'endCursor' => 'Y3Vyc29yOnYyOpHOZd8k6Q==', 'hasNextPage' => false }
         }
       }
     end

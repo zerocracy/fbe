@@ -1058,4 +1058,14 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_fake_conversation_has_the_shape_the_query_asks_for
+    WebMock.disable_net_connect!
+    graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
+    thread = graph.resolved_conversations('zerocracy', 'baza', 42).first
+    assert_equal(%w[endCursor hasNextPage], thread['comments']['pageInfo'].keys.sort)
+    thread['comments']['nodes'].each do |c|
+      assert_equal(%w[login], c['author'].keys)
+    end
+  end
 end
