@@ -170,11 +170,11 @@ class Fbe::Conclude
 
   # Take every fact, allowing the given block to process it.
   #
-  # For example, you want to add +when+ property to every fact:
+  # For example, you want to add +when+ property to every fact that has none:
   #
   #  require 'fbe/conclude'
   #  Fbe.conclude do
-  #    on '(always)'
+  #    on '(absent when)'
   #    consider do |f|
   #      f.when = Time.new
   #    end
