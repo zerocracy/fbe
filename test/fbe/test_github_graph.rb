@@ -217,6 +217,32 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(%w[C1 C2], threads.first['comments']['nodes'].map { |c| c['id'] })
   end
 
+  def test_reads_more_comments_of_a_frozen_thread
+    thread = {
+      'id' => 'T1', 'isResolved' => true,
+      'comments' => {
+        'nodes' => [{ 'id' => 'C1' }.freeze].freeze,
+        'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }.freeze
+      }.freeze
+    }.freeze
+    pages = [
+      {
+        'repository' => {
+          'pullRequest' => {
+            'reviewThreads' => {
+              'nodes' => [thread].freeze,
+              'pageInfo' => {}.freeze
+            }
+          }
+        }
+      },
+      { 'node' => { 'comments' => { 'nodes' => [{ 'id' => 'C2' }], 'pageInfo' => { 'hasNextPage' => false } } } }
+    ]
+    g = Fbe::Graph.new(token: 'fake')
+    threads = g.stub(:query, ->(_q) { pages.shift }) { g.resolved_conversations('foo', 'bar', 42) }
+    assert_equal(%w[C1 C2], threads.first['comments']['nodes'].map { |c| c['id'] }, 'GraphQL answers are frozen')
+  end
+
   def test_quotes_a_branch_name_that_carries_a_quote
     g = Fbe::Graph.new(token: 'fake')
     history = Struct.new(:history).new(Struct.new(:total_count).new(7))
