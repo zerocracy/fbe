@@ -419,9 +419,10 @@ class Fbe::Award
     #
     # @return [Array<Hash>] Lines with whole values that add up to +points+
     def shares
-      parts = @lines.map { |l| { v: Float(l[:v]).floor, t: l[:t], r: Float(l[:v]) - Float(l[:v]).floor } }
+      parts = @lines.map { |l| { v: whole(l[:v]), t: l[:t], r: Float(l[:v]) - whole(l[:v]) } }
       extra = points - parts.sum { |l| l[:v] }
-      parts.sort_by.with_index { |l, i| [-l[:r], i] }.first(extra).each { |l| l[:v] += 1 }
+      step = extra.negative? ? -1 : 1
+      parts.sort_by.with_index { |l, i| [-l[:r] * step, i * step] }.first(extra.abs).each { |l| l[:v] += step }
       parts
     end
 
