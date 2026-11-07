@@ -489,4 +489,68 @@ class TestConclude < Fbe::Test
     end
     assert_equal(51, count)
   end
+
+  def test_raises_on_nil_arguments
+    fb = Factbase.new
+    options = Judges::Options.new(['testing=true'])
+    valid = { fb:, judge: 'judge-nil', global: {}, options:, loog: Loog::NULL }
+    {
+      fb: 'The fb is nil',
+      judge: 'The $judge is not set',
+      global: 'The $global is not set',
+      options: 'The $options is not set',
+      loog: 'The $loog is not set'
+    }.each do |key, message|
+      e = assert_raises(Fbe::Error, key.to_s) { Fbe.conclude(**valid, key => nil) }
+      assert_equal(message, e.message, key.to_s)
+    end
+  end
+
+  def test_raises_on_second_on
+    fb = Factbase.new
+    fb.insert.foo = 1
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.conclude(fb:, judge: 'judge-twice', options: Judges::Options.new, global: {}, loog: Loog::NULL) do
+          on('(exists foo)')
+          on('(exists foo)')
+        end
+      end
+    assert_equal('Query is already set', e.message)
+  end
+
+  def test_considers_nothing_when_off_quota
+    fb = Factbase.new
+    fb.insert.foo = 1
+    options = Judges::Options.new(['testing=true'])
+    global = {}
+    loog = Loog::NULL
+    octo = Fbe.octo(loog:, options:, global:)
+    octo.define_singleton_method(:off_quota?) { |**_opts| true }
+    seen = []
+    count =
+      Fbe.conclude(fb:, judge: 'judge-quota', loog:, options:, global:) do
+        on('(exists foo)')
+        consider { |f| seen << f.foo }
+      end
+    assert_equal(0, count)
+    assert_empty(seen)
+  end
+
+  def test_stops_after_the_quota_runs_out
+    fb = Factbase.new
+    fb.insert.foo = 1
+    fb.insert.foo = 2
+    options = Judges::Options.new(['testing=true'])
+    global = {}
+    loog = Loog::NULL
+    octo = Fbe.octo(loog:, options:, global:)
+    seen = []
+    octo.define_singleton_method(:off_quota?) { |**_opts| !seen.empty? }
+    Fbe.conclude(fb:, judge: 'judge-quota', loog:, options:, global:) do
+      on('(exists foo)')
+      consider { |f| seen << f.foo }
+    end
+    assert_equal([1], seen)
+  end
 end
