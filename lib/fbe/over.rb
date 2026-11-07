@@ -17,7 +17,7 @@ require_relative 'octo'
 # @param [Boolean] lifetime_aware Enable or disable check of lifetime limitations
 # @param [Boolean] timeout_aware Enable or disable check of timeout limitations
 # @return [Boolean] check result
-def Fbe.over?(
+def Fbe.over?( # rubocop:disable Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
   global: $global, options: $options, loog: $loog,
   epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
@@ -33,13 +33,24 @@ def Fbe.over?(
       return true
     end
   end
-  if lifetime_aware && options.lifetime && Time.now - epoch > options.lifetime * 0.9
-    loog.info("We ran out of lifetime (#{epoch.ago} already), must stop here")
-    return true
-  end
-  if timeout_aware && options.timeout && Time.now - kickoff > options.timeout * 0.9
-    loog.info("We've spent more than #{kickoff.ago}, must stop here")
-    return true
+  if (lifetime_aware && options.lifetime) || (timeout_aware && options.timeout)
+    wallnow = Time.now
+    monotonicnow = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    starts = global[:fbe_monotonic_starts] ||= {}
+    if lifetime_aware && options.lifetime
+      epochstart = starts[[:epoch, epoch]] ||= monotonicnow - (wallnow - epoch)
+      if monotonicnow - epochstart > options.lifetime * 0.9
+        loog.info("We ran out of lifetime after #{(monotonicnow - epochstart).round} seconds, must stop here")
+        return true
+      end
+    end
+    if timeout_aware && options.timeout
+      kickoffstart = starts[[:kickoff, kickoff]] ||= monotonicnow - (wallnow - kickoff)
+      if monotonicnow - kickoffstart > options.timeout * 0.9
+        loog.info("We've spent #{(monotonicnow - kickoffstart).round} seconds, must stop here")
+        return true
+      end
+    end
   end
   false
 end
