@@ -535,9 +535,9 @@ class SqliteStoreTest < Fbe::Test
   def test_keep_single_element_pair_under_cache_min_age
     with_tmpfile('single.db') do |f|
       Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300).then do |store|
-        req = JSON.dump({ 'method' => 'get', 'url' => 'https://example.com/test' })
-        store.write('k', [[req]])
-        assert_equal([[req]], store.read('k'))
+        value = faraday_value(req: { 'method' => 'get', 'url' => 'https://example.com/test' }, resp: nil)
+        store.write('k', value)
+        assert_equal(value, store.read('k'))
       end
     end
   end
