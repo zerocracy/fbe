@@ -360,6 +360,31 @@ class TestIterate < Fbe::Test
     assert_equal(4, results.size)
   end
 
+  def test_does_not_scan_an_exhausted_repository_again_in_the_same_run
+    opts = Judges::Options.new(['repositories=foo/a,foo/b', 'testing=true'])
+    global = {}
+    fb = Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL)
+    octo = Fbe.octo(loog: Loog::NULL, global:, options: opts)
+    { 'foo/a' => [1], 'foo/b' => [1, 2, 3] }.each do |name, items|
+      items.each do |i|
+        f = fb.insert
+        f.repo = octo.repo_id_by_name(name)
+        f.num = i
+      end
+    end
+    seen = []
+    Fbe.iterate(fb:, loog: Loog::NULL, global:, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('exhausted_once')
+      by('(agg (and (eq repo $repository) (gt num $before)) (min num))')
+      repeats(3)
+      over do |repo, nxt|
+        seen << [repo, nxt]
+        nxt
+      end
+    end
+    assert_equal(1, seen.count([octo.repo_id_by_name('foo/a'), 1]), seen)
+  end
+
   def test_all_repos_restart_causes_exit
     opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
