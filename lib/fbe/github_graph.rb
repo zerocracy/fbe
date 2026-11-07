@@ -23,7 +23,9 @@ def Fbe.github_graph(options: $options, global: $global, loog: $loog)
         loog.debug('The connection to GitHub GraphQL API is mocked')
         Fbe::Graph::Fake.new
       else
-        Fbe::Graph.new(token: options.github_token || ENV.fetch('GITHUB_TOKEN', nil))
+        token = options.github_token.to_s
+        token = ENV.fetch('GITHUB_TOKEN', nil) if token.empty?
+        Fbe::Graph.new(token:)
       end
   end
 end
