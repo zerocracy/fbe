@@ -26,4 +26,14 @@ class TestGitHubGraphNumber < Fbe::Test
     graph = Fbe::Graph.new(token: 'x')
     assert_raises(Fbe::Error) { graph.pull_request_reviews('foo', 'bar', pulls: [['42) { id } #', nil]]) }
   end
+
+  def test_refuses_non_positive_pull_request_number
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'x')
+    [0, -1].each do |n|
+      e = assert_raises(Fbe::Error) { graph.resolved_conversations('foo', 'bar', n) }
+      assert_match(/positive Integer/, e.message)
+    end
+  end
+
 end

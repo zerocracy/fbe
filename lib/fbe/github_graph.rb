@@ -615,6 +615,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     unless value.is_a?(Integer)
       raise(Fbe::Error, "A pull request number must be an Integer, while #{value.class} was given")
     end
+    unless value.positive?
+      raise(Fbe::Error, "A pull request number must be a positive Integer, while #{value.inspect} was given")
+    end
     value
   end
 
