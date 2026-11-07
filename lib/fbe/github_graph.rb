@@ -844,7 +844,8 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       end
     end
 
-    def pull_requests_with_reviews(_owner, _name, _since, **)
+    def pull_requests_with_reviews(_owner, _name, _since, cursor: nil)
+      return { 'pulls_with_reviews' => [], 'has_next_page' => false, 'next_cursor' => nil } unless cursor.nil?
       {
         'pulls_with_reviews' => [
           { 'id' => 'PR_kwDOL6J6Ss6iprCx', 'number' => 2 },
