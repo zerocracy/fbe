@@ -49,6 +49,20 @@ class TestBylaws < Fbe::Test
     assert_includes(md, 'comments made during review, but at least one', md)
   end
 
+  def test_punishment_text_states_the_points_the_bill_deducts
+    {
+      'bad-branch-name-was-punished' => 'a penalty is given to the author',
+      'dud-was-punished' => 'the reporter receives a penalty',
+      'push-to-master-was-punished' => 'they get a penalty',
+      'long-pull-was-punished' => 'Oversized pull requests get penalized'
+    }.each do |title, explanation|
+      a = Fbe::Award.new(Fbe.bylaws[title])
+      md = a.bylaw.markdown
+      assert_includes(md, "deduct **#{-a.bill({}).points}** points", md)
+      assert_includes(md, explanation, md)
+    end
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
