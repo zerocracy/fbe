@@ -49,6 +49,19 @@ class TestBylaws < Fbe::Test
     assert_includes(md, 'comments made during review, but at least one', md)
   end
 
+  def test_reward_texts_state_their_explanation_and_points
+    {
+      'bug-report-was-rewarded' =>
+        'When a bug is reported and accepted by the team, the reporter receives a bonus',
+      'enhancement-suggestion-was-rewarded' =>
+        'When an enhancement is suggested and accepted by the team, the reporter receives a bonus'
+    }.each do |title, explain|
+      md = Fbe::Award.new(Fbe.bylaws[title]).bylaw.markdown
+      assert_includes(md, explain, md)
+      assert_includes(md, 'award **12** points', md)
+    end
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
