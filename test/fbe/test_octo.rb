@@ -1769,6 +1769,10 @@ class TestOcto < Fbe::Test
   end
 
   def test_octo_default_cache_sizes
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
     loog = Loog::Buffer.new
     Dir.mktmpdir do |dir|
       cache = File.expand_path('t.db', dir)
