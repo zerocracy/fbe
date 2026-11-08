@@ -169,6 +169,18 @@ class TestBylaws < Fbe::Test
     assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
   end
 
+  def test_published_release_greeting_states_capped_hoc_bonus
+    formula = Fbe.bylaws['published-release-was-rewarded']
+    greeting = Fbe::Award.new(formula).bill(hoc: 10_000, contributors: 1).greeting
+    assert_includes(greeting, '+24 for 10000 hits-of-code', greeting)
+  end
+
+  def test_published_release_markdown_states_hoc_cap
+    md = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'When a new release is published, everyone who contributed receives a bonus', md)
+    assert_includes(md, 'not more than **24** points', md)
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
