@@ -49,6 +49,13 @@ class TestBylaws < Fbe::Test
     assert_includes(md, 'comments made during review, but at least one', md)
   end
 
+  def test_code_review_text_states_its_explanation_and_fees
+    md = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'An author of every code review receives a bonus', md)
+    assert_includes(md, 'deduct **24** points if they reviewed their own contribution', md)
+    assert_includes(md, 'deduct **16** points if there were absolutely no comments', md)
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
