@@ -19,6 +19,24 @@ class TestBylaws < Fbe::Test
     assert_raises(Fbe::Error) { bylaw.revert(-1) }
   end
 
+  def test_rejects_non_integer_revert_count
+    bylaw = Fbe::Award::Bylaw.new
+    assert_raises(Fbe::Error) { bylaw.revert(1.5) }
+    assert_raises(Fbe::Error) { bylaw.revert(nil) }
+  end
+
+  def test_keeps_all_lines_on_zero_revert
+    bylaw = Fbe::Award::Bylaw.new
+    bylaw.line('a')
+    bylaw.line('b')
+    bylaw.revert(0)
+    assert_equal(2, bylaw.size)
+    assert_equal("Here is how it's calculated: First, a. Then, b.", bylaw.markdown)
+    empty = Fbe::Award::Bylaw.new
+    empty.revert(0)
+    assert_equal(0, empty.size)
+  end
+
   def test_simple
     laws = Fbe.bylaws
     assert_operator(laws.size, :>, 1)
