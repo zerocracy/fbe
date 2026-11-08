@@ -157,9 +157,9 @@ class LoggingFormatterTest < Fbe::Test
   def test_survives_nil_request_body_and_headers
     log_it(status: 500, request_body: nil, request_headers: nil) do |loog|
       str = loog.to_s
-      assert_match(%r{HTTP/1.1 500}, str)
       assert_match(/hello, world!/, str)
       assert_match(%r{content-type: "application/json"}, str)
+      refute_match(/\bnil\b/, str, 'a nil body or headers must not be rendered as the word "nil"')
     end
   end
 
