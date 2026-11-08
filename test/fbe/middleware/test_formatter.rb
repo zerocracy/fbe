@@ -137,6 +137,40 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_filters_lowercase_header_name
+    log_it(status: 500, request_headers: { 'authorization' => 'token x' }) do |loog|
+      str = loog.to_s
+      assert_match(/authorization: "token \[FILTERED\]"/, str)
+      refute_match(/token x/, str, 'lowercase authorization token must never appear in the log')
+    end
+  end
+
+  def test_filters_credential_inside_error_text_body
+    body = "upstream said:\nAuthorization: token ghs_bodysecret\n"
+    log_it(status: 503, response_body: body, response_headers: { 'content-type' => 'text/plain' }) do |loog|
+      str = loog.to_s
+      assert_match(/Authorization: token \[FILTERED\]/, str)
+      refute_match(/ghs_bodysecret/, str, 'credential in a 5xx text body must never appear in the log')
+    end
+  end
+
+  def test_survives_nil_request_body_and_headers
+    log_it(status: 500, request_body: nil, request_headers: nil) do |loog|
+      str = loog.to_s
+      assert_match(%r{HTTP/1.1 500}, str)
+      assert_match(/hello, world!/, str)
+      assert_match(%r{content-type: "application/json"}, str)
+    end
+  end
+
+  def test_indents_every_line_of_multiline_body
+    log_it(status: 500, response_body: "alpha\nbravo") do |loog|
+      str = loog.to_s
+      assert_match(/^  alpha$/, str)
+      assert_match(/^  bravo$/, str)
+    end
+  end
+
   def test_logs_the_request_the_response_belongs_to
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
@@ -172,19 +206,12 @@ class LoggingFormatterTest < Fbe::Test
     method: :get,
     response_body: '{"message": "hello, world!"}',
     response_headers: { 'content-type' => 'application/json', 'x-github-api-version-selected' => '2022-11-28' },
-    request_headers: { 'Authorization' => 'Bearer github_pat_11AAsecret' }
+    request_headers: { 'Authorization' => 'Bearer github_pat_11AAsecret' },
+    request_body: 'some request body'
   )
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
-    env =
-      Faraday::Env.from(
-        {
-          method:,
-          request_body: 'some request body',
-          url: URI('http://example.com'),
-          request_headers:
-        }
-      )
+    env = Faraday::Env.from({ method:, request_body:, url: URI('http://example.com'), request_headers: })
     formatter.request(env)
     env.status = status
     env.response_headers = response_headers
