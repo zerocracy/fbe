@@ -467,4 +467,15 @@ class TestOverwrite < Fbe::Test
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
+
+  def test_rejects_whitespace_only_property_name
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    assert_raises(Fbe::Error) { Fbe.overwrite(f, '   ', 2, fb:) }
+    assert_raises(Fbe::Error) { Fbe.overwrite(f, '', 2, fb:) }
+    assert_raises(Fbe::Error) { Fbe.overwrite(f, { '   ' => 3 }, fb:) }
+  end
+
 end
