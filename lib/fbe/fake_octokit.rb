@@ -1256,62 +1256,33 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
 
   alias review_comments pull_request_comments
 
-  def issue_comments(_name, _number)
+  def issue_comments(name, number)
     [
       {
-        pull_request_review_id: 2_227_372_510,
         id: 1_709_082_320,
-        path: 'test/baza/test_locks.rb',
-        commit_id: 'a9f5f94cf28f29a64d5dd96d0ee23b4174572847',
-        original_commit_id: 'e8c6f94274d14ed3cb26fe71467a9c3f229df59c',
-        user: {
-          login: 'Reviewer',
-          id: 2_566_462
-        },
+        html_url: "https://github.com/#{name}/issues/#{number}#issuecomment-1709082320",
+        issue_url: "https://api.github.com/repos/#{name}/issues/#{number}",
+        user: { login: 'Reviewer', id: 2_566_462 },
         body: 'reviewer comment',
         created_at: '2024-08-08T09:41:46Z',
         updated_at: '2024-08-08T09:42:46Z',
         reactions: {
-          url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082320/reactions',
+          url: "https://api.github.com/repos/#{name}/issues/comments/1709082320/reactions",
           total_count: 1
-        },
-        start_line: 'null',
-        original_start_line: 'null',
-        start_side: 'null',
-        line: 'null',
-        original_line: 62,
-        side: 'RIGHT',
-        original_position: 25,
-        position: 'null',
-        subject_type: 'line'
+        }
       },
       {
-        pull_request_review_id: 2_227_372_510,
         id: 1_709_082_321,
-        path: 'test/baza/test_locks.rb',
-        commit_id: 'a9f5f94cf28f29a64d5dd96d0ee23b4174572847',
-        original_commit_id: 'e8c6f94274d14ed3cb26fe71467a9c3f229df59c',
-        user: {
-          login: 'test',
-          id: 88_084_038
-        },
+        html_url: "https://github.com/#{name}/issues/#{number}#issuecomment-1709082321",
+        issue_url: "https://api.github.com/repos/#{name}/issues/#{number}",
+        user: { login: 'test', id: 88_084_038 },
         body: 'author comment',
         created_at: '2024-08-08T09:42:46Z',
         updated_at: '2024-08-08T09:42:46Z',
         reactions: {
-          url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082321/reactions',
+          url: "https://api.github.com/repos/#{name}/issues/comments/1709082321/reactions",
           total_count: 1
-        },
-        start_line: 'null',
-        original_start_line: 'null',
-        start_side: 'null',
-        line: 'null',
-        original_line: 62,
-        side: 'RIGHT',
-        original_position: 25,
-        in_reply_to_id: 1_709_082_318,
-        position: 'null',
-        subject_type: 'line'
+        }
       }
     ]
   end
