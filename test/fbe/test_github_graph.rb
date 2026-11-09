@@ -1058,4 +1058,41 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_time_arguments_keep_their_utc_offsets
+    since = Time.new(2026, 10, 4, 12, 0, 0, '+03:00')
+    till = Time.new(2026, 10, 5, 12, 0, 0, '+05:00')
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |qry|
+      if qry.include?('pullRequests')
+        {
+          'repository' => {
+            'pullRequests' => {
+              'nodes' => [], 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil }
+            }
+          }
+        }
+      elsif qry.include?('history(')
+        {
+          'repository' => {
+            'defaultBranchRef' => {
+              'target' => {
+                'history' => {
+                  'nodes' => [], 'totalCount' => 0,
+                  'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil }
+                }
+              }
+            }
+          }
+        }
+      else
+        { 'issues' => { 'issueCount' => 0 }, 'pulls' => { 'issueCount' => 0 } }
+      end
+    end
+    graph.pull_requests_with_reviews('owner', 'repo', since)
+    graph.total_commits_pushed('owner', 'repo', since, till)
+    graph.total_issues_created('owner', 'repo', since, till)
+    assert_equal(10_800, since.utc_offset)
+    assert_equal(18_000, till.utc_offset)
+  end
 end
