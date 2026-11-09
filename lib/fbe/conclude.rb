@@ -95,6 +95,7 @@ class Fbe::Conclude
   # @return [nil] Nothing is returned
   def quota_unaware
     @quota = false
+    nil
   end
 
   # Make this block NOT aware of lifetime limitations.
@@ -104,6 +105,7 @@ class Fbe::Conclude
   # @return [nil] Nothing is returned
   def lifetime_unaware
     @lifetime = false
+    nil
   end
 
   # Make this block NOT aware of timeout limitations.
@@ -113,6 +115,7 @@ class Fbe::Conclude
   # @return [nil] Nothing is returned
   def timeout_unaware
     @timeout = false
+    nil
   end
 
   # Set the query that should find the facts in the factbase.
@@ -122,6 +125,7 @@ class Fbe::Conclude
   def on(query)
     raise(Fbe::Error, 'Query is already set') unless @query.nil?
     @query = query
+    nil
   end
 
   # Set the list of properties to copy from the facts found to new facts.
@@ -135,6 +139,7 @@ class Fbe::Conclude
     bad = list & %w[what details]
     raise(Fbe::Error, "Can't follow #{bad.join(' and ')}, the judge sets it in the new fact") unless bad.empty?
     @follows = list
+    nil
   end
 
   # Create new fact from every fact found by the query.
