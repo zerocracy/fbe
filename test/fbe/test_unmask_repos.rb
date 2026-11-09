@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'json'
 require 'judges/options'
 require 'loog'
 require_relative '../../lib/fbe/unmask_repos'
@@ -207,6 +208,60 @@ class TestUnmaskRepos < Fbe::Test
     options = Judges::Options.new({ 'repositories' => 'foo/bar' })
     list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL, quota_aware: false)
     assert_equal(['foo/bar'], list, 'the repo is not kept when the quota check itself is off-quota')
+  end
+
+  def test_expands_mask_of_a_user_owner
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    random = Random.new(seed)
+    names = Array.new(random.rand(1..5)) { |i| "r#{i}-#{random.rand(1_000_000)}" }
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/orgs/foo/repos?per_page=100&type=all').to_return(status: 404)
+    stub_request(:get, 'https://api.github.com/users/foo/repos?per_page=100').to_return(
+      body: JSON.generate(names.map { |n| { full_name: "foo/#{n}" } }),
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, %r{https://api.github.com/repos/foo/}).to_return(
+      body: '{"archived":false}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'repositories' => 'foo/*' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(names.map { |n| "foo/#{n}" }.sort!, list.sort, "repos of the user are not returned, seed #{seed}")
+  end
+
+  def test_expands_mask_of_a_user_owner_by_its_pattern
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/orgs/foo/repos?per_page=100&type=all').to_return(status: 404)
+    stub_request(:get, 'https://api.github.com/users/foo/repos?per_page=100').to_return(
+      body: '[{"full_name":"foo/alpha"},{"full_name":"foo/beta"},{"full_name":"foo/alpine"}]',
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    stub_request(:get, %r{https://api.github.com/repos/foo/}).to_return(
+      body: '{"archived":false}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'repositories' => 'foo/al*' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(%w[foo/alpha foo/alpine], list.sort, 'repos of the user are not filtered by the mask')
+  end
+
+  def test_skips_mask_when_owner_is_neither_organization_nor_user
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '222' } }
+    )
+    stub_request(:get, 'https://api.github.com/orgs/foo/repos?per_page=100&type=all').to_return(status: 404)
+    stub_request(:get, 'https://api.github.com/users/foo/repos?per_page=100').to_return(status: 404)
+    stub_request(:get, 'https://api.github.com/repos/bar/baz').to_return(
+      body: '{"archived":false}', headers: { 'Content-Type' => 'application/json' }
+    )
+    options = Judges::Options.new({ 'repositories' => 'foo/*,bar/baz' })
+    list = Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL)
+    assert_equal(['bar/baz'], list, 'the mask of an absent owner is not skipped')
   end
 
   def test_live_usage
