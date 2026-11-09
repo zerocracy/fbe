@@ -14,6 +14,17 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  def test_fake_review_comments_belong_to_their_review
+    o = Fbe::FakeOctokit.new
+    all = o.pull_request_comments('foo/foo', 42).map { |c| c[:id] }
+    assert_equal(
+      all, o.pull_request_review_comments('foo/foo', 42, 22_449_327).map do |c|
+             c[:id]
+           end, 'They are of this review'
+    )
+    assert_empty(o.pull_request_review_comments('foo/foo', 42, 22_449_326), 'The other review has no comments')
+  end
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
