@@ -178,4 +178,19 @@ class TestDelete < Fbe::Test
     assert_equal(snapshot[:version], after._version)
     assert_equal(snapshot[:job], after._job)
   end
+
+  def test_keeps_the_job_of_the_first_run
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3' } }
+    )
+    fb = Factbase.new
+    Fbe.fb(fb:, global: {}, options: Judges::Options.new(job_id: 42), loog: Loog::NULL).insert.then do |f|
+      f.foo = 1
+      f.bar = 2
+    end
+    x = Fbe.fb(fb:, global: {}, options: Judges::Options.new(job_id: 43), loog: Loog::NULL)
+    Fbe.delete(x.query('(eq foo 1)').each.first, 'bar', fb: x)
+    assert_equal([42], x.query('(eq foo 1)').each.first['_job'], 'the fact took the _job of the later run')
+  end
 end
