@@ -147,4 +147,20 @@ class TestIfAbsent < Fbe::Test
     assert_equal('A block is required by if_absent', error.message)
     assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
   end
+
+  def test_skips_a_stored_time_given_as_local_time
+    fb = Factbase.new
+    fb.insert.when = Time.utc(2024, 5, 1, 10)
+    n = Fbe.if_absent(fb:) { |f| f.when = Time.new(2024, 5, 1, 13, 0, 0, '+03:00') }
+    assert_nil(n, 'if_absent did not match a non-UTC time')
+    assert_equal(1, fb.size, 'if_absent inserted a duplicate for a non-UTC time')
+  end
+
+  def test_skips_a_stored_value_with_apostrophe
+    fb = Factbase.new
+    fb.insert.foo = "it's"
+    n = Fbe.if_absent(fb:) { |f| f.foo = "it's" }
+    assert_nil(n, 'if_absent did not match a value with an apostrophe')
+    assert_equal(1, fb.size, 'if_absent inserted a duplicate of the value with an apostrophe')
+  end
 end
