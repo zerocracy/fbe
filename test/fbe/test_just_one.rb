@@ -54,6 +54,50 @@ class TestJustOne < Fbe::Test
     end
   end
 
+  def test_reads_nothing_before_anything_is_set
+    fb = Factbase.new
+    Fbe.just_one(fb:) do |f|
+      assert_nil(f.bar)
+      assert_equal(0, fb.size)
+      f.foo = 42
+    end
+    assert_equal(1, fb.size)
+  end
+
+  def test_last_value_wins_inside_block
+    fb = Factbase.new
+    n =
+      Fbe.just_one(fb:) do |f|
+        f.foo = 1
+        f.foo = 2
+        assert_equal(2, f.foo)
+      end
+    assert_equal([2], n['foo'])
+    assert_equal(1, fb.size)
+  end
+
+  def test_reads_back_a_time_value_inside_block
+    fb = Factbase.new
+    stamp = Time.utc(2026, 1, 2, 3, 4, 5)
+    n =
+      Fbe.just_one(fb:) do |f|
+        f.when = stamp
+        assert_equal(stamp, f.when)
+      end
+    assert_equal([stamp], n['when'])
+  end
+
+  def test_finds_the_same_fact_when_read_inside_the_block
+    fb = Factbase.new
+    2.times do
+      Fbe.just_one(fb:) do |f|
+        f.foo = 42
+        assert_equal(42, f.foo)
+      end
+    end
+    assert_equal(1, fb.size)
+  end
+
   def test_ignores_system_attributes_when_matching
     fb = Factbase.new
     fb.insert.foo = 'hello dude'
