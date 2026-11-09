@@ -28,6 +28,7 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   fact.all_properties.each do |k|
     before[k] = fact[k]
   end
+  before.compact!
   return unless before[prop]
   nv = before[prop].dup
   at = nv.index(value)
