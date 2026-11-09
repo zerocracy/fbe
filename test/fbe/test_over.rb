@@ -112,6 +112,20 @@ class TestOver < Fbe::Test
     assert(Fbe.over?(global:, options:, loog:, kickoff: Time.now - 120))
   end
 
+  def test_lifetime_under_the_margin_continues
+    global = {}
+    options = Judges::Options.new({ 'testing' => true, 'lifetime' => 100 })
+    loog = Loog::NULL
+    refute(Fbe.over?(global:, options:, loog:, epoch: Time.now - 50, quota_aware: false))
+  end
+
+  def test_timeout_under_the_margin_continues
+    global = {}
+    options = Judges::Options.new({ 'testing' => true, 'timeout' => 100 })
+    loog = Loog::NULL
+    refute(Fbe.over?(global:, options:, loog:, kickoff: Time.now - 50, quota_aware: false))
+  end
+
   def test_refuses_a_missing_context
     opts = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) do
