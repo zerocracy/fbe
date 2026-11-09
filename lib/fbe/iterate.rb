@@ -335,7 +335,7 @@ class Fbe::Iterate
             @since
           else
             @loog.debug("Next is ##{nxt}, starting from it")
-            latest[repo] =
+            result =
               begin
                 yield(repo, nxt)
               rescue Fbe::OffQuota
@@ -343,6 +343,8 @@ class Fbe::Iterate
               rescue StandardError => e
                 raise(Fbe::Error, "Failure in repository ##{repo} at ##{nxt}: #{e.message}")
               end
+            latest[repo] = result if result.is_a?(Integer)
+            result
           end
         unless before[repo].is_a?(Integer)
           raise(Fbe::Error, "Iterator must return an Integer, but #{before[repo].class} was returned")

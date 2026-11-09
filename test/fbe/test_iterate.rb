@@ -749,6 +749,36 @@ class TestIterate < Fbe::Test
     assert_equal([[1, 2], [3], []], runs)
   end
 
+  def test_keeps_progress_when_the_block_returns_a_non_integer
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    [1, 2, 3].each { |n| fb.insert.num = n }
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('scan')
+        by('(agg (gt num $before) (min num))')
+        repeats(3)
+        over { |_, n| n == 3 ? nil : n }
+      end
+    end
+    assert_equal([2], fb.query('(exists scan)').each.first['scan'], 'The cursor of the first two items must stay')
+  end
+
+  def test_refuses_a_non_integer_on_the_first_item_without_a_marker
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.num = 1
+    assert_raises(Fbe::Error) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('scan')
+        by('(agg (gt num $before) (min num))')
+        repeats(1)
+        over { |_, _| nil }
+      end
+    end
+    assert_empty(fb.query('(exists scan)').each.to_a, 'No progress means no marker')
+  end
+
   private
 
   def fresh_iterator
