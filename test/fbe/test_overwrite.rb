@@ -467,4 +467,45 @@ class TestOverwrite < Fbe::Test
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
+
+  def test_rejects_duplicate_fact_ids_in_hash_form
+    fb = Factbase.new
+    first = fb.insert
+    first._id = 1
+    first.foo = 1
+    second = fb.insert
+    second._id = 1
+    second.bar = 2
+    error = assert_raises(Fbe::Error) { Fbe.overwrite(first, { foo: 5 }, fb:) }
+    assert_equal('2 facts share _id = 1, cannot overwrite one of them', error.message, 'the error is wrong')
+    assert_equal(2, fb.size, 'a fact sharing the _id was dropped')
+    assert_equal(1, fb.query('(eq bar 2)').each.to_a.size, 'the other fact lost its property')
+  end
+
+  def test_rejects_duplicate_fact_ids_in_hash_form_with_new_and_old_keys
+    fb = Factbase.new
+    2.times do |i|
+      f = fb.insert
+      f._id = 7
+      f.foo = i
+    end
+    error = assert_raises(Fbe::Error) { Fbe.overwrite(fb.query('(eq foo 0)').each.first, { foo: 9, baz: 1 }, fb:) }
+    assert_includes(error.message, '2 facts share _id = 7', 'the error is wrong')
+    assert_equal([0, 1], fb.query('(exists foo)').each.flat_map { |f| f['foo'] }.sort!, 'the facts were changed')
+  end
+
+  def test_overwrites_in_hash_form_when_id_is_unique
+    fb = Factbase.new
+    fb.insert.then do |f|
+      f._id = 1
+      f.foo = 1
+    end
+    fb.insert.then do |f|
+      f._id = 2
+      f.foo = 1
+    end
+    Fbe.overwrite(fb.query('(eq _id 1)').each.first, { foo: 5 }, fb:)
+    assert_equal([5], fb.query('(eq _id 1)').each.first['foo'], 'the fact was not overwritten')
+    assert_equal([1], fb.query('(eq _id 2)').each.first['foo'], 'the other fact was changed')
+  end
 end
