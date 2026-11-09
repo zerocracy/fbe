@@ -105,4 +105,22 @@ class TestDeleteOne < Fbe::Test
     assert_equal(snapshot[:job], after._job)
     assert_equal([22], after['bar'])
   end
+
+  def test_deletes_one_value_with_padded_property_name
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    f.foo = 'hello'
+    f._id = 555
+    Fbe.delete_one(f, '  foo  ', 42, fb:)
+    assert_equal(['hello'], fb.query('(exists foo)').each.first['foo'])
+  end
+
+  def test_blank_property_name_raises
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    f._id = 555
+    assert_raises(Fbe::Error) { Fbe.delete_one(f, '   ', 42, fb:) }
+  end
 end
