@@ -407,18 +407,24 @@ class Fbe::Award
     #   bill.line(25, "for documentation")
     #   bill.greeting #=> "You've earned +75 points for this: +50 for code review; +25 for documentation. "
     def greeting
-      items = @lines.map { |l| "#{format('%+d', whole(l[:v]))} #{l[:t]}" }
-      case items.size
-      when 0
-        "You've earned nothing. "
-      when 1
-        "You've earned #{format('%+d', points)} points. "
-      else
-        "You've earned #{format('%+d', points)} points for this: #{items.join('; ')}. "
-      end
+      return "You've earned nothing. " if @lines.empty?
+      items = shares.filter_map { |l| "#{format('%+d', l[:v])} #{l[:t]}" unless l[:v].zero? }
+      return "You've earned #{format('%+d', points)} points. " if @lines.size == 1 || items.empty?
+      "You've earned #{format('%+d', points)} points for this: #{items.join('; ')}. "
     end
 
     private
+
+    # Splits the rounded total between the lines, by the largest remainder.
+    #
+    # @return [Array<Hash>] Lines with whole values that add up to +points+
+    def shares
+      parts = @lines.map { |l| { v: whole(l[:v]), t: l[:t], r: Float(l[:v]) - whole(l[:v]) } }
+      extra = points - parts.sum { |l| l[:v] }
+      step = extra.negative? ? -1 : 1
+      parts.sort_by.with_index { |l, i| [-l[:r] * step, i * step] }.first(extra.abs).each { |l| l[:v] += step }
+      parts
+    end
 
     # Rounds one line value the way the total is rounded.
     #
