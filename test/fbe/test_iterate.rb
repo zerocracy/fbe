@@ -138,10 +138,40 @@ class TestIterate < Fbe::Test
             end
           end
         end
-      assert_includes(e.message, label, label)
+      assert_includes(e.message, "The label '#{label}' clashes with a property of the marker fact", label)
       assert_equal(0, calls, label)
       assert_empty(fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a, label)
     end
+  end
+
+  def test_accepts_a_label_that_only_contains_a_fact_method
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('hash_tag')
+      by('(plus 1 1)')
+      over { |_, nxt| nxt }
+    end
+    m = fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a
+    assert_equal(1, m.size)
+    assert_equal([2], m.first['hash_tag'])
+    assert_nil(m.first['hash'])
+  end
+
+  def test_keeps_markers_apart_per_label
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    2.times do |i|
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as(i.zero? ? 'first_label' : 'second_label')
+        by('(plus 1 1)')
+        over { |_, nxt| nxt + i }
+      end
+    end
+    m = fb.query("(and (eq what 'iterate') (eq where 'github'))").each.to_a
+    assert_equal(1, m.size)
+    assert_equal([2], m.first['first_label'])
+    assert_equal([3], m.first['second_label'])
   end
 
   def test_raises_when_query_not_set
