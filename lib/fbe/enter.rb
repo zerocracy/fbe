@@ -34,7 +34,7 @@ def Fbe.enter(badge, why, options: $options, loog: $loog, &)
   raise(Fbe::Error, 'The why is nil') if why.nil?
   raise(Fbe::Error, 'The $options is not set') if options.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  return yield unless options.testing.nil?
+  return yield.to_s unless options.testing.nil?
   baza = BazaRb.new('api.zerocracy.com', 443, options.zerocracy_token, loog:)
   baza.enter(options.job_name, badge, why, options.job_id.nil? ? nil : Integer(options.job_id.to_s, 10), &).to_s
 end
