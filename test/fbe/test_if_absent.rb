@@ -147,4 +147,16 @@ class TestIfAbsent < Fbe::Test
     assert_equal('A block is required by if_absent', error.message)
     assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
   end
+
+  def test_does_not_insert_duplicates_when_called_concurrently
+    fb = Factbase.new
+    threads =
+      Array.new(10) do
+        Thread.new do
+          Fbe.if_absent(fb:) { |f| f.foo = 'same' }
+        end
+      end
+    threads.each(&:join)
+    assert_equal(1, fb.size)
+  end
 end
