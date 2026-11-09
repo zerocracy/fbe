@@ -31,6 +31,7 @@ require_relative '../fbe'
 #   end
 def Fbe.enter(badge, why, options: $options, loog: $loog, &)
   raise(Fbe::Error, 'The badge is nil') if badge.nil?
+  raise(Fbe::Error, 'The badge is empty') if badge.is_a?(String) && badge.strip.empty?
   raise(Fbe::Error, 'The why is nil') if why.nil?
   raise(Fbe::Error, 'The $options is not set') if options.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
