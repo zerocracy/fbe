@@ -61,4 +61,51 @@ class TestSec < Fbe::Test
     error = assert_raises(Fbe::Error) { Fbe.sec(nil) }
     assert_equal('The fact is nil', error.message)
   end
+
+  def test_refuses_a_fact_without_seconds
+    fb = Factbase.new
+    f = fb.insert
+    error = assert_raises(Fbe::Error) { Fbe.sec(f) }
+    assert_equal('There is no :seconds property', error.message)
+  end
+
+  def test_refuses_a_non_numeric_seconds
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 'almost an hour'
+    error = assert_raises(Fbe::Error) { Fbe.sec(f) }
+    assert_equal('The :seconds property is not a number: "almost an hour"', error.message)
+  end
+
+  def test_rounds_fractional_seconds
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 0.4
+    assert_equal('0s', Fbe.sec(f))
+    f = fb.insert
+    f.seconds = 0.6
+    assert_equal('1s', Fbe.sec(f))
+  end
+
+  def test_takes_the_first_value_of_the_property
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 7200
+    f.seconds = 60
+    assert_equal('2h', Fbe.sec(f))
+  end
+
+  def test_formats_a_decade
+    fb = Factbase.new
+    f = fb.insert
+    f.seconds = 86_400 * 365 * 10
+    assert_equal('10y', Fbe.sec(f))
+  end
+
+  def test_takes_the_property_name_as_a_string
+    fb = Factbase.new
+    f = fb.insert
+    f.duration = 86_400
+    assert_equal('1d', Fbe.sec(f, 'duration'))
+  end
 end

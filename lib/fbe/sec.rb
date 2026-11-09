@@ -25,7 +25,12 @@ def Fbe.sec(fact, prop = :seconds)
   raise(Fbe::Error, 'The fact is nil') if fact.nil?
   s = fact[prop.to_s]
   raise(Fbe::Error, "There is no #{prop.inspect} property") if s.nil?
-  s = Integer(Float(s.first).round)
+  s =
+    begin
+      Integer(Float(s.first).round)
+    rescue ArgumentError, TypeError
+      raise(Fbe::Error, "The #{prop.inspect} property is not a number: #{s.first.inspect}")
+    end
   return '0s' if s.zero?
   return "-#{Float(s.abs).seconds}" if s.negative?
   Float(s).seconds
