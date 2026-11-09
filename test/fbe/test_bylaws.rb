@@ -37,6 +37,26 @@ class TestBylaws < Fbe::Test
     assert_equal(0, empty.size)
   end
 
+  def test_revert_returns_the_lines_it_removes
+    bylaw = Fbe::Award::Bylaw.new
+    bylaw.line('a')
+    bylaw.line('b')
+    assert_equal(['b'], bylaw.revert(1))
+    assert_equal(['a'], bylaw.revert(1))
+    assert_equal([], bylaw.revert(0))
+    assert_equal(0, bylaw.size)
+  end
+
+  def test_revert_keeps_the_lines_before_the_ones_it_removes
+    bylaw = Fbe::Award::Bylaw.new
+    bylaw.line('a')
+    bylaw.line('b')
+    bylaw.line('c')
+    bylaw.revert(2)
+    assert_equal(1, bylaw.size)
+    assert_equal("Here is how it's calculated: Just a.", bylaw.markdown)
+  end
+
   def test_simple
     laws = Fbe.bylaws
     assert_operator(laws.size, :>, 1)
