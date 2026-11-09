@@ -199,6 +199,43 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(['bar/baz'], list, 'the absent repo is not dropped')
   end
 
+  def test_returns_nil_without_yielding_when_the_budget_is_over
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/tacit,zerocracy/*' })
+    yielded = []
+    result =
+      Fbe.stub(:over?, true) do
+        Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL) do |repo|
+          yielded << repo
+        end
+      end
+    assert_nil(result, 'a stopped run must return nil, as the return tag says')
+    assert_empty(yielded, 'a stopped run must not yield a single repository')
+  end
+
+  def test_stops_the_iteration_when_the_budget_runs_out_midway
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/tacit,zerocracy/*' })
+    calls = 0
+    yielded = []
+    counter =
+      proc do |**|
+        calls += 1
+        calls > 2
+      end
+    Fbe.stub(:over?, counter) do
+      Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL) do |repo|
+        yielded << repo
+      end
+    end
+    assert_equal(1, yielded.size, 'the loop must break as soon as the budget is over')
+  end
+
+  def test_returns_the_list_without_a_block
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/tacit,zerocracy/*' })
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_kind_of(Array, list, 'the documented return of the list mode is an array')
+    refute_empty(list)
+  end
+
   def test_does_not_raise_off_quota_regardless_of_quota_aware
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
