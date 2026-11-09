@@ -71,6 +71,43 @@ class TestKillIf < Fbe::Test
     assert_equal(2, fb.size)
   end
 
+  def test_keeps_all_facts_when_one_of_them_has_no_id
+    fb = Factbase.new
+    good = fb.insert
+    good._id = 10
+    bad = fb.insert
+    bad.foo = 1
+    assert_raises(Fbe::Error) { Fbe.kill_if([good, bad], fb:) }
+    assert_equal(2, fb.size)
+    assert_equal(1, fb.query('(eq _id 10)').each.to_a.size)
+  end
+
+  def test_skips_a_fact_without_id_rejected_by_the_block
+    fb = Factbase.new
+    bad = fb.insert
+    bad.foo = 1
+    assert_equal(0, Fbe.kill_if([bad], fb:) { |f| f.foo.nil? })
+    assert_equal(1, fb.size)
+  end
+
+  def test_deletes_a_fact_passed_twice_only_once
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 10
+    fb.insert._id = 20
+    assert_equal(1, Fbe.kill_if([f, f], fb:))
+    assert_equal(1, fb.size)
+    assert_equal(1, fb.query('(eq _id 20)').each.to_a.size)
+  end
+
+  def test_refuses_nil_fb
+    fb = Factbase.new
+    fb.insert._id = 10
+    error = assert_raises(Fbe::Error) { Fbe.kill_if(fb.query('(always)').each.to_a, fb: nil) }
+    assert_equal('The fb is nil', error.message)
+    assert_equal(1, fb.size)
+  end
+
   def test_cannot_kill_nil_facts
     assert_raises(Fbe::Error, 'nil facts are not rejected with Fbe::Error') do
       Fbe.kill_if(nil, fb: Factbase.new, fid: '_id')

@@ -13,6 +13,7 @@ require_relative 'fb'
 # @raise [Fbe::Error] If facts is nil
 def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
   raise(Fbe::Error, 'The facts are nil') if facts.nil?
+  raise(Fbe::Error, 'The fb is nil') if fb.nil?
   ids = []
   facts.each do |f|
     if block_given?
@@ -23,6 +24,7 @@ def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
     raise(Fbe::Error, "The fact has no #{fid.inspect} property: #{f}") if found.nil? || found.empty?
     ids << found.first
   end
+  ids.uniq!
   return 0 if ids.empty?
   fb.query("(or #{ids.map { |id| "(eq #{fid} #{id})" }.join(' ')})").delete!
 end
