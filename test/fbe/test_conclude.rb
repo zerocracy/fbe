@@ -17,6 +17,37 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestConclude < Fbe::Test
+  def test_draw_drops_a_fact_with_only_followed_properties
+    fb = Factbase.new
+    f = fb.insert
+    f.bad = 1
+    f.when = Time.now
+    Fbe.conclude(fb:, judge: 'judge-x', loog: Loog::NULL, options: Judges::Options.new, global: {}) do
+      quota_unaware
+      on('(exists bad)')
+      follow('when')
+      draw { |_n, _prev| nil }
+    end
+    assert_equal(1, fb.size, 'A block that writes nothing must leave no fact behind')
+  end
+
+  def test_draw_keeps_a_fact_the_block_wrote_to
+    fb = Factbase.new
+    f = fb.insert
+    f.bad = 1
+    f.when = Time.now
+    Fbe.conclude(fb:, judge: 'judge-x', loog: Loog::NULL, options: Judges::Options.new, global: {}) do
+      quota_unaware
+      on('(exists bad)')
+      follow('when')
+      draw do |n, _prev|
+        n.done = 1
+        nil
+      end
+    end
+    assert_equal(2, fb.size, 'A fact the block wrote to must stay')
+  end
+
   def test_with_defaults
     $fb = Factbase.new
     $epoch = Time.now
