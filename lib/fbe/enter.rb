@@ -5,6 +5,7 @@
 
 require 'baza-rb'
 require_relative '../fbe'
+require_relative 'github_graph'
 
 # Enter a new valve in the Zerocracy system.
 #
@@ -21,7 +22,7 @@ require_relative '../fbe'
 #   previously stored (on a hit)
 # @raise [Fbe::Error] If badge, why, or required globals are nil
 # @note Requires $options and $loog global variables to be set
-# @note In testing mode (options.testing != nil), bypasses valve recording
+# @note In testing mode (see Fbe.testing?), bypasses valve recording
 # @note Without a job ID the valve is entered with no job attached, since
 #   the API takes nil for that and rejects zero
 # @example Enter a valve for processing
@@ -34,7 +35,7 @@ def Fbe.enter(badge, why, options: $options, loog: $loog, &)
   raise(Fbe::Error, 'The why is nil') if why.nil?
   raise(Fbe::Error, 'The $options is not set') if options.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
-  return yield unless options.testing.nil?
+  return yield if Fbe.testing?(options)
   baza = BazaRb.new('api.zerocracy.com', 443, options.zerocracy_token, loog:)
   baza.enter(options.job_name, badge, why, options.job_id.nil? ? nil : Integer(options.job_id.to_s, 10), &).to_s
 end
