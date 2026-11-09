@@ -467,4 +467,51 @@ class TestOverwrite < Fbe::Test
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
   end
+
+  def test_adds_pair_of_properties_that_rules_accept_only_together
+    seed = Random.new_seed
+    repo = Random.new(seed).rand(1..1_000_000)
+    fbx = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    f = fbx.insert
+    f.what = 'foo-bar'
+    Fbe.overwrite(f, { repository: repo, where: 'github' }, fb: fbx)
+    assert_equal([repo], fbx.query('(always)').each.first['repository'], "pair is not added, seed #{seed}")
+  end
+
+  def test_leaves_fact_untouched_when_added_properties_break_rules
+    seed = Random.new_seed
+    repo = Random.new(seed).rand(1..1_000_000)
+    fbx = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    f = fbx.insert
+    f.what = 'foo-bar'
+    begin
+      Fbe.overwrite(f, { repository: repo, where: 'bitbucket' }, fb: fbx)
+    rescue StandardError
+      nil
+    end
+    assert_nil(fbx.query('(always)').each.first['repository'], "half of a broken pair is kept, seed #{seed}")
+  end
+
+  def test_adds_properties_in_place_to_fact_without_id
+    seed = Random.new_seed
+    count = Random.new(seed).rand(1..1_000_000)
+    fb = Factbase.new
+    f = fb.insert
+    f.what = 'ñame'
+    Fbe.overwrite(f, { count:, tag: 'ü' }, fb:)
+    assert_equal([count], fb.query('(always)').each.first['count'], "property is not added, seed #{seed}")
+  end
+
+  def test_cannot_add_properties_to_fact_that_is_gone
+    seed = Random.new_seed
+    id = Random.new(seed).rand(1..1_000_000)
+    fb = Factbase.new
+    f = fb.insert
+    f._id = id
+    f.what = 'gõne'
+    fb.query("(eq _id #{id})").delete!
+    assert_raises(Fbe::Error, "a deleted fact got new properties, seed #{seed}") do
+      Fbe.overwrite(f, { tag: 'ü' }, fb:)
+    end
+  end
 end
