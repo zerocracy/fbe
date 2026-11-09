@@ -749,6 +749,46 @@ class TestIterate < Fbe::Test
     assert_equal([[1, 2], [3], []], runs)
   end
 
+  def test_skips_repo_seen_enough_when_quota_comes_back_mid_pass
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    seen = []
+    trip = false
+    Fbe.stub(:over?, ->(**) { trip.tap { trip = false } }) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('quota_back_test')
+        by('(plus 1 1)')
+        repeats(2)
+        over do |repo, nxt|
+          seen << repo
+          trip = seen.size == 3
+          nxt
+        end
+      end
+    end
+    assert_equal([2, 2], seen.tally.values, 'a repository was visited more often than its repeats')
+  end
+
+  def test_stops_when_quota_is_off_for_good_mid_pass
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    seen = []
+    off = false
+    Fbe.stub(:over?, ->(**) { off }) do
+      Fbe.iterate(fb:, loog: Loog::NULL, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+        as('quota_off_test')
+        by('(plus 1 1)')
+        repeats(2)
+        over do |repo, nxt|
+          seen << repo
+          off = seen.size == 3
+          nxt
+        end
+      end
+    end
+    assert_equal([2, 1], seen.tally.values, 'the iteration did not stop when the quota went off')
+  end
+
   private
 
   def fresh_iterator
