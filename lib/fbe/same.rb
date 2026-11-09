@@ -15,5 +15,5 @@ require_relative '../fbe'
 # @param [Hash] attrs The attributes the caller asked for
 # @return [Boolean] TRUE if every Time attribute is in the fact
 def Fbe.same?(fact, attrs)
-  attrs.all? { |k, v| !v.is_a?(Time) || [fact.public_send(k)].flatten.include?(v) }
+  attrs.all? { |k, v| !v.is_a?(Time) || fact[k.to_s]&.include?(v) }
 end
