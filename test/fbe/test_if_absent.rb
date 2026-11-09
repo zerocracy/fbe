@@ -147,4 +147,18 @@ class TestIfAbsent < Fbe::Test
     assert_equal('A block is required by if_absent', error.message)
     assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
   end
+
+  def test_skips_a_fact_of_another_version
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 1
+    f._version = 'a'
+    n =
+      Fbe.if_absent(fb:) do |g|
+        g.foo = 1
+        g._version = 'b'
+      end
+    assert_nil(n, 'if_absent did not match a fact of another _version')
+    assert_equal(1, fb.size, 'if_absent inserted a duplicate for another _version')
+  end
 end
