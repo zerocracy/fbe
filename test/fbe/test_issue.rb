@@ -51,6 +51,44 @@ class TestIssue < Fbe::Test
     f.issue = 'abc'
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
+    error = assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
+    assert_equal("The 'issue' property (\"abc\") is not a number", error.message)
+  end
+
+  def test_refuses_a_nil_fact
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    error = assert_raises(Fbe::Error) { Fbe.issue(nil, global:, options:, loog: Loog::NULL) }
+    assert_equal('The fact is nil', error.message)
+  end
+
+  def test_refuses_a_fact_without_repository
+    fb = Factbase.new
+    f = fb.insert
+    f.issue = 333
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    error = assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
+    assert_equal("There is no 'repository' property", error.message)
+  end
+
+  def test_refuses_a_fact_without_issue
+    fb = Factbase.new
+    f = fb.insert
+    f.repository = 323
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    error = assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
+    assert_equal("There is no 'issue' property", error.message)
+  end
+
+  def test_refuses_nil_global
+    fb = Factbase.new
+    f = fb.insert
+    f.repository = 323
+    f.issue = 333
+    options = Judges::Options.new({ 'testing' => true })
+    error = assert_raises(Fbe::Error) { Fbe.issue(f, global: nil, options:, loog: Loog::NULL) }
+    assert_equal('The $global is not set', error.message)
   end
 end
