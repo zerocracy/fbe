@@ -631,8 +631,11 @@ class TestGitHubGraph < Fbe::Test
     result = graph.issue_type_event('some_id')
     assert_instance_of(Hash, result)
     assert_equal('IssueTypeRemovedEvent', result['type'])
+    assert_equal(Time.parse('2025-05-11T20:23:13Z'), result['created_at'])
+    assert_equal('it3', result.dig('issue_type', 'id'))
     assert_equal('Feature', result.dig('issue_type', 'name'))
     assert_equal('A feature', result.dig('issue_type', 'description'))
+    assert_equal('yegor256', result.dig('actor', 'login'))
     assert_nil(result['prev_issue_type'])
   end
 
