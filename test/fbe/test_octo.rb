@@ -394,6 +394,51 @@ class TestOcto < Fbe::Test
     assert_equal(0, result[:total_count])
   end
 
+  def test_search_code_allowed_when_code_search_quota_ok_but_search_low
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: {
+        rate: { remaining: 4_999 },
+        resources: {
+          core: { remaining: 4_999 }, search: { remaining: rnd.rand(0..4) },
+          code_search: { remaining: rnd.rand(5..10) }
+        }
+      }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    stub_request(:get, %r{https://api.github.com/search/code}).to_return(
+      body: { total_count: 0, incomplete_results: false, items: [] }.to_json,
+      headers: { 'Content-Type' => 'application/json' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_equal(
+      0, o.search_code("ключ #{rnd.rand(1000)} repo:foo/bar")[:total_count],
+      "search_code was refused by the search quota while code_search quota is left, seed #{seed}"
+    )
+  end
+
+  def test_search_code_blocked_when_code_search_quota_exhausted_but_search_ok
+    WebMock.disable_net_connect!
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: {
+        rate: { remaining: 4_999 },
+        resources: {
+          core: { remaining: 4_999 }, search: { remaining: rnd.rand(5..30) },
+          code_search: { remaining: rnd.rand(0..4) }
+        }
+      }.to_json,
+      headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
+    )
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new)
+    assert_raises(Fbe::OffQuota, "search_code went out with no code_search quota left, seed #{seed}") do
+      o.search_code("ключ #{rnd.rand(1000)} repo:foo/bar")
+    end
+  end
+
   def test_off_quota_search_falls_back_to_core_when_no_search_resource
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
@@ -488,7 +533,10 @@ class TestOcto < Fbe::Test
   def test_search_methods_are_routed_through_search_quota_check
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      body: {
+        rate: { remaining: 4_999 },
+        resources: { core: { remaining: 4_999 }, search: { remaining: 1 }, code_search: { remaining: 1 } }
+      }.to_json,
       headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
     )
     Fbe::SEARCH_METHODS.each do |m|
@@ -502,7 +550,10 @@ class TestOcto < Fbe::Test
   def test_send_routes_through_quota_guard
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      body: {
+        rate: { remaining: 4_999 },
+        resources: { core: { remaining: 4_999 }, search: { remaining: 1 }, code_search: { remaining: 1 } }
+      }.to_json,
       headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
     )
     Fbe::SEARCH_METHODS.each do |m|
@@ -516,7 +567,10 @@ class TestOcto < Fbe::Test
   def test_public_send_routes_through_quota_guard
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
-      body: { rate: { remaining: 4_999 }, resources: { core: { remaining: 4_999 }, search: { remaining: 1 } } }.to_json,
+      body: {
+        rate: { remaining: 4_999 },
+        resources: { core: { remaining: 4_999 }, search: { remaining: 1 }, code_search: { remaining: 1 } }
+      }.to_json,
       headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4999' }
     )
     Fbe::SEARCH_METHODS.each do |m|
