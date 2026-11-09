@@ -56,6 +56,31 @@ class TestBylaws < Fbe::Test
     assert_includes(md, 'deduct **16** points if there were absolutely no comments made during review', md)
   end
 
+  def test_code_review_text_states_every_step
+    md = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'assume that _hoc_ is the total number of hits-of-code in the contribution', md)
+    assert_includes(md, 'assume that _comments_ is the total number of comments made by all reviewers', md)
+    assert_includes(md, 'assume that _self_ is 1 if the review was made for their own code contribution', md)
+    assert_includes(md, 'award **12** points', md)
+    assert_includes(md, 'add **0.01** points for each', md)
+    assert_includes(md, 'deduct **10** points if there were less than **6** comments made during review', md)
+    assert_includes(md, 'add **0.25** points for each comment during the review, but not more than **8** points', md)
+    assert_includes(md, 'deduct **8** points if there were less than **16** hits-of-code', md)
+    assert_includes(md, 'not larger than **24** points and not smaller than **4** points', md)
+  end
+
+  def test_code_review_text_follows_the_levels
+    award = Fbe::Award.new(Fbe.bylaws(anger: 4, love: 1, paranoia: 4)['code-review-was-rewarded'])
+    md = award.bylaw.markdown
+    assert_includes(md, 'award **6** points', md)
+    assert_includes(md, 'deduct **48** points if they reviewed their own contribution', md)
+    assert_includes(md, 'add **0.005** points for each', md)
+    assert_includes(md, 'deduct **20** points if there were less than **12** comments made during review', md)
+    assert_includes(md, 'deduct **32** points if there were absolutely no comments made during review', md)
+    assert_includes(md, 'add **0.125** points for each comment during the review', md)
+    assert_includes(md, 'deduct **16** points if there were less than **32** hits-of-code', md)
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
