@@ -14,6 +14,13 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  def test_fake_user_knows_its_own_bots
+    o = Fbe::FakeOctokit.new
+    assert_equal('Bot', o.user(8_086_956)[:type], 'The fake gives rultor as a Bot in contributors')
+    assert_equal('github-actions[bot]', o.user(41_898_282)[:login], 'The fake gives this login in issue_events')
+    assert_equal('User', o.user(526_301)[:type], 'A person stays a User')
+  end
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
