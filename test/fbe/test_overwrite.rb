@@ -350,6 +350,50 @@ class TestOverwrite < Fbe::Test
     end
   end
 
+  def test_overwrite_with_string_rejects_nil_value
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.overwrite(f, 'foo', nil, fb:) }
+    assert_equal('The values is nil', error.message)
+    assert_equal(1, fb.size)
+    assert_equal([42], fb.query('(always)').each.first['foo'])
+  end
+
+  def test_overwrite_with_string_rejects_non_string_property
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.overwrite(f, 42, 55, fb:) }
+    assert_equal('The property is not a String but Integer (42)', error.message)
+    assert_equal(1, fb.size)
+    assert_equal([42], fb.query('(always)').each.first['foo'])
+  end
+
+  def test_overwrite_with_string_custom_fid
+    fb = Factbase.new
+    f = fb.insert
+    f.custom_id = 123
+    f.foo = 42
+    Fbe.overwrite(f, 'foo', 55, fb:, fid: 'custom_id')
+    result = fb.query('(always)').each.to_a.first
+    assert_equal(1, fb.size)
+    assert_equal([123], result['custom_id'])
+    assert_equal([55], result['foo'])
+  end
+
+  def test_overwrite_with_string_missing_custom_fid
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.overwrite(f, 'foo', 55, fb:, fid: 'custom_id') }
+    assert_equal('There is no custom_id in the fact, cannot use Fbe.overwrite', error.message)
+    assert_equal(1, fb.size)
+    assert_equal([42], fb.query('(always)').each.first['foo'])
+  end
+
   def test_overwrite_with_hash_complex_data_types
     fb = Factbase.new
     f = fb.insert
