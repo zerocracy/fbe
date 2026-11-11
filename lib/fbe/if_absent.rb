@@ -9,7 +9,7 @@ require_relative '../fbe'
 require_relative 'fb'
 require_relative 'same'
 
-# Injects a fact if it's absent in the factbase, otherwise returns nil.
+# Injects a fact if absent; an existing match returns nil unless +always+ is true.
 #
 # Checks if a fact with the same property values already exists. If not,
 # creates a new fact. System properties (_id, _time, _version) are excluded
@@ -33,7 +33,8 @@ require_relative 'same'
 # @param [Factbase] fb The factbase to check and insert into (defaults to Fbe.fb)
 # @param [Boolean] always If true, return the object in any case
 # @yield [Factbase::Fact] A proxy fact object to set properties on
-# @return [nil, Factbase::Fact] nil if fact exists, otherwise the newly created fact
+# @return [nil, Factbase::Fact] The newly created fact when absent; nil for an
+#   existing match by default, or the existing fact when +always+ is true
 # @raise [Fbe::Error] When no block is given
 # @note String values are properly escaped in queries
 # @note Time values are converted to UTC ISO8601 format for comparison
@@ -48,6 +49,11 @@ require_relative 'same'
 #   else
 #     puts "User already exists"
 #   end
+# @example Return the existing fact as well as a newly inserted one
+#   fb = Factbase.new
+#   Fbe.if_absent(fb: fb) { |f| f.code = 42 }
+#   fact = Fbe.if_absent(fb: fb, always: true) { |f| f.code = 42 }
+#   # Returns the fact with code=42 whether it already existed or was inserted
 def Fbe.if_absent(fb: Fbe.fb, always: false)
   raise(Fbe::Error, 'A block is required by if_absent') unless block_given?
   attrs = {}
