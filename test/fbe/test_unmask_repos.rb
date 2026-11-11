@@ -209,6 +209,48 @@ class TestUnmaskRepos < Fbe::Test
     assert_equal(['foo/bar'], list, 'the repo is not kept when the quota check itself is off-quota')
   end
 
+  def test_mask_to_regex_refuses_nil_mask
+    error = assert_raises(Fbe::Error) { Fbe.mask_to_regex(nil) }
+    assert_equal('The mask is nil', error.message)
+  end
+
+  def test_unmask_repos_refuses_nil_options
+    error = assert_raises(Fbe::Error) { Fbe.unmask_repos(options: nil, global: {}, loog: Loog::NULL) }
+    assert_equal('The $options is not set', error.message)
+  end
+
+  def test_unmask_repos_refuses_nil_global
+    opts = Judges::Options.new({ 'repositories' => 'zerocracy/fbe' })
+    error = assert_raises(Fbe::Error) { Fbe.unmask_repos(options: opts, global: nil, loog: Loog::NULL) }
+    assert_equal('The $global is not set', error.message)
+  end
+
+  def test_unmask_repos_refuses_nil_loog
+    opts = Judges::Options.new({ 'repositories' => 'zerocracy/fbe' })
+    error = assert_raises(Fbe::Error) { Fbe.unmask_repos(options: opts, global: {}, loog: nil) }
+    assert_equal('The $loog is not set', error.message)
+  end
+
+  def test_mask_to_regex_with_single_character_repo
+    regex = Fbe.mask_to_regex('zerocracy/a')
+    assert_match(regex, 'zerocracy/a')
+    refute_match(regex, 'zerocracy/ab')
+  end
+
+  def test_mask_to_regex_with_numbers_in_name
+    regex = Fbe.mask_to_regex('zerocracy/repo-42*')
+    assert_match(regex, 'zerocracy/repo-42')
+    assert_match(regex, 'zerocracy/repo-42-extra')
+    refute_match(regex, 'zerocracy/repo-43')
+  end
+
+  def test_mask_to_regex_with_dots_and_wildcard
+    regex = Fbe.mask_to_regex('zerocracy/repo.v1.*')
+    assert_match(regex, 'zerocracy/repo.v1.0')
+    assert_match(regex, 'zerocracy/repo.v1.patch')
+    refute_match(regex, 'zerocracy/repoXv1Y0')
+  end
+
   def test_live_usage
     skip('Run it only manually, since it touches GitHub API')
     opts = Judges::Options.new({ 'repositories' => 'zerocracy/*,-zerocracy/judges-action,zerocracy/datum' })
