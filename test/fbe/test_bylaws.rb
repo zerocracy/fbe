@@ -14,6 +14,15 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class TestBylaws < Fbe::Test
+  def test_silent_review_pays_less_at_every_love
+    [1, 2, 3, 4].each do |love|
+      bylaws = Fbe.bylaws(love:, anger: 2, paranoia: 2)
+      silent = Fbe::Award.new(bylaws['code-review-was-rewarded']).bill(hoc: 3000, comments: 0, self: 0).points
+      full = Fbe::Award.new(bylaws['code-review-was-rewarded']).bill(hoc: 3000, comments: 64, self: 0).points
+      assert_operator(silent, :<, full, "At love #{love} a silent review must pay less")
+    end
+  end
+
   def test_rejects_negative_revert_count
     bylaw = Fbe::Award::Bylaw.new
     assert_raises(Fbe::Error) { bylaw.revert(-1) }
