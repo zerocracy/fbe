@@ -128,7 +128,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       break unless page.dig('pageInfo', 'hasNextPage')
       cursor = page.dig('pageInfo', 'endCursor')
     end
-    threads.select { |thread| thread['isResolved'] }.each { |thread| with_comments(thread) }
+    threads.filter_map { |thread| with_comments(thread) if thread['isResolved'] }
   end
 
   # Gets the total number of commits in a branch.
@@ -633,8 +633,10 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   def with_comments(thread)
     comments = thread['comments']
     return thread if comments.nil?
-    cursor = comments.dig('pageInfo', 'endCursor')
-    while comments.dig('pageInfo', 'hasNextPage')
+    nodes = comments['nodes'].to_a
+    info = comments['pageInfo'] || {}
+    cursor = info['endCursor']
+    while info['hasNextPage']
       page =
         query(
           <<~GRAPHQL
@@ -661,11 +663,11 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           GRAPHQL
         )&.to_h&.dig('node', 'comments')
       break if page.nil?
-      comments['nodes'].concat(page['nodes'] || [])
-      comments['pageInfo'] = page['pageInfo'] || {}
-      cursor = comments.dig('pageInfo', 'endCursor')
+      nodes += page['nodes'] || []
+      info = page['pageInfo'] || {}
+      cursor = info['endCursor']
     end
-    thread
+    thread.merge('comments' => comments.merge('nodes' => nodes, 'pageInfo' => info))
   end
 
   # Creates or returns a cached GraphQL client instance.
