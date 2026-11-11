@@ -435,7 +435,10 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       full_name: repo,
       default_branch: 'master',
       private: false,
-      owner: { login: name.to_s.split('/')[0], id: 526_301, site_admin: false },
+      owner: {
+        login: name.to_s.split('/')[0], id: name.to_s.start_with?('zerocracy/') ? 24_234_201 : 526_301,
+        site_admin: false
+      },
       html_url: "https://github.com/#{name}",
       description: 'something',
       fork: false,
