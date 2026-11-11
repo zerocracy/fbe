@@ -15,6 +15,26 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestFb < Fbe::Test
+  def test_writes_from_many_threads
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    errors = Queue.new
+    Array.new(8) { fb.insert }.map do |f|
+      Thread.new do
+        500.times do |i|
+          f.public_send(:"p#{i % 5}=", i)
+        rescue StandardError => e
+          errors << e.message
+        end
+      end
+    end.each(&:join)
+    assert_empty(errors, 'Valid writes from several threads must all pass')
+  end
+
+  def test_still_refuses_a_bad_fact_with_the_rule_defined_once
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_raises(StandardError, 'A rule must still fire') { fb.insert.what = 'Not Valid' }
+  end
+
   def test_simple
     $fb = Factbase.new
     $global = {}
