@@ -14,6 +14,12 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class TestBylaws < Fbe::Test
+  def test_review_does_not_call_comments_of_all_reviewers_yours
+    greeting = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded']).bill(hoc: 600, comments: 24, self: 0).greeting
+    assert_includes(greeting, 'made during the review', greeting)
+    refute_includes(greeting, 'that you have made', greeting)
+  end
+
   def test_rejects_negative_revert_count
     bylaw = Fbe::Award::Bylaw.new
     assert_raises(Fbe::Error) { bylaw.revert(-1) }
