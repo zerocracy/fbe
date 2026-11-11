@@ -393,6 +393,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
   #       queue.push([p['number'], p['reviews_next_cursor']])
   #     end
   #   end
+  # @note Each review includes its author (login and __typename) and state; author may be nil.
   def pull_request_reviews(owner, name, pulls: [])
     return [] if pulls.empty?
     requests =
@@ -407,6 +408,11 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
               nodes {
                 id
                 submittedAt
+                author {
+                  login
+                  __typename
+                }
+                state
               }
               pageInfo {
                 hasNextPage
@@ -434,7 +440,9 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           next if r['submittedAt'].nil?
           {
             'id' => r['id'],
-            'submitted_at' => Time.parse(r['submittedAt'])
+            'submitted_at' => Time.parse(r['submittedAt']),
+            'author' => r['author'],
+            'state' => r['state']
           }
         end,
         'reviews_has_next_page' => v.dig('reviews', 'pageInfo', 'hasNextPage'),
@@ -862,8 +870,14 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           'id' => 'PR_kwDOL6J6Ss6iprCx',
           'number' => 2,
           'reviews' => [
-            { 'id' => 'PRR_kwDOL6J6Ss647NCl', 'submitted_at' => Time.parse('2025-10-02 12:58:42 UTC') },
-            { 'id' => 'PRR_kwDOL6J6Ss647NC8', 'submitted_at' => Time.parse('2025-10-02 15:58:42 UTC') }
+            {
+              'id' => 'PRR_kwDOL6J6Ss647NCl', 'submitted_at' => Time.parse('2025-10-02 12:58:42 UTC'),
+              'author' => { 'login' => 'reviewer', '__typename' => 'User' }, 'state' => 'APPROVED'
+            },
+            {
+              'id' => 'PRR_kwDOL6J6Ss647NC8', 'submitted_at' => Time.parse('2025-10-02 15:58:42 UTC'),
+              'author' => { 'login' => 'review-bot', '__typename' => 'Bot' }, 'state' => 'COMMENTED'
+            }
           ],
           'reviews_has_next_page' => false,
           'reviews_next_cursor' => 'yc29yOnYyO1'
@@ -871,14 +885,24 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         {
           'id' => 'PR_kwDOL6J6Ss6rhJ7T',
           'number' => 5,
-          'reviews' => [{ 'id' => 'PRR_kwDOL6J6Ss64_mnn', 'submitted_at' => Time.parse('2025-10-03 15:58:42 UTC') }],
+          'reviews' => [
+            {
+              'id' => 'PRR_kwDOL6J6Ss64_mnn', 'submitted_at' => Time.parse('2025-10-03 15:58:42 UTC'),
+              'author' => nil, 'state' => 'DISMISSED'
+            }
+          ],
           'reviews_has_next_page' => false,
           'reviews_next_cursor' => 'yc29yOnYyO2'
         },
         {
           'id' => 'PR_kwDOL6J6Ss6r13fG',
           'number' => 21,
-          'reviews' => [{ 'id' => 'PRR_kwDOL6J6Ss65AbIA', 'submitted_at' => Time.parse('2025-10-04 15:58:42 UTC') }],
+          'reviews' => [
+            {
+              'id' => 'PRR_kwDOL6J6Ss65AbIA', 'submitted_at' => Time.parse('2025-10-04 15:58:42 UTC'),
+              'author' => { 'login' => 'reviewer', '__typename' => 'User' }, 'state' => 'CHANGES_REQUESTED'
+            }
+          ],
           'reviews_has_next_page' => false,
           'reviews_next_cursor' => 'yc29yOnYyO3'
         }
