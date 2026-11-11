@@ -16,6 +16,21 @@ require_relative '../../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class LoggingFormatterTest < Fbe::Test
+  def test_filters_response_messages_for_both_error_formats
+    [401, 403].each do |status|
+      loog = Loog::Buffer.new
+      formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
+      formatter.filter(/private detail/, '[REDACTED]')
+      env = Faraday::Env.from({ method: :get, url: URI('http://example.com'), request_headers: {} })
+      env.status = status
+      env.response_headers = { 'content-type' => 'application/json' }
+      env.response_body = '{"message":"Access denied: private detail"}'
+      formatter.response(env)
+      assert_includes(loog.to_s, '[REDACTED]')
+      refute_includes(loog.to_s, 'private detail')
+    end
+  end
+
   def test_success_response
     log_it(status: 200) do |loog|
       assert_empty(loog.to_s)
