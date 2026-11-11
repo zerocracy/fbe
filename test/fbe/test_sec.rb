@@ -61,4 +61,34 @@ class TestSec < Fbe::Test
     error = assert_raises(Fbe::Error) { Fbe.sec(nil) }
     assert_equal('The fact is nil', error.message)
   end
+
+  def test_rounds_fraction_of_second_up
+    f = Factbase.new.insert
+    f.seconds = 0.6
+    assert_equal('1s', Fbe.sec(f), 'a fraction above one half was not rounded up')
+  end
+
+  def test_rounds_fraction_of_second_down
+    f = Factbase.new.insert
+    f.seconds = 0.4
+    assert_equal('0s', Fbe.sec(f), 'a fraction below one half was not rounded down')
+  end
+
+  def test_rounds_up_to_the_next_unit
+    f = Factbase.new.insert
+    f.seconds = 59.6
+    assert_equal(Float(60).seconds, Fbe.sec(f), 'the value was not rounded up to a minute')
+  end
+
+  def test_rounds_negative_fraction_away_from_zero
+    f = Factbase.new.insert
+    f.seconds = -59.6
+    assert_equal("-#{Float(60).seconds}", Fbe.sec(f), 'a negative fraction was not rounded')
+  end
+
+  def test_rounds_half_second_up_to_an_hour
+    f = Factbase.new.insert
+    f.seconds = 3599.5
+    assert_equal(Float(3600).seconds, Fbe.sec(f), 'a half second was not rounded up to an hour')
+  end
 end
