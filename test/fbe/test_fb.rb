@@ -15,6 +15,13 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestFb < Fbe::Test
+  def test_promises_no_unique_id_it_can_not_check
+    assert_nil(
+      File.read(File.join(__dir__, '../../rules/basic.fe'))[/\(unique _id\)/],
+      'A rule sees one fact at a time, so it must not promise that an _id is unique'
+    )
+  end
+
   def test_simple
     $fb = Factbase.new
     $global = {}
