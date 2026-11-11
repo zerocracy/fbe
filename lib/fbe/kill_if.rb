@@ -24,5 +24,7 @@ def Fbe.kill_if(facts, fb: Fbe.fb, fid: '_id')
     ids << found.first
   end
   return 0 if ids.empty?
-  fb.query("(or #{ids.map { |id| "(eq #{fid} #{id})" }.join(' ')})").delete!
+  ids.each_slice(50).sum do |slice|
+    fb.query("(or #{slice.map { |id| "(eq #{fid} #{id})" }.join(' ')})").delete!
+  end
 end
