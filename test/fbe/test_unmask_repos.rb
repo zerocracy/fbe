@@ -260,4 +260,52 @@ class TestUnmaskRepos < Fbe::Test
     refute_includes(list, 'zerocracy/judges-action')
     refute_includes(list, 'zerocracy/datum')
   end
+
+  def test_ignores_lone_negation_dash
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/tacit, -' })
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_includes(list, 'yegor256/tacit')
+  end
+
+  def test_ignores_lone_negation_dash_with_spaces
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/tacit, -   ' })
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_includes(list, 'yegor256/tacit')
+  end
+
+  def test_ignores_multiple_empty_negation_dashes
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => '-, yegor256/tacit, -  , -' })
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_includes(list, 'yegor256/tacit')
+  end
+
+  def test_lone_negation_with_valid_exclusion_pattern
+    opts = Judges::Options.new(
+      {
+        'testing' => true,
+        'repositories' => 'yegor256/tacit, zerocracy/*, -, -zerocracy/judges-action'
+      }
+    )
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_includes(list, 'yegor256/tacit')
+    refute_includes(list, 'zerocracy/judges-action')
+  end
+
+  def test_ignores_lone_negation_dash_with_tabs
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => "yegor256/tacit,\t-\t" })
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_includes(list, 'yegor256/tacit')
+  end
+
+  def test_lone_negation_with_whitespace_around_valid_negation
+    opts = Judges::Options.new(
+      {
+        'testing' => true,
+        'repositories' => 'yegor256/tacit, zerocracy/*, -   , - zerocracy/judges-action '
+      }
+    )
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_includes(list, 'yegor256/tacit')
+    refute_includes(list, 'zerocracy/judges-action')
+  end
 end
