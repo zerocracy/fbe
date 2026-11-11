@@ -71,7 +71,11 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   # @note Special handling for 403 JSON responses to show compact error message
   def response(http) # rubocop:disable Metrics/AbcSize
     return if http.status < 400
-    if http.status == 403 && http.response_headers['content-type']&.start_with?('application/json')
+    http = http.dup
+    http.request_body = encoded(http.request_body)
+    http.response_body = encoded(http.response_body)
+    type = http.response_headers['content-type']&.downcase
+    if http.status == 403 && type&.start_with?('application/json')
       msg =
         begin
           parsed = JSON.parse(http.response_body)
@@ -85,7 +89,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
         return
       end
     end
-    if http.status >= 500 && http.response_headers['content-type']&.start_with?('text')
+    if http.status >= 500 && type&.start_with?('text')
       error(
         [
           "#{http.method.upcase} #{apply_filters(http.url.to_s)} HTTP/1.1",
@@ -115,6 +119,15 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
   end
 
   private
+
+  # Transcodes valid text in ASCII-incompatible encodings before filtering.
+  #
+  # @param [Object] body The request or response body
+  # @return [Object] The UTF-8 text or the original body
+  def encoded(body)
+    return body unless body.is_a?(String) && body.valid_encoding? && !body.encoding.ascii_compatible?
+    dump_body(body)
+  end
 
   # Indents text with two spaces, including all lines.
   #
