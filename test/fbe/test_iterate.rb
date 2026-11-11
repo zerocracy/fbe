@@ -14,6 +14,14 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestIterate < Fbe::Test
+  def test_quota_unaware_runs_while_off_quota
+    assert_equal([1], scanned_off_quota { quota_unaware }, 'An unaware iterator must still reach its block')
+  end
+
+  def test_quota_aware_stops_while_off_quota
+    assert_empty(scanned_off_quota { nil }, 'An aware iterator must stop')
+  end
+
   def test_simple
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -782,6 +790,27 @@ class TestIterate < Fbe::Test
   end
 
   private
+
+  def scanned_off_quota(&setup)
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    global = {}
+    fb = Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL)
+    fb.insert.num = 1
+    octo = Fbe.octo(loog: Loog::NULL, options: opts, global:)
+    def octo.off_quota?(**) = true
+    seen = []
+    Fbe.iterate(fb:, loog: Loog::NULL, global:, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('scan')
+      by('(agg (gt num $before) (min num))')
+      instance_eval(&setup)
+      repeats(1)
+      over do |_, n|
+        seen << n
+        n
+      end
+    end
+    seen
+  end
 
   def fresh_iterator
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])

@@ -277,7 +277,7 @@ class Fbe::Iterate
     repos =
       Fbe.unmask_repos(
         loog: @loog, options: @options, global: @global, quota_aware: @quota
-      ).map { |n| oct.repo_id_by_name(n) }
+      ).map { |n| @quota ? oct.repo_id_by_name(n) : oct.identity(n) }
     started = Time.now
     restarted = []
     markers = {}
