@@ -20,7 +20,7 @@ require 'zlib'
 #   client = Fbe::FakeOctokit.new
 #   repo = client.repository('octocat/hello-world')
 #   puts repo[:full_name]  # => "octocat/hello-world"
-#   puts repo[:id]         # => 1224 (deterministic from name)
+#   puts repo[:id]         # => 3614143303 (deterministic from name)
 #
 # @note All methods return static or pseudo-random data
 # @note No actual API calls are made
@@ -44,7 +44,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @return [Integer, String] The CRC-32 of the name if input is a string, otherwise the original input
   # @example
   #   fake_client = Fbe::FakeOctokit.new
-  #   fake_client.name_to_number("octocat") #=> 1483505668
+  #   fake_client.name_to_number("octocat") #=> 1627039078
   #   fake_client.name_to_number(42) #=> 42
   def name_to_number(name)
     return name unless name.is_a?(String)
