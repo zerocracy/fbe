@@ -15,6 +15,17 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestDeleteOne < Fbe::Test
+  def test_refuses_to_bring_back_a_removed_fact
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.k = 1
+    f.t = 5
+    fb.query('(eq _id 1)').delete!
+    assert_raises(Fbe::Error) { Fbe.delete_one(f, 't', 5, fb:) }
+    assert_equal(0, fb.size)
+  end
+
   def test_deletes_one_value
     fb = Factbase.new
     f = fb.insert
