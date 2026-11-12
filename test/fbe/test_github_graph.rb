@@ -700,6 +700,38 @@ class TestGitHubGraph < Fbe::Test
     assert_includes(qry, 'until: "2024-02-09T21:13:44Z"', 'the history has no upper bound on the commit date')
   end
 
+  def test_real_total_commits_pushed_sums_hoc_over_pages
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    pages = []
+    graph.define_singleton_method(:query) do |q|
+      pages << q
+      nodes =
+        if pages.size == 1
+          [{ 'oid' => 'a1', 'additions' => 7, 'deletions' => 3 }, { 'oid' => 'a2' }]
+        else
+          [{ 'oid' => 'b1', 'additions' => 40 }]
+        end
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 150,
+                'nodes' => nodes,
+                'pageInfo' => { 'endCursor' => 'Y3Vyc29y', 'hasNextPage' => pages.size < 2 }
+              }
+            }
+          }
+        }
+      }
+    end
+    result = graph.total_commits_pushed(
+      'foo', 'bar', Time.parse('2024-01-05T07:00:00Z'), Time.parse('2024-02-09T21:13:44Z')
+    )
+    assert_equal(50, result['hoc'], 'the hoc is not summed over pages or a missing addition is counted')
+  end
+
   def test_real_total_commits_pushed_keeps_till_on_every_page
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
@@ -725,6 +757,32 @@ class TestGitHubGraph < Fbe::Test
       2, pages.count { _1.include?('until: "2024-02-09T21:13:44Z"') },
       'a page of the history goes out without the upper bound on the commit date'
     )
+  end
+
+  def test_real_total_commits_pushed_counts_total_once_across_pages
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    pages = []
+    graph.define_singleton_method(:query) do |q|
+      pages << q
+      {
+        'repository' => {
+          'defaultBranchRef' => {
+            'target' => {
+              'history' => {
+                'totalCount' => 150,
+                'nodes' => [{ 'oid' => 'a1', 'parents' => { 'totalCount' => 1 }, 'additions' => 7, 'deletions' => 3 }],
+                'pageInfo' => { 'endCursor' => 'Y3Vyc29y', 'hasNextPage' => pages.size < 2 }
+              }
+            }
+          }
+        }
+      }
+    end
+    result = graph.total_commits_pushed(
+      'foo', 'bar', Time.parse('2024-01-05T07:00:00Z'), Time.parse('2024-02-09T21:13:44Z')
+    )
+    assert_equal(150, result['commits'], 'the total count is summed over history pages')
   end
 
   def test_fake_total_commits_pushed_takes_till
