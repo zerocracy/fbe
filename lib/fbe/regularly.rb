@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require 'tago'
+require 'time'
 require_relative '../fbe'
 require_relative 'fb'
 
