@@ -11,7 +11,7 @@ require_relative 'octo'
 # Takes the +repository+ and +issue+ properties from the provided +fact+,
 # queries the GitHub API to get the repository's full name, and formats it
 # as a standard GitHub issue reference (e.g., "zerocracy/fbe#42").
-# Results are cached globally to minimize API calls.
+# The name of a repository is looked up once per run.
 #
 # @param [Factbase::Fact] fact The fact containing repository and issue properties
 # @param [Judges::Options] options The options from judges tool (uses $options global)
@@ -21,7 +21,7 @@ require_relative 'octo'
 # @raise [Fbe::Error] If fact is nil or required properties are missing
 # @raise [Fbe::Error] If required global variables are not set
 # @note Requires 'repository' and 'issue' properties in the fact
-# @note Repository names are cached to reduce GitHub API calls
+# @note The name of a repository is looked up once per run
 # @example Format an issue reference
 #   issue_fact = fb.query('(eq type "issue")').first
 #   issue_fact.repository = 549866411  # Repository ID
