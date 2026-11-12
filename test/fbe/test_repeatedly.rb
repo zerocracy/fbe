@@ -227,4 +227,46 @@ class TestRepeatedly < Fbe::Test
     end
     assert(ran, "the judge stayed idle #{hours + 1} hours later, while the interval is #{hours}, seed is #{seed}")
   end
+
+  def test_skips_run_inside_half_hour_interval
+    ran = false
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn { |t| t.insert.then { |f| f.what = 'pmp' and f.area = 'a' and f.every = 0.5 } }
+    Fbe.repeatedly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { |f| f.foo = 1 }
+    Time.stub(:now, Time.now + 600) { Fbe.repeatedly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { ran = true } }
+    refute(ran, 'the judge ran again ten minutes later, while the interval is thirty minutes')
+  end
+
+  def test_skips_run_inside_fractional_interval
+    seed = Random.new_seed
+    hours = Random.new(seed).rand(1..9) + 0.5
+    ran = false
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn { |t| t.insert.then { |f| f.what = 'pmp' and f.area = 'a' and f.every = hours } }
+    Fbe.repeatedly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { |f| f.foo = 1 }
+    later = Time.now + ((hours - 0.25) * 3600)
+    Time.stub(:now, later) { Fbe.repeatedly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { ran = true } }
+    refute(ran, "the judge ran again #{hours - 0.25} hours later, while the interval is #{hours}, seed #{seed}")
+  end
+
+  def test_runs_after_fractional_interval_passes
+    seed = Random.new_seed
+    hours = Random.new(seed).rand(1..9) + 0.5
+    ran = false
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn { |t| t.insert.then { |f| f.what = 'pmp' and f.area = 'a' and f.every = hours } }
+    Fbe.repeatedly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { |f| f.foo = 1 }
+    later = Time.now + ((hours + 0.25) * 3600)
+    Time.stub(:now, later) { Fbe.repeatedly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { ran = true } }
+    assert(ran, "the judge stayed idle #{hours + 0.25} hours later, while the interval is #{hours}, seed #{seed}")
+  end
+
+  def test_skips_run_inside_fractional_interval_given_as_string
+    ran = false
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    fb.txn { |t| t.insert.then { |f| f.what = 'pmp' and f.area = 'a' and f.every = '1.5' } }
+    Fbe.repeatedly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { |f| f.foo = 1 }
+    Time.stub(:now, Time.now + 4800) { Fbe.repeatedly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { ran = true } }
+    refute(ran, "the judge ran again 80 minutes later, while the interval is '1.5' hours")
+  end
 end
