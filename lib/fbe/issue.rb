@@ -34,6 +34,7 @@ def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   rid = fact['repository']
   raise(Fbe::Error, "There is no 'repository' property") if rid.nil?
+  raise(Fbe::Error, "The 'repository' property has multiple values") if rid.is_a?(Array) && rid.size > 1
   begin
     rid = Integer(Float(rid.first).round)
   rescue ArgumentError, TypeError
@@ -41,6 +42,7 @@ def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
   end
   issue = fact['issue']
   raise(Fbe::Error, "There is no 'issue' property") if issue.nil?
+  raise(Fbe::Error, "The 'issue' property has multiple values") if issue.is_a?(Array) && issue.size > 1
   begin
     issue = Integer(Float(issue.first).round)
   rescue ArgumentError, TypeError
