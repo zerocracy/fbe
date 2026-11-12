@@ -121,6 +121,7 @@ class Fbe::Conclude
   # @return [nil] Nothing is returned
   def on(query)
     raise(Fbe::Error, 'Query is already set') unless @query.nil?
+    raise(Fbe::Error, 'Query cannot be empty') if query.is_a?(String) && query.strip.empty?
     @query = query
   end
 
