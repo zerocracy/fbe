@@ -156,6 +156,17 @@ class TestDelete < Fbe::Test
     assert_equal(2, fb.size)
   end
 
+  def test_deletes_with_string_identifier
+    fb = Factbase.new
+    f = fb.insert
+    f.key = 'customid'
+    f.value = 1
+    Fbe.delete(f, 'value', fb:, id: 'key')
+    assert_equal(1, fb.size)
+    assert_equal(1, fb.query('(eq key "customid")').each.to_a.size)
+    assert_empty(fb.query('(exists value)').each.to_a)
+  end
+
   def test_preserves_system_props_on_decorated_fb
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
