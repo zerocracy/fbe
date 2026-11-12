@@ -48,7 +48,7 @@ class Fbe::Award
     term = Factbase::Syntax.new(@query).to_term
     term.redress!(Fbe::Award::BTerm)
     bill = Bill.new
-    vars.each { |k, v| bill.set(k, v) }
+    vars.each { |k, v| bill.set(k.to_sym, v) }
     term.bill_to(bill)
     bill
   end
