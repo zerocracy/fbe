@@ -227,4 +227,54 @@ class TestRepeatedly < Fbe::Test
     end
     assert(ran, "the judge stayed idle #{hours + 1} hours later, while the interval is #{hours}, seed is #{seed}")
   end
+
+  def test_raises_on_nil_area
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.repeatedly(nil, 'every_x_hours', fb: Factbase.new, judge: 'test', loog: Loog::NULL) { nil }
+      end
+    assert_equal('The area is nil', e.message)
+  end
+
+  def test_raises_on_nil_interval
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.repeatedly('pmp', nil, fb: Factbase.new, judge: 'test', loog: Loog::NULL) { nil }
+      end
+    assert_equal('The p_every_hours is nil', e.message)
+  end
+
+  def test_raises_on_nil_fb
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.repeatedly('pmp', 'every_x_hours', fb: nil, judge: 'test', loog: Loog::NULL) { nil }
+      end
+    assert_equal('The fb is nil', e.message)
+  end
+
+  def test_raises_on_nil_judge
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.repeatedly('pmp', 'every_x_hours', fb: Factbase.new, judge: nil, loog: Loog::NULL) { nil }
+      end
+    assert_equal('The $judge is not set', e.message)
+  end
+
+  def test_raises_on_nil_loog
+    e =
+      assert_raises(Fbe::Error) do
+        Fbe.repeatedly('pmp', 'every_x_hours', fb: Factbase.new, judge: 'test', loog: nil) { nil }
+      end
+    assert_equal('The $loog is not set', e.message)
+  end
+
+  def test_appends_a_property_written_twice_in_one_block
+    fb = Factbase.new
+    Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+      f.x = 1
+      f.x = 2
+    end
+    marker = fb.query("(and (eq what 'repeatedly') (eq judge 'test'))").each.first
+    assert_equal([1, 2], marker['x'])
+  end
 end
