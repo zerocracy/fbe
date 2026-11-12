@@ -433,6 +433,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     {
       id: name_to_number(name),
       full_name: repo,
+      name: repo.split('/').last,
       default_branch: 'master',
       private: false,
       owner: {

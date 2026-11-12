@@ -1464,6 +1464,36 @@ class TestOcto < Fbe::Test
     assert_equal('yegor256/factbase', repos[1][:full_name])
   end
 
+  def test_fake_repository_has_short_name
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    assert_equal('fbe', o.repository('zerocracy/fbe')[:name])
+    assert_equal('baza', o.repository(1439)[:name])
+    assert_equal('bazz', o.repository(810)[:name])
+    assert_equal('test', o.repository(42)[:name])
+    assert_equal('judges', o.repositories('yegor256')[0][:name])
+    assert_equal('factbase', o.organization_repositories('yegor256')[1][:name])
+    assert_equal('empty-repo', o.repository('yegor256/empty-repo')[:name])
+    assert_equal('fbe', o.repository('fbe')[:name])
+    r = o.repository('zerocracy/fbe')
+    assert_equal('fbe', r.name)
+    assert_equal('fbe', r[:name])
+  end
+
+  def test_fake_nested_repositories_have_short_name
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    repos = o.user_repository_invitations.map { |i| i[:repository] }
+    repos << o.workflow_run('yegor256/test', 10_438_531_076)[:repository]
+    repos << o.pull_request('yegor256/test', 42)[:base][:repo]
+    repos += o.repositories('yegor256') + o.organization_repositories('yegor256')
+    repos << o.repository('yegor256/fbe')
+    assert_equal('yegor256/fbe', repos.last[:full_name])
+    repos.each do |r|
+      assert_equal(r[:full_name].split('/').last, r[:name], r[:full_name])
+      refute_includes(r[:name], '/', r[:full_name])
+      assert_includes(r[:full_name], '/', r[:name])
+    end
+  end
+
   def test_fake_answer_reads_the_three_ways_a_real_one_reads
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     r = o.repository('foo/bar')
