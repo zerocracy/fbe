@@ -630,7 +630,39 @@ class TestGitHubGraph < Fbe::Test
     result = graph.issue_type_event('some_id')
     assert_equal('IssueTypeChangedEvent', result['type'])
     assert_equal('Task', result.dig('issue_type', 'name'))
+    assert_equal('A task', result.dig('issue_type', 'description'))
     assert_equal('Bug', result.dig('prev_issue_type', 'name'))
+    assert_equal('A bug', result.dig('prev_issue_type', 'description'))
+  end
+
+  def test_real_issue_type_event_removed
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'node' => {
+          '__typename' => 'IssueTypeRemovedEvent',
+          'createdAt' => '2025-05-11T20:23:13Z',
+          'issueType' => { 'id' => 'it3', 'name' => 'Feature', 'description' => 'A feature' },
+          'actor' => {
+            '__typename' => 'User',
+            'login' => 'yegor256',
+            'databaseId' => 526_301,
+            'name' => 'Yegor',
+            'email' => 'yegor@test.com'
+          }
+        }
+      }
+    end
+    result = graph.issue_type_event('some_id')
+    assert_instance_of(Hash, result)
+    assert_equal('IssueTypeRemovedEvent', result['type'])
+    assert_equal(Time.parse('2025-05-11T20:23:13Z'), result['created_at'])
+    assert_equal('it3', result.dig('issue_type', 'id'))
+    assert_equal('Feature', result.dig('issue_type', 'name'))
+    assert_equal('A feature', result.dig('issue_type', 'description'))
+    assert_equal('yegor256', result.dig('actor', 'login'))
+    assert_nil(result['prev_issue_type'])
   end
 
   def test_real_issue_type_event_returns_nil_for_unknown
