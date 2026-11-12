@@ -15,7 +15,11 @@ require_relative '../fbe'
 # @param [Hash] global Hash of global options
 # @param [Loog] loog Logging facility
 # @return [Fbe::Graph] The instance of the class
+# @raise [Fbe::Error] If any of the required globals is not set
 def Fbe.github_graph(options: $options, global: $global, loog: $loog)
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   global[:mutex] ||= Mutex.new
   global[:mutex].synchronize do
     global[:github_graph] ||=
