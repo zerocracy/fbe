@@ -125,9 +125,13 @@ class TestPmp < Fbe::Test
     $options = Judges::Options.new
     $loog = Loog::NULL
     v = Fbe.pmp(loog: Loog::NULL).hr.days_to_reward
-    assert(v.default)
-    assert(v.type)
-    assert(v.memo)
+    assert_equal(14, v.default)
+    assert_kind_of(Integer, v.default)
+    assert_equal('int', v.type)
+    assert_equal('Minimum age in days for an event to qualify for a reward', v.memo)
+    f = Fbe.pmp(loog: Loog::NULL).cost.award_price
+    assert_kind_of(Float, f.default)
+    assert_equal('float', f.type)
   end
 
   def test_reads_other_props
