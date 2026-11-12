@@ -65,6 +65,14 @@ class TestJustOne < Fbe::Test
     end
   end
 
+  def test_rejects_whitespace_only_value
+    assert_raises(Fbe::Error) do
+      Fbe.just_one(fb: Factbase.new) do |f|
+        f.foo = '   '
+      end
+    end
+  end
+
   def test_raises_on_nil
     assert_raises(StandardError) do
       Fbe.just_one(fb: Factbase.new) do |f|
