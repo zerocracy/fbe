@@ -1737,4 +1737,10 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_fake_octokit_annotations_promise_answers
+    src = File.expand_path('../../lib/fbe/fake_octokit.rb', __dir__)
+    stale = File.readlines(src).grep(/@return \[(?:Array<Hash>|Hash)\]/)
+    assert_empty(stale, "#{stale.size} stale hash annotations")
+  end
 end
