@@ -841,9 +841,20 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     ]
   end
 
-  def commit(_repo, sha)
+  def commit(repo, sha)
     {
       sha:,
+      commit: {
+        author: { name: 'Yegor', email: 'yegor@gmail.com', date: Time.parse('2024-09-15 12:23:25 UTC') },
+        committer: { name: 'Yegor', email: 'yegor@gmail.com', date: Time.parse('2024-09-15 12:23:25 UTC') },
+        message: 'Some text',
+        tree: { sha: '6e04579960bf67610d' },
+        comment_count: 0
+      },
+      author: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+      committer: { login: 'yegor256', id: 526_301, type: 'User', site_admin: false },
+      parents: [{ sha: '60cff20bdb66' }],
+      repository: repository(repo),
       stats: {
         total: 123
       }
