@@ -217,24 +217,29 @@ class Fbe::Conclude
   #     end
   #   end
   def roll(&)
-    return 0 if Fbe.over?(
-      global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
-      quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
-    )
+    return 0 if expired?
     passed = 0
-    @fb.query(@query).each.to_a.each do |a|
-      break if Fbe.over?(
-        global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
-        quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
-      )
-      if @timeout && @options.timeout && (@options.timeout * 0.9) - (Time.now - @kickoff) < @slot
-        @loog.info("Less than #{@slot}s left before the timeout, must stop here")
-        break
+    maxid = @fb.query('(max _id)').one
+    facts =
+      if maxid.nil?
+        @fb.query(@query).each.to_a.each
+      else
+        Enumerator.new do |items|
+          lastid = nil
+          loop do
+            break if expired?
+            conditions = ["(lte _id #{maxid})"]
+            conditions << "(gt _id #{lastid})" unless lastid.nil?
+            a = @fb.query("(and #{@query} #{conditions.join(' ')})").each.first
+            break if a.nil?
+            break if expired?
+            lastid = a['_id'].first
+            items << a
+          end
+        end
       end
-      if @lifetime && @options.lifetime && (@options.lifetime * 0.9) - (Time.now - @epoch) < @slot
-        @loog.info("Less than #{@slot}s left before the lifetime ends, must stop here")
-        break
-      end
+    facts.each do |a|
+      break if maxid.nil? && expired?
       @fb.txn do |fbt|
         n = yield(fbt, a)
         unless n.nil?
@@ -251,6 +256,22 @@ class Fbe::Conclude
   rescue Fbe::OffQuota => e
     @loog.info(e.message)
     passed
+  end
+
+  def expired?
+    return true if Fbe.over?(
+      global: @global, options: @options, loog: @loog, epoch: @epoch, kickoff: @kickoff,
+      quota_aware: @quota, lifetime_aware: @lifetime, timeout_aware: @timeout
+    )
+    if @timeout && @options.timeout && (@options.timeout * 0.9) - (Time.now - @kickoff) < @slot
+      @loog.info("Less than #{@slot}s left before the timeout, must stop here")
+      return true
+    end
+    if @lifetime && @options.lifetime && (@options.lifetime * 0.9) - (Time.now - @epoch) < @slot
+      @loog.info("Less than #{@slot}s left before the lifetime ends, must stop here")
+      return true
+    end
+    false
   end
 
   # Populates a new fact based on a previous fact and a processing block.
