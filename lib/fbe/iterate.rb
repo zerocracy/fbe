@@ -225,7 +225,7 @@ class Fbe::Iterate
       raise(Fbe::Error, "Wrong label format '#{label}', use [_a-z][a-zA-Z0-9_]*")
     end
     raise(Fbe::Error, "The label '#{label}' clashes with a property of the marker fact") if
-      %w[what where repository].include?(label)
+      %w[what where repository].include?(label) || Factbase::Fact.method_defined?(label.to_sym)
     @label = label
   end
 
