@@ -55,6 +55,42 @@ class TestBylaws < Fbe::Test
     assert_includes(md, 'comments made during review, but at least one', md)
   end
 
+  def test_punishment_text_states_the_points_the_bill_deducts
+    {
+      'bad-branch-name-was-punished' => 'a penalty is given to the author',
+      'dud-was-punished' => 'the reporter receives a penalty',
+      'push-to-master-was-punished' => 'they get a penalty',
+      'long-pull-was-punished' => 'Oversized pull requests get penalized'
+    }.each do |title, explanation|
+      a = Fbe::Award.new(Fbe.bylaws[title])
+      md = a.bylaw.markdown
+      assert_includes(md, "deduct **#{-a.bill({}).points}** points", md)
+      assert_includes(md, explanation, md)
+    end
+  end
+
+  def test_punishment_text_matches_the_bill_at_every_anger_level
+    %w[bad-branch-name-was-punished dud-was-punished push-to-master-was-punished long-pull-was-punished].each do |title|
+      (0..4).each do |anger|
+        a = Fbe::Award.new(Fbe.bylaws(anger: anger)[title])
+        md = a.bylaw.markdown
+        assert_includes(md, "deduct **#{-a.bill({}).points}** points", "#{title} at anger #{anger}")
+      end
+    end
+  end
+
+  def test_punishment_bills_reach_zero_and_their_maximum_at_the_anger_bounds
+    {
+      'bad-branch-name-was-punished' => -24,
+      'dud-was-punished' => -32,
+      'push-to-master-was-punished' => -32,
+      'long-pull-was-punished' => -16
+    }.each do |title, points|
+      assert_equal(points, Fbe::Award.new(Fbe.bylaws(anger: 4)[title]).bill({}).points, title)
+      assert_equal(0, Fbe::Award.new(Fbe.bylaws(anger: 0)[title]).bill({}).points, title)
+    end
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
