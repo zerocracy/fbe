@@ -135,12 +135,14 @@ class Fbe::Middleware::SqliteStore
         control << "max-age=#{@minage}" if control.none? { |d| d.match?(/\A(max-age|s-maxage)=/i) }
         control = control.join(', ')
         %w[max-age s-maxage].each do |key|
-          matched = control.scan(/#{key}=(\d+)/i).first&.first
+          matched = control.scan(/(?:\A|,\s*)#{key}=(\d+)/i).first&.first
           age = matched.nil? ? nil : Integer(matched, 10)
-          if age
-            age = [age, @minage].max
-            control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
-          end
+          next unless age
+          age = [age, @minage].max
+          control =
+            control.sub(/(\A|,\s*)(#{key})=\d+/i) do
+              "#{Regexp.last_match(1)}#{Regexp.last_match(2)}=#{age}"
+            end
         end
         headers[header] = control
         value = value.dup
