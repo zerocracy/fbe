@@ -152,6 +152,71 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_logs_400_but_not_399 # rubocop:disable Naming/VariableNumber
+    log_it(status: 399) do |loog|
+      assert_empty(loog.to_s)
+    end
+    log_it(status: 400) do |loog|
+      assert_match(%r{HTTP/1.1 400}, loog.to_s)
+    end
+  end
+
+  def test_logs_full_dump_for_403_non_json_content_type # rubocop:disable Minitest/MultipleAssertions
+    log_it(
+      status: 403,
+      response_body: '{"message": "denied"}',
+      response_headers: { 'content-type' => 'text/html' }
+    ) do |loog|
+      str = loog.to_s
+      assert_match(%r{HTTP/1.1 403}, str)
+      assert_match(/some request body/, str)
+      assert_match(%r{content-type: "text/html"}, str)
+      refute_match(/-> 403/, str)
+    end
+  end
+
+  def test_logs_403_json_body_without_message_hash
+    ['[1]', 'null'].each do |body|
+      log_it(status: 403, response_body: body) do |loog|
+        str = loog.to_s
+        assert_match(%r{HTTP/1.1 403}, str)
+        assert_match(/#{Regexp.escape(body)}/, str)
+      end
+    end
+  end
+
+  def test_logs_403_json_warning_at_warn_level
+    log_it(status: 403, formatter: Loog::FULL) do |loog|
+      str = loog.to_s
+      assert_match(%r{ WARN .*-> 403 / hello, world!}, str)
+      refute_match(/ERROR/, str)
+    end
+  end
+
+  def test_truncates_500_text_html_body
+    body = SecureRandom.alphanumeric(120)
+    log_it(
+      status: 500,
+      response_body: body,
+      response_headers: { 'content-type' => 'text/html; charset=utf-8' }
+    ) do |loog|
+      str = loog.to_s
+      assert_match(/#{body.slice(0, 97)}\.\.\./, str)
+      refute_match(/#{Regexp.escape(body)}/, str)
+    end
+  end
+
+  def test_logs_long_json_502_body_untruncated
+    body = "{\"message\": \"#{'x' * 120}\"}"
+    log_it(
+      status: 502,
+      response_body: body,
+      response_headers: { 'content-type' => 'application/json' }
+    ) do |loog|
+      assert_match(/#{Regexp.escape(body)}/, loog.to_s)
+    end
+  end
+
   def test_logs_the_request_the_response_belongs_to
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
@@ -245,9 +310,10 @@ class LoggingFormatterTest < Fbe::Test
     request_body: 'some request body',
     response_body: '{"message": "hello, world!"}',
     response_headers: { 'content-type' => 'application/json', 'x-github-api-version-selected' => '2022-11-28' },
-    request_headers: { 'Authorization' => 'Bearer github_pat_11AAsecret' }
+    request_headers: { 'Authorization' => 'Bearer github_pat_11AAsecret' },
+    formatter: Loog::SHORT
   )
-    loog = Loog::Buffer.new
+    loog = Loog::Buffer.new(formatter:)
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
     env = Faraday::Env.from({ method:, request_body:, url: URI('http://example.com'), request_headers: })
     formatter.request(env)
