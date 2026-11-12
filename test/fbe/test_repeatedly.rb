@@ -227,4 +227,48 @@ class TestRepeatedly < Fbe::Test
     end
     assert(ran, "the judge stayed idle #{hours + 1} hours later, while the interval is #{hours}, seed is #{seed}")
   end
+
+  def test_reads_back_property_set_in_the_first_run
+    seed = Random.new_seed
+    count = Random.new(seed).rand(1..1_000_000)
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    seen = nil
+    Fbe.repeatedly('качество', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+      f.counter = count
+      seen = f.counter
+    end
+    assert_equal(count, seen, "value set by the block is not read back, seed #{seed}")
+  end
+
+  def test_reads_back_property_set_in_a_later_run
+    seed = Random.new_seed
+    count = Random.new(seed).rand(1..1_000_000)
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    seen = nil
+    2.times do |i|
+      Time.stub(:now, Time.now + (i * 25 * 60 * 60)) do
+        Fbe.repeatedly('качество', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+          f.counter = count + i
+          seen = f.counter
+        end
+      end
+    end
+    assert_equal(count + 1, seen, "value of the previous run is read back, seed #{seed}")
+  end
+
+  def test_reads_property_kept_from_the_previous_run
+    seed = Random.new_seed
+    name = "ïmage-#{Random.new(seed).rand(1_000_000)}"
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    seen = nil
+    2.times do |i|
+      Time.stub(:now, Time.now + (i * 25 * 60 * 60)) do
+        Fbe.repeatedly('качество', 'every_x_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+          next f.name = name if i.zero?
+          seen = f.name
+        end
+      end
+    end
+    assert_equal(name, seen, "property stored by the previous run is not read, seed #{seed}")
+  end
 end
