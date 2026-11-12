@@ -25,6 +25,7 @@ require_relative 'overwrite'
 # @yield [Factbase::Fact] The judge fact to populate with execution details
 # @return [nil] Nothing
 # @raise [Fbe::Error] If required parameters or globals are nil
+# @raise [Fbe::Error] If the block sets +what+ or +judge+, by which the fact is found
 # @note Skips execution if judge was run within the interval period
 # @note Overwrites the 'when' property of existing judge fact
 # @example Run a monitoring task every 6 hours
@@ -33,7 +34,7 @@ require_relative 'overwrite'
 #     f.issues_found = count_issues
 #     # PMP might have: hours_between_checks=6
 #   end
-def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &)
+def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &) # rubocop:disable Metrics/AbcSize
   raise(Fbe::Error, 'The area is nil') if area.nil?
   raise(Fbe::Error, 'The p_every_hours is nil') if p_every_hours.nil?
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
@@ -62,6 +63,7 @@ def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, 
   yield(
     others(fact: f, map: attrs) do |k, *rest|
       next @fact.public_send(k, *rest) unless k.end_with?('=')
+      raise(Fbe::Error, "The block of repeatedly can't set '#{k[0..-2]}' of its marker") if %i[what= judge=].include?(k)
       (@map[k[0..-2]] ||= []) << rest.first
     end
   )
