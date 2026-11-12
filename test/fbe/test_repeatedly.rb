@@ -75,6 +75,16 @@ class TestRepeatedly < Fbe::Test
     assert_empty(fb.query('(always)').each.to_a)
   end
 
+  def test_failed_block_leaves_no_marker
+    fb = Factbase.new
+    assert_raises(RuntimeError) do
+      Fbe.repeatedly('pmp', 'every_x_hours', fb:, judge: 'jx', loog: Loog::NULL) do |_f|
+        raise(RuntimeError, 'oops')
+      end
+    end
+    assert_equal(0, fb.size)
+  end
+
   def test_writes_the_marker_into_the_given_factbase
     $fb = Factbase.new
     $loog = Loog::NULL
