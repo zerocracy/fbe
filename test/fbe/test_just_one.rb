@@ -57,6 +57,20 @@ class TestJustOne < Fbe::Test
     refute_nil(n)
   end
 
+  def test_ignores_job_when_matching
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    name = "пёс #{rnd.rand(1000)}"
+    [rnd.rand(1000), rnd.rand(1000) + 1000].each do |job|
+      Fbe.just_one(fb:) do |f|
+        f.foo = name
+        f._job = job
+      end
+    end
+    assert_equal(1, fb.size, "just_one did not ignore _job and inserted a duplicate, seed #{seed}")
+  end
+
   def test_raises_on_empty_value
     assert_raises(StandardError) do
       Fbe.just_one(fb: Factbase.new) do |f|

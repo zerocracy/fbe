@@ -12,7 +12,7 @@ require_relative 'same'
 # Injects a fact if absent; an existing match returns nil unless +always+ is true.
 #
 # Checks if a fact with the same property values already exists. If not,
-# creates a new fact. System properties (_id, _time, _version) are excluded
+# creates a new fact. System properties (_id, _time, _version, _job) are excluded
 # from the uniqueness check.
 #
 # Here is what you do when you want to add a fact to the factbase, but
@@ -71,7 +71,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
       end
     end
   yield(f)
-  q = attrs.except(:_id, :_time, :_version).map do |k, v|
+  q = attrs.except(:_id, :_time, :_version, :_job).map do |k, v|
     raise(Fbe::Error, "Can't match #{k} by an array, only by one value") if v.is_a?(Array)
     vv =
       case v
