@@ -160,6 +160,39 @@ class TestUnmaskRepos < Fbe::Test
     end
   end
 
+  def test_unmasks_masks_padded_with_whitespace
+    seed = Random.new_seed
+    rng = Random.new(seed)
+    pad = Array.new(rng.rand(1..9)) { [' ', "\t", "\n"].sample(random: rng) }.join
+    options = Judges::Options.new({ 'testing' => true, 'repositories' => "foo/bar,#{pad}yegor256/*#{pad}" })
+    assert_equal(
+      %w[foo/bar yegor256/factbase yegor256/judges], Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL).sort,
+      "padded masks are not expanded, seed is #{seed}"
+    )
+  end
+
+  def test_skips_blank_mask_between_commas
+    seed = Random.new_seed
+    rng = Random.new(seed)
+    pad = Array.new(rng.rand(1..9)) { [' ', "\t", "\n"].sample(random: rng) }.join
+    options = Judges::Options.new({ 'testing' => true, 'repositories' => "foo/bar,#{pad},yegor256/*" })
+    assert_equal(
+      %w[foo/bar yegor256/factbase yegor256/judges], Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL).sort,
+      "the blank mask is not skipped, seed is #{seed}"
+    )
+  end
+
+  def test_excludes_by_mask_padded_with_whitespace
+    seed = Random.new_seed
+    rng = Random.new(seed)
+    pad = Array.new(rng.rand(1..9)) { [' ', "\t", "\n"].sample(random: rng) }.join
+    options = Judges::Options.new({ 'testing' => true, 'repositories' => "yegor256/*,#{pad}-yegor256/judges" })
+    assert_equal(
+      ['yegor256/factbase'], Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL),
+      "the padded exclusion mask is ignored, seed is #{seed}"
+    )
+  end
+
   def test_skips_mask_when_organization_listing_is_forbidden
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
