@@ -55,6 +55,38 @@ class TestBylaws < Fbe::Test
     assert_includes(md, 'comments made during review, but at least one', md)
   end
 
+  def test_reward_texts_state_their_explanation_and_points
+    {
+      'bug-report-was-rewarded' =>
+        'When a bug is reported and accepted by the team, the reporter receives a bonus',
+      'enhancement-suggestion-was-rewarded' =>
+        'When an enhancement is suggested and accepted by the team, the reporter receives a bonus'
+    }.each do |title, explain|
+      md = Fbe::Award.new(Fbe.bylaws[title]).bylaw.markdown
+      assert_includes(md, explain, md)
+      assert_includes(md, 'award **12** points', md)
+    end
+  end
+
+  def test_reward_texts_state_their_greeting
+    %w[bug-report-was-rewarded enhancement-suggestion-was-rewarded].each do |title|
+      greeting = Fbe::Award.new(Fbe.bylaws[title]).bill({}).greeting
+      assert_includes(greeting, "You've earned +12 points", title)
+    end
+  end
+
+  def test_reward_texts_follow_the_love_level
+    texts = { 0 => 'award **0** points', 4 => 'award **24** points' }
+    %w[bug-report-was-rewarded enhancement-suggestion-was-rewarded].each do |title|
+      texts.each do |love, text|
+        award = Fbe::Award.new(Fbe.bylaws(love: love)[title])
+        assert_includes(award.bylaw.markdown, text, title)
+        assert_equal(love * 6, award.bill({}).points, title)
+      end
+      assert_includes(Fbe::Award.new(Fbe.bylaws(love: 0)[title]).bill({}).greeting, 'nothing', title)
+    end
+  end
+
   def test_check_all_bills
     awards = {
       'published-release-was-rewarded' => {
