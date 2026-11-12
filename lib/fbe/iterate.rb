@@ -202,7 +202,7 @@ class Fbe::Iterate
     raise(Fbe::Error, 'Sort field is already set') unless @sorting.nil?
     raise(Fbe::Error, 'Cannot set sort field to nil') if prop.nil?
     raise(Fbe::Error, 'Sort field must be a String') unless prop.is_a?(String)
-    raise(Fbe::Error, 'Sort field cannot be empty') if prop.empty?
+    raise(Fbe::Error, 'Sort field cannot be empty') if prop.strip.empty?
     @sorting = prop
   end
 
