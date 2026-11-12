@@ -487,18 +487,17 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Lists issues for a repository.
   #
   # @param [String] repo Repository name ('owner/repo')
-  # @param [Hash] _options Query options (ignored in mock)
-  # @return [Array<Hash>] Array of issue hashes
+  # @param [Hash] options Query options, only :direction and :per_page are honored
+  # @return [Array<Hash>] Array of issue hashes, latest first unless :direction is asc
   # @example
   #   client.list_issues('octocat/Hello-World', state: 'open')
   #   # => [{:number=>42, :title=>"Found a bug", ...}, ...]
-  def list_issues(repo, _options = {})
-    [
-      issue(repo, 42),
-      issue(repo, 43)
-    ].tap do |list|
-      list.prepend(issue(repo, 144)) if repo == 'foo/bazz'
-    end
+  def list_issues(repo, options = {})
+    list = [issue(repo, 42), issue(repo, 43)]
+    list.prepend(issue(repo, 144)) if repo == 'foo/bazz'
+    list.sort_by! { |i| i[:created_at] }
+    list.reverse! unless options[:direction].to_s == 'asc'
+    list.first(options.fetch(:per_page, list.size))
   end
 
   # Gets a single issue.
