@@ -50,7 +50,7 @@ end
 #    follow 'when'
 #    draw do |n, b|
 #      n.good = 'yes!'
-#      'A bad fact was found and a good fact was created for it.'
+#      "The fact ##{b._id} was bad, this is why a good one was created."
 #    end
 #  end
 #
@@ -156,6 +156,9 @@ class Fbe::Conclude
   # the +draw+, where +n+ would be the new created fact and the +w+ would
   # be the fact found. If the block writes nothing into the new fact,
   # the fact is not kept.
+  #
+  # When the block returns a String, it becomes the +details+ of the new fact.
+  # Anything else the block returns is ignored.
   #
   # @yield [Array<Factbase::Fact,Factbase::Fact>] New fact and seen fact
   # @return [Integer] The count of the facts processed
@@ -292,9 +295,10 @@ class Fbe::Conclude
         fact.public_send(:"#{follow}=", v)
       end
     end
+    before = fact.all_properties
     r = yield(fact, prev)
-    return unless r.is_a?(String)
-    fact.details = r
+    return if !r.is_a?(String) && (fact.all_properties - before).empty?
     fact.what = @judge
+    fact.details = r if r.is_a?(String)
   end
 end
