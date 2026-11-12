@@ -8,7 +8,7 @@ PATH
       ellipsized (~> 0.3)
       factbase (~> 0.19)
       faraday (~> 2.0)
-      faraday-http-cache (~> 2.5)
+      faraday-http-cache (~> 3.0)
       faraday-multipart (~> 1.1)
       faraday-retry (~> 2.3)
       filesize (~> 0.2)
@@ -89,7 +89,7 @@ GEM
       faraday-net_http (>= 2.0, < 3.6)
       json
       logger
-    faraday-http-cache (2.8.0)
+    faraday-http-cache (3.0.0)
       faraday (>= 0.8)
     faraday-multipart (1.2.0)
       multipart-post (~> 2.0)

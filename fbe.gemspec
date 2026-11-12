@@ -28,7 +28,7 @@ Gem::Specification.new do |s|
   s.add_dependency('ellipsized', '~>0.3')
   s.add_dependency('factbase', '~>0.19')
   s.add_dependency('faraday', '~>2.0')
-  s.add_dependency('faraday-http-cache', '~>2.5')
+  s.add_dependency('faraday-http-cache', '~>3.0')
   s.add_dependency('faraday-multipart', '~>1.1')
   s.add_dependency('faraday-retry', '~>2.3')
   s.add_dependency('filesize', '~>0.2')
