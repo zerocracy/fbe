@@ -15,6 +15,30 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestDeleteOne < Fbe::Test
+  def test_deletes_only_the_requested_numeric_type
+    [[1, 1.0], [1.0, 1]].each do |values|
+      values.each do |removed|
+        fb = Factbase.new
+        fact = fb.insert
+        fact._id = 1
+        values.each { |value| fact.foo = value }
+        Fbe.delete_one(fact, 'foo', removed, fb: fb)
+        remaining = fb.query('(always)').first['foo']
+        assert_equal(1, remaining.size)
+        refute_equal(removed.class, remaining.first.class)
+      end
+    end
+  end
+
+  def test_does_not_delete_an_equal_value_of_another_type
+    fb = Factbase.new
+    fact = fb.insert
+    fact._id = 1
+    fact.foo = 1
+    Fbe.delete_one(fact, 'foo', 1.0, fb: fb)
+    assert_equal([Integer], fb.query('(always)').first['foo'].map(&:class))
+  end
+
   def test_deletes_one_value
     fb = Factbase.new
     f = fb.insert
