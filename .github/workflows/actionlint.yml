@@ -22,4 +22,4 @@ jobs:
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-      - uses: reviewdog/action-actionlint@be0761e4c1bab7cfdfca56cd03d4bb6253e39a4a
+      - uses: reviewdog/action-actionlint@ae857e78c1b42b3d0a49637181b09d3d56d402b4
