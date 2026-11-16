@@ -162,6 +162,12 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_logs_error_response_with_invalid_utf8_body
+    log_it(status: 404, response_body: "{\"message\": \"Not Found \xE9\"}") do |loog|
+      assert_match(/Not Found/, loog.to_s)
+    end
+  end
+
   def test_logs_the_request_the_response_belongs_to
     loog = Loog::Buffer.new
     formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
