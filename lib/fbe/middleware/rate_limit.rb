@@ -133,7 +133,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   # @param [Faraday::Env] response_env The response environment
   def sync(response_env, path = nil)
     if response_env[:http_cache_trace]&.include?(:fresh)
-      patch(response_env, path)
+      stamp(response_env, path)
       return
     end
     headers = response_env.response_headers
@@ -160,7 +160,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
   #
   # @param [Faraday::Env] env The response environment
   # @param [String, nil] path The request path
-  def patch(env, path)
+  def stamp(env, path)
     count = path&.start_with?('/search/') ? @searchleft : @remaining
     return if count.nil? || env.response_headers.nil?
     env.response_headers = env.response_headers.dup
