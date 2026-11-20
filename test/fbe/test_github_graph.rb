@@ -527,6 +527,40 @@ class TestGitHubGraph < Fbe::Test
     assert_equal('foo', result[0]['owner'])
     assert_equal(10, result[0]['total_commits'])
   end
+
+  def test_query_with_partial_data_returns_when_data_present_with_errors
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    fake_data = Object.new
+    errors = Object.new
+    errors.define_singleton_method(:messages) { { 'repo_1' => ['some error'] } }
+    resp = Object.new
+    resp.define_singleton_method(:data) { fake_data }
+    resp.define_singleton_method(:errors) { errors }
+    client_mock = Object.new
+    client_mock.define_singleton_method(:parse) { |_q| 'parsed_query' }
+    client_mock.define_singleton_method(:query) { |_q| resp }
+    graph.define_singleton_method(:client) { client_mock }
+    res = graph.__send__(:query_with_partial_data, '{ viewer { login } }')
+    assert_same(fake_data, res)
+  end
+
+  def test_query_with_partial_data_raises_when_data_is_nil
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    errors = Object.new
+    errors.define_singleton_method(:messages) { { '' => ['syntax error'] } }
+    resp = Object.new
+    resp.define_singleton_method(:data) { nil }
+    resp.define_singleton_method(:errors) { errors }
+    client_mock = Object.new
+    client_mock.define_singleton_method(:parse) { |_q| 'parsed_query' }
+    client_mock.define_singleton_method(:query) { |_q| resp }
+    graph.define_singleton_method(:client) { client_mock }
+    assert_raises(Fbe::Error) do
+      graph.__send__(:query_with_partial_data, '{ invalid }')
+    end
+  end
   # rubocop:enable Naming/VariableNumber, Elegant/GoodVariableName
 
   def test_real_total_issues_and_pulls
