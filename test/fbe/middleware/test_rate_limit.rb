@@ -495,7 +495,77 @@ class RateLimitTest < Fbe::Test
     assert_equal(30, second.body['resources']['search']['remaining'])
   end
 
+  def test_cached_core_response_gets_the_current_count_without_mutating_cached_headers
+    headers = { 'x-ratelimit-remaining' => '0', 'etag' => 'page-version' }.freeze
+    rate = cached_rate_limit(headers)
+    response = rate.call(request_env('/user'))
+    assert_equal({ 'x-ratelimit-remaining' => '4999', 'etag' => 'page-version' }, response.headers)
+    assert_equal([4999, 30], [rate.remaining, rate.remaining(:search)])
+    assert_equal('0', headers['x-ratelimit-remaining'])
+  end
+
+  def test_cached_search_response_uses_the_search_count
+    rate = cached_rate_limit({ 'x-ratelimit-remaining' => '0' })
+    response = rate.call(request_env('/search/issues'))
+    assert_equal('29', response.headers['x-ratelimit-remaining'])
+    assert_equal(29, rate.remaining(:search))
+    assert_equal(5000, rate.remaining)
+  end
+
+  def test_cached_response_preserves_its_header_when_the_resource_count_is_unknown
+    [['/user', nil, 30, :core], ['/search/issues', 5000, nil, :search]].each do |path, core, search, resource|
+      rate = cached_rate_limit({ 'x-ratelimit-remaining' => '0' }, core:, search:)
+      response = rate.call(request_env(path))
+      assert_equal('0', response.headers['x-ratelimit-remaining'])
+      assert_nil(rate.remaining(resource))
+    end
+  end
+
+  def test_cached_response_without_headers_keeps_the_tracked_count
+    rate = cached_rate_limit(nil)
+    response = rate.call(request_env('/user'))
+    assert_nil(response.env.response_headers)
+    assert_equal(4999, rate.remaining)
+  end
+
+  def test_cached_response_does_not_raise_an_exhausted_count
+    rate = cached_rate_limit({ 'x-ratelimit-remaining' => '5000' }, core: 0)
+    response = rate.call(request_env('/user'))
+    assert_equal('0', response.headers['x-ratelimit-remaining'])
+    assert_equal(0, rate.remaining)
+  end
+
+  def test_real_zero_remaining_is_still_authoritative
+    %i[miss valid].each do |status|
+      rate = cached_rate_limit({ 'x-ratelimit-remaining' => '0' }, trace: [status])
+      response = rate.call(request_env('/user'))
+      assert_equal('0', response.headers['x-ratelimit-remaining'])
+      assert_equal(0, rate.remaining)
+    end
+  end
+
   private
+
+  def cached_rate_limit(headers, core: 5000, search: 30, trace: [:fresh])
+    app =
+      lambda do |env|
+        if env.url.path == '/rate_limit'
+          env.body = { 'rate' => { 'remaining' => core }, 'resources' => { 'search' => { 'remaining' => search } } }
+          env.response_headers = {}
+        else
+          env.response_headers = headers
+          env[:http_cache_trace] = trace
+        end
+        Faraday::Response.new(env)
+      end
+    rate = Fbe::Middleware::RateLimit.new(app)
+    rate.call(request_env('/rate_limit'))
+    rate
+  end
+
+  def request_env(path)
+    Faraday::Env.from({ method: :get, url: URI("https://api.github.com#{path}"), status: 200 })
+  end
 
   def create_connection(tracker = nil)
     Faraday.new(url: 'https://api.github.com') do |f|
