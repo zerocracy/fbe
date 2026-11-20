@@ -89,6 +89,43 @@ class TestOver < Fbe::Test
     refute(Fbe.over?(global:, options:, loog:, kickoff: Time.now - 120, timeout_aware: false))
   end
 
+  def test_default_quota_aware_stops_on_off_quota
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    loog = Loog::NULL
+    Fbe.octo(loog:, options:, global:).stub(:off_quota?, true) do
+      assert(Fbe.over?(global:, options:, loog:))
+    end
+  end
+
+  def test_default_lifetime_aware_stops_on_expired_epoch
+    global = {}
+    options = Judges::Options.new({ 'testing' => true, 'lifetime' => 100 })
+    loog = Loog::NULL
+    assert(Fbe.over?(global:, options:, loog:, epoch: Time.now - 120))
+  end
+
+  def test_default_timeout_aware_stops_on_expired_kickoff
+    global = {}
+    options = Judges::Options.new({ 'testing' => true, 'timeout' => 100 })
+    loog = Loog::NULL
+    assert(Fbe.over?(global:, options:, loog:, kickoff: Time.now - 120))
+  end
+
+  def test_lifetime_under_the_margin_continues
+    global = {}
+    options = Judges::Options.new({ 'testing' => true, 'lifetime' => 100 })
+    loog = Loog::NULL
+    refute(Fbe.over?(global:, options:, loog:, epoch: Time.now - 50, quota_aware: false))
+  end
+
+  def test_timeout_under_the_margin_continues
+    global = {}
+    options = Judges::Options.new({ 'testing' => true, 'timeout' => 100 })
+    loog = Loog::NULL
+    refute(Fbe.over?(global:, options:, loog:, kickoff: Time.now - 50, quota_aware: false))
+  end
+
   def test_refuses_a_missing_context
     opts = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) do
