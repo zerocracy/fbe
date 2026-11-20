@@ -89,6 +89,40 @@ class TestOver < Fbe::Test
     refute(Fbe.over?(global:, options:, loog:, kickoff: Time.now - 120, timeout_aware: false))
   end
 
+  def test_lifetime_uses_monotonic_time_after_wall_clock_moves_back
+    global = {}
+    options = Judges::Options.new({ 'testing' => true, 'lifetime' => 100 })
+    loog = Loog::NULL
+    epoch = Time.utc(2026, 1, 1)
+    Process.stub(:clock_gettime, 100.0) do
+      Time.stub(:now, epoch) do
+        refute(Fbe.over?(global:, options:, loog:, epoch:, quota_aware: false))
+      end
+    end
+    Process.stub(:clock_gettime, 191.0) do
+      Time.stub(:now, epoch - 3600) do
+        assert(Fbe.over?(global:, options:, loog:, epoch:, quota_aware: false))
+      end
+    end
+  end
+
+  def test_timeout_uses_monotonic_time_after_wall_clock_moves_forward
+    global = {}
+    options = Judges::Options.new({ 'testing' => true, 'timeout' => 100 })
+    loog = Loog::NULL
+    kickoff = Time.utc(2026, 1, 1)
+    Process.stub(:clock_gettime, 100.0) do
+      Time.stub(:now, kickoff) do
+        refute(Fbe.over?(global:, options:, loog:, kickoff:, quota_aware: false))
+      end
+    end
+    Process.stub(:clock_gettime, 110.0) do
+      Time.stub(:now, kickoff + 3600) do
+        refute(Fbe.over?(global:, options:, loog:, kickoff:, quota_aware: false))
+      end
+    end
+  end
+
   def test_refuses_a_missing_context
     opts = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) do
