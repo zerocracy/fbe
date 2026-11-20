@@ -123,6 +123,37 @@ class TestIfAbsent < Fbe::Test
     assert_nil(n)
   end
 
+  def test_ignores_job_when_matching
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    name = "пёс #{rnd.rand(1000)}"
+    [rnd.rand(1000), rnd.rand(1000) + 1000].each do |job|
+      Fbe.if_absent(fb:) do |f|
+        f.foo = name
+        f._job = job
+      end
+    end
+    assert_equal(1, fb.size, "if_absent did not ignore _job and inserted a duplicate, seed #{seed}")
+  end
+
+  def test_returns_fact_of_another_job_when_always
+    seed = Random.new_seed
+    rnd = Random.new(seed)
+    fb = Factbase.new
+    name = "ürün \u00e9 #{rnd.rand(1000)}"
+    job = rnd.rand(1000)
+    old = fb.insert
+    old.foo = name
+    old._job = job
+    n =
+      Fbe.if_absent(fb:, always: true) do |f|
+        f.foo = name
+        f._job = job + 1 + rnd.rand(1000)
+      end
+    assert_equal(job, n._job, "if_absent did not return the fact of another job, seed #{seed}")
+  end
+
   def test_complex_injects
     fb = Factbase.new
     fact = fb.insert
