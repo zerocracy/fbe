@@ -874,14 +874,17 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
 
   # Performs a raw GET request against an arbitrary API path.
   #
-  # @param [String] _path The API path (ignored in mock)
+  # @param [String] path The API path, only +/rate_limit+ gets a real answer
   # @param [Hash] _options Additional options (not used in mock)
-  # @return [Hash] An empty Hash
+  # @return [Hash] The quota for +/rate_limit+, the way GitHub reports it, otherwise an empty Hash
   # @example
   #   fake_client = Fbe::FakeOctokit.new
-  #   fake_client.get('/rate_limit') #=> {}
-  def get(_path, _options = {})
-    {}
+  #   fake_client.get('/rate_limit')[:resources][:search][:remaining] #=> 30
+  def get(path, _options = {})
+    return {} unless path == '/rate_limit'
+    reset = Time.now.to_i + 3600
+    core = { limit: 5000, remaining: rate_limit.remaining, reset:, used: 5000 - rate_limit.remaining }
+    { resources: { core:, search: { limit: 30, remaining: 30, reset:, used: 0 } }, rate: core }
   end
 
   def search_commits(_query, _options = {})
