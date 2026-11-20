@@ -89,6 +89,46 @@ class TestTombstone < Fbe::Test
     assert_equal(%w[4-6 8 10-15 20], fb.query('(always)').each.first['issues'])
   end
 
+  def test_keeps_range_end_after_burying_issue_inside_it
+    seed = Random.new_seed
+    rng = Random.new(seed)
+    repo = rng.rand(1..99_999)
+    lo = rng.rand(1..1_000)
+    hi = lo + rng.rand(2..50)
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', repo, (lo..hi).to_a)
+    ts.bury!('github', repo, rng.rand((lo + 1)..(hi - 1)))
+    assert(ts.has?('github', repo, hi), "issue ##{hi} was unburied by an issue inside #{lo}-#{hi}, seed #{seed}")
+  end
+
+  def test_lists_whole_range_after_burying_issue_inside_it
+    seed = Random.new_seed
+    rng = Random.new(seed)
+    repo = rng.rand(1..99_999)
+    lo = rng.rand(1..1_000)
+    hi = lo + rng.rand(2..50)
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', repo, (lo..hi).to_a)
+    ts.bury!('github', repo, rng.rand((lo + 1)..(hi - 1)))
+    assert_equal((lo..hi).to_a, ts.issues('github', repo), "range #{lo}-#{hi} shrank, seed #{seed}")
+  end
+
+  def test_keeps_both_ranges_after_burying_issue_inside_first
+    seed = Random.new_seed
+    rng = Random.new(seed)
+    repo = rng.rand(1..99_999)
+    lo = rng.rand(1..1_000)
+    hi = lo + rng.rand(2..50)
+    far = hi + rng.rand(2..50)
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    ts.bury!('github', repo, (lo..hi).to_a + (far..(far + 3)).to_a)
+    ts.bury!('github', repo, rng.rand((lo + 1)..(hi - 1)))
+    assert_equal(
+      (lo..hi).to_a + (far..(far + 3)).to_a, ts.issues('github', repo),
+      "ranges #{lo}-#{hi} and #{far}-#{far + 3} changed, seed #{seed}"
+    )
+  end
+
   def test_uses_large_random_range
     fb = Factbase.new
     ts = Fbe::Tombstone.new(fb:)
