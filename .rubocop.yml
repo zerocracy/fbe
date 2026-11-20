@@ -36,6 +36,7 @@ Elegant/GoodMethodName:
   Exclude:
     - 'test/**/*'
   AllowedNames:
+    - type_aware_sort_key
     - accept_repository_invitation
     - add_comment
     - auto_paginate
