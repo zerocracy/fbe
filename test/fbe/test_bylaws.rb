@@ -175,6 +175,40 @@ class TestBylaws < Fbe::Test
     assert_equal(16, a.bill({ hours: 1, self: 0 }).points)
   end
 
+  def test_published_release_greeting_states_capped_hoc_bonus
+    formula = Fbe.bylaws['published-release-was-rewarded']
+    greeting = Fbe::Award.new(formula).bill(hoc: 10_000, contributors: 1).greeting
+    assert_includes(greeting, '+24 for 10000 hits-of-code', greeting)
+  end
+
+  def test_published_release_markdown_states_hoc_cap
+    md = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'When a new release is published, everyone who contributed receives a bonus', md)
+    assert_includes(md, 'not more than **24** points', md)
+  end
+
+  def test_published_release_greeting_states_the_hoc_bonus_at_its_floor
+    award = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded'])
+    bill = award.bill({ hoc: 400, contributors: 1 })
+    assert_equal(28, bill.points)
+    assert_includes(bill.greeting, '+4 for 400 hits-of-code', bill.greeting)
+  end
+
+  def test_published_release_greeting_states_the_capped_hoc_bonus_at_low_love
+    award = Fbe::Award.new(Fbe.bylaws(love: 1)['published-release-was-rewarded'])
+    bill = award.bill({ hoc: 5000, contributors: 1 })
+    assert_equal(32, bill.points)
+    assert_includes(bill.greeting, '+24 for 5000 hits-of-code', bill.greeting)
+  end
+
+  def test_published_release_markdown_states_every_step
+    md = Fbe::Award.new(Fbe.bylaws['published-release-was-rewarded']).bylaw.markdown
+    assert_includes(md, 'assume that _hoc_ is how many hits-of-code are in the release', md)
+    assert_includes(md, 'award **24** points', md)
+    assert_includes(md, 'add **0.01** points for each', md)
+    assert_includes(md, 'not larger than **32** points and not smaller than **4** points', md)
+  end
+
   def test_strips_the_literal_template_suffix
     seed = Random.new_seed
     random = Random.new(seed)
