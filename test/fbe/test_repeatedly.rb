@@ -227,4 +227,21 @@ class TestRepeatedly < Fbe::Test
     end
     assert(ran, "the judge stayed idle #{hours + 1} hours later, while the interval is #{hours}, seed is #{seed}")
   end
+
+  def test_rejects_whitespace_only_area
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.repeatedly('   ', 'hours', fb: Factbase.new, judge: 'j', loog: Loog::NULL) { |f| }
+      end
+    assert_equal('The area cannot be empty', error.message)
+  end
+
+  def test_rejects_empty_area
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.repeatedly('', 'hours', fb: Factbase.new, judge: 'j', loog: Loog::NULL) { |f| }
+      end
+    assert_equal('The area cannot be empty', error.message)
+  end
+
 end
