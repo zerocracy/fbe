@@ -26,6 +26,18 @@ class TestCopy < Fbe::Test
     assert_equal([42], target['foo'])
   end
 
+  def test_returns_the_count_of_copied_values
+    fb = Factbase.new
+    source = fb.insert
+    source._id = 1
+    source.foo = 1
+    source.foo = 2
+    source.bar = 3
+    target = fb.insert
+    target._id = 2
+    assert_equal(2, Fbe.copy(source, target, except: ['bar']))
+  end
+
   def test_with_except
     fb = Factbase.new
     source = fb.insert
