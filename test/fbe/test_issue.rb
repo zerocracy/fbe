@@ -41,6 +41,7 @@ class TestIssue < Fbe::Test
     f.issue = 333
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
+    error = assert_raises(Fbe::Error) { Fbe.issue(f, global:, options:, loog: Loog::NULL) }
+    assert_equal("The 'repository' property (\"yegor\") is not a number", error.message)
   end
 end

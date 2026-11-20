@@ -38,6 +38,7 @@ class TestWho < Fbe::Test
     f.who = 'yegor'
     global = {}
     options = Judges::Options.new({ 'testing' => true })
-    assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
+    error = assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
+    assert_equal('The :who property ("yegor") is not a number', error.message)
   end
 end
