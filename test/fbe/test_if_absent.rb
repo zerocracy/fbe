@@ -50,9 +50,19 @@ class TestIfAbsent < Fbe::Test
   end
 
   def test_raises_on_empty_value
-    assert_raises(StandardError) do
+    assert_raises(Fbe::Error) do
       Fbe.if_absent(fb: Factbase.new) do |f|
         f.foo = ''
+      end
+    end
+  end
+
+  def test_raises_on_empty_value_after_filled_one
+    seed = Random.new_seed
+    assert_raises(Fbe::Error, "an empty bar was accepted, seed #{seed}") do
+      Fbe.if_absent(fb: Factbase.new) do |f|
+        f.foo = "ž#{Random.new(seed).rand(1_000)}"
+        f.bar = ''
       end
     end
   end
@@ -60,7 +70,7 @@ class TestIfAbsent < Fbe::Test
   def test_raises_on_nil
     fb = Factbase.new
     fb.insert.foo = 42
-    assert_raises(StandardError) do
+    assert_raises(Fbe::Error) do
       Fbe.if_absent(fb: Factbase.new) do |f|
         f.foo = nil
       end

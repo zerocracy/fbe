@@ -58,15 +58,25 @@ class TestJustOne < Fbe::Test
   end
 
   def test_raises_on_empty_value
-    assert_raises(StandardError) do
+    assert_raises(Fbe::Error) do
       Fbe.just_one(fb: Factbase.new) do |f|
         f.foo = ''
       end
     end
   end
 
+  def test_raises_on_empty_value_after_filled_one
+    seed = Random.new_seed
+    assert_raises(Fbe::Error, "an empty bar was accepted, seed #{seed}") do
+      Fbe.just_one(fb: Factbase.new) do |f|
+        f.foo = "ž#{Random.new(seed).rand(1_000)}"
+        f.bar = ''
+      end
+    end
+  end
+
   def test_raises_on_nil
-    assert_raises(StandardError) do
+    assert_raises(Fbe::Error) do
       Fbe.just_one(fb: Factbase.new) do |f|
         f.foo = nil
       end
