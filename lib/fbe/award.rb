@@ -248,13 +248,13 @@ class Fbe::Award
       when :gte
         "#{to_p(@operands[0])} ≥ #{to_p(@operands[1])}"
       when :div
-        "#{to_p(@operands[0])} ÷ #{to_p(@operands[1])}"
+        "#{grouped(0)} ÷ #{grouped(1)}"
       when :times
-        "#{to_p(@operands[0])} × #{to_p(@operands[1])}"
+        "#{grouped(0)} × #{grouped(1)}"
       when :plus
-        "#{to_p(@operands[0])} + #{to_p(@operands[1])}"
+        "#{grouped(0)} + #{grouped(1)}"
       when :minus
-        "#{to_p(@operands[0])} - #{to_p(@operands[1])}"
+        "#{grouped(0)} - #{grouped(1)}"
       when :max
         "maximum of #{to_p(@operands[0])} and #{to_p(@operands[1])}"
       when :min
@@ -308,6 +308,25 @@ class Fbe::Award
       else
         raise(Fbe::Error, "Unknown term '#{@op}'")
       end
+    end
+
+    ARITHMETIC = { plus: 1, minus: 1, times: 2, div: 2 }.freeze
+    private_constant :ARITHMETIC
+
+    # Makes the text of an operand, in parentheses if its arithmetic is weaker
+    # than the one of this term, or the same but not associative on the right.
+    #
+    # @param [Integer] pos The position of the operand
+    # @return [String] The text of the operand
+    def grouped(pos)
+      text = to_p(@operands[pos])
+      inner = @operands[pos]
+      return text unless inner.is_a?(PTerm) && ARITHMETIC.key?(inner.op) && ARITHMETIC.key?(@op)
+      mine = ARITHMETIC.fetch(@op)
+      theirs = ARITHMETIC.fetch(inner.op)
+      return text if theirs > mine
+      return text if theirs == mine && (pos.zero? || %i[plus times].include?(@op))
+      "(#{text})"
     end
 
     def to_p(any)
