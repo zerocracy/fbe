@@ -56,14 +56,15 @@ end
 # queries while maintaining state between iterations. It tracks progress using
 # "marker" facts in the factbase and supports features like:
 #
-# - Stateful iteration with automatic restart capability
+# - Stateful iteration that resumes from the last stored marker
 # - GitHub API quota awareness to prevent rate limit issues
 # - Configurable repeat counts per repository
 # - Timeout controls for long-running operations
 #
 # The iterator executes a query for each repository, passing the previous
-# result as context. If the query returns nil, it restarts from the beginning
-# for that repository. Progress is persisted in the factbase to support
+# result as context. If the query returns nil, the repository is skipped for
+# the rest of the run and keeps its marker, so the next run continues after
+# the last value it saw. Progress is persisted in the factbase to support
 # resuming after interruptions.
 #
 # @example Processing pull requests with state management
@@ -153,9 +154,7 @@ class Fbe::Iterate
   # Sets the initial value for iteration tracking.
   #
   # This value is used as the starting point when no marker exists in the
-  # factbase for the current iteration label. It is also used as the
-  # restart value when a query returns nil, causing the iteration for
-  # that repository to begin again from this value.
+  # factbase for the current iteration label.
   #
   # @param [Integer] value The initial value for iteration tracking
   # @return [nil] Nothing is returned
@@ -240,11 +239,11 @@ class Fbe::Iterate
   # repository ID and query result. The block must return an Integer that will
   # be stored as the new "latest" value for the next iteration.
   #
-  # When the query returns nil, the iteration for that repository restarts
-  # from the initial value (set by +since+), and the block is NOT called.
+  # When the query returns nil, the repository is skipped for the rest of
+  # the run, its marker is kept, and the block is NOT called.
   #
   # The method tracks progress using marker facts and supports:
-  # - Automatic restart when query returns nil
+  # - Skipping a repository whose query returns nil
   # - Timeout to prevent infinite loops
   # - GitHub API quota checking (if enabled)
   # - State persistence for resuming after interruptions
@@ -252,7 +251,7 @@ class Fbe::Iterate
   # Processing flow for each repository:
   # 1. Read the "latest" value from factbase (or use +since+ if not found)
   # 2. Execute the query with $before=latest and $repository=repo_id
-  # 3. If query returns nil: restart from +since+ value, skip to next repo
+  # 3. If query returns nil: keep the marker, skip to next repo
   # 4. If query returns a value: call the block with (repo_id, query_result)
   # 5. Store the block's return value as the new "latest" for next iteration
   #
