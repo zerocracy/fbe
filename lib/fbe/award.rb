@@ -76,7 +76,7 @@ class Fbe::Award
     # @example
     #   term.to_s #=> "(give (times loc 5) 'for LoC')"
     def to_s
-      "(#{@op} #{@operands.join(' ')})"
+      "(#{@op} #{@operands.map { |o| o.is_a?(String) ? "'#{o}'" : o }.join(' ')})"
     end
 
     # Indicates whether the term is static.
