@@ -92,6 +92,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                 ],
                 max: 4,
                 interval: ENV['RACK_ENV'] == 'test' ? 0.01 : 4,
+                max_interval: ENV['RACK_ENV'] == 'test' ? 0.1 : 32,
                 methods: [],
                 retry_if: lambda do |env, exception|
                   next false unless env[:method] == :get
