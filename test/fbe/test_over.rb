@@ -101,4 +101,26 @@ class TestOver < Fbe::Test
       Fbe.over?(global: {}, options: opts, loog: nil, quota_aware: false)
     end
   end
+  def test_rejects_non_positive_lifetime
+    global = {}
+    loog = Loog::NULL
+    [-10, 0].each do |life|
+      options = Judges::Options.new({ 'testing' => true, 'lifetime' => life })
+      assert_raises(Fbe::Error) do
+        Fbe.over?(global:, options:, loog:, quota_aware: false, lifetime_aware: true)
+      end
+    end
+  end
+
+  def test_rejects_non_positive_timeout
+    global = {}
+    loog = Loog::NULL
+    [-5, 0].each do |to|
+      options = Judges::Options.new({ 'testing' => true, 'timeout' => to })
+      assert_raises(Fbe::Error) do
+        Fbe.over?(global:, options:, loog:, quota_aware: false, timeout_aware: true)
+      end
+    end
+  end
+
 end

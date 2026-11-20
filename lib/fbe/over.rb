@@ -33,13 +33,31 @@ def Fbe.over?(
       return true
     end
   end
-  if lifetime_aware && options.lifetime && Time.now - epoch > options.lifetime * 0.9
-    loog.info("We ran out of lifetime (#{epoch.ago} already), must stop here")
-    return true
+  if lifetime_aware && !options.lifetime.nil?
+    lifetime =
+      begin
+        Integer(options.lifetime)
+      rescue ArgumentError, TypeError
+        raise(Fbe::Error, "The lifetime option (#{options.lifetime.inspect}) is not an Integer")
+      end
+    raise(Fbe::Error, "The lifetime option must be a positive Integer, got #{lifetime}") unless lifetime.positive?
+    if Time.now - epoch > lifetime * 0.9
+      loog.info("We ran out of lifetime (#{epoch.ago} already), must stop here")
+      return true
+    end
   end
-  if timeout_aware && options.timeout && Time.now - kickoff > options.timeout * 0.9
-    loog.info("We've spent more than #{kickoff.ago}, must stop here")
-    return true
+  if timeout_aware && !options.timeout.nil?
+    timeout =
+      begin
+        Integer(options.timeout)
+      rescue ArgumentError, TypeError
+        raise(Fbe::Error, "The timeout option (#{options.timeout.inspect}) is not an Integer")
+      end
+    raise(Fbe::Error, "The timeout option must be a positive Integer, got #{timeout}") unless timeout.positive?
+    if Time.now - kickoff > timeout * 0.9
+      loog.info("We've spent more than #{kickoff.ago}, must stop here")
+      return true
+    end
   end
   false
 end
