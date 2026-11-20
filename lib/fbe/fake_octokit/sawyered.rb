@@ -37,7 +37,8 @@ class Fbe::FakeOctokit::Sawyered < Module
   def resource(obj)
     case obj
     when Hash
-      Fbe::FakeOctokit::Answer.new(Sawyer::Agent.new('https://api.github.com'), obj)
+      attrs = obj.transform_values { |value| resource(value) }
+      Fbe::FakeOctokit::Answer.new(Sawyer::Agent.new('https://api.github.com'), attrs)
     when Array
       obj.map { |o| resource(o) }
     else
