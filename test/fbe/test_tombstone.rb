@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: MIT
 
 require 'factbase'
+require 'factbase/sync/sync_factbase'
+require 'judges/options'
+require 'timeout'
 require_relative '../../lib/fbe/tombstone'
 require_relative '../test__helper'
 
@@ -12,6 +15,70 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestTombstone < Fbe::Test
+  def test_keeps_concurrent_burials_from_distinct_instances
+    additions = [3, 5]
+    [false, true].each do |decorated|
+      fb =
+        if decorated
+          Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new(testing: true), loog: fake_loog)
+        else
+          Factbase::SyncFactbase.new(Factbase.new)
+        end
+      Fbe::Tombstone.new(fb: fb).bury!('github', 42, 1)
+      arrived = Queue.new
+      release = Queue.new
+      transaction = fb.method(:txn)
+      delayed =
+        lambda do |&block|
+          arrived << true
+          release.pop
+          transaction.call(&block)
+        end
+      fb.stub(:txn, delayed) do
+        workers =
+          additions.map do |issue|
+            Thread.new { Fbe::Tombstone.new(fb: fb).bury!('github', 42, issue) }
+          end
+        begin
+          Timeout.timeout(5) do
+            2.times { arrived.pop }
+            2.times { release << true }
+            workers.each(&:value)
+          end
+        ensure
+          2.times { release << true }
+          workers.each(&:join)
+        end
+      end
+      assert_equal([1, 3, 5], Fbe::Tombstone.new(fb: fb).issues('github', 42).sort)
+      assert_equal(1, fb.query('(eq what "tombstone")').each.to_a.size)
+    end
+  end
+
+  def test_rolls_back_ranges_and_preserves_metadata
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: Judges::Options.new(testing: true), loog: fake_loog)
+    tombstone = Fbe::Tombstone.new(fb: fb)
+    tombstone.bury!('github', 42, 1)
+    fact = fb.query('(eq what "tombstone")').each.first
+    before = fact.all_properties.to_h { |key| [key, fact[key].to_a] }
+    transaction = fb.method(:txn)
+    failing =
+      lambda do |&block|
+        transaction.call do |current|
+          block.call(current)
+          raise(Fbe::Error, 'abort burial')
+        end
+      end
+    fb.stub(:txn, failing) do
+      assert_raises(Fbe::Error) { tombstone.bury!('github', 42, 3) }
+    end
+    assert_equal([1], tombstone.issues('github', 42))
+    tombstone.bury!('github', 42, 3)
+    after = fb.query('(eq what "tombstone")').each.first
+    assert_equal(before.except('issues'), (after.all_properties - ['issues']).to_h { |key| [key, after[key].to_a] })
+    assert_equal([1, 3], tombstone.issues('github', 42).sort)
+  end
+
   def test_simple
     fb = Factbase.new
     ts = Fbe::Tombstone.new(fb:)
