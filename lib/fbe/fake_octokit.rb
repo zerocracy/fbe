@@ -51,9 +51,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     Zlib.crc32(name)
   end
 
-  def auto_paginate=(_); end
-
-  def auto_paginate; end
+  attr_accessor :auto_paginate
 
   # Returns a mock rate limit object.
   #
