@@ -317,7 +317,9 @@ class Fbe::Award
       when Symbol
         s = any.to_s
         subs = { 0 => '₀', 1 => '₁', 2 => '₂', 3 => '₃', 4 => '₄', 5 => '₅', 6 => '₆', 7 => '₇', 8 => '₈', 9 => '₉' }
-        s.gsub!(/([a-z]+)([0-9])/) { |_| "#{Regexp.last_match[1]}#{subs[Integer(Regexp.last_match[2], 10)]}" }
+        s.gsub!(/([a-z]+)([0-9]+)/) do |_|
+          "#{Regexp.last_match[1]}#{Regexp.last_match[2].chars.map { |c| subs[Integer(c, 10)] }.join}"
+        end
         "_#{s.tr('_', '-')}_"
       when Integer, Float
         "**#{any}**"
