@@ -495,6 +495,29 @@ class RateLimitTest < Fbe::Test
     assert_equal(30, second.body['resources']['search']['remaining'])
   end
 
+  def test_keeps_first_registered_middleware
+    tracker = {}
+    first = Fbe::Middleware::RateLimit.new(->(_env) {}, tracker)
+    Fbe::Middleware::RateLimit.new(->(_env) {}, tracker)
+    assert_same(first, tracker[:rate_limit], 'a later middleware replaces the one registered first')
+  end
+
+  def test_keeps_counting_after_second_connection_is_built
+    seed = Random.new_seed
+    left = Random.new(seed).rand(100..4000)
+    stub_request(:get, 'https://api.github.com/user')
+      .to_return(status: 200, body: '{}', headers: { 'X-RateLimit-Remaining' => (left + 2).to_s })
+      .then.to_return(status: 200, body: '{}', headers: { 'X-RateLimit-Remaining' => left.to_s })
+    stub_request(:head, 'https://api.github.com/repos/foo/bar/actions/runs/1/logs')
+      .to_return(status: 302, headers: { 'Location' => 'https://example.com/ж.zip', 'X-RateLimit-Remaining' => '4999' })
+    tracker = {}
+    conn = create_connection(tracker)
+    conn.get('/user')
+    create_connection(tracker).head('/repos/foo/bar/actions/runs/1/logs')
+    conn.get('/user')
+    assert_equal(left, tracker[:rate_limit].remaining, "remaining is not of the working connection (seed: #{seed})")
+  end
+
   private
 
   def create_connection(tracker = nil)
