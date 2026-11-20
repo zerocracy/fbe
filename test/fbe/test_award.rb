@@ -132,6 +132,12 @@ class TestAward < Fbe::Test
     end
   end
 
+  def test_renders_all_digits_in_symbol_subscripts
+    md = Fbe::Award.new('(award (let foo10 25) (let rate23 3) (give (plus foo10 rate23) "test"))').bylaw.markdown
+    assert_includes(md, '_foo₁₀_', md)
+    assert_includes(md, '_rate₂₃_', md)
+  end
+
   def test_aka_with_explain_keeps_earlier_lines
     a = Fbe::Award.new(
       '(award (give 1 "for the first thing") ' \
