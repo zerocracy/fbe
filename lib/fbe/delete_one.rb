@@ -30,7 +30,7 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   end
   return unless before[prop]
   nv = before[prop].dup
-  at = nv.index(value)
+  at = nv.index { _1.eql?(value) }
   return if at.nil?
   nv.delete_at(at)
   before[prop] = nv
