@@ -15,7 +15,7 @@ require_relative '../../fbe/middleware'
 #
 # @example Usage in Faraday middleware stack
 #   trace = []
-#   connection = Faraday.new do |f|
+#   connection = Faraday.new(url: 'https://example.com') do |f|
 #     f.use Fbe::Middleware::Trace, trace
 #   end
 #   connection.get('/api/endpoint')
