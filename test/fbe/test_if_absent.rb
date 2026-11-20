@@ -57,6 +57,14 @@ class TestIfAbsent < Fbe::Test
     end
   end
 
+  def test_rejects_whitespace_only_value
+    assert_raises(Fbe::Error) do
+      Fbe.if_absent(fb: Factbase.new) do |f|
+        f.foo = '   '
+      end
+    end
+  end
+
   def test_raises_on_nil
     fb = Factbase.new
     fb.insert.foo = 42
