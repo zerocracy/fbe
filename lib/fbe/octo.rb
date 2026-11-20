@@ -170,10 +170,18 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
                     end
                     .take(max)
                     .join("\n")
+                  quota =
+                    begin
+                      "#{@origin.rate_limit!.remaining} quota left"
+                    rescue Octokit::ServerError, Octokit::Unauthorized, Octokit::Forbidden,
+                           Faraday::ConnectionFailed, Faraday::TimeoutError => e
+                      @loog.warn("Failed to check GitHub API quota for the trace: #{e.message}")
+                      'quota unknown'
+                    end
                   @loog.info(
                     "GitHub API trace (#{grouped.count} URLs vs #{shown.count} requests, " \
                     "#{@trace.count - shown.count} fast ones skipped, " \
-                    "#{@origin.rate_limit!.remaining} quota left):\n#{message}"
+                    "#{quota}):\n#{message}"
                   )
                   @trace.clear
                 end
