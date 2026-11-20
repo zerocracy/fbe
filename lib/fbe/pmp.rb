@@ -102,6 +102,7 @@ def Fbe.pmp(fb: Fbe.fb, global: $global, options: $options, loog: $loog) # ruboc
             param = args2.first.to_s
             result = owner.call(area, param)&.[](param)&.first
             raise(Fbe::Error, "There is no '#{param}' property in the '#{area}' area") if result.nil?
+            next result if result.is_a?(TrueClass) || result.is_a?(FalseClass)
             pmpv.new(result, nil, nil, nil)
           end
         end.new
