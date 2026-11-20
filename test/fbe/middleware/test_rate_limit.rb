@@ -495,6 +495,35 @@ class RateLimitTest < Fbe::Test
     assert_equal(30, second.body['resources']['search']['remaining'])
   end
 
+  def test_ignores_a_delayed_response_from_the_same_period
+    started = Queue.new
+    release = Queue.new
+    app = ->(env) { answer(env, started, release) }
+    middleware = Fbe::Middleware::RateLimit.new(app)
+    middleware.call(request('/rate_limit'))
+    first = Thread.new { middleware.call(request('/first')) }
+    started.pop
+    middleware.call(request('/second'))
+    assert_equal(0, middleware.remaining)
+    release << true
+    first.join
+    assert_equal(0, middleware.remaining)
+  end
+
+  def test_accepts_a_newer_period_from_a_delayed_response
+    started = Queue.new
+    release = Queue.new
+    app = ->(env) { answer(env, started, release, reset: env.url.path == '/first' ? '2000003600' : '2000000000') }
+    middleware = Fbe::Middleware::RateLimit.new(app)
+    middleware.call(request('/rate_limit'))
+    first = Thread.new { middleware.call(request('/first')) }
+    started.pop
+    middleware.call(request('/second'))
+    release << true
+    first.join
+    assert_equal(1, middleware.remaining)
+  end
+
   private
 
   def create_connection(tracker = nil)
@@ -503,5 +532,30 @@ class RateLimitTest < Fbe::Test
       f.response(:json)
       f.adapter(:net_http)
     end
+  end
+
+  def request(path)
+    Faraday::Env.new(url: URI("https://api.github.com#{path}"))
+  end
+
+  def answer(env, started, release, reset: '2000000000')
+    remaining =
+      case env.url.path
+      when '/rate_limit'
+        2
+      when '/first'
+        started << true
+        release.pop
+        1
+      else
+        0
+      end
+    body = env.url.path == '/rate_limit' ? { 'rate' => { 'remaining' => 2 } } : {}
+    Faraday::Response.new(
+      Faraday::Env.new(
+        status: 200, response_body: body,
+        response_headers: { 'x-ratelimit-remaining' => remaining.to_s, 'x-ratelimit-reset' => reset }
+      )
+    )
   end
 end
