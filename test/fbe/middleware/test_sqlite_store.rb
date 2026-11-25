@@ -537,6 +537,16 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_clear_does_not_crash_when_disabled
+    with_tmpfile('disabled-clear.db') do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog)
+      SQLite3::Database.stub(:new, ->(*) { raise(SQLite3::BusyException, 'locked') }) do
+        assert_nil(store.read('missing'))
+        assert_nil(store.clear)
+      end
+    end
+  end
+
   private
 
   def with_tmpfile(name = 'test.db', &)
