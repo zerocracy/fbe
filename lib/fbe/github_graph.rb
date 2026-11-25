@@ -222,6 +222,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         }
       GRAPHQL
     ).to_h
+    raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if result['repository'].nil?
     {
       'issues' => result.dig('repository', 'issues', 'totalCount') || 0,
       'pulls' => result.dig('repository', 'pullRequests', 'totalCount') || 0
