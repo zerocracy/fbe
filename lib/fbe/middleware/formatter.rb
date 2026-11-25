@@ -74,7 +74,7 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
     http = http.dup
     http.request_body = encoded(http.request_body)
     http.response_body = encoded(http.response_body)
-    type = http.response_headers['content-type']&.downcase
+    type = http.response_headers&.[]('content-type')&.downcase
     if http.status == 403 && type&.start_with?('application/json')
       msg =
         begin
