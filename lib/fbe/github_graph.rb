@@ -431,12 +431,14 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
         }
       GRAPHQL
     ).to_h
-    result['repository'].filter_map do |_k, v|
+    repo = result['repository']
+    raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if repo.nil?
+    repo.filter_map do |_k, v|
       next if v.nil?
       {
         'id' => v['id'],
         'number' => v['number'],
-        'reviews' => v.dig('reviews', 'nodes').filter_map do |r|
+        'reviews' => (v.dig('reviews', 'nodes') || []).filter_map do |r|
           next if r['submittedAt'].nil?
           {
             'id' => r['id'],

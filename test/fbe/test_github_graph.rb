@@ -1137,4 +1137,31 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_pull_request_reviews_raises_when_repo_not_found
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) { |_qry| { 'repository' => nil } }
+    err = assert_raises(Fbe::Error) { graph.pull_request_reviews('foo', 'bar', pulls: [[1, nil]]) }
+    assert_includes(err.message, "Repository 'foo/bar' not found")
+  end
+
+  def test_pull_request_reviews_handles_nil_nodes
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    graph.define_singleton_method(:query) do |_qry|
+      {
+        'repository' => {
+          'pr_1' => {
+            'id' => 'PR_1',
+            'number' => 1,
+            'reviews' => { 'nodes' => nil, 'pageInfo' => { 'hasNextPage' => false, 'endCursor' => nil } }
+          }
+        }
+      }
+    end
+    res = graph.pull_request_reviews('foo', 'bar', pulls: [[1, nil]])
+    assert_equal(1, res.size)
+    assert_empty(res.first['reviews'])
+  end
 end
