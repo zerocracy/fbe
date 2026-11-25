@@ -1084,4 +1084,23 @@ class TestGitHubGraph < Fbe::Test
     h = graph.total_releases_published(owner, name, since, till: since + 60)
     assert_equal(1, h['releases'], "the fake counts releases published after the till moment, seed: #{seed}")
   end
+
+  def test_real_total_releases_published_raises_when_repo_not_found
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => nil }
+    end
+    err = assert_raises(Fbe::Error) { graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01')) }
+    assert_equal("Repository 'foo/bar' not found", err.message)
+  end
+
+  def test_real_total_releases_published_returns_zero_when_empty
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => { 'releases' => { 'nodes' => [] } } }
+    end
+    assert_equal({ 'releases' => 0 }, graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01')))
+  end
 end
