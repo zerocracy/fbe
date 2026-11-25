@@ -40,4 +40,9 @@ class TestWho < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
   end
+
+  def test_raises_when_fact_is_nil
+    err = assert_raises(Fbe::Error) { Fbe.who(nil, global: {}, options: Judges::Options.new('testing' => true), loog: Loog::NULL) }
+    assert_includes(err.message, 'fact is nil')
+  end
 end
