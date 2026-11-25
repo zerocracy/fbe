@@ -25,6 +25,7 @@ require_relative 'over'
 # @raise [Fbe::Error] If the mask is nil, not in 'org/repo' format, or the organization part contains asterisk
 def Fbe.mask_to_regex(mask)
   raise(Fbe::Error, 'The mask is nil') if mask.nil?
+  raise(Fbe::Error, "Mask #{mask.inspect} must be a String") unless mask.is_a?(String)
   raise(Fbe::Error, "Mask #{mask.inspect} is not in the 'org/repo' format") unless mask.match?(%r{\A[^/]+/[^/]+\z})
   org, repo = mask.split('/')
   raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
@@ -73,6 +74,9 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   raise(Fbe::Error, 'The $global is not set') if global.nil?
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   raise(Fbe::Error, 'Repositories mask is not specified') unless options.repositories
+  unless options.repositories.is_a?(String)
+    raise(Fbe::Error, "Repositories mask must be a String, got #{options.repositories.class}")
+  end
   raise(Fbe::Error, 'Repositories mask is empty') if options.repositories.empty?
   return if block_given? && Fbe.over?(
     global:, options:, loog:, epoch:, kickoff:, quota_aware:, lifetime_aware:, timeout_aware:

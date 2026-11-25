@@ -308,4 +308,22 @@ class TestUnmaskRepos < Fbe::Test
     assert_includes(list, 'yegor256/tacit')
     refute_includes(list, 'zerocracy/judges-action')
   end
+
+  def test_raises_fbe_error_on_non_string_repositories_option
+    [
+      Judges::Options.new('repositories=123'),
+      Judges::Options.new({ 'repositories' => 123 }),
+      Judges::Options.new({ 'repositories' => ['zerocracy/fbe'] })
+    ].each do |opts|
+      err = assert_raises(Fbe::Error) { Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL) }
+      assert_includes(err.message, 'must be a String')
+    end
+  end
+
+  def test_mask_to_regex_rejects_non_string_mask
+    [123, :sym, ['foo/bar']].each do |mask|
+      err = assert_raises(Fbe::Error) { Fbe.mask_to_regex(mask) }
+      assert_includes(err.message, 'must be a String')
+    end
+  end
 end
