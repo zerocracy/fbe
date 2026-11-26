@@ -328,4 +328,28 @@ class TestPmp < Fbe::Test
     pmp = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL)
     assert_equal(2, pmp.custom.beta, 'the value came from another area')
   end
+
+  def test_reads_the_default_award_price_as_a_float
+    pmp = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    value = pmp.cost.award_price.value
+    assert_instance_of(Float, value)
+    assert_in_delta(0.0, value)
+  end
+
+  def test_reads_a_stored_fractional_award_price
+    fb = Factbase.new
+    fact = fb.insert
+    fact.what = 'pmp'
+    fact.area = 'cost'
+    fact.award_price = '0.125'
+    value = Fbe.pmp(fb:, global: {}, options: Judges::Options.new, loog: Loog::NULL).cost.award_price.value
+    assert_instance_of(Float, value)
+    assert_in_delta(0.125, value)
+  end
+
+  def test_lists_properties_of_an_xml_defined_area
+    pmp = Fbe.pmp(fb: Factbase.new, global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_includes(pmp.cost.properties, 'award_price')
+    refute_includes(pmp.cost.properties, 'days_to_reward')
+  end
 end
