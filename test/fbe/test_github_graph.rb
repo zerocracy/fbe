@@ -132,6 +132,14 @@ class TestGitHubGraph < Fbe::Test
     assert_raises(StandardError) { Fbe.github_graph(loog: Loog::NULL, global:, options:) }
   end
 
+  def test_review_thread_owner_must_match_the_requested_pull
+    graph = Fbe::Graph::Fake.new
+    fixture = graph.resolved_conversations('zerocracy', 'baza', 172)
+    assert_equal(['PRRT_kwDOK2_4A85BHZAR'], fixture.map { |thread| thread.fetch('id') })
+    assert_empty(graph.resolved_conversations('zerocracy', 'baza', 173))
+    assert_empty(graph.resolved_conversations('zerocracy', 'other', 172))
+  end
+
   def test_gets_resolved_conversations
     skip("it's a live test, run it manually if you need it")
     WebMock.allow_net_connect!

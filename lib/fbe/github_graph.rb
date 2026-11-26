@@ -774,14 +774,14 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     #
     # @param [String] owner Repository owner
     # @param [String] name Repository name
-    # @param [Integer] _number Pull request number (ignored)
+    # @param [Integer] number Pull request number
     # @return [Array<Hash>] Array of conversation threads
     # @example
-    #   fake.resolved_conversations('zerocracy', 'baza', 42)
+    #   fake.resolved_conversations('zerocracy', 'baza', 172)
     #   # => [conversation data for zerocracy_baza]
-    def resolved_conversations(owner, name, _number)
-      data = { zerocracy_baza: [conversation('PRRT_kwDOK2_4A85BHZAR')] }
-      data[:"#{owner}_#{name}"] || []
+    def resolved_conversations(owner, name, number)
+      return [] unless owner.casecmp?('zerocracy') && name.casecmp?('baza') && number == 172
+      [conversation('PRRT_kwDOK2_4A85BHZAR')]
     end
 
     # Returns mock issue and pull request counts.
