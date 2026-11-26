@@ -85,7 +85,9 @@ class RateLimitTest < Fbe::Test
       .times(100)
     conn = create_connection
     conn.get('/rate_limit')
-    100.times { conn.get('/user') }
+    99.times { conn.get('/user') }
+    assert_equal(4900, conn.get('/rate_limit').body['rate']['remaining'], 'the 99th request must still use the cache')
+    conn.get('/user')
     response = conn.get('/rate_limit')
     assert_equal(4950, response.body['rate']['remaining'])
     assert_requested(:get, 'https://api.github.com/rate_limit', times: 2)
@@ -493,6 +495,64 @@ class RateLimitTest < Fbe::Test
     )
     assert_equal(4997, second.body['rate']['remaining'])
     assert_equal(30, second.body['resources']['search']['remaining'])
+  end
+
+  def test_retries_a_failed_refresh_without_another_user_request
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(body: '{}', headers: { 'X-RateLimit-Remaining' => '200' })
+      .then.to_raise(Faraday::ConnectionFailed.new('refresh unavailable'))
+      .then.to_return(body: '{}', headers: { 'X-RateLimit-Remaining' => '42' })
+    stub_request(:get, 'https://api.github.com/user').to_return(body: '{}')
+    conn = create_connection
+    conn.get('/rate_limit')
+    100.times { conn.get('/user') }
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/rate_limit') }
+    assert_equal('42', conn.get('/rate_limit').headers['x-ratelimit-remaining'])
+  end
+
+  def test_does_not_undo_a_request_in_an_already_refreshed_window
+    quota = stub_request(:get, 'https://api.github.com/rate_limit').to_return(body: '{}')
+    stub_request(:get, 'https://api.github.com/user').to_return(body: '{}')
+    conn = create_connection
+    conn.get('/rate_limit')
+    99.times { conn.get('/user') }
+    stub_request(:get, 'https://api.github.com/failing').to_return do
+      conn.get('/rate_limit')
+      raise(Faraday::ConnectionFailed, 'the in-flight request failed after the refresh')
+    end
+    assert_raises(Faraday::ConnectionFailed) { conn.get('/failing') }
+    100.times { conn.get('/user') }
+    conn.get('/rate_limit')
+    assert_requested(quota, times: 3)
+  end
+
+  def test_accepts_an_adapter_response_with_nil_headers
+    app =
+      lambda do |env|
+        env.status = 200
+        env.response_headers = nil
+        Faraday::Response.new(env)
+      end
+    middleware = Fbe::Middleware::RateLimit.new(app)
+    env = Faraday::Env.from(method: :get, url: URI('https://api.github.com/user'))
+    assert_equal(200, middleware.call(env).status)
+  end
+
+  def test_cached_reply_keeps_current_request_headers_and_preserves_original_quota_header
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(body: '{}', headers: { 'X-RateLimit-Remaining' => '300' })
+    stub_request(:get, 'https://api.github.com/user').to_return(body: '{}')
+    conn = create_connection
+    original = conn.get('/rate_limit') { |req| req.headers['X-Request-Id'] = 'initial' }
+    conn.get('/user')
+    served = conn.get('/rate_limit') { |req| req.headers['X-Request-Id'] = 'cached' }
+    assert_equal(
+      %w[initial cached 300 299],
+      [
+        original.env.request_headers['X-Request-Id'], served.env.request_headers['X-Request-Id'],
+        original.headers['x-ratelimit-remaining'], served.headers['x-ratelimit-remaining']
+      ]
+    )
   end
 
   private
