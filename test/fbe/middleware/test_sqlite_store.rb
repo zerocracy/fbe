@@ -470,6 +470,29 @@ class SqliteStoreTest < Fbe::Test
     end
   end
 
+  def test_quoted_cache_age_obeys_the_configured_minimum
+    with_tmpfile('quoted.db') do |file|
+      store = Fbe::Middleware::SqliteStore.new(file, '0.0.1', loog: fake_loog, cache_min_age: 300)
+      control = 'public, max-age="3", S-MAXAGE="450", example="12"'
+      store.write('quoted', faraday_value(resp: { 'response_headers' => { 'cache-control' => control } }))
+      saved = JSON.parse(store.read('quoted')[0][1]).dig('response_headers', 'cache-control')
+      assert_equal('public, max-age=300, S-MAXAGE=450, example="12"', saved)
+      store.close
+    end
+  end
+
+  def test_quoted_cache_age_preserves_extensions_before_either_age_directive
+    with_tmpfile('extensions.db') do |file|
+      store = Fbe::Middleware::SqliteStore.new(file, '0.0.1', loog: fake_loog, cache_min_age: 300)
+      extensions = 'x-max-age=17, x-s-maxage=19, example="left, max-age=11, right"'
+      control = "#{extensions}, max-age=\"3\", s-maxage=\"4\""
+      store.write('quoted', faraday_value(resp: { 'response_headers' => { 'cache-control' => control } }))
+      saved = JSON.parse(store.read('quoted')[0][1]).dig('response_headers', 'cache-control')
+      assert_equal("#{extensions}, max-age=300, s-maxage=300", saved)
+      store.close
+    end
+  end
+
   def test_sets_cache_min_age_when_response_names_none
     with_tmpfile('none.db') do |f|
       store = Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog, cache_min_age: 300)

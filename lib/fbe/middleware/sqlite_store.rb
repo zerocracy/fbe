@@ -131,18 +131,16 @@ class Fbe::Middleware::SqliteStore
       headers = resp['response_headers'] if resp.is_a?(Hash)
       if headers.is_a?(Hash)
         header = headers.keys.find { |h| h.casecmp?('cache-control') } || 'cache-control'
-        control = headers[header].to_s.strip.split(/\s*,\s*/).reject { |d| d.empty? || d.casecmp?('no-cache') }
-        control << "max-age=#{@minage}" if control.none? { |d| d.match?(/\A(max-age|s-maxage)=/i) }
-        control = control.join(', ')
-        %w[max-age s-maxage].each do |key|
-          matched = control.scan(/#{key}=(\d+)/i).first&.first
-          age = matched.nil? ? nil : Integer(matched, 10)
-          if age
-            age = [age, @minage].max
-            control = control.sub(/(#{key})=\d+/i) { "#{Regexp.last_match(1)}=#{age}" }
-          end
+        control = headers[header].to_s.scan(/(?:[^,"]|"(?:[^"\\]|\\.)*")+/).map(&:strip)
+        control.reject! { |directive| directive.empty? || directive.casecmp?('no-cache') }
+        control << "max-age=#{@minage}" if control.none? { |directive| directive.match?(/\A(max-age|s-maxage)=/i) }
+        control.map! do |directive|
+          match = directive.match(/\A(max-age|s-maxage)=(?:"([0-9]+)"|([0-9]+))\z/i)
+          next directive unless match
+          age = Integer(match[2] || match[3], 10)
+          "#{match[1]}=#{[age, @minage].max}"
         end
-        headers[header] = control
+        headers[header] = control.join(', ')
         value = value.dup
         value[0] = value[0].dup
         value[0][1] = JSON.dump(resp)
