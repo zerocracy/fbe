@@ -1728,6 +1728,44 @@ class TestOcto < Fbe::Test
     result[:workflow_runs].each { |run| assert_equal('completed', run[:status]) }
   end
 
+  def test_run_window_filters_the_count_before_paging
+    client = Fbe::FakeOctokit.new
+    client.define_singleton_method(:random_time) { Time.utc(2026, 1, 8, 12) }
+    empty = client.repository_workflow_runs('foo/bar', created: '2026-01-01..2026-01-07', per_page: 1)
+    assert_equal(0, empty.total_count)
+    assert_empty(empty.workflow_runs)
+    window = '2026-01-07T12:00:00Z..2026-01-09T12:00:00Z'
+    first = client.repository_workflow_runs('foo/bar', created: window, per_page: 1)
+    second = client.repository_workflow_runs('foo/bar', created: window, per_page: 1, page: 2)
+    assert_equal(2, first.total_count)
+    assert_equal([10_438_531_072], first.workflow_runs.map(&:id))
+    assert_equal([10_438_531_073], second.workflow_runs.map(&:id))
+  end
+
+  def test_run_window_honors_day_and_timestamp_boundaries
+    client = Fbe::FakeOctokit.new
+    client.define_singleton_method(:random_time) { Time.utc(2026, 1, 8, 12) }
+    %w[2026-01-08 >=2026-01-08 2026-01-08..* *..2026-01-08].each do |created|
+      assert_equal(2, client.repository_workflow_runs('foo/bar', created:).total_count, created)
+    end
+    %w[>2026-01-08 <2026-01-08T12:00:00Z].each do |created|
+      assert_equal(0, client.repository_workflow_runs('foo/bar', created:).total_count, created)
+    end
+  end
+
+  def test_run_window_keeps_creation_dates_stable_between_pages
+    client = Fbe::FakeOctokit.new
+    clock = Time.utc(2026, 1, 8, 12)
+    client.define_singleton_method(:random_time) { clock }
+    first = client.repository_workflow_runs('foo/bar', created: '2026-01-08', per_page: 1)
+    clock += 86_400
+    second = client.repository_workflow_runs('foo/bar', created: '2026-01-08', per_page: 1, page: 2)
+    assert_equal(2, first.total_count)
+    assert_equal(first.total_count, second.total_count)
+    assert_equal([10_438_531_073], second.workflow_runs.map(&:id))
+    assert_equal(first.workflow_runs.first.created_at, client.workflow_run('foo/bar', 10_438_531_072).created_at)
+  end
+
   def test_fake_workflow_run_always_has_status
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     [10_438_531_072, 10_438_531_077, 999].each do |id|
