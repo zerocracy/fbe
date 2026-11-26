@@ -364,6 +364,15 @@ class TestGitHubGraph < Fbe::Test
     assert_equal('yegor256', removed.dig('actor', 'login'))
   end
 
+  def test_graph_pull_window_uses_the_reviews_in_its_own_fixtures
+    graph = Fbe::Graph::Fake.new
+    since = Time.utc(2025, 10, 3)
+    found = graph.pull_requests_with_reviews('foo', 'bar', since)['pulls_with_reviews']
+    assert_equal([5, 21], found.map { |pull| pull['number'] })
+    empty = graph.pull_requests_with_reviews('foo', 'bar', Time.utc(2026, 1, 1))
+    assert_empty(empty['pulls_with_reviews'])
+  end
+
   def test_fake_pull_requests_with_reviews
     WebMock.disable_net_connect!
     graph = Fbe.github_graph(options: Judges::Options.new('testing' => true), loog: Loog::NULL, global: {})
