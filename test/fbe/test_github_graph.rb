@@ -138,6 +138,7 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(['PRRT_kwDOK2_4A85BHZAR'], fixture.map { |thread| thread.fetch('id') })
     assert_empty(graph.resolved_conversations('zerocracy', 'baza', 173))
     assert_empty(graph.resolved_conversations('zerocracy', 'other', 172))
+    assert_empty(graph.resolved_conversations('zerocracy', nil, 172))
   end
 
   def test_gets_resolved_conversations

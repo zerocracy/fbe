@@ -780,7 +780,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
     #   fake.resolved_conversations('zerocracy', 'baza', 172)
     #   # => [conversation data for zerocracy_baza]
     def resolved_conversations(owner, name, number)
-      return [] unless owner.casecmp?('zerocracy') && name.casecmp?('baza') && number == 172
+      return [] unless owner.to_s.casecmp?('zerocracy') && name.to_s.casecmp?('baza') && number == 172
       [conversation('PRRT_kwDOK2_4A85BHZAR')]
     end
 
