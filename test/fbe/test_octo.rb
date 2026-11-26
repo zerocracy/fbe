@@ -1721,6 +1721,12 @@ class TestOcto < Fbe::Test
     assert(o.remove_organization_membership('zerocracy', 'yegor256'))
   end
 
+  def test_milestone_state_excludes_open_milestones_from_a_closed_listing
+    client = Fbe::FakeOctokit.new
+    assert_empty(client.list_milestones('foo/bar', state: 'closed'))
+    assert_equal([1, 2], client.list_milestones('foo/bar', state: 'open').map(&:number))
+  end
+
   def test_fake_repository_workflow_runs
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.repository_workflow_runs('yegor256/test')
