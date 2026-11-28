@@ -308,4 +308,49 @@ class TestUnmaskRepos < Fbe::Test
     assert_includes(list, 'yegor256/tacit')
     refute_includes(list, 'zerocracy/judges-action')
   end
+
+  def test_skips_mask_on_all_rescued_discovery_errors
+    errors = [
+      Octokit::Deprecated.new,
+      Octokit::ServerError.new,
+      Octokit::Unauthorized.new,
+      Faraday::ConnectionFailed.new('down'),
+      Faraday::TimeoutError.new('slow')
+    ]
+    errors.each do |err|
+      octo = Object.new
+      octo.define_singleton_method(:organization_repositories) { |*_args| raise(err) }
+      octo.define_singleton_method(:repository) { |_repo| { archived: false } }
+      buf = Loog::Buffer.new
+      options = Judges::Options.new({ 'repositories' => 'foo/*,bar/baz' })
+      list =
+        Fbe.stub(:octo, octo) do
+          Fbe.unmask_repos(options:, global: {}, loog: buf)
+        end
+      assert_equal(['bar/baz'], list, "failed to skip mask on #{err.class}")
+      assert_includes(buf.to_s, 'Cannot expand the mask "foo/*"')
+    end
+  end
+
+  def test_keeps_repo_on_all_rescued_archive_errors
+    errors = [
+      Octokit::Deprecated.new,
+      Octokit::Forbidden.new,
+      Octokit::Unauthorized.new,
+      Faraday::ConnectionFailed.new('down'),
+      Faraday::TimeoutError.new('slow')
+    ]
+    errors.each do |err|
+      octo = Object.new
+      octo.define_singleton_method(:repository) { |_repo| raise(err) }
+      buf = Loog::Buffer.new
+      options = Judges::Options.new({ 'repositories' => 'foo/bar' })
+      list =
+        Fbe.stub(:octo, octo) do
+          Fbe.unmask_repos(options:, global: {}, loog: buf)
+        end
+      assert_equal(['foo/bar'], list, "failed to keep repo on #{err.class}")
+      assert_includes(buf.to_s, 'Cannot tell whether "foo/bar" is archived')
+    end
+  end
 end
