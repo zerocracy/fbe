@@ -570,6 +570,7 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
           }
         GRAPHQL
       ).to_h
+      raise(Fbe::Error, "Repository '#{owner}/#{name}' not found") if result['repository'].nil?
       releases = result.dig('repository', 'releases', 'nodes')
       break if releases.nil? || releases.empty?
       dates = releases.reject { _1['isDraft'] }.filter_map { _1['publishedAt'] && Time.parse(_1['publishedAt']) }
