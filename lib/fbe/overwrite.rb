@@ -17,13 +17,13 @@ require_relative 'fb'
 # does not require an identifier.
 #
 # @param [Factbase::Fact] fact The fact to modify; an identifier is required only for recreation
-# @param [String, Hash] property_or_hash The name of the property to set, or a hash of properties
+# @param [String, Symbol, Hash] property_or_hash The name of the property to set, or a hash of properties
 # @param [Any] values The value to set (can be any type, including array) - ignored if first param is Hash
 # @param [Factbase] fb The factbase to use (defaults to Fbe.fb)
 # @param [String] fid The property used as the fact identifier (defaults to '_id')
 # @return [nil] Nothing
 # @raise [Fbe::Error] If fact is nil, recreation needs a missing identifier,
-#   or property is neither a String nor a Hash
+#   or property is neither a String, Symbol, nor a Hash
 # @note This operation preserves all other properties during recreation
 # @note If property already has the same single value, no changes are made
 # @note Hash keys are normalized to strings; the last alias supplies the value
@@ -92,6 +92,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
     return
   end
   property = property_or_hash
+  property = property.to_s if property.is_a?(Symbol)
   raise(Fbe::Error, "The property is not a String but #{property.class} (#{property})") unless property.is_a?(String)
   raise(Fbe::Error, 'The values is nil') if values.nil?
   values = [values] unless values.is_a?(Array)
