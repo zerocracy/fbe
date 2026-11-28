@@ -11,6 +11,7 @@ require 'factbase/logged'
 require 'factbase/pre'
 require 'factbase/rules'
 require 'factbase/sync/sync_factbase'
+require 'factbase/syntax'
 require 'judges'
 require 'loog'
 require_relative '../fbe'
@@ -42,11 +43,8 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog) # rubocop:d
     global[:fb] ||=
       begin
         rules = Dir.glob(File.join(File.join(__dir__, '../../rules'), '*.fe')).map { |f| File.read(f) }
-        fbe = Factbase::Rules.new(
-          fb,
-          "(and \n#{rules.join("\n")}\n)",
-          uid: '_id'
-        )
+        text = "(and \n#{rules.join("\n")}\n)"
+        fbe = Factbase::Rules.new(fb, text, Fbe::Rulebook.new(text), uid: '_id')
         fbe =
           Factbase::Pre.new(fbe) do |f, fbt|
             max = fbt.query('(max _id)').one
@@ -69,5 +67,33 @@ def Fbe.fb(fb: $fb, global: $global, options: $options, loog: $loog) # rubocop:d
           timeout: options.timeout || 60
         )
       end
+  end
+end
+
+# The rules every fact in the factbase must obey, one after another.
+#
+# It stands in for the check of +Factbase::Rules+, which quotes the head of
+# the whole text of all rules when a fact breaks one of them. This one names
+# the very rule that the fact breaks.
+#
+# Author:: Yegor Bugayenko (yegor256@gmail.com)
+# Copyright:: Copyright (c) 2024-2026 Zerocracy
+# License:: MIT
+class Fbe::Rulebook
+  # @param [String] text All the rules, as one +(and ...)+ term
+  def initialize(text)
+    @text = text
+  end
+
+  # Refuses the fact when it breaks any of the rules.
+  #
+  # @param [Factbase::Fact] fact The fact to check
+  # @param [Factbase] fb The factbase the fact lives in
+  # @raise [Fbe::Error] If the fact breaks a rule, naming that rule
+  def it(fact, fb)
+    Factbase::Syntax.new(@text).to_term.operands.each do |rule|
+      next if rule.evaluate(fact, [], fb)
+      raise(Fbe::Error, "The fact #{fact} breaks the rule #{rule}")
+    end
   end
 end
