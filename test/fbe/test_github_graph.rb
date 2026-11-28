@@ -551,6 +551,16 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(0, result['pulls'])
   end
 
+  def test_real_total_issues_and_pulls_raises_when_repo_not_found
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'test')
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => nil }
+    end
+    err = assert_raises(Fbe::Error) { graph.total_issues_and_pulls('foo', 'bar') }
+    assert_equal("Repository 'foo/bar' not found", err.message)
+  end
+
   def test_real_resolved_conversations
     WebMock.disable_net_connect!
     graph = Fbe::Graph.new(token: 'test')
