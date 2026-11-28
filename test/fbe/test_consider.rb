@@ -102,4 +102,43 @@ class TestConsider < Fbe::Test
     ) { |f| f.bar = 7 }
     assert_equal(1, fb.query('(exists bar)').each.to_a.size, "slot stopped a timeout unaware loop, seed #{seed}")
   end
+
+  def test_ignores_expired_lifetime_when_lifetime_unaware
+    seed = Random.new_seed
+    fb = Factbase.new
+    fb.insert.foo = Random.new(seed).rand(1..999)
+    Fbe.consider(
+      '(exists foo)',
+      fb:, judge: 'judge-lifetime-unaware', global: {}, loog: Loog::NULL,
+      options: Judges::Options.new('lifetime=10'), epoch: Time.now - 20, kickoff: Time.now,
+      quota_aware: false, lifetime_aware: false
+    ) { |f| f.bar = 7 }
+    assert_equal(1, fb.query('(exists bar)').each.to_a.size, "expired lifetime stopped an unaware loop, seed #{seed}")
+  end
+
+  def test_processes_fact_with_default_slot
+    seed = Random.new_seed
+    fb = Factbase.new
+    fb.insert.foo = Random.new(seed).rand(1..999)
+    Fbe.consider(
+      '(exists foo)',
+      fb:, judge: 'judge-default-slot', global: {}, loog: Loog::NULL,
+      options: Judges::Options.new('timeout=10'), epoch: Time.now, kickoff: Time.now - 7.5,
+      quota_aware: false
+    ) { |f| f.bar = 7 }
+    assert_equal(1, fb.query('(exists bar)').each.to_a.size, "default slot stopped the loop, seed #{seed}")
+  end
+
+  def test_stops_before_lifetime_overrun_with_default_slot
+    seed = Random.new_seed
+    fb = Factbase.new
+    fb.insert.foo = Random.new(seed).rand(1..999)
+    Fbe.consider(
+      '(exists foo)',
+      fb:, judge: 'judge-default-slot-stops', global: {}, loog: Loog::NULL,
+      options: Judges::Options.new('lifetime=10'), epoch: Time.now - 8.5, kickoff: Time.now,
+      quota_aware: false
+    ) { |f| f.bar = 7 }
+    assert_empty(fb.query('(exists bar)').each.to_a, "default slot did not stop the loop, seed #{seed}")
+  end
 end
