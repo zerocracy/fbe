@@ -113,6 +113,7 @@ class Fbe::Award
           raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
       when :aka
+        raise(Fbe::Error, "The last operand of #{self} is not a text") unless @operands[-1].is_a?(String)
         @operands[0..-2].each do |o|
           o.bill_to(bill)
         rescue StandardError => e
@@ -284,6 +285,7 @@ class Fbe::Award
           raise(Fbe::Error, "Failure in #{o}: #{e.message}")
         end
       when :aka
+        raise(Fbe::Error, "The last operand of #{self} is not a text") unless @operands[-1].is_a?(String)
         before = bylaw.size
         saved = bylaw.intro_text
         @operands[0..-2].each do |o|
