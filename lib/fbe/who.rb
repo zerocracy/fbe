@@ -10,7 +10,7 @@ require_relative 'octo'
 #
 # The ID of the user (integer) is expected to be stored in the +who+ property of the
 # provided +fact+. This function makes a live request to GitHub API to
-# retrieve the username. The result is cached globally to minimize API calls.
+# retrieve the username. The name of a user is looked up once per run.
 # For example, the ID +526301+ will be converted to +"@yegor256"+.
 #
 # @param [Factbase::Fact] fact The fact containing the GitHub user ID
@@ -20,7 +20,7 @@ require_relative 'octo'
 # @param [Loog] loog The logging facility (uses $loog global)
 # @return [String] Formatted username with @ prefix (e.g., "@yegor256")
 # @raise [Fbe::Error] If the specified property doesn't exist in the fact
-# @note Results are cached to reduce GitHub API calls
+# @note The name of a user is looked up once per run
 # @note Subject to GitHub API rate limits
 # @example Convert user ID to username
 #   contributor = fb.query('(eq type "contributor")').first
