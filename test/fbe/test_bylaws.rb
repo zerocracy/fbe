@@ -167,6 +167,27 @@ class TestBylaws < Fbe::Test
     end
   end
 
+  def test_bug_fix_bill_limits_the_delay_deduction
+    award = Fbe::Award.new(Fbe.bylaws['resolved-bug-was-rewarded'])
+    assert_includes(award.bill(hours: 3000, self: 0).greeting, '-20 for 125 days of delay')
+  end
+
+  def test_bug_fix_bill_deducts_the_self_report_fee
+    award = Fbe::Award.new(Fbe.bylaws(anger: 1)['resolved-bug-was-rewarded'])
+    assert_equal(8, award.bill(hours: 1, self: 1).points)
+  end
+
+  def test_bug_fix_bill_caps_a_reward_that_would_exceed_sixteen
+    award = Fbe::Award.new(Fbe.bylaws(love: 3)['resolved-bug-was-rewarded'])
+    assert_equal(16, award.bill(hours: 1, self: 0).points)
+  end
+
+  def test_bug_fix_bylaw_explains_the_recipient_and_delay_limit
+    markdown = Fbe::Award.new(Fbe.bylaws['resolved-bug-was-rewarded']).bylaw.markdown
+    assert_includes(markdown, 'When a bug is resolved, the person who was assigned to it receives a bonus')
+    assert_includes(markdown, 'for each day of delay, but no more than **20** points')
+  end
+
   def test_resolved_bug_best_case_reaches_the_stated_cap
     formula = Fbe.bylaws(anger: 2, love: 2, paranoia: 2)['resolved-bug-was-rewarded']
     a = Fbe::Award.new(formula)
