@@ -41,7 +41,7 @@ def Fbe.regularly(area, p_every_days, p_since_days = nil, fb: Fbe.fb, judge: $ju
     "(and
       (eq what 'regularly')
       (eq judge '#{judge.gsub("'", "\\\\'")}')
-      (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{interval} days')))"
+      (gt when (minus (to_time (env 'TODAY' '#{Time.now.utc.iso8601}')) '#{(interval * 86_400).round} seconds')))"
   ).each.first
   if recent
     loog.info(

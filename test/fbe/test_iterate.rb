@@ -14,6 +14,14 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestIterate < Fbe::Test
+  def test_quota_unaware_runs_while_off_quota
+    assert_equal([1], scanned_off_quota { quota_unaware }, 'An unaware iterator must still reach its block')
+  end
+
+  def test_quota_aware_stops_while_off_quota
+    assert_empty(scanned_off_quota { nil }, 'An aware iterator must stop')
+  end
+
   def test_simple
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
@@ -749,7 +757,60 @@ class TestIterate < Fbe::Test
     assert_equal([[1, 2], [3], []], runs)
   end
 
+  def test_quits_on_seen_check_when_every_repo_restarts_after_work
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    fb.insert.foo = 42
+    loog = Loog::Buffer.new(level: Logger::DEBUG)
+    seen = []
+    Fbe.iterate(fb:, loog:, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('restart_after_work_test')
+      by('(agg (and (eq foo 42) (gt foo $before)) (max foo))')
+      repeats(10)
+      over do |repo, nxt|
+        seen << repo
+        nxt
+      end
+    end
+    assert_equal([1, 1], seen.tally.values, 'each repository was not visited once before its restart')
+    assert_includes(loog.to_s, 'No more repos to scan', 'the loop did not stop on the seen check')
+  end
+
+  def test_quits_on_seen_check_when_every_repo_restarts_at_once
+    opts = Judges::Options.new(['repositories=foo/bar,foo/baz', 'testing=true'])
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
+    loog = Loog::Buffer.new(level: Logger::DEBUG)
+    Fbe.iterate(fb:, loog:, global: {}, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('restart_at_once_test')
+      by('(agg (eq foo 1) (first foo))')
+      repeats(3)
+      over { |_, nxt| nxt }
+    end
+    assert_includes(loog.to_s, 'No more repos to scan', 'the loop did not stop on the seen check')
+  end
+
   private
+
+  def scanned_off_quota(&setup)
+    opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])
+    global = {}
+    fb = Fbe.fb(fb: Factbase.new, global:, options: opts, loog: Loog::NULL)
+    fb.insert.num = 1
+    octo = Fbe.octo(loog: Loog::NULL, options: opts, global:)
+    def octo.off_quota?(**) = true
+    seen = []
+    Fbe.iterate(fb:, loog: Loog::NULL, global:, options: opts, epoch: Time.now, kickoff: Time.now) do
+      as('scan')
+      by('(agg (gt num $before) (min num))')
+      instance_eval(&setup)
+      repeats(1)
+      over do |_, n|
+        seen << n
+        n
+      end
+    end
+    seen
+  end
 
   def fresh_iterator
     opts = Judges::Options.new(['repositories=foo/bar', 'testing=true'])

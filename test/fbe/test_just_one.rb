@@ -88,4 +88,29 @@ class TestJustOne < Fbe::Test
     end
     assert_equal(0, fb.size, 'just_one inserted a fact without a block')
   end
+
+  def test_handles_values_with_backslashes_and_quotes
+    fb = Factbase.new
+    inserted =
+      Fbe.just_one(fb:) do |f|
+        f.title = "it\\'s a quote"
+        f.path = 'folder\\name'
+      end
+    refute_nil(inserted)
+    assert_equal("it\\'s a quote", inserted.title)
+    assert_equal('folder\\name', inserted.path)
+    assert_equal(1, fb.size)
+  end
+
+  def test_handles_escaped_double_quotes_with_backslashes
+    fb = Factbase.new
+    fact =
+      Fbe.just_one(fb:) do |f|
+        f.tag = 'sample \"quoted\" value'
+        f.num = 99
+      end
+    refute_nil(fact)
+    assert_equal('sample \"quoted\" value', fact.tag)
+    assert_equal(99, fact.num)
+  end
 end

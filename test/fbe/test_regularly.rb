@@ -25,6 +25,14 @@ class TestRegularly < Fbe::Test
     assert_equal(1, fb.size)
   end
 
+  def test_waits_for_a_fractional_interval
+    assert_equal(0, regular_runs(0.5, 3600), 'One hour must be too early for an interval of half a day')
+  end
+
+  def test_runs_after_a_fractional_interval
+    assert_equal(1, regular_runs(0.5, 13 * 3600), 'Thirteen hours must be enough for an interval of half a day')
+  end
+
   def test_rolls_back
     fb = Factbase.new
     loog = Loog::NULL
@@ -115,5 +123,22 @@ class TestRegularly < Fbe::Test
       f.foo = 42
     end
     assert_equal(2, fb.size)
+  end
+
+  private
+
+  def regular_runs(every, age)
+    fb = Factbase.new
+    pm = fb.insert
+    pm.what = 'pmp'
+    pm.area = 'a'
+    pm.every = every
+    m = fb.insert
+    m.what = 'regularly'
+    m.judge = 'jj'
+    m.when = Time.now - age
+    runs = 0
+    Fbe.regularly('a', 'every', fb:, judge: 'jj', loog: Loog::NULL) { runs += 1 }
+    runs
   end
 end

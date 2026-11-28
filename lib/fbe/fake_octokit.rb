@@ -259,11 +259,10 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.remove_organization_membership('zerocracy') #=> true
-  # rubocop:disable Naming/PredicateMethod
+  # rubocop:disable-next Naming/PredicateMethod
   def remove_organization_membership(_org, _user = nil)
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   # Accepts a repository invitation.
   #
@@ -272,12 +271,11 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.accept_repository_invitation(1) #=> true
-  # rubocop:disable Naming/PredicateMethod
+  # rubocop:disable-next Naming/PredicateMethod
   def accept_repository_invitation(id)
     raise(Octokit::NotFound) if id == 404_000
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   # Gives a star to a repository.
   #
@@ -286,11 +284,10 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   fake_client.star('octocat/Hello-World') #=> true
-  # rubocop:disable Naming/PredicateMethod
+  # rubocop:disable-next Naming/PredicateMethod
   def star(_repo)
     true
   end
-  # rubocop:enable Naming/PredicateMethod
 
   # Gets details of a GitHub user.
   #
@@ -438,11 +435,14 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       full_name: repo,
       default_branch: 'master',
       private: false,
-      owner: { login: name.to_s.split('/')[0], id: 526_301, site_admin: false },
+      owner: {
+        login: name.to_s.split('/')[0], id: name.to_s.start_with?('zerocracy/') ? 24_234_201 : 526_301,
+        site_admin: false
+      },
       html_url: "https://github.com/#{name}",
       description: 'something',
       fork: false,
-      url: "https://github.com/#{name}",
+      url: "https://api.github.com/repos/#{repo}",
       created_at: random_time,
       updated_at: random_time,
       pushed_at: random_time,
@@ -1214,7 +1214,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         updated_at: '2024-08-08T09:42:46Z',
         reactions: {
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082318/reactions',
-          total_count: 0
+          total_count: 1
         },
         start_line: 'null',
         original_start_line: 'null',
@@ -1241,7 +1241,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         updated_at: '2024-08-08T09:42:46Z',
         reactions: {
           url: 'https://api.github.com/repos/zerocracy/baza/pulls/comments/1709082319/reactions',
-          total_count: 0
+          total_count: 1
         },
         start_line: 'null',
         original_start_line: 'null',

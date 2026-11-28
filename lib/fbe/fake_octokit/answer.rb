@@ -28,7 +28,7 @@ class Fbe::FakeOctokit::Answer < Sawyer::Resource
   #
   # @param [Object] other The other one
   # @return [Boolean] TRUE if they carry the same attributes
-  def ==(other) # rubocop:disable Elegant/GoodMethodName
+  def ==(other)
     case other
     when Fbe::FakeOctokit::Answer
       to_attrs == other.to_attrs

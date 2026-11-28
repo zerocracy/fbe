@@ -14,6 +14,12 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class TestBylaws < Fbe::Test
+  def test_review_does_not_call_comments_of_all_reviewers_yours
+    greeting = Fbe::Award.new(Fbe.bylaws['code-review-was-rewarded']).bill(hoc: 600, comments: 24, self: 0).greeting
+    assert_includes(greeting, 'made during the review', greeting)
+    refute_includes(greeting, 'that you have made', greeting)
+  end
+
   def test_rejects_negative_revert_count
     bylaw = Fbe::Award::Bylaw.new
     assert_raises(Fbe::Error) { bylaw.revert(-1) }
@@ -80,8 +86,8 @@ class TestBylaws < Fbe::Test
         { hoc: 600, comments: 1, self: 0 } => 8,
         { hoc: 500, comments: 40, self: 0 } => 24,
         { hoc: 5_000, comments: 100, self: 0 } => 24,
-        { hoc: 100, comments: 50, self: 1 } => 4,
-        { hoc: 10_000, comments: 200, self: 1 } => 4
+        { hoc: 100, comments: 50, self: 1 } => -12,
+        { hoc: 10_000, comments: 200, self: 1 } => -12
       },
       'code-contribution-was-rewarded' => {
         { hoc: 0, comments: 0, reviews: 0 } => 4,
@@ -235,5 +241,35 @@ class TestBylaws < Fbe::Test
         assert_includes(error.message, 'must be an Integer')
       end
     end
+  end
+
+  def test_rejects_anger_and_love_outside_their_interval
+    [-1, 5].product(%i[anger love]).each do |value, name|
+      error = assert_raises(Fbe::Error, "#{name}=#{value} was accepted") { Fbe.bylaws(**{ name => value }) }
+      assert_includes(error.message, "The '#{name}' must be in the [0..4] interval", 'the error is wrong')
+      assert(error.message.end_with?(": #{value}"), 'the error does not show the value')
+    end
+  end
+
+  def test_rejects_paranoia_outside_its_interval
+    [0, 5].each do |value|
+      error = assert_raises(Fbe::Error, "paranoia=#{value} was accepted") { Fbe.bylaws(paranoia: value) }
+      assert_includes(error.message, "The 'paranoia' must be in the [1..4] interval", 'the error is wrong')
+      assert(error.message.end_with?(": #{value}"), 'the error does not show the value')
+    end
+  end
+
+  def test_accepts_lowest_edges_of_intervals
+    bylaws = Fbe.bylaws(anger: 0, love: 0, paranoia: 1)
+    refute_empty(bylaws, 'the lowest levels gave no bylaws')
+  end
+
+  def test_accepts_highest_edges_of_intervals
+    refute_empty(Fbe.bylaws(anger: 4, love: 4, paranoia: 4), 'the highest levels gave no bylaws')
+  end
+
+  def test_accepts_mixed_edges_of_intervals
+    refute_empty(Fbe.bylaws(anger: 4, love: 0, paranoia: 1), 'the mixed edges gave no bylaws')
+    refute_empty(Fbe.bylaws(anger: 0, love: 4, paranoia: 4), 'the other mixed edges gave no bylaws')
   end
 end

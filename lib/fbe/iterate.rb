@@ -277,7 +277,7 @@ class Fbe::Iterate
     repos =
       Fbe.unmask_repos(
         loog: @loog, options: @options, global: @global, quota_aware: @quota
-      ).map { |n| oct.repo_id_by_name(n) }
+      ).map { |n| @quota ? oct.repo_id_by_name(n) : oct.identity(n) }
     started = Time.now
     restarted = []
     markers = {}
@@ -318,7 +318,7 @@ class Fbe::Iterate
           if @sorting
             values[repo] ||= @fb.query(@query).each(
               @fb, before: before[repo], repository: repo
-            ).filter_map { _1[@sorting]&.first }.uniq.sort!.each
+            ).filter_map { _1[@sorting]&.first }.tap(&:uniq!).sort!.each
             begin
               values[repo].next
             rescue StopIteration
@@ -351,10 +351,6 @@ class Fbe::Iterate
       end
       unless seen.any? { |r, v| v < @repeats && !restarted.include?(r) }
         @loog.debug("No more repos to scan (out of #{repos.size}), quitting after #{@kickoff.ago}")
-        break
-      end
-      if restarted.size == repos.size
-        @loog.debug("All #{repos.size} repos restarted, quitting after #{@kickoff.ago}")
         break
       end
     end

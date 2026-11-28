@@ -217,6 +217,32 @@ class TestGitHubGraph < Fbe::Test
     assert_equal(%w[C1 C2], threads.first['comments']['nodes'].map { |c| c['id'] })
   end
 
+  def test_reads_more_comments_of_a_frozen_thread
+    thread = {
+      'id' => 'T1', 'isResolved' => true,
+      'comments' => {
+        'nodes' => [{ 'id' => 'C1' }.freeze].freeze,
+        'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'c1' }.freeze
+      }.freeze
+    }.freeze
+    pages = [
+      {
+        'repository' => {
+          'pullRequest' => {
+            'reviewThreads' => {
+              'nodes' => [thread].freeze,
+              'pageInfo' => {}.freeze
+            }
+          }
+        }
+      },
+      { 'node' => { 'comments' => { 'nodes' => [{ 'id' => 'C2' }], 'pageInfo' => { 'hasNextPage' => false } } } }
+    ]
+    g = Fbe::Graph.new(token: 'fake')
+    threads = g.stub(:query, ->(_q) { pages.shift }) { g.resolved_conversations('foo', 'bar', 42) }
+    assert_equal(%w[C1 C2], threads.first['comments']['nodes'].map { |c| c['id'] }, 'GraphQL answers are frozen')
+  end
+
   def test_quotes_a_branch_name_that_carries_a_quote
     g = Fbe::Graph.new(token: 'fake')
     history = Struct.new(:history).new(Struct.new(:total_count).new(7))
@@ -992,6 +1018,59 @@ class TestGitHubGraph < Fbe::Test
     end
     graph.total_releases_published('foo', 'bar', Time.parse('2025-08-01T18:00:00Z'))
     refute_includes(captured, 'after: ""')
+  end
+
+  def test_total_releases_published_includes_since_and_till
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    since = Time.parse('2025-06-01T00:00:00Z')
+    till = since + 60
+    nodes =
+      [since - 1, since, since + 30, till, till + 1].map do |date|
+        { 'isDraft' => false, 'publishedAt' => date.iso8601 }
+      end
+    nodes << { 'isDraft' => true, 'publishedAt' => since.iso8601 }
+    graph.define_singleton_method(:query) do |_qry|
+      { 'repository' => { 'releases' => { 'nodes' => nodes, 'pageInfo' => { 'hasNextPage' => false } } } }
+    end
+    result = graph.total_releases_published('foo', 'bar', since, till:)
+    assert_equal(3, result['releases'])
+  end
+
+  def test_total_releases_published_continues_at_since
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    since = Time.parse('2025-06-01T00:00:00Z')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      raise(Fbe::Error, 'too many release pages requested') if calls > 2
+      nodes = [{ 'isDraft' => false, 'publishedAt' => since.iso8601 }]
+      page = { 'nodes' => nodes, 'pageInfo' => { 'hasNextPage' => calls == 1, 'endCursor' => 'next' } }
+      { 'repository' => { 'releases' => page } }
+    end
+    result = graph.total_releases_published('foo', 'bar', since, till: since + 60)
+    assert_equal(2, result['releases'])
+    assert_equal(2, calls)
+  end
+
+  def test_total_releases_published_stops_at_old_releases_with_drafts
+    WebMock.disable_net_connect!
+    graph = Fbe::Graph.new(token: 'fake')
+    calls = 0
+    graph.define_singleton_method(:query) do |_qry|
+      calls += 1
+      raise(Fbe::Error, 'unnecessary release page requested') if calls > 1
+      nodes = [
+        { 'isDraft' => true, 'publishedAt' => nil },
+        { 'isDraft' => false, 'publishedAt' => '2024-01-01T00:00:00Z' }
+      ]
+      page = { 'nodes' => nodes, 'pageInfo' => { 'hasNextPage' => true, 'endCursor' => 'next' } }
+      { 'repository' => { 'releases' => page } }
+    end
+    result = graph.total_releases_published('foo', 'bar', Time.parse('2025-01-01T00:00:00Z'))
+    assert_equal(0, result['releases'])
+    assert_equal(1, calls)
   end
 
   def test_total_releases_published_dont_count_after_till
