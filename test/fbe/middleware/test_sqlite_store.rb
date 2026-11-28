@@ -101,11 +101,13 @@ class SqliteStoreTest < Fbe::Test
 
   def test_disables_itself_when_the_file_stays_unusable
     with_tmpfile do |f|
-      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog: fake_loog)
+      loog = Loog::Buffer.new
+      store = Fbe::Middleware::SqliteStore.new(f, '0.0.0', loog:)
       SQLite3::Database.stub(:new, ->(*_args) { raise(SQLite3::CantOpenException, 'always broken') }) do
         assert_nil(store.read('my_key'))
         store.write('my_key', 'my_value')
         assert_nil(store.read('my_key'))
+        assert_equal(1, loog.to_s.scan('disabling the cache').size)
       end
     end
   end
@@ -148,7 +150,46 @@ class SqliteStoreTest < Fbe::Test
       Fbe::Middleware::SqliteStore.new(f, '0.0.2', loog: fake_loog).then do |store|
         assert_nil(store.read('kkk1'))
         assert_nil(store.read('kkk2'))
+        store.write('fresh', 'keep')
+        store.close
       end
+      assert_equal('keep', Fbe::Middleware::SqliteStore.new(f, '0.0.2').read('fresh'))
+    end
+  end
+
+  def test_clear_restores_the_calling_stores_version
+    with_tmpfile do |f|
+      current = Fbe::Middleware::SqliteStore.new(f, '2')
+      current.write('fresh', 'first')
+      previous = Fbe::Middleware::SqliteStore.new(f, '1')
+      previous.write('old', 'prior')
+      previous.close
+      current.clear
+      current.write('fresh', 'keep')
+      current.close
+      assert_equal('keep', Fbe::Middleware::SqliteStore.new(f, '2').read('fresh'))
+    end
+  end
+
+  def test_default_value_limit_accepts_exactly_ten_kilobytes_of_json
+    with_tmpfile do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '1')
+      value = 'x' * (Integer(Filesize.from('10Kb')) - JSON.dump('').bytesize)
+      store.write('k', value)
+      assert_equal(value, store.read('k'))
+      store.write('k', "#{value}x")
+      assert_nil(store.read('k'))
+    end
+  end
+
+  def test_deletes_an_entry_when_json_parse_raises_a_type_error
+    with_tmpfile do |f|
+      store = Fbe::Middleware::SqliteStore.new(f, '1')
+      store.write('broken', 'value')
+      JSON.stub(:parse, ->(_value) { raise(TypeError) }) do
+        assert_nil(store.read('broken'))
+      end
+      assert_empty(store.all)
     end
   end
 
@@ -198,11 +239,13 @@ class SqliteStoreTest < Fbe::Test
         end
       end
       assert_operator(File.size(f), :>, 10 * 1024 * 1024)
-      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog: fake_loog).then do |store|
+      loog = Loog::Buffer.new
+      Fbe::Middleware::SqliteStore.new(f, '0.0.1', loog:).then do |store|
         assert_equal('aa', store.read('a'))
         assert_nil(store.read('b'))
         assert_equal('cc', store.read('c'))
         assert_operator(File.size(f), :<=, 10 * 1024 * 1024)
+        assert_match(/Deleted [1-9]\d* old cache entries/, loog.to_s)
       end
     end
   end
