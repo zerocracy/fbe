@@ -45,13 +45,14 @@ class Fbe::Middleware::Trace < Faraday::Middleware
   # @param [Faraday::Env] env The request environment
   # @return [Faraday::Response] The response from the next middleware
   def call(env)
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     entry = { method: env.method, url: env.url.to_s, started_at: Time.now }
     @app.call(env).on_complete do |response_env|
       next if !@ignores.empty? &&
               response_env[:http_cache_trace] &&
               response_env[:http_cache_trace].intersect?(@ignores)
       finished = Time.now
-      duration = finished - entry[:started_at]
+      duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
       entry[:status] = response_env.status
       entry[:finished_at] = finished
       entry[:duration] = duration
@@ -61,7 +62,7 @@ class Fbe::Middleware::Trace < Faraday::Middleware
     finished = Time.now
     entry[:error] = e.message
     entry[:finished_at] = finished
-    entry[:duration] = finished - entry[:started_at]
+    entry[:duration] = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
     @mutex.synchronize { @trace << entry }
     raise
   end
