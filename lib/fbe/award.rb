@@ -263,6 +263,7 @@ class Fbe::Award
         "#{to_p(@operands[0])} clamped by absolute value between #{to_p(@operands[1])} and " \
         "#{to_p(@operands[2])}, or 0 if its absolute value is smaller than both"
       else
+        raise(Fbe::Error, "Unknown term '#{@op}'") unless %i[award aka explain in let set give].include?(@op)
         "(#{@op} #{@operands.join(' ')})"
       end
     end
