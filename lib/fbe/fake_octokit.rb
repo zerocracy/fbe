@@ -725,7 +725,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
     [
       {
         id: 22_449_327,
-        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        user: { login: 'Reviewer', id: 2_566_462, type: 'User' },
         body: 'Some text 2',
         state: 'CHANGES_REQUESTED',
         author_association: 'CONTRIBUTOR',
@@ -734,9 +734,9 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       },
       {
         id: 22_449_326,
-        user: { login: 'yegor256', id: 526_301, type: 'User' },
+        user: { login: 'Reviewer', id: 2_566_462, type: 'User' },
         body: 'Some text 1',
-        state: 'CHANGES_REQUESTED',
+        state: 'APPROVED',
         author_association: 'CONTRIBUTOR',
         submitted_at: Time.parse('2024-08-21 22:00:00 UTC'),
         commit_id: 'a15c2893f1b5453'
