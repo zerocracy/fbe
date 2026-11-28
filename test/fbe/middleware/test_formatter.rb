@@ -237,6 +237,19 @@ class LoggingFormatterTest < Fbe::Test
     assert_match(/oops/, loog.to_s)
   end
 
+  def test_survives_nil_response_headers
+    [403, 500].each do |status|
+      loog = Loog::Buffer.new
+      formatter = Fbe::Middleware::Formatter.new(logger: loog, options: {})
+      env = Faraday::Env.from({ method: :get, url: URI('http://example.com'), request_headers: {} })
+      env.status = status
+      env.response_headers = nil
+      env.response_body = 'server error'
+      formatter.response(env)
+      assert_match(/server error/, loog.to_s)
+    end
+  end
+
   private
 
   def log_it(
