@@ -25,6 +25,13 @@ class TestUnmaskRepos < Fbe::Test
     refute_includes(list, 'zerocracy/datum')
   end
 
+  def test_excludes_a_repository_named_by_a_minus_mask
+    opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/*,-yegor256/judges' })
+    list = Fbe.unmask_repos(options: opts, global: {}, loog: Loog::NULL)
+    assert_includes(list, 'yegor256/factbase')
+    refute_includes(list, 'yegor256/judges')
+  end
+
   def test_iterates_them
     opts = Judges::Options.new({ 'testing' => true, 'repositories' => 'yegor256/tacit,zerocracy/*' })
     list = []
