@@ -61,7 +61,7 @@ def Fbe.just_one(fb: Fbe.fb)
     "(eq #{k} #{vv})"
   end.join(' ')
   q = "(and #{q})"
-  before = fb.query(q).each.find { |f| Fbe.same?(f, attrs) }
+  before = fb.query(q).each.find { |f| Fbe.same?(f, attrs.except(:_id, :_time, :_version)) }
   return before unless before.nil?
   n = fb.insert
   attrs.each { |k, v| n.public_send(:"#{k}=", v) }
