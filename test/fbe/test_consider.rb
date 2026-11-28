@@ -33,6 +33,28 @@ class TestConsider < Fbe::Test
     assert_equal(1, $fb.size)
   end
 
+  def test_returns_the_count_of_processed_facts
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      { body: '{}', headers: { 'X-RateLimit-Remaining' => '3000' } }
+    )
+    $fb = Factbase.new
+    3.times { |i| $fb.insert.foo = i }
+    $epoch = Time.now
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    $judge = ''
+    assert_equal(3, Fbe.consider('(exists foo)') { |f| f.bar = 7 })
+    seen = 0
+    passed =
+      Fbe.consider('(exists foo)') do |_|
+        seen += 1
+        raise(Fbe::OffQuota, 'over') if seen == 2
+      end
+    assert_equal(1, passed)
+  end
+
   def test_quota_unaware
     WebMock.disable_net_connect!
     stub_request(:get, 'https://api.github.com/rate_limit').to_return(
