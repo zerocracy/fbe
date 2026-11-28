@@ -65,6 +65,53 @@ class TestDeleteOne < Fbe::Test
     assert_equal(1, fb.query('(eq foo 42)').each.to_a.size)
   end
 
+  def test_raises_when_fact_has_no_id
+    fb = Factbase.new
+    f = fb.insert
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.delete_one(f, 'foo', 42, fb:) }
+    assert_equal('There is no "_id" in the fact', error.message)
+    assert_equal(1, fb.size)
+    assert_equal(1, fb.query('(always)').each.to_a.size)
+  end
+
+  def test_raises_when_custom_id_is_missing
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 555
+    f.foo = 42
+    error = assert_raises(Fbe::Error) { Fbe.delete_one(f, 'foo', 42, fb:, id: 'whatever') }
+    assert_equal('There is no "whatever" in the fact', error.message)
+    assert_equal(1, fb.size)
+  end
+
+  def test_raises_when_fact_is_nil
+    error = assert_raises(Fbe::Error) { Fbe.delete_one(nil, 'foo', 42, fb: Factbase.new) }
+    assert_equal('The fact is nil', error.message)
+  end
+
+  def test_drops_the_property_when_the_last_value_is_deleted
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 555
+    f.foo = 42
+    Fbe.delete_one(f, 'foo', 42, fb:)
+    assert_equal(1, fb.size)
+    assert_empty(fb.query('(exists foo)').each.to_a)
+    assert_equal([555], fb.query('(always)').each.first['_id'])
+  end
+
+  def test_deletes_only_one_of_the_duplicate_values
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 555
+    f.foo = 42
+    f.foo = 42
+    Fbe.delete_one(f, 'foo', 42, fb:)
+    assert_equal(1, fb.size)
+    assert_equal([42], fb.query('(exists foo)').each.first['foo'])
+  end
+
   def test_does_not_recreate_fact_when_value_not_present
     opts = Judges::Options.new(['testing=true'])
     fb = Fbe.fb(fb: Factbase.new, global: {}, options: opts, loog: Loog::NULL)
