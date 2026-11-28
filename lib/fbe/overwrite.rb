@@ -25,7 +25,7 @@ require_relative 'fb'
 # @raise [Fbe::Error] If fact is nil, recreation needs a missing identifier,
 #   or property is neither a String nor a Hash
 # @note This operation preserves all other properties during recreation
-# @note If property already has the same single value, no changes are made
+# @note If property already has the same values, no changes are made
 # @note Hash keys are normalized to strings; the last alias supplies the value
 # @example Update a user's status
 #   user = fb.query('(eq login "john")').first
@@ -95,7 +95,7 @@ def Fbe.overwrite(fact, property_or_hash, values = nil, fb: Fbe.fb, fid: '_id') 
   raise(Fbe::Error, "The property is not a String but #{property.class} (#{property})") unless property.is_a?(String)
   raise(Fbe::Error, 'The values is nil') if values.nil?
   values = [values] unless values.is_a?(Array)
-  return if !fact[property].nil? && fact[property].one? && values.one? && fact[property].first == values.first
+  return if fact[property] == values
   if fact[property].nil?
     values.each do |v|
       fact.public_send(:"#{property}=", v)
