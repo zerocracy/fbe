@@ -620,7 +620,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
           sha: '74d0c234967de0f690805c6943e78db42a294c1a'
         },
         merged_at: Time.now,
-        comments: 2,
+        comments: issue_comments(repo, number).size,
         review_comments: 2,
         commits: 1,
         additions: 3,
@@ -641,7 +641,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         additions: 12,
         deletions: 5,
         changed_files: 3,
-        comments: 2,
+        comments: issue_comments(repo, number).size,
         review_comments: 2,
         closed_at: Time.parse('2024-12-20'),
         merged_at: Time.parse('2024-12-20'),
@@ -1207,7 +1207,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         original_commit_id: 'e8c6f94274d14ed3cb26fe71467a9c3f229df59c',
         user: {
           login: 'Reviewer',
-          id: 2_566_462
+          id: 2_566_462,
+          type: 'User'
         },
         body: 'Most likely, parentheses were missed here.',
         created_at: '2024-08-08T09:41:46Z',
@@ -1234,7 +1235,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         original_commit_id: 'e8c6f94274d14ed3cb26fe71467a9c3f229df59c',
         user: {
           login: 'test',
-          id: 88_084_038
+          id: 88_084_038,
+          type: 'User'
         },
         body: 'definitely a typo',
         created_at: '2024-08-08T09:42:46Z',
@@ -1269,7 +1271,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         original_commit_id: 'e8c6f94274d14ed3cb26fe71467a9c3f229df59c',
         user: {
           login: 'Reviewer',
-          id: 2_566_462
+          id: 2_566_462,
+          type: 'User'
         },
         body: 'reviewer comment',
         created_at: '2024-08-08T09:41:46Z',
@@ -1296,7 +1299,8 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         original_commit_id: 'e8c6f94274d14ed3cb26fe71467a9c3f229df59c',
         user: {
           login: 'test',
-          id: 88_084_038
+          id: 88_084_038,
+          type: 'User'
         },
         body: 'author comment',
         created_at: '2024-08-08T09:42:46Z',
@@ -1315,6 +1319,21 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         in_reply_to_id: 1_709_082_318,
         position: 'null',
         subject_type: 'line'
+      },
+      {
+        id: 1_709_082_322,
+        user: {
+          login: 'renovate[bot]',
+          id: 29_139_614,
+          type: 'Bot'
+        },
+        body: 'This pull request contains dependency updates',
+        created_at: '2024-08-08T09:43:46Z',
+        updated_at: '2024-08-08T09:43:46Z',
+        reactions: {
+          url: 'https://api.github.com/repos/zerocracy/baza/issues/comments/1709082322/reactions',
+          total_count: 0
+        }
       }
     ]
   end
