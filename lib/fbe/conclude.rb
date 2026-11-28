@@ -183,13 +183,35 @@ class Fbe::Conclude
   # @yield [Factbase::Fact] The next fact found by the query
   # @return [Integer] The count of the facts processed
   def consider(&)
-    roll do |_fbt, a|
-      yield(a)
+    roll do |fbt, a|
+      yield(transactional_fact(fbt, a))
       nil
     end
   end
 
   private
+
+  def transactional_fact(fbt, original)
+    id = original['_id']
+    facts =
+      if id
+        fbt.query(Factbase::Term.new(:eq, [:_id, id.first])).each
+      else
+        fbt.query(@query).each
+      end
+    found =
+      if id
+        facts.find { |fact| fact['_id'] == id }
+      else
+        properties = original.all_properties.to_h { |property| [property, original[property]] }
+        facts.find do |fact|
+          fact.all_properties.sort == properties.keys.sort &&
+            properties.all? { |property, values| fact[property] == values }
+        end
+      end
+    raise(Fbe::Error, 'The fact selected for consideration is not available in its transaction') if found.nil?
+    found
+  end
 
   # Executes a query and processes each matching fact.
   #
