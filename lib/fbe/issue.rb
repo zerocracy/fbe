@@ -24,7 +24,7 @@ require_relative 'octo'
 # @note Repository names are cached to reduce GitHub API calls
 # @example Format an issue reference
 #   issue_fact = fb.query('(eq type "issue")').first
-#   issue_fact.repository = 549866411  # Repository ID
+#   issue_fact.repository = 820463873  # Repository ID
 #   issue_fact.issue = 42               # Issue number
 #   puts Fbe.issue(issue_fact)  # => "zerocracy/fbe#42"
 def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
