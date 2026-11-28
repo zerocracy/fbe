@@ -1534,6 +1534,14 @@ class TestOcto < Fbe::Test
     assert_equal(o.issue_comments('foo/bar', 42).size, o.issue('foo/bar', 42)[:comments])
   end
 
+  def test_fake_search_commits_carry_a_sha
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.search_commits('anything')[:items].each do |item|
+      refute_nil(item[:sha])
+      assert_equal(item[:sha], o.commit('foo/bar', item[:sha])[:sha])
+    end
+  end
+
   def test_fake_comment_reactions_match_their_count
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_request_comments('foo/bar', 42).each do |comment|
