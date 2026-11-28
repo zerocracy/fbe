@@ -219,6 +219,21 @@ class LoggingFormatterTest < Fbe::Test
     end
   end
 
+  def test_decoded_error_body_uses_the_same_warning_as_json_text
+    [{ 'message' => 'Review limit reached' }, { message: 'Review limit reached' }].each do |body|
+      logger = Loog::Buffer.new
+      warnings = []
+      formatter = Fbe::Middleware::Formatter.new(logger:, options: {})
+      env = Faraday::Env.from({ method: :get, url: URI('https://example.org'), request_headers: {} })
+      env.status = 403
+      env.response_headers = { 'content-type' => 'application/json' }
+      env.response_body = body
+      logger.stub(:warn, ->(message) { warnings << message }) { formatter.response(env) }
+      assert_equal(['GET https://example.org -> 403 / Review limit reached'], warnings)
+      assert_same(body, env.response_body)
+    end
+  end
+
   def test_logs_binary_response_bodies
     body = "\xFFdata".b
     log_it(status: 404, response_body: body) do |loog|

@@ -78,8 +78,9 @@ class Fbe::Middleware::Formatter < Faraday::Logging::Formatter
     if http.status == 403 && type&.start_with?('application/json')
       msg =
         begin
-          parsed = JSON.parse(http.response_body)
-          parsed['message'] if parsed.is_a?(Hash)
+          body = http.response_body
+          parsed = body.is_a?(Hash) ? body : JSON.parse(body)
+          parsed.fetch('message') { parsed[:message] } if parsed.is_a?(Hash)
         rescue JSON::ParserError, TypeError
           nil
         end
