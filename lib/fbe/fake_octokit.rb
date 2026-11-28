@@ -371,23 +371,27 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Lists mock milestones, including one without a deadline.
   #
   # @param [String] _repo Repository name (ignored in mock)
-  # @param [Hash] _options Query options (ignored in mock)
+  # @param [Hash] options Query options, including the milestone state ('open', 'closed' or 'all')
   # @return [Array<Hash>] Milestones with the fields used by milestone judges
   # @example
   #   client.list_milestones('octocat/Hello-World', state: 'all')
   #   # => [{:id=>1, :number=>1, :title=>"Milestone 1", ...}, ...]
-  def list_milestones(_repo, _options = {})
-    [1, 2].map do |number|
-      {
-        id: number,
-        number:,
-        title: "Milestone #{number}",
-        state: 'open',
-        created_at: Time.utc(2026, 1, number),
-        due_on: number == 1 ? Time.utc(2026, 2, 1) : nil,
-        creator: user(526_301)
-      }
-    end
+  def list_milestones(_repo, options = {})
+    state = options.fetch(:state, 'open').to_s
+    milestones =
+      [1, 2].map do |number|
+        {
+          id: number,
+          number:,
+          title: "Milestone #{number}",
+          state: 'open',
+          created_at: Time.utc(2026, 1, number),
+          due_on: number == 1 ? Time.utc(2026, 2, 1) : nil,
+          creator: user(526_301)
+        }
+      end
+    milestones.reject! { |milestone| state != 'all' && state != milestone[:state] }
+    milestones
   end
 
   # Gets a single release.
