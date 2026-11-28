@@ -74,11 +74,17 @@ class TestDeleteOne < Fbe::Test
     f.foo = 2
     f.foo = 3
     id = f._id
+    last = fb.insert
+    last.what = 'marker'
     Fbe.delete_one(f, 'foo', 99, fb:)
     r = fb.query('(eq what "test")').each.first
     assert_equal(1, fb.query('(eq what "test")').each.to_a.size)
     assert_equal(id, r._id, 'The _id must not change when value is not in the array')
     assert_equal([1, 2, 3], r['foo'])
+    assert_equal(
+      %w[test marker], fb.query('(always)').each.to_a.map { |x| x['what'].first },
+      'The fact must stay where it was, not be deleted and inserted again'
+    )
   end
 
   def test_preserves_system_props_on_decorated_fb
