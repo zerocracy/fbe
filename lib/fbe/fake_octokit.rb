@@ -775,9 +775,10 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
         incomplete_results: false,
         items: [
           {
-            id: 42,
-            number: 10,
-            title: 'Awesome PR 10'
+            id: 43,
+            number: 11,
+            title: 'Awesome PR 11',
+            created_at: Time.parse('2024-08-21 20:00:00 UTC')
           }
         ]
       }
