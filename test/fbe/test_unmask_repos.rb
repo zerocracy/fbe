@@ -105,6 +105,40 @@ class TestUnmaskRepos < Fbe::Test
     assert_match(re, 'zerocracy/fbe')
   end
 
+  def test_mask_to_regex_is_anchored_at_both_ends
+    re = Fbe.mask_to_regex('zerocracy/fbe')
+    assert_match(re, 'zerocracy/fbe')
+    refute_match(re, 'foo/zerocracy/fbe', 'the regex is not anchored at the start')
+    refute_match(re, 'zerocracy/fbe-old', 'the regex is not anchored at the end')
+  end
+
+  def test_mask_to_regex_anchors_a_wildcard_mask
+    re = Fbe.mask_to_regex('zerocracy/*')
+    assert_match(re, 'zerocracy/fbe')
+    refute_match(re, 'notzerocracy/fbe', 'the wildcard mask is not anchored at the start')
+  end
+
+  def test_mask_to_regex_keeps_both_anchors_case_insensitive
+    re = Fbe.mask_to_regex('Zerocracy/Fbe')
+    assert_match(re, 'ZEROCRACY/FBE')
+    refute_match(re, 'xzerocracy/fbe', 'the case folding drops the start anchor')
+    refute_match(re, 'zerocracy/fbex', 'the case folding drops the end anchor')
+  end
+
+  def test_mask_to_regex_keeps_the_org_literal_for_a_wildcard_mask
+    re = Fbe.mask_to_regex('foo/*')
+    assert_match(re, 'foo/bar')
+    refute_match(re, 'bar/baz', 'the org of a wildcard mask is not literal')
+    refute_match(re, 'foobar/baz', 'the org of a wildcard mask is not anchored')
+  end
+
+  def test_mask_to_regex_ignores_a_question_mark_mask
+    re = Fbe.mask_to_regex('foo/bar?')
+    refute_match(re, 'foo/bar', 'an unescaped ? makes the last character optional')
+    refute_match(re, 'foo/ba', 'an unescaped ? makes the last character optional')
+    assert_match(re, 'foo/bar?', 'a ? is a literal character in a mask')
+  end
+
   def test_cannot_build_regex_from_mask_without_slash
     e = assert_raises(Fbe::Error) { Fbe.mask_to_regex('zerocracy') }
     assert_includes(e.message, 'zerocracy', 'the mask without a slash is not quoted in the error')
