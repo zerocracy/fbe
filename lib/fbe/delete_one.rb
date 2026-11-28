@@ -36,7 +36,7 @@ def Fbe.delete_one(fact, prop, value, fb: Fbe.fb, id: '_id')
   before[prop] = nv
   before.delete(prop) if nv.empty?
   fb.txn do |fbt|
-    fbt.query("(eq #{id} #{i})").delete!
+    fbt.query(Factbase::Term.new(:eq, [id.to_sym, i])).delete!
     c = fbt.insert
     f = c
     while f.instance_variable_defined?(:@fact) || f.instance_variable_defined?(:@origin)
