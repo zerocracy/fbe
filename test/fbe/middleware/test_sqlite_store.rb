@@ -106,6 +106,7 @@ class SqliteStoreTest < Fbe::Test
         assert_nil(store.read('my_key'))
         store.write('my_key', 'my_value')
         assert_nil(store.read('my_key'))
+        assert_nil(store.clear)
       end
     end
   end
