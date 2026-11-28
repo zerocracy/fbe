@@ -93,6 +93,18 @@ class TestPmp < Fbe::Test
     assert_equal(88, Fbe.pmp(loog: Loog::NULL).hr.days_to_reward)
   end
 
+  def test_preserves_large_integer_int
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    f = Fbe.fb(loog: Loog::NULL).insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.anger = 9_007_199_254_740_993
+    $loog = Loog::NULL
+    assert_equal(9_007_199_254_740_993, Fbe.pmp(loog: Loog::NULL).hr.anger)
+  end
+
   def test_coerces_string_property_declared_as_string
     $fb = Factbase.new
     $global = {}
