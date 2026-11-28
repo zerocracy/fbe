@@ -190,6 +190,21 @@ class TestTombstone < Fbe::Test
     end
   end
 
+  def test_refuses_arguments_of_wrong_types
+    ts = Fbe::Tombstone.new(fb: Factbase.new)
+    where = 'The type of "where" is not String'
+    repo = 'The type of "repo" is not Integer'
+    issue = 'The type of "issue" is neither Integer nor Array'
+    assert_equal(where, assert_raises(Fbe::Error) { ts.issues(:github, 42) }.message)
+    assert_equal(where, assert_raises(Fbe::Error) { ts.bury!(:github, 42, 7) }.message)
+    assert_equal(where, assert_raises(Fbe::Error) { ts.has?(:github, 42, 7) }.message)
+    assert_equal(repo, assert_raises(Fbe::Error) { ts.issues('github', '42') }.message)
+    assert_equal(repo, assert_raises(Fbe::Error) { ts.bury!('github', '42', 7) }.message)
+    assert_equal(repo, assert_raises(Fbe::Error) { ts.has?('github', '42', 7) }.message)
+    assert_equal(issue, assert_raises(Fbe::Error) { ts.bury!('github', 42, '7') }.message)
+    assert_equal(issue, assert_raises(Fbe::Error) { ts.has?('github', 42, '7') }.message)
+  end
+
   def test_dont_touch_factbase_when_member_is_invalid
     seed = Random.new_seed
     member = "ж#{Random.new(seed).rand(1..10_000)}"
