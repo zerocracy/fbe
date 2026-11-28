@@ -115,6 +115,16 @@ class RateLimitTest < Fbe::Test
     assert_equal(4999, tracker[:rate_limit].remaining)
   end
 
+  def test_reads_the_header_when_the_body_has_no_rate
+    stub_request(:get, 'https://api.github.com/rate_limit')
+      .to_return(
+        status: 200, body: '{}', headers: { 'Content-Type' => 'application/json', 'X-RateLimit-Remaining' => '4321' }
+      )
+    tracker = {}
+    create_connection(tracker).get('/rate_limit')
+    assert_equal(4321, tracker[:rate_limit].remaining)
+  end
+
   def test_handles_zero_remaining_count
     payload = { 'rate' => { 'limit' => 5000, 'remaining' => 1, 'reset' => 1_672_531_200 } }
     stub_request(:get, 'https://api.github.com/rate_limit')
