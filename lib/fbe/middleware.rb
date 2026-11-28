@@ -17,7 +17,7 @@ require_relative '../fbe'
 #
 # @example Using middleware in Faraday client
 #   Faraday.new do |conn|
-#     conn.use Fbe::Middleware::Formatter
+#     conn.response :logger, nil, formatter: Fbe::Middleware::Formatter
 #     conn.adapter Faraday.default_adapter
 #   end
 #
