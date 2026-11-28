@@ -60,6 +60,16 @@ class TestAward < Fbe::Test
     ].each { |t| assert_includes(md, t, md) }
   end
 
+  def test_bylaw_markdown_skips_whitespace_only_intro
+    bylaw = Fbe::Award::Bylaw.new
+    bylaw.intro('   ')
+    bylaw.line('award **1** point')
+    md = bylaw.markdown
+    refute_match(/\A \./, md, md)
+    refute_includes(md, ' . ', md)
+    assert_includes(md, "Here is how it's calculated:", md)
+  end
+
   def test_let_publishes_the_value_of_an_expression
     md = Fbe::Award.new(
       '(award (explain "t") (let x (plus 2 3)) (aka (give 1 "for x=${x}") "award ${x} points"))'
