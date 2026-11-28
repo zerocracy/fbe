@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2024-2026 Zerocracy
 # SPDX-License-Identifier: MIT
 
+require 'judges/options'
 require 'loog'
 require_relative '../../lib/fbe/award'
 require_relative '../test__helper'
@@ -12,6 +13,48 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024 Yegor Bugayenko
 # License:: MIT
 class TestAward < Fbe::Test
+  def test_reads_bylaw_from_pmp_with_given_global_only
+    seed = Random.new_seed
+    points = -Random.new(seed).rand(1..64)
+    $fb = Factbase.new
+    $global = nil
+    $options = nil
+    $loog = nil
+    f = $fb.insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.dud_was_punished = "(award (give #{points} \"as a basis\"))"
+    a = Fbe::Award.new(nil, judge: 'dud-was-punished', global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_equal(points, a.bill.points, "bylaw of #{points} points is not read with the given global (seed: #{seed})")
+  end
+
+  def test_keeps_decorated_factbase_out_of_global_variable
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    f = $fb.insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.dud_was_punished = '(award (give -16 "as a basis"))'
+    Fbe::Award.new(nil, judge: 'dud-was-punished', global: {}, options: Judges::Options.new, loog: Loog::NULL)
+    assert_empty($global, 'factbase is cached in $global though another global was given')
+  end
+
+  def test_caches_decorated_factbase_in_given_global
+    $fb = Factbase.new
+    $global = {}
+    $options = Judges::Options.new
+    $loog = Loog::NULL
+    f = $fb.insert
+    f.what = 'pmp'
+    f.area = 'hr'
+    f.dud_was_punished = '(award (give -8 "as a basis"))'
+    global = {}
+    Fbe::Award.new(nil, judge: 'dud-was-punished', global:, options: Judges::Options.new, loog: Loog::NULL)
+    refute_nil(global[:fb], 'factbase is not cached in the global that was given')
+  end
+
   def test_simple
     a = Fbe::Award.new(
       '
