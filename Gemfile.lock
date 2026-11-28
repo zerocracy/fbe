@@ -44,7 +44,8 @@ GEM
       uri (>= 0.13.1)
     addressable (2.10.0)
       public_suffix (>= 2.0.2, < 8.0)
-    ansi (1.6.0)
+    ansi (1.6.1)
+      logger
     ast (2.4.3)
     backtrace (0.4.1)
     base64 (0.3.0)
@@ -105,7 +106,7 @@ GEM
     filesize (0.2.0)
     gli (2.22.2)
       ostruct
-    graphql (2.6.15)
+    graphql (2.6.16)
       base64
       fiber-storage
       logger
@@ -256,8 +257,8 @@ GEM
     timeout (0.6.1)
     total (0.4.2)
     tsort (0.2.0)
-    typhoeus (1.7.1)
-      ethon (>= 0.19.1, < 0.20.0)
+    typhoeus (1.8.0)
+      ethon (>= 0.19.2, < 0.20.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.3.0)
