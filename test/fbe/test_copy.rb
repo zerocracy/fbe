@@ -19,7 +19,7 @@ class TestCopy < Fbe::Test
     source.foo = 42
     target = fb.insert
     target._id = 2
-    Fbe.copy(source, target)
+    assert_nil(Fbe.copy(source, target))
     assert_equal(2, target._id)
     assert_equal([2], target['_id'])
     assert_equal(42, target.foo)
