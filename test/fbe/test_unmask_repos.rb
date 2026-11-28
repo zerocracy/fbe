@@ -308,4 +308,18 @@ class TestUnmaskRepos < Fbe::Test
     assert_includes(list, 'yegor256/tacit')
     refute_includes(list, 'zerocracy/judges-action')
   end
+
+  def test_rejects_an_explicit_empty_repositories_mask
+    options = Judges::Options.new({ 'repositories' => '' })
+    error = assert_raises(Fbe::Error) { Fbe.unmask_repos(options:, global: {}, loog: Loog::NULL) }
+    assert_equal('Repositories mask is empty', error.message)
+  end
+
+  def test_repository_wildcard_can_match_zero_characters
+    assert_match(Fbe.mask_to_regex('org/foo*'), 'org/foo')
+  end
+
+  def test_repository_mask_starts_with_the_entire_owner
+    refute_match(Fbe.mask_to_regex('org/x'), 'xorg/x')
+  end
 end
