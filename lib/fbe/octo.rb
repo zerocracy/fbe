@@ -26,9 +26,6 @@ require_relative 'middleware/rate_limit'
 require_relative 'middleware/sqlite_store'
 require_relative 'middleware/trace'
 
-# When we are off quota.
-class Fbe::OffQuota < StandardError; end
-
 Fbe::SEARCH_METHODS = %i[
   search_issues search_commits search_repositories search_users search_code search_topics
 ].freeze
@@ -103,7 +100,7 @@ def Fbe.octo(options: $options, global: $global, loog: $loog) # rubocop:disable 
               builder.use(Octokit::Middleware::FollowRedirects)
               builder.use(Octokit::Response::RaiseError)
               builder.use(Faraday::Response::Logger, loog, formatter: Fbe::Middleware::Formatter)
-              builder.use(Fbe::Middleware::RateLimit, limits)
+              builder.use(Fbe::Middleware::RateLimit, limits, { core: 50, search: 5 })
               builder.use(Fbe::Middleware::Trace, trace, ignores: [:fresh], mutex:)
               if options.sqlite_cache
                 maxsize = Integer(Filesize.from(options.sqlite_cache_maxsize || '100M'))
