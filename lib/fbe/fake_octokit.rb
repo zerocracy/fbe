@@ -310,21 +310,31 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   # Gets workflow runs for a repository.
   #
   # @param [String] repo The repository name
-  # @param [Hash] _opts Additional options (not used in mock)
+  # @param [Hash] opts Creation date filters and pagination options
   # @return [Hash] Information about workflow runs including counts and details
   # @example
   #   fake_client = Fbe::FakeOctokit.new
   #   result = fake_client.repository_workflow_runs('octocat/Hello-World')
   #   result[:total_count] #=> 2
-  def repository_workflow_runs(repo, _opts = {})
-    {
-      total_count: 2,
-      workflow_runs: [
-        workflow_run(repo, 10_438_531_072),
-        workflow_run(repo, 10_438_531_073)
-      ]
-    }
+  def repository_workflow_runs(repo, opts = {})
+    runs = [10_438_531_072, 10_438_531_073].map { |id| workflow_run(repo, id) }
+    runs.select! { |run| within?(run[:created_at], opts[:created]) } if opts[:created]
+    size = Integer(opts.fetch(:per_page, 30))
+    offset = (Integer(opts.fetch(:page, 1)) - 1) * size
+    { total_count: runs.size, workflow_runs: runs.slice(offset, size) || [] }
   end
+
+  def within?(time, window)
+    compare =
+      lambda do |value|
+        value.include?('T') ? time <=> Time.iso8601(value) : time.getutc.to_date <=> Date.iso8601(value)
+      end
+    low, high = window.split('..', 2)
+    return (low == '*' || compare.call(low) >= 0) && (high == '*' || compare.call(high) <= 0) if high
+    operation, date = window.match(/\A(>=|<=|>|<)?(.+)\z/).captures
+    compare.call(date).public_send(operation || '==', 0)
+  end
+  private :within?
 
   # Gets usage information for a specific workflow run.
   #
@@ -1564,6 +1574,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
   end
 
   def workflow_run(repo, id)
+    @created ||= {}
     known = [
       { id: 10_438_531_072, event: 'pull_request', conclusion: 'success', name: 'make' },
       { id: 10_438_531_073, event: 'pull_request', conclusion: 'success', name: 'copyrights' },
@@ -1579,7 +1590,7 @@ class Fbe::FakeOctokit # rubocop:disable Metrics/ClassLength
       status: 'completed',
       started_at: '2024-08-18T08:04:44Z',
       completed_at: '2024-08-18T08:20:17Z',
-      created_at: random_time,
+      created_at: @created[[repo.to_s.downcase, id]] ||= random_time,
       run_started_at: random_time,
       workflow_id: known[:id],
       repository: repository(repo)
