@@ -809,7 +809,7 @@ class TestOcto < Fbe::Test
     event = result.find { _1[:event] == 'assigned' }
     assert_equal(608, event[:id])
     assert_pattern do
-      event => {
+      event.to_attrs => {
         id: Integer,
         actor: { login: 'user2', id: 422, type: 'User' },
         event: 'assigned',
@@ -827,7 +827,7 @@ class TestOcto < Fbe::Test
     assert_equal(2, events.size)
     events.first.then do |event|
       assert_pattern do
-        event => {
+        event.to_attrs => {
           id: 1010,
           actor: { login: 'user2', id: 422, type: 'User' },
           event: 'assigned',
@@ -839,7 +839,7 @@ class TestOcto < Fbe::Test
     end
     events.last.then do |event|
       assert_pattern do
-        event => {
+        event.to_attrs => {
           id: 1011,
           actor: { login: 'user2', id: 422, type: 'User' },
           event: 'unassigned',
@@ -864,7 +864,7 @@ class TestOcto < Fbe::Test
     result = o.issue('yegor256/test', 142)
     assert_equal(Time.parse('2025-06-02 15:00:00 UTC'), result[:closed_at])
     assert_pattern do
-      result => {
+      result.to_attrs => {
         id: 655,
         number: 142,
         user: { login: 'yegor256', id: 526_301, type: 'User' },
@@ -877,7 +877,7 @@ class TestOcto < Fbe::Test
     result = o.issue('yegor256/test', 143)
     assert_equal(Time.parse('2025-06-01 18:20:00 UTC'), result[:closed_at])
     assert_pattern do
-      result => {
+      result.to_attrs => {
         id: 656,
         number: 143,
         user: { login: 'yegor256', id: 526_301, type: 'User' },
@@ -893,9 +893,9 @@ class TestOcto < Fbe::Test
   def test_fetch_fake_issue_without_user
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     result = o.issue('yegor256/test', 94)
-    refute_includes(result.keys, :user)
+    refute_includes(result.to_attrs.keys, :user)
     assert_pattern do
-      result => {
+      result.to_attrs => {
         id: Integer,
         number: 94,
         repo: Hash,
@@ -909,7 +909,7 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.pull_request('yegor256/test', 29).then do |pr|
       assert_pattern do
-        pr => {
+        pr.to_attrs => {
           id: 42,
           number: 29,
           user: { login: 'user', id: 421 },
@@ -921,7 +921,7 @@ class TestOcto < Fbe::Test
     end
     o.pull_request('yegor256/test', 172).then do |pr|
       assert_pattern do
-        pr => {
+        pr.to_attrs => {
           id: 1_990_323_142,
           number: 172,
           user: { login: 'test', id: 88_084_038 },
@@ -957,7 +957,7 @@ class TestOcto < Fbe::Test
     o.pull_request_review_comments('yegor256/test', 100, 100_001).then do |comments|
       assert_kind_of(Array, comments)
       comments.each do |comment|
-        assert_pattern { comment => { id: Integer, user: { login: String, id: Integer, type: String } } }
+        assert_pattern { comment.to_attrs => { id: Integer, user: { login: String, id: Integer, type: String } } }
       end
     end
   end
@@ -966,7 +966,7 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     o.list_issues('foo/bazz').first.then do |issue|
       assert_pattern do
-        issue => {
+        issue.to_attrs => {
           id: Integer,
           number: 144,
           repo: { full_name: 'foo/bazz' },
@@ -977,7 +977,7 @@ class TestOcto < Fbe::Test
     end
     o.list_issues('foo/bazz').slice(1..).each do |issue|
       assert_pattern do
-        issue => {
+        issue.to_attrs => {
           id: Integer,
           number: Integer,
           repo: { full_name: String },
@@ -1546,7 +1546,10 @@ class TestOcto < Fbe::Test
 
   def test_fake_review_comments
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    assert_equal(o.pull_request_comments('yegor256/test', 100), o.review_comments('yegor256/test', 100))
+    assert_equal(
+      o.pull_request_comments('yegor256/test', 100).map(&:to_attrs),
+      o.review_comments('yegor256/test', 100).map(&:to_attrs)
+    )
   end
 
   def test_fake_create_commit_comment
@@ -1583,7 +1586,7 @@ class TestOcto < Fbe::Test
 
   def test_fake_get
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
-    assert_equal({}, o.get('/rate_limit'))
+    assert_equal({}, o.get('/rate_limit').to_attrs)
   end
 
   def test_fake_search_commits
