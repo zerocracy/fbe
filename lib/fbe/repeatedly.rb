@@ -35,6 +35,7 @@ require_relative 'overwrite'
 #   end
 def Fbe.repeatedly(area, p_every_hours, fb: Fbe.fb, judge: $judge, loog: $loog, &)
   raise(Fbe::Error, 'The area is nil') if area.nil?
+  raise(Fbe::Error, 'The area cannot be empty') if area.is_a?(String) && area.strip.empty?
   raise(Fbe::Error, 'The p_every_hours is nil') if p_every_hours.nil?
   raise(Fbe::Error, 'The fb is nil') if fb.nil?
   raise(Fbe::Error, 'The $judge is not set') if judge.nil?
