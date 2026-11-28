@@ -13,6 +13,15 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestKillIf < Fbe::Test
+  def test_deletes_more_facts_than_one_query_holds
+    fb = Factbase.new
+    120.times { |i| fb.insert._id = i + 1 }
+    fb.insert._id = 500
+    deleted = Fbe.kill_if(fb.query('(lt _id 121)').each.to_a, fb:)
+    assert_equal(120, deleted, 'All the facts of every slice must be counted')
+    assert_equal(1, fb.size, 'The other fact must stay')
+  end
+
   def test_deletes_a_few
     fb = Factbase.new
     f = fb.insert

@@ -22,8 +22,9 @@ require_relative 'over'
 #
 # @param [String] mask Repository mask in format 'org/repo' where repo can contain '*'
 # @return [Regexp] Case-insensitive regular expression for matching repositories
-# @raise [Fbe::Error] If the mask is not 'org/repo' or the organization part contains asterisk
+# @raise [Fbe::Error] If the mask is nil, not in 'org/repo' format, or the organization part contains asterisk
 def Fbe.mask_to_regex(mask)
+  raise(Fbe::Error, 'The mask is nil') if mask.nil?
   raise(Fbe::Error, "Mask #{mask.inspect} is not in the 'org/repo' format") unless mask.match?(%r{\A[^/]+/[^/]+\z})
   org, repo = mask.split('/')
   raise(Fbe::Error, "Org '#{org}' can't have an asterisk") if org.include?('*')
@@ -68,6 +69,9 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
   options: $options, global: $global, loog: $loog, epoch: $epoch || Time.now, kickoff: $kickoff || Time.now,
   quota_aware: true, lifetime_aware: true, timeout_aware: true
 )
+  raise(Fbe::Error, 'The $options is not set') if options.nil?
+  raise(Fbe::Error, 'The $global is not set') if global.nil?
+  raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   raise(Fbe::Error, 'Repositories mask is not specified') unless options.repositories
   raise(Fbe::Error, 'Repositories mask is empty') if options.repositories.empty?
   return if block_given? && Fbe.over?(
@@ -95,11 +99,13 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
       repos << r[:full_name] if re.match?(r[:full_name])
     end
   rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::NotFound, Octokit::ServerError,
-         Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
+    Octokit::Unauthorized, Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
     loog.warn("Cannot expand the mask #{mask.inspect}, skipping it: #{e.message}")
   end
   masks.select { |m| m.start_with?('-') }.each do |mask|
-    re = Fbe.mask_to_regex(mask[1..])
+    pattern = mask[1..].strip
+    next if pattern.empty?
+    re = Fbe.mask_to_regex(pattern)
     repos.reject! { |r| re.match?(r) }
   end
   repos.uniq!(&:downcase)
@@ -109,7 +115,7 @@ def Fbe.unmask_repos( # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticCompl
     loog.warn("Repository #{repo.inspect} is absent, dropping it: #{e.message}")
     true
   rescue Octokit::Deprecated, Octokit::Forbidden, Octokit::ServerError, Octokit::Unauthorized,
-         Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
+    Faraday::ConnectionFailed, Faraday::TimeoutError, Fbe::OffQuota => e
     loog.warn("Cannot tell whether #{repo.inspect} is archived, assuming it is not: #{e.message}")
     false
   end

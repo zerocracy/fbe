@@ -201,6 +201,10 @@ class Fbe::Middleware::SqliteStore
   #   could not be made usable and has been disabled
   def open!
     init!
+  rescue SQLite3::BusyException => e
+    @loog.warn("SQLite cache at #{@path} is locked (#{e.message}), not using it in this run")
+    @disabled = true
+    nil
   rescue SQLite3::Exception => e
     @loog.warn("SQLite cache at #{@path} is unusable (#{e.message}), discarding it and starting fresh")
     FileUtils.rm_f(@path)

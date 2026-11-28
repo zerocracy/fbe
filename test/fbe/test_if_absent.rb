@@ -147,4 +147,29 @@ class TestIfAbsent < Fbe::Test
     assert_equal('A block is required by if_absent', error.message)
     assert_equal(0, fb.size, 'if_absent inserted a fact without a block')
   end
+
+  def test_handles_values_with_backslashes_and_quotes
+    fb = Factbase.new
+    inserted =
+      Fbe.if_absent(fb:) do |f|
+        f.title = "it\\'s a quote"
+        f.comment = 'path\\to\\file'
+      end
+    refute_nil(inserted)
+    assert_equal("it\\'s a quote", inserted.title)
+    assert_equal('path\\to\\file', inserted.comment)
+    assert_equal(1, fb.size)
+  end
+
+  def test_handles_escaped_double_quotes_with_backslashes
+    fb = Factbase.new
+    fact =
+      Fbe.if_absent(fb:) do |f|
+        f.tag = 'sample \"quoted\" value'
+        f.count = 7
+      end
+    refute_nil(fact)
+    assert_equal('sample \"quoted\" value', fact.tag)
+    assert_equal(7, fact.count)
+  end
 end

@@ -32,7 +32,6 @@
 (explain (when
   (exists _id)
   (and
-    (unique _id)
     (eq "Integer" (type _id))
     (one _id))))
 

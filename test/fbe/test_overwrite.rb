@@ -14,6 +14,38 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOverwrite < Fbe::Test
+  def test_adds_aliased_keys_without_recreating_the_fact
+    fb = Factbase.new
+    fact = fb.insert
+    fact.bar = 'kept'
+    Fbe.overwrite(fact, { foo: 1, 'foo' => 2 }, fb:)
+    assert_equal([2], fact['foo'])
+    assert_equal(['kept'], fact['bar'])
+    assert_equal(1, fb.size)
+  end
+
+  def test_skips_aliased_keys_when_the_last_value_is_unchanged
+    fb = Factbase.new
+    fact = fb.insert
+    fact.foo = 2
+    Fbe.overwrite(fact, { foo: 1, 'foo' => 2 }, fb:)
+    assert_equal([2], fact['foo'])
+    assert_equal(1, fb.size)
+  end
+
+  def test_overwrites_existing_aliased_keys_with_the_last_value
+    fb = Factbase.new
+    fact = fb.insert
+    fact._id = 1
+    fact.foo = 0
+    fact.bar = 'kept'
+    Fbe.overwrite(fact, { 'foo' => 1, foo: [2, 3] }, fb:)
+    result = fb.query('(eq _id 1)').each.first
+    assert_equal([2, 3], result['foo'])
+    assert_equal(['kept'], result['bar'])
+    assert_equal(1, fb.size)
+  end
+
   def test_simple_overwrite
     fb = Factbase.new
     f = fb.insert
@@ -69,9 +101,8 @@ class TestOverwrite < Fbe::Test
     fb = Factbase.new
     f = fb.insert
     f.foo = 43
-    assert_raises(StandardError) do
-      Fbe.overwrite(f, 'foo', 42, fb:)
-    end
+    e = assert_raises(Fbe::Error) { Fbe.overwrite(f, 'foo', 42, fb:) }
+    assert_includes(e.message, 'There is no _id', e.message)
   end
 
   def test_without_previous_property
@@ -466,5 +497,39 @@ class TestOverwrite < Fbe::Test
     assert_nil(Fbe.overwrite(f, 'foo', 'z', fb:))
     f = fb.query('(always)').each.first
     assert_nil(Fbe.overwrite(f, { 'foo' => 'q' }, fb:))
+  end
+
+  def test_overwrite_with_hash_keeps_a_present_value
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    Fbe.overwrite(f, { foo: 1, bar: 2 }, fb:)
+    result = fb.query('(eq _id 1)').each.first
+    assert_equal([1], result['foo'], 'the present value was added again')
+    assert_equal([2], result['bar'], 'the absent value was not added')
+  end
+
+  def test_overwrite_reduces_many_values_to_the_first_one
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    f.foo = 2
+    Fbe.overwrite(f, 'foo', 1, fb:)
+    assert_equal([1], fb.query('(eq _id 1)').each.first['foo'], 'the overwrite was skipped')
+  end
+
+  def test_overwrite_reduces_many_values_to_the_last_one
+    fb = Factbase.new
+    f = fb.insert
+    f._id = 1
+    f.foo = 1
+    f.foo = 2
+    f.bar = 'x'
+    Fbe.overwrite(f, 'foo', 2, fb:)
+    result = fb.query('(eq _id 1)').each.first
+    assert_equal([2], result['foo'], 'the overwrite did not keep only the new value')
+    assert_equal(['x'], result['bar'], 'the other property was lost')
   end
 end

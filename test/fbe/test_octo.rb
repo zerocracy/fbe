@@ -14,6 +14,12 @@ require_relative '../test__helper'
 # Copyright:: Copyright (c) 2024-2026 Zerocracy
 # License:: MIT
 class TestOcto < Fbe::Test
+  def test_fake_repository_gives_each_owner_its_id
+    o = Fbe::FakeOctokit.new
+    assert_equal(24_234_201, o.repository('zerocracy/fbe')[:owner][:id], 'zerocracy has its own id')
+    assert_equal(526_301, o.repository('yegor256/judges')[:owner][:id], 'yegor256 keeps his id')
+  end
+
   def test_simple_use
     global = {}
     options = Judges::Options.new({ 'testing' => true })
@@ -750,6 +756,49 @@ class TestOcto < Fbe::Test
     o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
     assert_equal('zerocracy/baza', o.repository(1439)[:full_name])
     assert_equal('foo/bazz', o.repository(810)[:full_name])
+  end
+
+  def test_fake_repository_returns_api_url_by_string_name
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    repo = o.repository('zerocracy/fbe')
+    assert_equal('https://api.github.com/repos/zerocracy/fbe', repo[:url])
+    assert_equal('https://api.github.com/repos/zerocracy/fbe', repo['url'])
+  end
+
+  def test_fake_repository_returns_api_url_by_integer_id
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    repo = o.repository(42)
+    assert_equal('https://api.github.com/repos/yegor256/test', repo[:url])
+  end
+
+  def test_fake_repository_returns_api_url_for_mapped_id
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    baza = o.repository(1439)
+    assert_equal('https://api.github.com/repos/zerocracy/baza', baza[:url])
+    bazz = o.repository(810)
+    assert_equal('https://api.github.com/repos/foo/bazz', bazz[:url])
+  end
+
+  def test_fake_octokit_direct_repository_url
+    fake = Fbe::FakeOctokit.new
+    repo = fake.repository('octocat/Hello-World')
+    assert_equal('https://api.github.com/repos/octocat/Hello-World', repo[:url])
+  end
+
+  def test_fake_repository_url_and_html_url_are_distinct
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    repo = o.repository('foo/bar')
+    refute_equal(repo[:url], repo[:html_url])
+    assert_equal('https://api.github.com/repos/foo/bar', repo[:url])
+    assert_equal('https://github.com/foo/bar', repo[:html_url])
+  end
+
+  def test_fake_repository_url_format_matches_github_api
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    name = 'owner-org/repo-project'
+    repo = o.repository(name)
+    assert_match(%r{\Ahttps://api\.github\.com/repos/}, repo[:url])
+    assert_includes(repo[:url], name)
   end
 
   def test_fetches_fake_issue_events_has_assigned_event
@@ -1490,6 +1539,16 @@ class TestOcto < Fbe::Test
     o.search_commits('anything')[:items].each do |item|
       refute_nil(item[:sha])
       assert_equal(item[:sha], o.commit('foo/bar', item[:sha])[:sha])
+    end
+  end
+
+  def test_fake_comment_reactions_match_their_count
+    o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'testing' => true }))
+    o.pull_request_comments('foo/bar', 42).each do |comment|
+      assert_equal(
+        o.pull_request_review_comment_reactions('foo/bar', comment[:id]).size,
+        comment.dig(:reactions, :total_count)
+      )
     end
   end
 

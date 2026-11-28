@@ -32,6 +32,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     @cached = nil
     @remaining = nil
     @searchleft = nil
+    @used = nil
+    @searchused = nil
     @counter = 0
     @lock = Mutex.new
     @refresh = Mutex.new
@@ -81,6 +83,8 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       @cached = response
       @remaining = extract_remaining_count(response)
       @searchleft = extract_search_remaining_count(response)
+      @used = consumed(response)
+      @searchused = consumed(response, :search)
       @counter = 0
     end
     response
@@ -116,7 +120,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     end
   end
 
-  # Syncs the internal remaining count from a real API response header.
+  # Syncs quota counters from real API response headers.
   #
   # When the response was served by Faraday::HttpCache from cache
   # (indicated by +http_cache_trace+ containing +:fresh+), the
@@ -130,6 +134,14 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     return if response_env[:http_cache_trace]&.include?(:fresh)
     headers = response_env.response_headers
     return unless headers
+    used = headers['x-ratelimit-used']
+    unless used.nil?
+      if path&.start_with?('/search/')
+        @searchused = Integer(used)
+      else
+        @used = Integer(used)
+      end
+    end
     remaining = headers['x-ratelimit-remaining']
     return unless remaining
     count = Integer(remaining)
@@ -164,12 +176,28 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     value.nil? ? nil : Integer(value)
   end
 
-  # Builds a fresh body with the current remaining counts written in,
+  # Reads an observed usage counter from a fresh quota response.
+  #
+  # @param [Faraday::Response] response The API response
+  # @param [Symbol] resource The core or search resource
+  # @return [Integer, nil] The observed usage, or nil when unavailable
+  def consumed(response, resource = :core)
+    body = response.body
+    body = JSON.parse(body) if body.is_a?(String)
+    value = body.dig('resources', resource.to_s, 'used') if body.is_a?(Hash)
+    if resource == :core
+      value ||= body.dig('rate', 'used') if body.is_a?(Hash)
+      value ||= response.headers['x-ratelimit-used']
+    end
+    value.nil? ? nil : Integer(value)
+  end
+
+  # Builds a fresh body with remaining counts and observed usage written in,
   # without mutating the cached response. Uses a JSON round-trip for
   # the deep copy so we only handle JSON-shaped data.
   #
   # @param [Object] original The cached response body (Hash or JSON String)
-  # @return [Object] A new body of the same type with remaining counts updated
+  # @return [Object] A new body of the same type with known quota counts updated
   def patched_body(original)
     stringed = original.is_a?(String)
     body =
@@ -180,10 +208,22 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
       else
         return original
       end
-    body['rate']['remaining'] = @remaining if body['rate'] && !@remaining.nil?
-    body.dig('resources', 'core')&.[]=('remaining', @remaining) unless @remaining.nil?
-    body.dig('resources', 'search')&.[]=('remaining', @searchleft) unless @searchleft.nil?
+    patch(body['rate'], @remaining, @used)
+    patch(body.dig('resources', 'core'), @remaining, @used)
+    patch(body.dig('resources', 'search'), @searchleft, @searchused)
     stringed ? body.to_json : body
+  end
+
+  # Writes known counters into an existing copied resource object.
+  #
+  # @param [Hash, nil] counts The copied quota object
+  # @param [Integer, nil] remaining The remaining requests
+  # @param [Integer, nil] used The observed usage
+  # @return [void]
+  def patch(counts, remaining, used)
+    return if counts.nil?
+    counts['remaining'] = remaining unless remaining.nil?
+    counts['used'] = used unless used.nil?
   end
 
   # Builds a response environment that mirrors the cached response,
@@ -199,6 +239,7 @@ class Fbe::Middleware::RateLimit < Faraday::Middleware
     served.body = patched_body(response.body)
     served.response_headers = response.headers.dup
     served.response_headers['x-ratelimit-remaining'] = @remaining.to_s unless @remaining.nil?
+    served.response_headers['x-ratelimit-used'] = @used.to_s unless @used.nil?
     served
   end
 end
