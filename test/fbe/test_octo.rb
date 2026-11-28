@@ -1737,4 +1737,121 @@ class TestOcto < Fbe::Test
       refute_nil(result[:repository], "for workflow run #{id}")
     end
   end
+
+  def test_octo_requires_global_options_and_loog
+    err =
+      assert_raises(Fbe::Error) do
+        Fbe.octo(global: nil, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+      end
+    assert_equal('The $global is not set', err.message)
+    err =
+      assert_raises(Fbe::Error) do
+        Fbe.octo(global: {}, options: nil, loog: Loog::NULL)
+      end
+    assert_equal('The $options is not set', err.message)
+    err =
+      assert_raises(Fbe::Error) do
+        Fbe.octo(global: {}, options: Judges::Options.new({ 'testing' => true }), loog: nil)
+      end
+    assert_equal('The $loog is not set', err.message)
+  end
+
+  def test_octo_is_memoized_in_one_global
+    global = {}
+    options = Judges::Options.new({ 'testing' => true })
+    one = Fbe.octo(global:, options:, loog: Loog::NULL)
+    two = Fbe.octo(global:, options:, loog: Loog::NULL)
+    assert_same(one, two)
+  end
+
+  def test_octo_serves_a_23_5_hour_old_cache_entry
+    WebMock.disable_net_connect!
+    now = Time.now
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    Dir.mktmpdir do |dir|
+      cache = File.expand_path('t.db', dir)
+      stub_request(:get, 'https://api.github.com/repositories/798641472')
+        .to_return(
+          status: 200,
+          body: { id: 798_641_472, name: 'factbase' }.to_json,
+          headers: {
+            'Date' => now.httpdate,
+            'Content-Type' => 'application/json; charset=utf-8',
+            'Cache-Control' => 'public, max-age=86400, s-maxage=86400'
+          }
+        )
+        .times(1)
+        .then.to_raise(Fbe::Error, 'no more request to /repositories/798641472')
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
+      assert_equal('factbase', o.repo(798_641_472)['name'])
+      Time.stub(:now, now + (23.5 * 60 * 60)) do
+        o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
+        assert_equal('factbase', o.repo(798_641_472)['name'])
+      end
+    end
+  end
+
+  def test_octo_does_not_cache_a_response_over_100k
+    WebMock.disable_net_connect!
+    now = Time.now
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    Dir.mktmpdir do |dir|
+      cache = File.expand_path('t.db', dir)
+      stub = stub_request(:get, 'https://api.github.com/repositories/798641472')
+        .to_return(
+          status: 200,
+          body: { id: 798_641_472, name: 'x' * 100_100 }.to_json,
+          headers: {
+            'Date' => now.httpdate,
+            'Content-Type' => 'application/json; charset=utf-8',
+            'Cache-Control' => 'public, max-age=86400, s-maxage=86400'
+          }
+        )
+      o = Fbe.octo(loog: Loog::NULL, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
+      assert_equal(100_100, o.repo(798_641_472)['name'].length)
+      WebMock.remove_request_stub(stub)
+      stub_request(:get, 'https://api.github.com/repositories/798641472').to_return(
+        status: 200,
+        body: { id: 798_641_472, name: 'changed' }.to_json,
+        headers: {
+          'Date' => now.httpdate,
+          'Content-Type' => 'application/json; charset=utf-8',
+          'Cache-Control' => 'public, max-age=86400, s-maxage=86400'
+        }
+      )
+      assert_equal('changed', o.repo(798_641_472)['name'])
+    end
+  end
+
+  def test_octo_default_cache_sizes
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    loog = Loog::Buffer.new
+    Dir.mktmpdir do |dir|
+      cache = File.expand_path('t.db', dir)
+      Fbe.octo(loog:, global: {}, options: Judges::Options.new({ 'sqlite_cache' => cache }))
+      assert_match(/max size: 95\.37 MiB, max vsize: 97\.66 KiB/, loog.to_s, 'pins the decimal 100M/100K defaults')
+    end
+  end
+
+  def test_octo_does_not_send_an_empty_token
+    WebMock.disable_net_connect!
+    stub_request(:get, 'https://api.github.com/rate_limit').to_return(
+      body: '{}', headers: { 'X-RateLimit-Remaining' => '222' }
+    )
+    stub_request(:get, 'https://api.github.com/user/42').to_return(
+      body: { login: 'dude56' }.to_json, headers: { 'Content-Type' => 'application/json' }
+    )
+    loog = Loog::Buffer.new
+    o = Fbe.octo(loog:, global: {}, options: Judges::Options.new({ 'github_token' => '' }))
+    assert_match(/The GitHub API token is an empty string, won't use it/, loog.to_s)
+    o.user(42)
+    assert_requested(:get, 'https://api.github.com/user/42') { |req| req.headers['Authorization'].nil? }
+  end
 end
