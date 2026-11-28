@@ -227,4 +227,20 @@ class TestRepeatedly < Fbe::Test
     end
     assert(ran, "the judge stayed idle #{hours + 1} hours later, while the interval is #{hours}, seed is #{seed}")
   end
+
+  def test_uses_the_pmp_xml_default_when_no_area_fact_exists
+    $global = {}
+    $options = Judges::Options.new
+    fb = Fbe.fb(fb: Factbase.new, global: {}, options: $options, loog: Loog::NULL)
+    Fbe.repeatedly('integration', 'eva_learn_hours', fb:, judge: 'test', loog: Loog::NULL) do |f|
+      f.foo = 42
+    end
+    ran = false
+    Time.stub(:now, Time.now + (9 * 60 * 60)) do
+      Fbe.repeatedly('integration', 'eva_learn_hours', fb:, judge: 'test', loog: Loog::NULL) do |_f|
+        ran = true
+      end
+    end
+    assert(ran, 'the judge stayed idle 9 hours later, while pmp.xml says eva_learn_hours is 8')
+  end
 end
