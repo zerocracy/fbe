@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 require_relative '../fbe'
+require_relative 'id'
 require_relative 'octo'
 
 # Converts GitHub repository and issue IDs into a formatted issue reference.
@@ -34,17 +35,9 @@ def Fbe.issue(fact, options: $options, global: $global, loog: $loog)
   raise(Fbe::Error, 'The $loog is not set') if loog.nil?
   rid = fact['repository']
   raise(Fbe::Error, "There is no 'repository' property") if rid.nil?
-  begin
-    rid = Integer(Float(rid.first).round)
-  rescue ArgumentError, TypeError
-    raise(Fbe::Error, "The 'repository' property (#{rid.first.inspect}) is not a number")
-  end
+  rid = Fbe.whole_id(rid.first, "'repository' property")
   issue = fact['issue']
   raise(Fbe::Error, "There is no 'issue' property") if issue.nil?
-  begin
-    issue = Integer(Float(issue.first).round)
-  rescue ArgumentError, TypeError
-    raise(Fbe::Error, "The 'issue' property (#{issue.first.inspect}) is not a number")
-  end
+  issue = Fbe.whole_id(issue.first, "'issue' property")
   "#{Fbe.octo(global:, options:, loog:).repo_name_by_id(rid)}##{issue}"
 end
