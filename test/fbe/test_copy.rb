@@ -26,6 +26,38 @@ class TestCopy < Fbe::Test
     assert_equal([42], target['foo'])
   end
 
+  def test_preserves_identity_of_fresh_target
+    fb = Factbase.new
+    source = fb.insert
+    source._id = 1
+    source._time = Time.utc(2026, 1, 1)
+    source.foo = 42
+    source.foo = 43
+    target = fb.insert
+    copied = Fbe.copy(source, target)
+    assert_nil(target['_id'])
+    assert_nil(target['_time'])
+    assert_equal([42, 43], target['foo'])
+    assert_equal([1], source['_id'])
+    assert_equal(2, copied)
+  end
+
+  def test_preserves_identity_with_custom_exceptions
+    fb = Factbase.new
+    source = fb.insert
+    source._id = 1
+    source._time = Time.utc(2026, 1, 1)
+    source.foo = 42
+    source.bar = 43
+    target = fb.insert
+    copied = Fbe.copy(source, target, except: [:foo])
+    assert_nil(target['_id'])
+    assert_nil(target['_time'])
+    assert_nil(target['foo'])
+    assert_equal([43], target['bar'])
+    assert_equal(1, copied)
+  end
+
   def test_with_except
     fb = Factbase.new
     source = fb.insert
