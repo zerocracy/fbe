@@ -897,13 +897,13 @@ class Fbe::Graph # rubocop:disable Metrics/ClassLength
       end
     end
 
-    def pull_requests_with_reviews(_owner, _name, _since, **)
+    def pull_requests_with_reviews(owner, name, since, **)
+      pulls =
+        pull_request_reviews(owner, name, pulls: [[2, nil], [5, nil], [21, nil]]).filter_map do |pull|
+          pull.slice('id', 'number') if pull['reviews'].any? { |review| review['submitted_at'] >= since }
+        end
       {
-        'pulls_with_reviews' => [
-          { 'id' => 'PR_kwDOL6J6Ss6iprCx', 'number' => 2 },
-          { 'id' => 'PR_kwDOL6J6Ss6rhJ7T', 'number' => 5 },
-          { 'id' => 'PR_kwDOL6J6Ss6r13fG', 'number' => 21 }
-        ],
+        'pulls_with_reviews' => pulls,
         'has_next_page' => false,
         'next_cursor' => 'Y3Vyc29yOnYyOpHOdh_xUw=='
       }
