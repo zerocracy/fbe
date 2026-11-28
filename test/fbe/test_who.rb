@@ -40,4 +40,52 @@ class TestWho < Fbe::Test
     options = Judges::Options.new({ 'testing' => true })
     assert_raises(Fbe::Error) { Fbe.who(f, global:, options:, loog: Loog::NULL) }
   end
+
+  def test_refuses_a_nil_fact
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.who(nil, global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+      end
+    assert_equal('The fact is nil', error.message)
+  end
+
+  def test_refuses_a_nil_fact_with_symbol_prop
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.who(nil, :author_id, global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+      end
+    assert_equal('The fact is nil', error.message)
+  end
+
+  def test_refuses_a_nil_fact_with_string_prop
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.who(nil, 'creator', global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+      end
+    assert_equal('The fact is nil', error.message)
+  end
+
+  def test_refuses_a_nil_fact_with_arbitrary_prop
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.who(nil, :non_existent, global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+      end
+    assert_equal('The fact is nil', error.message)
+  end
+
+  def test_refuses_a_nil_fact_with_no_extra_arguments
+    error =
+      assert_raises(Fbe::Error) do
+        Fbe.who(nil)
+      end
+    assert_equal('The fact is nil', error.message)
+  end
+
+  def test_refuses_a_nil_fact_error_type
+    error =
+      assert_raises(StandardError) do
+        Fbe.who(nil, global: {}, options: Judges::Options.new({ 'testing' => true }), loog: Loog::NULL)
+      end
+    assert_kind_of(Fbe::Error, error)
+  end
 end
