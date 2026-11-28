@@ -76,7 +76,7 @@ def Fbe.if_absent(fb: Fbe.fb, always: false)
     vv =
       case v
       when String then "'#{v.gsub('\\', '\\\\\\\\').gsub('"', '\\\\"').gsub("'", "\\\\'")}'"
-      when Time then v.utc.iso8601
+      when Time then v.getutc.iso8601
       else v.to_s
       end
     "(eq #{k} #{vv})"
